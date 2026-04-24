@@ -5,6 +5,7 @@ import {
   createUser,
   getNextUserCode,
   ROLE_LABELS,
+  getUserByEmail,
   type UserRole,
   type UserStatus,
 } from "../../../shared/data/userStorage";
@@ -64,6 +65,8 @@ export default function UserCreatePage() {
       errors.email = "El correo electrónico es obligatorio";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errors.email = "El formato del correo no es válido";
+    } else if (getUserByEmail(form.email)) {
+      errors.email = "Este correo ya está registrado en el sistema";
     }
 
     if (!form.password) {
@@ -86,6 +89,10 @@ export default function UserCreatePage() {
 
     if (!form.role) {
       errors.role = "El rol es obligatorio";
+    }
+
+    if (form.role === "comercial" && !form.siUserId) {
+      errors.siUserId = "El vendedor es obligatorio para ejecutivos comerciales";
     }
 
     return errors;
@@ -246,17 +253,27 @@ export default function UserCreatePage() {
             <FormCard title="Sistema Integral" icon="🔗" color="#0D9488">
               <div className="grid grid-cols-1 gap-4">
                 <FormSelect
-                  label="Usuario Sistema Integral"
+                  label={form.role === "comercial" ? "Vendedor / Ejecutivo Comercial *" : "Vendedor / Ejecutivo Comercial"}
                   value={form.siUserId}
                   onChange={(v) => updateField("siUserId", v)}
-                  placeholder="-- Seleccione Usuario --"
+                  error={submitAttempted ? validationErrors.siUserId : ""}
+                  placeholder="-- Seleccione Vendedor --"
                   options={siUsers.map((u) => ({
                     value: u.id,
                     label: `${u.code} - ${u.fullName}`,
                   }))}
                 />
-                <p className="text-xs text-slate-500 italic">
-                  Vincula este usuario con un usuario del Sistema Integral para sincronización de datos.
+                {form.role === "comercial" ? (
+                  <p className="text-xs text-slate-500 italic">
+                    Obligatorio para ejecutivos comerciales. Selecciona el vendedor del Sistema Integral.
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500 italic">
+                    Opcional. Vincula este usuario con un vendedor del Sistema Integral para sincronización de datos.
+                  </p>
+                )}
+                <p className="text-xs text-slate-400">
+                  Última sincronización: Hoy a las 10:30 AM
                 </p>
               </div>
             </FormCard>

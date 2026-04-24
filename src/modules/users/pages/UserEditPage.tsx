@@ -14,6 +14,7 @@ import {
   ROLE_LABELS,
   STATUS_LABELS,
   getActiveUsers,
+  getUserByEmail,
   type UserRole,
   type UserStatus,
 } from "../../../shared/data/userStorage";
@@ -93,11 +94,20 @@ export default function UserEditPage() {
       errors.email = "Ingresa el correo electrónico.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errors.email = "Ingresa un correo válido.";
+    } else {
+      const existingUser = getUserByEmail(form.email);
+      const currentUser = getUserById(userId || "");
+      if (existingUser && existingUser.id !== currentUser?.id) {
+        errors.email = "Este correo ya está registrado en el sistema.";
+      }
     }
     if (!form.role) errors.role = "Selecciona un rol.";
+    if (form.role === "comercial" && !form.siUserId) {
+      errors.siUserId = "El vendedor es obligatorio para ejecutivos comerciales.";
+    }
 
     return errors;
-  }, [form]);
+  }, [form, userId]);
 
   const validationErrorList = Object.values(validationErrors).filter(Boolean) as string[];
 
@@ -247,17 +257,27 @@ export default function UserEditPage() {
           <FormCard title="Sistema Integral" icon="🔗" color="#0D9488">
             <div className="grid grid-cols-1 gap-4">
               <FormSelect
-                label="Usuario Sistema Integral"
+                label={form.role === "comercial" ? "Vendedor / Ejecutivo Comercial *" : "Vendedor / Ejecutivo Comercial"}
                 value={form.siUserId}
                 onChange={(value) => updateField("siUserId", value)}
-                placeholder="-- Seleccione Usuario --"
+                error={shouldShowFieldError("siUserId") ? validationErrors.siUserId : ""}
+                placeholder="-- Seleccione Vendedor --"
                 options={getActiveUsers().map((u) => ({
                   value: u.id,
                   label: `${u.code} - ${u.fullName}`,
                 }))}
               />
-              <p className="text-xs text-slate-500 italic">
-                Vincula este usuario con un usuario del Sistema Integral para sincronización de datos.
+              {form.role === "comercial" ? (
+                <p className="text-xs text-slate-500 italic">
+                  Obligatorio para ejecutivos comerciales. Selecciona el vendedor del Sistema Integral.
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500 italic">
+                  Opcional. Vincula este usuario con un vendedor del Sistema Integral para sincronización de datos.
+                </p>
+              )}
+              <p className="text-xs text-slate-400">
+                Última sincronización: Hoy a las 10:30 AM
               </p>
             </div>
           </FormCard>
