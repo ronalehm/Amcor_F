@@ -137,13 +137,15 @@ export default function PortfolioListPage() {
 
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<PortfolioTab>("all");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
 
   const [clientFilter, setClientFilter] = useState("");
   const [executiveFilter, setExecutiveFilter] = useState("");
   const [envolturaFilter, setEnvolturaFilter] = useState("");
   const [usoFinalFilter, setUsoFinalFilter] = useState("");
   const [maquinaFilter, setMaquinaFilter] = useState("");
+
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [sortConfig, setSortConfig] = useState<{
     key: SortKey;
@@ -254,12 +256,6 @@ export default function PortfolioListPage() {
         (activeTab === "active" && status === "activo") ||
         (activeTab === "inactive" && status === "inactivo");
 
-      const matchesQuickFilter =
-        quickFilter === "all" ||
-        (quickFilter === "withWrapper" && Boolean(wrapper)) ||
-        (quickFilter === "withMachine" && Boolean(machine)) ||
-        (quickFilter === "withoutMachine" && !machine);
-
       const matchesClient =
         !clientFilter ||
         portfolio.clientName === clientFilter ||
@@ -279,7 +275,6 @@ export default function PortfolioListPage() {
       return (
         matchesSearch &&
         matchesTab &&
-        matchesQuickFilter &&
         matchesClient &&
         matchesExecutive &&
         matchesEnvoltura &&
@@ -309,7 +304,6 @@ export default function PortfolioListPage() {
     portfolios,
     query,
     activeTab,
-    quickFilter,
     clientFilter,
     executiveFilter,
     envolturaFilter,
@@ -318,15 +312,45 @@ export default function PortfolioListPage() {
     sortConfig,
   ]);
 
+  const totalRecords = filteredPortfolios.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+
+  const paginatedPortfolios = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+
+    return filteredPortfolios.slice(startIndex, endIndex);
+  }, [filteredPortfolios, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    query,
+    activeTab,
+    clientFilter,
+    executiveFilter,
+    envolturaFilter,
+    usoFinalFilter,
+    maquinaFilter,
+    pageSize,
+  ]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const clearFilters = () => {
     setQuery("");
     setActiveTab("all");
-    setQuickFilter("all");
     setClientFilter("");
     setExecutiveFilter("");
     setEnvolturaFilter("");
     setUsoFinalFilter("");
     setMaquinaFilter("");
+    setPageSize(25);
+    setCurrentPage(1);
     setSortConfig({ key: "createdAt", direction: "desc" });
   };
 
@@ -399,12 +423,8 @@ export default function PortfolioListPage() {
     },
   ];
 
-  const quickFilters = [
-    { key: "all" as QuickFilter, label: "Todos" },
-    { key: "withWrapper" as QuickFilter, label: "Con envoltura" },
-    { key: "withMachine" as QuickFilter, label: "Con máquina cliente" },
-    { key: "withoutMachine" as QuickFilter, label: "Sin máquina cliente" },
-  ];
+  const startRecord = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endRecord = Math.min(currentPage * pageSize, totalRecords);
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
@@ -509,62 +529,35 @@ export default function PortfolioListPage() {
         </div>
 
         <div className="border-b border-slate-100 px-5 py-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-600">
-                Filtros rápidos
-              </h3>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:w-[340px]">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {quickFilters.map((filter) => {
-                  const isActive = quickFilter === filter.key;
-
-                  return (
-                    <button
-                      key={filter.key}
-                      type="button"
-                      onClick={() => setQuickFilter(filter.key)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
-                        isActive
-                          ? "border-[#003b5c] bg-[#003b5c] text-white"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-[#003b5c] hover:text-[#003b5c]"
-                      }`}
-                    >
-                      {filter.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por código, nombre, cliente..."
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
+              />
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative w-full sm:w-[320px]">
-                <Search
-                  size={16}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar por código, nombre, cliente..."
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
-                />
-              </div>
-
               <button
                 type="button"
                 onClick={clearFilters}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:border-[#003b5c] hover:text-[#003b5c]"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:border-[#003b5c] hover:text-[#003b5c]"
               >
                 <RotateCcw size={16} />
-                Limpiar filtros
+                Limpiar Filtros
               </button>
 
               <button
                 type="button"
                 onClick={() => navigate("/portfolio/new")}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#003b5c] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#002b43]"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#003b5c] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#002b43]"
               >
                 <Plus size={16} />
                 Crear Portafolio
@@ -698,7 +691,7 @@ export default function PortfolioListPage() {
             </thead>
 
             <tbody>
-              {filteredPortfolios.map((item, index) => (
+              {paginatedPortfolios.map((item, index) => (
                 <tr
                   key={item.codigo || item.id}
                   className={`border-b border-slate-100 transition-colors ${
@@ -797,6 +790,75 @@ export default function PortfolioListPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+            <select
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value));
+                setCurrentPage(1);
+              }}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition-colors focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+
+            <span>N°</span>
+
+            <span className="ml-3 text-xs text-slate-500">
+              Mostrando{" "}
+              <strong className="text-slate-700">{startRecord}</strong>
+              {" - "}
+              <strong className="text-slate-700">{endRecord}</strong>
+              {" de "}
+              <strong className="text-slate-700">{totalRecords}</strong>
+              {" registros"}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage === 1}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              ‹ Previous
+            </button>
+
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+              (page) => (
+                <button
+                  key={page}
+                  type="button"
+                  onClick={() => setCurrentPage(page)}
+                  className={`min-w-9 rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${
+                    currentPage === page
+                      ? "border-[#003b5c] bg-[#003b5c] text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-[#003b5c] hover:text-[#003b5c]"
+                  }`}
+                >
+                  {page}
+                </button>
+              ),
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              disabled={currentPage === totalPages}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next ›
+            </button>
+          </div>
         </div>
       </div>
     </div>

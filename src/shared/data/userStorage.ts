@@ -17,6 +17,8 @@ export type User = {
   status: UserStatus;
   area?: string;
   phone?: string;
+  siUserId?: string;
+  siUserCode?: string;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string;

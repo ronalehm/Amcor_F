@@ -47,6 +47,10 @@ export type ProjectRecord = {
   ejecutivoId?: number;
   ejecutivoName?: string;
 
+  // Usuario Sistema Integral
+  siUserId?: string;
+  siUserCode?: string;
+
   // Estados / tracking principal
   status: ProjectStatus;
   currentPortalStage?: PortalProjectStage;

@@ -30,7 +30,7 @@ import Button from "../../../shared/components/ui/Button";
 type ProjectBusinessStatus =
   | "Registrado"
   | "En evaluación"
-  | "Observado"
+  | "Observada"
   | "Lista para RFQ"
   | "En desarrollo"
   | "Pendiente de alta"
@@ -66,7 +66,7 @@ type SortKey =
 const PROJECT_STATUSES: ProjectBusinessStatus[] = [
   "Registrado",
   "En evaluación",
-  "Observado",
+  "Observada",
   "Lista para RFQ",
   "En desarrollo",
   "Pendiente de alta",
@@ -77,7 +77,7 @@ const PROJECT_STATUSES: ProjectBusinessStatus[] = [
 const STATUS_STYLES: Record<ProjectBusinessStatus, string> = {
   Registrado: "border-slate-200 bg-slate-50 text-slate-700",
   "En evaluación": "border-blue-200 bg-blue-50 text-blue-700",
-  Observado: "border-amber-200 bg-amber-50 text-amber-700",
+  Observada: "border-amber-200 bg-amber-50 text-amber-700",
   "Lista para RFQ": "border-indigo-200 bg-indigo-50 text-indigo-700",
   "En desarrollo": "border-cyan-200 bg-cyan-50 text-cyan-700",
   "Pendiente de alta": "border-orange-200 bg-orange-50 text-orange-700",
@@ -186,7 +186,7 @@ const getProjectBusinessStatus = (
   }
 
   if (openObs > 0 || rawStatus.includes("observ")) {
-    return "Observado";
+    return "Observada";
   }
 
   if (rawStatus.includes("rfq") || rawStatus.includes("estimación")) {
@@ -327,7 +327,7 @@ export default function ProjectListPage() {
 
   useEffect(() => {
     setHeader({
-      title: "Proyectos",
+      title: "Proyectos >> Bandeja de seguimiento",
       breadcrumbs: [{ label: "Proyectos" }, { label: "Lista de Proyectos" }],
     });
 
@@ -539,7 +539,7 @@ export default function ProjectListPage() {
     () =>
       augmentedProjects.filter(
         (project) =>
-          project.openObs > 0 || project.businessStatus === "Observado"
+          project.openObs > 0 || project.businessStatus === "Observada"
       ),
     [augmentedProjects]
   );
@@ -901,63 +901,69 @@ export default function ProjectListPage() {
           </p>
         </div>
 
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 pt-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-600">
+              Filtros rápidos
+            </h3>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {quickFilters.map((filter) => {
+                const isActive = quickFilter === filter.key;
+
+                return (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={() => setQuickFilter(filter.key)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
+                      isActive
+                        ? "border-[#003b5c] bg-[#003b5c] text-white"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-[#003b5c] hover:text-[#003b5c]"
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <p className="pb-3 text-xs font-medium text-slate-500">
+            Mostrando {filteredProjects.length} de {augmentedProjects.length} registros
+          </p>
+        </div>
+
         <div className="border-b border-slate-100 px-5 py-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-600">
-                Filtros rápidos
-              </h3>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:w-[340px]">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {quickFilters.map((filter) => {
-                  const isActive = quickFilter === filter.key;
-
-                  return (
-                    <button
-                      key={filter.key}
-                      type="button"
-                      onClick={() => setQuickFilter(filter.key)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
-                        isActive
-                          ? "border-[#003b5c] bg-[#003b5c] text-white"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-[#003b5c] hover:text-[#003b5c]"
-                      }`}
-                    >
-                      {filter.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar por código, proyecto, cliente..."
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
+              />
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative w-full sm:w-[340px]">
-                <Search
-                  size={16}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar por código, proyecto, cliente..."
-                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
-                />
-              </div>
-
               <button
                 type="button"
                 onClick={clearFilters}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:border-[#003b5c] hover:text-[#003b5c]"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:border-[#003b5c] hover:text-[#003b5c]"
               >
                 <RotateCcw size={16} />
-                Limpiar filtros
+                Limpiar Filtros
               </button>
 
               <button
                 type="button"
                 onClick={() => navigate("/projects/new")}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#003b5c] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#002b43]"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#003b5c] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#002b43]"
               >
                 <Plus size={16} />
                 Nuevo Proyecto
@@ -966,7 +972,12 @@ export default function ProjectListPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 px-5 py-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="border-b border-slate-100 px-5 py-4">
+          <details className="group">
+            <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-slate-600 transition-colors hover:text-[#003b5c]">
+              Filtros adicionales
+            </summary>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
               Cliente
@@ -1106,6 +1117,8 @@ export default function ProjectListPage() {
               ))}
             </select>
           </div>
+            </div>
+          </details>
         </div>
       </section>
 

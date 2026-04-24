@@ -11,6 +11,7 @@ import {
 } from "../../../shared/data/projectStorage";
 import type { BooleanLike, YesNoPending } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
+import { getActiveUsers } from "../../../shared/data/userStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -22,6 +23,7 @@ import PreviewRow from "../../../shared/components/display/PreviewRow";
 type ProjectFormData = {
   portfolioCode: string;
   executiveId: string;
+  siUserId: string;
 
   projectName: string;
   projectDescription: string;
@@ -254,6 +256,7 @@ const DESTINATION_COUNTRY_OPTIONS = [
 const initialForm = (portfolioCode: string): ProjectFormData => ({
   portfolioCode,
   executiveId: "",
+  siUserId: "",
 
   projectName: "",
   projectDescription: "",
@@ -374,6 +377,7 @@ export default function ProjectCreatePage() {
 
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
+  const siUsers = useMemo(() => getActiveUsers(), []);
 
   const selectedPortfolio = useMemo(() => {
     return (
@@ -400,6 +404,7 @@ export default function ProjectCreatePage() {
         setForm({
           portfolioCode: original.portfolioCode || "",
           executiveId: original.ejecutivoId ? String(original.ejecutivoId) : "",
+          siUserId: original.siUserId || "",
           projectName: `${original.projectName || ""} (Copia)`,
           projectDescription: original.projectDescription || "",
           classification: original.classification || "Nuevo",
@@ -589,6 +594,9 @@ export default function ProjectCreatePage() {
       ejecutivoId: Number(form.executiveId) || undefined,
       ejecutivoName: selectedExecutive?.name,
 
+      siUserId: form.siUserId,
+      siUserCode: siUsers.find(u => u.id === form.siUserId)?.code,
+
       plantaName: inheritedPlant,
       wrappingName: inheritedWrapping,
       useFinalName: inheritedFinalUse,
@@ -755,6 +763,17 @@ export default function ProjectCreatePage() {
                   options={executives.map((executive) => ({
                     value: String(executive.id),
                     label: executive.name,
+                  }))}
+                />
+
+                <FormSelect
+                  label="Usuario Sistema Integral"
+                  value={form.siUserId}
+                  onChange={(value) => updateField("siUserId", value)}
+                  placeholder="-- Seleccione Usuario --"
+                  options={siUsers.map((u) => ({
+                    value: u.id,
+                    label: `${u.code} - ${u.fullName}`,
                   }))}
                 />
 

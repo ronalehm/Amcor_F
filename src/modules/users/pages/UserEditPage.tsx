@@ -13,6 +13,7 @@ import {
   updateUser,
   ROLE_LABELS,
   STATUS_LABELS,
+  getActiveUsers,
   type UserRole,
   type UserStatus,
 } from "../../../shared/data/userStorage";
@@ -25,6 +26,7 @@ type UserFormData = {
   status: UserStatus;
   phone: string;
   area: string;
+  siUserId: string;
 };
 
 export default function UserEditPage() {
@@ -62,6 +64,7 @@ export default function UserEditPage() {
       status: user.status,
       phone: user.phone || "",
       area: user.area || "",
+      siUserId: user.siUserId || "",
     });
     setLoading(false);
   }, [userId]);
@@ -124,6 +127,9 @@ export default function UserEditPage() {
       return;
     }
 
+    const siUsers = getActiveUsers();
+    const selectedSiUser = siUsers.find(u => u.id === form.siUserId);
+
     updateUser(userId, {
       firstName: form.firstName,
       lastName: form.lastName,
@@ -132,6 +138,8 @@ export default function UserEditPage() {
       status: form.status,
       phone: form.phone || undefined,
       area: form.area || undefined,
+      siUserId: form.siUserId || undefined,
+      siUserCode: selectedSiUser?.code,
     });
 
     navigate("/users");
@@ -233,6 +241,24 @@ export default function UserEditPage() {
                 onChange={(value) => updateField("status", value as UserStatus)}
                 options={statusOptions}
               />
+            </div>
+          </FormCard>
+
+          <FormCard title="Sistema Integral" icon="🔗" color="#0D9488">
+            <div className="grid grid-cols-1 gap-4">
+              <FormSelect
+                label="Usuario Sistema Integral"
+                value={form.siUserId}
+                onChange={(value) => updateField("siUserId", value)}
+                placeholder="-- Seleccione Usuario --"
+                options={getActiveUsers().map((u) => ({
+                  value: u.id,
+                  label: `${u.code} - ${u.fullName}`,
+                }))}
+              />
+              <p className="text-xs text-slate-500 italic">
+                Vincula este usuario con un usuario del Sistema Integral para sincronización de datos.
+              </p>
             </div>
           </FormCard>
         </div>

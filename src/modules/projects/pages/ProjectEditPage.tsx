@@ -4,6 +4,7 @@ import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
 import { getProjectByCode, updateProjectRecord, type ProjectRecord } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
+import { getActiveUsers } from "../../../shared/data/userStorage";
 import { getCatalogOptions } from "../../../shared/data/projectCatalogStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
@@ -24,6 +25,7 @@ export default function ProjectEditPage() {
     projectName: "",
     projectDescription: "",
     ejecutivoId: undefined,
+    siUserId: "",
     classification: "Nuevo",
     subClassification: "SFDC - R&D",
     projectType: "ICO",
@@ -133,6 +135,7 @@ export default function ProjectEditPage() {
 
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
+  const siUsers = useMemo(() => getActiveUsers(), []);
 
   useEffect(() => {
     if (!projectCode) {
@@ -237,6 +240,7 @@ export default function ProjectEditPage() {
     if (Object.keys(validationErrors).length > 0 || !projectCode) return;
 
     const selectedExecutive = executives.find(ex => ex.id === Number(form.ejecutivoId));
+    const selectedSiUser = siUsers.find(user => user.id === form.siUserId);
 
     updateProjectRecord(projectCode, {
       ...form,
@@ -245,6 +249,8 @@ export default function ProjectEditPage() {
       projectName: form.projectName || "",
       ejecutivoId: form.ejecutivoId,
       ejecutivoName: selectedExecutive?.name || form.ejecutivoName,
+      siUserId: form.siUserId,
+      siUserCode: selectedSiUser?.code || form.siUserCode,
       // Inherited from portfolio
       clientName: selectedPortfolio?.cli || selectedPortfolio?.clientName || form.clientName || "",
       wrappingName: selectedPortfolio?.env || selectedPortfolio?.envoltura || form.wrappingName,
@@ -298,6 +304,13 @@ export default function ProjectEditPage() {
                   error={getError("ejecutivoId")}
                   placeholder="-- Seleccione Ejecutivo --"
                   options={executives.map(e => ({ value: String(e.id), label: e.name }))}
+                />
+                <FormSelect
+                  label="Usuario Sistema Integral"
+                  value={form.siUserId || ""}
+                  onChange={(v) => updateField("siUserId", v)}
+                  placeholder="-- Seleccione Usuario --"
+                  options={siUsers.map(u => ({ value: u.id, label: `${u.code} - ${u.fullName}` }))}
                 />
                 <FormSelect
                   label="Tipo de Proyecto"

@@ -8,6 +8,7 @@ import {
   type UserRole,
   type UserStatus,
 } from "../../../shared/data/userStorage";
+import { getActiveUsers } from "../../../shared/data/userStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -29,9 +30,12 @@ export default function UserCreatePage() {
     status: "active" as UserStatus,
     area: "",
     phone: "",
+    siUserId: "",
   });
 
   const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  const siUsers = useMemo(() => getActiveUsers(), []);
 
   useEffect(() => {
     setHeader({
@@ -106,6 +110,8 @@ export default function UserCreatePage() {
 
     if (Object.keys(validationErrors).length > 0) return;
 
+    const selectedSiUser = siUsers.find(u => u.id === form.siUserId);
+
     createUser({
       email: form.email,
       password: form.password,
@@ -115,6 +121,8 @@ export default function UserCreatePage() {
       status: form.status,
       area: form.area || undefined,
       phone: form.phone || undefined,
+      siUserId: form.siUserId || undefined,
+      siUserCode: selectedSiUser?.code,
     });
 
     navigate("/users");
@@ -231,6 +239,24 @@ export default function UserCreatePage() {
                   {form.role === "rd" && "Gestiona especificaciones técnicas, estructura y desarrollo de productos."}
                   {form.role === "finance" && "Acceso a datos financieros, precios y condiciones comerciales."}
                   {form.role === "viewer" && "Solo lectura. Puede visualizar información pero no modificar datos."}
+                </p>
+              </div>
+            </FormCard>
+
+            <FormCard title="Sistema Integral" icon="🔗" color="#0D9488">
+              <div className="grid grid-cols-1 gap-4">
+                <FormSelect
+                  label="Usuario Sistema Integral"
+                  value={form.siUserId}
+                  onChange={(v) => updateField("siUserId", v)}
+                  placeholder="-- Seleccione Usuario --"
+                  options={siUsers.map((u) => ({
+                    value: u.id,
+                    label: `${u.code} - ${u.fullName}`,
+                  }))}
+                />
+                <p className="text-xs text-slate-500 italic">
+                  Vincula este usuario con un usuario del Sistema Integral para sincronización de datos.
                 </p>
               </div>
             </FormCard>
