@@ -16,9 +16,11 @@ import {
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
+import { getAllClientsMirror } from "../../../shared/data/clientMirrorStorage";
+import { getAllPreliminaryClients } from "../../../shared/data/preliminaryClientStorage";
 
-type ClientStatusKey = "all" | "active" | "inactive" | "validation" | "rejected";
-type SourceKey = "all" | "si" | "portal";
+type ClientStatusKey = "all" | "active" | "inactive" | "validation" | "rejected" | "converted";
+type SourceKey = "all" | "si" | "odiseo";
 type AvailabilityKey = "all" | "available" | "unavailable";
 type SortDirection = "asc" | "desc";
 
@@ -73,6 +75,7 @@ const CLIENT_STATUS_LABELS: Record<Exclude<ClientStatusKey, "all">, string> = {
   inactive: "Inactivo",
   validation: "En validación",
   rejected: "Rechazado",
+  converted: "Convertido a SI",
 };
 
 const CLIENT_STATUS_STYLES: Record<Exclude<ClientStatusKey, "all">, string> = {
@@ -80,11 +83,12 @@ const CLIENT_STATUS_STYLES: Record<Exclude<ClientStatusKey, "all">, string> = {
   inactive: "border-slate-200 bg-slate-100 text-slate-600",
   validation: "border-amber-200 bg-amber-50 text-amber-700",
   rejected: "border-red-200 bg-red-50 text-red-700",
+  converted: "border-blue-200 bg-blue-50 text-blue-700",
 };
 
 const SOURCE_LABELS: Record<Exclude<SourceKey, "all">, string> = {
   si: "Sistema Integral",
-  portal: "Portal Web",
+  odiseo: "Portal ODISEO",
 };
 
 const AVAILABILITY_LABELS: Record<Exclude<AvailabilityKey, "all">, string> = {
@@ -244,7 +248,7 @@ const getClientSourceKey = (client: ClientListItem): Exclude<SourceKey, "all"> =
     return "si";
   }
 
-  return "portal";
+  return "odiseo";
 };
 
 const getClientSourceLabel = (client: ClientListItem) => {
@@ -299,6 +303,7 @@ const getSortValue = (
         validation: 2,
         inactive: 3,
         rejected: 4,
+        converted: 5,
       };
 
       return statusOrder[getClientStatusKey(client)];
@@ -433,6 +438,11 @@ export default function ClientListPage() {
 
   const rejectedClients = useMemo(
     () => clients.filter((client) => getClientStatusKey(client) === "rejected"),
+    [clients],
+  );
+
+  const convertedClients = useMemo(
+    () => clients.filter((client) => getClientStatusKey(client) === "converted"),
     [clients],
   );
 
@@ -852,7 +862,7 @@ export default function ClientListPage() {
             >
               <option value="all">Todos</option>
               <option value="si">Sistema Integral</option>
-              <option value="portal">Portal Web</option>
+              <option value="odiseo">Portal ODISEO</option>
             </select>
           </div>
 
