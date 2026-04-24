@@ -10,6 +10,11 @@ export default function ProjectStatusBadge({ status }: ProjectStatusBadgeProps) 
     "En validación": "bg-amber-100 text-amber-700",
     "Aprobado": "bg-green-100 text-green-700",
     "Rechazado": "bg-red-100 text-red-700",
+    "Registrado": "bg-blue-100 text-blue-700",
+    "Dado de alta": "bg-green-200 text-green-800",
+    "Desestimado": "bg-gray-200 text-gray-800",
+    "Aprobado para fabricación": "bg-green-100 text-green-700",
+    "Aprobado para muestra": "bg-green-100 text-green-700",
   };
 
   return (

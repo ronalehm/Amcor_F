@@ -309,3 +309,19 @@ export function isFieldRelevantInStage(fieldKey: string, stage: string): boolean
   const stages = getRelevantStagesForField(fieldKey);
   return stages.includes(stage);
 }
+
+export function getImpactFieldsForStage(stage: string): FieldImpactConfig[] {
+  // Map stage to work area
+  const stageToAreaMap: Record<string, WorkArea> = {
+    "P1": "P1 - Comercial",
+    "P2": "P2 - Artes Gráficas",
+    "P3": "P3 - R&D",
+    "P4": "P4 - Commercial Finance",
+    "P5": "P5 - Crédito / Cierre",
+  };
+
+  const area = stageToAreaMap[stage];
+  if (!area) return [];
+
+  return getFieldsByArea(area);
+}

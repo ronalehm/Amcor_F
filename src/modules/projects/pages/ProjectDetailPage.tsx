@@ -181,12 +181,12 @@ export default function ProjectDetailPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               <PreviewRow label="Clase de Impresión" value={project.printClass} />
               <PreviewRow label="Tipo de Impresión" value={project.printType} />
-              <PreviewRow label="¿Tiene diseño trabajado?" value={project.isPreviousDesign} />
+              <PreviewRow label="¿Tiene diseño trabajado?" value={String(project.isPreviousDesign)} />
               <PreviewRow label="Código EDAG" value={project.previousEdagCode} />
               <PreviewRow label="Versión EDAG" value={project.previousEdagVersion} />
               <PreviewRow label="Especificaciones Especiales" value={project.specialDesignSpecs} />
               <PreviewRow label="Comentarios de Diseño" value={project.specialDesignComments} />
-              <PreviewRow label="¿Archivos digitales?" value={project.hasDigitalFiles ? "Sí" : "No"} />
+              <PreviewRow label="¿Archivos digitales?" value={typeof project.hasDigitalFiles === 'boolean' ? (project.hasDigitalFiles ? "Sí" : "No") : String(project.hasDigitalFiles)} />
               <PreviewRow label="Tipo de Archivo de Arte" value={project.artworkFileType} />
               <PreviewRow label="Adjuntos de Arte" value={project.artworkAttachments} />
               <PreviewRow label="¿Requiere trabajo de diseño?" value={project.requiresDesignWork ? "Sí" : "No"} />
@@ -196,11 +196,11 @@ export default function ProjectDetailPage() {
           {/* 4. ESPECIFICACIONES DE ESTRUCTURA */}
           <FormCard title="4. Especificaciones de Estructura" icon="⚙" color="#1E82D9">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-              <PreviewRow label="¿Estructura de referencia?" value={project.hasReferenceStructure} />
+              <PreviewRow label="¿Estructura de referencia?" value={typeof project.hasReferenceStructure === 'boolean' ? (project.hasReferenceStructure ? "Sí" : "No") : String(project.hasReferenceStructure)} />
               <PreviewRow label="Código EM Referencia" value={project.referenceEmCode} />
               <PreviewRow label="Versión EM Referencia" value={project.referenceEmVersion} />
               <PreviewRow label="Tipo de Estructura" value={project.structureType} />
-              <PreviewRow label="¿Especificación técnica cliente?" value={project.hasCustomerTechnicalSpec ? "Sí" : "No"} />
+              <PreviewRow label="¿Especificación técnica cliente?" value={typeof project.hasCustomerTechnicalSpec === 'boolean' ? (project.hasCustomerTechnicalSpec ? "Sí" : "No") : String(project.hasCustomerTechnicalSpec)} />
               <PreviewRow label="Adjunto especificación técnica" value={project.customerTechnicalSpecAttachment} />
               
               <div className="md:col-span-2 border-t border-slate-100 pt-4 mt-2">

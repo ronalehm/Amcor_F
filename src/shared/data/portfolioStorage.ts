@@ -146,7 +146,7 @@ export function savePortfolioRecord<TDisplay, TTabport>({
   displayRecord: TDisplay;
   tabportRecord: TTabport;
 }) {
-  const savedDisplay = getPortfolioDisplayRecords<TDisplay>();
+  const savedDisplay = getPortfolioDisplayRecords();
   const savedTabport = getTabportRecords<TTabport>();
 
   localStorage.setItem(

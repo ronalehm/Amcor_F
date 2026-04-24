@@ -9,6 +9,7 @@ import {
   saveProjectRecord,
   getProjectByCode,
 } from "../../../shared/data/projectStorage";
+import type { BooleanLike, YesNoPending } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
@@ -621,24 +622,24 @@ export default function ProjectCreatePage() {
 
       printClass: form.printClass,
       printType: form.printType,
-      isPreviousDesign: form.isPreviousDesign,
+      isPreviousDesign: form.isPreviousDesign as BooleanLike,
       previousEdagCode: form.previousEdagCode,
       previousEdagVersion: form.previousEdagVersion,
       specialDesignSpecs: form.specialDesignSpecs,
       specialDesignComments: form.specialDesignComments,
-      hasDigitalFiles: form.hasDigitalFiles,
+      hasDigitalFiles: form.hasDigitalFiles as BooleanLike,
       artworkFileType: form.artworkFileType,
       artworkAttachments: form.artworkAttachments,
-      requiresDesignWork: form.requiresDesignWork,
+      requiresDesignWork: form.requiresDesignWork as BooleanLike,
       designRoute: form.designRoute,
       routeType: form.designRoute === "Con diseño" ? "Con diseño" : "Sin diseño",
       hasArtworkDesign: form.designRoute === "Con diseño",
 
-      hasReferenceStructure: form.hasReferenceStructure,
+      hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
       referenceEmCode: form.referenceEmCode,
       referenceEmVersion: form.referenceEmVersion,
       structureType: form.structureType,
-      hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec,
+      hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec as BooleanLike,
       customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
 
       layer1Material: form.layer1Material,
@@ -678,24 +679,24 @@ export default function ProjectCreatePage() {
         .filter(Boolean)
         .join(" x "),
 
-      hasZipper: form.hasZipper,
+      hasZipper: form.hasZipper as BooleanLike,
       zipperType: form.zipperType,
-      hasTinTie: form.hasTinTie,
-      hasValve: form.hasValve,
+      hasTinTie: form.hasTinTie as BooleanLike,
+      hasValve: form.hasValve as BooleanLike,
       valveType: form.valveType,
-      hasDieCutHandle: form.hasDieCutHandle,
-      hasReinforcement: form.hasReinforcement,
+      hasDieCutHandle: form.hasDieCutHandle as BooleanLike,
+      hasReinforcement: form.hasReinforcement as BooleanLike,
       reinforcementThickness: form.reinforcementThickness,
       reinforcementWidth: form.reinforcementWidth,
-      hasAngularCut: form.hasAngularCut,
-      hasRoundedCorners: form.hasRoundedCorners,
+      hasAngularCut: form.hasAngularCut as BooleanLike,
+      hasRoundedCorners: form.hasRoundedCorners as BooleanLike,
       roundedCornersType: form.roundedCornersType,
-      hasNotch: form.hasNotch,
-      hasPerforation: form.hasPerforation,
+      hasNotch: form.hasNotch as BooleanLike,
+      hasPerforation: form.hasPerforation as BooleanLike,
       pouchPerforationType: form.pouchPerforationType,
       bagPerforationType: form.bagPerforationType,
       perforationLocation: form.perforationLocation,
-      hasPreCut: form.hasPreCut,
+      hasPreCut: form.hasPreCut as BooleanLike,
       preCutType: form.preCutType,
       otherAccessories: form.otherAccessories,
 
@@ -713,7 +714,7 @@ export default function ProjectCreatePage() {
       externalVariationMinus: form.externalVariationMinus,
       maxRollWeight: form.maxRollWeight,
       customerAdditionalInfo: form.customerAdditionalInfo,
-      peruvianProductLogo: form.peruvianProductLogo,
+      peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
       printingFooter: form.printingFooter,
 
       status: "Registrado",

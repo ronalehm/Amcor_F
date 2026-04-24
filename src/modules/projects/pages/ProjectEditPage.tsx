@@ -236,7 +236,7 @@ export default function ProjectEditPage() {
 
     if (Object.keys(validationErrors).length > 0 || !projectCode) return;
 
-    const selectedExecutive = executives.find(ex => String(ex.id) === form.ejecutivoId);
+    const selectedExecutive = executives.find(ex => ex.id === Number(form.ejecutivoId));
 
     updateProjectRecord(projectCode, {
       ...form,
@@ -491,7 +491,7 @@ export default function ProjectEditPage() {
                 />
                 <FormSelect
                   label="¿Diseño ya trabajado?"
-                  value={form.isPreviousDesign}
+                  value={form.isPreviousDesign as string}
                   onChange={(v) => updateField("isPreviousDesign", v)}
                   options={[
                     { value: "Sí", label: "Sí" },
@@ -516,7 +516,7 @@ export default function ProjectEditPage() {
                 )}
                 <FormSelect
                   label="¿Tiene archivos digitales?"
-                  value={form.hasDigitalFiles}
+                  value={form.hasDigitalFiles as string}
                   onChange={(v) => updateField("hasDigitalFiles", v)}
                   options={[
                     { value: "Sí", label: "Sí" },
@@ -548,7 +548,7 @@ export default function ProjectEditPage() {
                 )}
                 <FormSelect
                   label="¿Requiere trabajo de diseño?"
-                  value={form.requiresDesignWork}
+                  value={form.requiresDesignWork as string}
                   onChange={(v) => updateField("requiresDesignWork", v)}
                   options={[
                     { value: "Sí", label: "Sí" },
@@ -578,7 +578,7 @@ export default function ProjectEditPage() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <FormSelect
                   label="¿Tiene estructura de referencia?"
-                  value={form.hasReferenceStructure}
+                  value={form.hasReferenceStructure as string}
                   onChange={(v) => updateField("hasReferenceStructure", v)}
                   options={[
                     { value: "Sí", label: "Sí" },
@@ -614,7 +614,7 @@ export default function ProjectEditPage() {
                 />
                 <FormSelect
                   label="¿Tiene especificación técnica cliente?"
-                  value={form.hasCustomerTechnicalSpec}
+                  value={form.hasCustomerTechnicalSpec as string}
                   onChange={(v) => updateField("hasCustomerTechnicalSpec", v)}
                   options={[
                     { value: "Sí", label: "Sí" },
@@ -690,7 +690,7 @@ export default function ProjectEditPage() {
                 />
                 <FormSelect
                   label="¿Solicitud de muestra?"
-                  value={form.sampleRequest}
+                  value={form.sampleRequest as string}
                   onChange={(v) => updateField("sampleRequest", v)}
                   options={[
                     { value: "Sí", label: "Sí" },
@@ -718,30 +718,30 @@ export default function ProjectEditPage() {
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-                <FormSelect label="Zipper" value={form.hasZipper} onChange={(v) => updateField("hasZipper", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
+                <FormSelect label="Zipper" value={form.hasZipper as string} onChange={(v) => updateField("hasZipper", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
                 {form.hasZipper === "Sí" && (
                   <FormInput label="Tipo de Zipper" value={form.zipperType} onChange={(v) => updateField("zipperType", v)} />
                 )}
-                <FormSelect label="Tin-Tie" value={form.hasTinTie} onChange={(v) => updateField("hasTinTie", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                <FormSelect label="Válvula" value={form.hasValve} onChange={(v) => updateField("hasValve", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
+                <FormSelect label="Tin-Tie" value={form.hasTinTie as string} onChange={(v) => updateField("hasTinTie", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
+                <FormSelect label="Válvula" value={form.hasValve as string} onChange={(v) => updateField("hasValve", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
                 {form.hasValve === "Sí" && (
                   <FormInput label="Tipo de Válvula" value={form.valveType} onChange={(v) => updateField("valveType", v)} />
                 )}
-                <FormSelect label="Asa Troquelada" value={form.hasDieCutHandle} onChange={(v) => updateField("hasDieCutHandle", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                <FormSelect label="Refuerzo" value={form.hasReinforcement} onChange={(v) => updateField("hasReinforcement", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
+                <FormSelect label="Asa Troquelada" value={form.hasDieCutHandle as string} onChange={(v) => updateField("hasDieCutHandle", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
+                <FormSelect label="Refuerzo" value={form.hasReinforcement as string} onChange={(v) => updateField("hasReinforcement", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
                 {form.hasReinforcement === "Sí" && (
                   <>
                     <FormInput label="Espesor Refuerzo" value={form.reinforcementThickness} onChange={(v) => updateField("reinforcementThickness", v)} />
                     <FormInput label="Ancho Refuerzo" value={form.reinforcementWidth} onChange={(v) => updateField("reinforcementWidth", v)} />
                   </>
                 )}
-                <FormSelect label="Corte Angular" value={form.hasAngularCut} onChange={(v) => updateField("hasAngularCut", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                <FormSelect label="Esquinas Redondas" value={form.hasRoundedCorners} onChange={(v) => updateField("hasRoundedCorners", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
+                <FormSelect label="Corte Angular" value={form.hasAngularCut as string} onChange={(v) => updateField("hasAngularCut", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
+                <FormSelect label="Esquinas Redondas" value={form.hasRoundedCorners as string} onChange={(v) => updateField("hasRoundedCorners", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
                 {form.hasRoundedCorners === "Sí" && (
                   <FormInput label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(v) => updateField("roundedCornersType", v)} />
                 )}
-                <FormSelect label="Muesca" value={form.hasNotch} onChange={(v) => updateField("hasNotch", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                <FormSelect label="Perforación" value={form.hasPerforation} onChange={(v) => updateField("hasPerforation", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
+                <FormSelect label="Muesca" value={form.hasNotch as string} onChange={(v) => updateField("hasNotch", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
+                <FormSelect label="Perforación" value={form.hasPerforation as string} onChange={(v) => updateField("hasPerforation", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
                 {form.hasPerforation === "Sí" && (
                   <>
                     <FormInput label="Tipo Perforación Pouch" value={form.pouchPerforationType} onChange={(v) => updateField("pouchPerforationType", v)} />
@@ -749,7 +749,7 @@ export default function ProjectEditPage() {
                     <FormInput label="Ubicación Perforaciones" value={form.perforationLocation} onChange={(v) => updateField("perforationLocation", v)} />
                   </>
                 )}
-                <FormSelect label="Pre-Corte" value={form.hasPreCut} onChange={(v) => updateField("hasPreCut", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
+                <FormSelect label="Pre-Corte" value={form.hasPreCut as string} onChange={(v) => updateField("hasPreCut", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
                 {form.hasPreCut === "Sí" && (
                   <FormInput label="Tipo de Pre-Corte" value={form.preCutType} onChange={(v) => updateField("preCutType", v)} />
                 )}

@@ -35,14 +35,14 @@ export default function ProjectFieldImpactList({ currentStage }: ProjectFieldImp
         <table className="w-full text-sm">
           <tbody>
             {fields.map((f, i) => (
-              <tr key={f.fieldId} className={`border-b border-slate-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
+              <tr key={f.fieldKey} className={`border-b border-slate-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
                 <td className="py-3 px-5 font-semibold text-slate-800 w-1/3 border-r border-slate-100">{f.label}</td>
                 <td className="py-3 px-5 text-slate-600">{f.description}</td>
                 <td className="py-3 px-5 w-24 text-center">
-                  {f.impactLevel === "High" && <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded"><AlertCircle size={12}/> Alto</span>}
-                  {f.impactLevel === "Medium" && <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded"><AlertCircle size={12}/> Medio</span>}
-                  {f.impactLevel === "Low" && <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded">Bajo</span>}
-                  {f.impactLevel === "Info" && <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded"><Info size={12}/> Info</span>}
+                  {f.impactLevel === "alta" && <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded"><AlertCircle size={12}/> Alto</span>}
+                  {f.impactLevel === "media" && <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded"><AlertCircle size={12}/> Medio</span>}
+                  {f.impactLevel === "baja" && <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded">Bajo</span>}
+                  {f.impactLevel === "info" && <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded"><Info size={12}/> Info</span>}
                 </td>
               </tr>
             ))}

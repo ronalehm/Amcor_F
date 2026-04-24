@@ -12,6 +12,11 @@ export type ProjectStatus =
   | "Borrador"
   | "En validación"
   | "Aprobado"
+  | "Dado de alta"
+  | "Desestimado"
+  | "Aprobado para fabricación"
+  | "Aprobado para muestra"
+  | "Registrado"
   | "Rechazado";
 
 export type SiExternalStatus =
@@ -280,25 +285,14 @@ function inferRouteType(project: Partial<ProjectRecord>): "Con diseño" | "Sin d
 }
 
 function inferPortalStage(status: ProjectStatus): PortalProjectStage {
-  if (status === "P2 En validación AG") return "P2";
-  if (status === "P3 En validación R&D") return "P3";
-  if (
-    status === "Validado técnicamente" ||
-    status === "Exportado a Commercial Finance" ||
-    status === "Pendiente precio" ||
-    status === "Oferta enviada" ||
-    status === "Lista para RFQ"
-  ) {
+  if (status === "En validación") return "P2";
+  if (status === "Aprobado para muestra") return "P3";
+  if (status === "Aprobado para fabricación") {
     return "P4";
   }
   if (
-    status === "Pendiente evaluación crediticia" ||
-    status === "Crédito observado" ||
-    status === "Crédito aprobado" ||
-    status === "Aprobado para fabricación" ||
-    status === "Aprobado para muestra" ||
-    status === "Lista para alta" ||
-    status === "Dado de alta"
+    status === "Dado de alta" ||
+    status === "Registrado"
   ) {
     return "P5";
   }

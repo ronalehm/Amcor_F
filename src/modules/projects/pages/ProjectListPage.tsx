@@ -19,7 +19,7 @@ import { useLayout } from "../../../components/layout/LayoutContext";
 import { getProjectRecords } from "../../../shared/data/projectStorage";
 import { getAllProjectTrackingStates } from "../../../shared/data/projectTrackingStorage";
 import { getProjectSlaSummary } from "../../../shared/data/slaStorage";
-import { getStageConfig } from "../../../shared/data/projectStageConfig";
+import { getStageConfig, type ProjectStage } from "../../../shared/data/projectStageConfig";
 import { getProjectObservations } from "../../../shared/data/observationStorage";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
 import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
@@ -419,12 +419,12 @@ export default function ProjectListPage() {
 
       const stageId = getText(
         tracking?.currentStage,
-        project.currentStage,
-        project.stageId,
+        project.currentPortalStage,
+        (project as any).stageId,
         "P1"
       );
 
-      const config = getStageConfig(stageId);
+      const config = getStageConfig(stageId as ProjectStage);
 
       const slas = getProjectSlaSummary(code);
       const activeSla = slas.find((sla) => !sla.completedAt) || slas[0];
@@ -441,8 +441,8 @@ export default function ProjectListPage() {
 
       const portfolioCode = getText(
         project.portfolioCode,
-        project.portfolioId,
-        project.portfolioCodigo
+        (project as any).portfolioId,
+        (project as any).portfolioCodigo
       );
 
       const relatedPortfolio = portfolios.find(
@@ -489,8 +489,8 @@ export default function ProjectListPage() {
       return {
         ...project,
         code,
-        projectNameLabel: getText(project.projectName, project.name),
-        clientNameLabel: getText(project.clientName, project.cli),
+        projectNameLabel: getText(project.projectName, (project as any).name),
+        clientNameLabel: getText(project.clientName, (project as any).cli),
         portfolioCodeLabel: portfolioCode,
         portfolioNameLabel: portfolioName,
         stageId,
@@ -506,17 +506,17 @@ export default function ProjectListPage() {
         businessStatus,
         createdAtLabel: formatDate(
           project.createdAt,
-          project.createdDate,
-          project.fechaCreacion,
-          project.fecha_creacion
+          (project as any).createdDate,
+          (project as any).fechaCreacion,
+          (project as any).fecha_creacion
         ),
         createdByLabel:
           getText(
-            project.createdByName,
-            project.createdBy,
-            project.userName,
-            project.username,
-            project.usuario
+            (project as any).createdByName,
+            (project as any).createdBy,
+            (project as any).userName,
+            (project as any).username,
+            (project as any).usuario
           ) || "—",
       };
     });

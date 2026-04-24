@@ -33,10 +33,10 @@ export default function ProjectSlaPanel({ projectCode }: ProjectSlaPanelProps) {
               </div>
             </div>
             
-            <SlaTimer 
-              elapsedHours={currentSla.elapsedHours}
-              remainingHours={currentSla.remainingHours}
-              slaHours={currentSla.slaHours}
+            <SlaTimer
+              elapsedHours={currentSla.elapsedDays * 24}
+              remainingHours={currentSla.remainingDays * 24}
+              slaHours={currentSla.slaDays * 24}
               status={currentSla.slaStatus}
             />
           </div>

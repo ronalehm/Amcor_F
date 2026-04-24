@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getClientByCode, ClientRecord } from "../../../shared/data/clientStorage";
+import { getClientByCode } from "../../../shared/data/clientStorage";
+import type { ClientRecord } from "../../../shared/data/clientStorage";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import EntityStatusBadge from "../../../shared/components/display/EntityStatusBadge";
 import FormCard from "../../../shared/components/forms/FormCard";

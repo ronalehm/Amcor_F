@@ -210,6 +210,7 @@ export const DIMENSION_CONSTRAINTS: Record<string, { minWidth: number; maxWidth:
 // === FUNCIONES DE VALIDACIÓN ===
 
 export function validateField(
+  // @ts-ignore
   fieldKey: string,
   value: unknown,
   rule: ValidationRule,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { saveObservationRecord } from "../../data/observationStorage";
+import { saveProjectObservation } from "../../data/observationStorage";
 import { registerProjectStatusChange } from "../../data/slaStorage";
 
 interface ProjectValidationPanelProps {
@@ -28,14 +28,16 @@ export default function ProjectValidationPanel({ projectCode, currentStatus, onU
 
   const handleAddObservation = () => {
     if (!observationText.trim()) return;
-    
-    saveObservationRecord({
+
+    saveProjectObservation({
       projectCode,
       description: observationText,
-      status: "Abierta",
+      area: responsibleArea || "",
+      observationType: "Observación",
+      isBlocking: false,
       createdBy: "Usuario actual"
     });
-    
+
     setObservationText("");
     setMode("view");
     onUpdate();
@@ -43,8 +45,14 @@ export default function ProjectValidationPanel({ projectCode, currentStatus, onU
 
   const handleStatusChange = () => {
     if (!newStatus || !responsibleArea) return;
-    
-    registerProjectStatusChange(projectCode, newStatus, responsibleArea, "Usuario actual");
+
+    registerProjectStatusChange({
+      projectCode,
+      fromStatus: currentStatus,
+      toStatus: newStatus,
+      responsibleArea,
+      changedBy: "Usuario actual"
+    });
     
     setNewStatus("");
     setResponsibleArea("");

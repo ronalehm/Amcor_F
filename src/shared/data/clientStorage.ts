@@ -154,17 +154,24 @@ export function saveClientRecord(record: ClientRecord) {
   persistClients([record, ...filtered]);
 }
 
-export function updateClientRecord(code: string, updatedRecord: ClientRecord) {
+export function updateClientRecord(code: string, updatedRecord: Partial<ClientRecord>) {
   const saved = getCreatedClients();
 
-  const existsInCreated = saved.some((client) => client.code === code);
+  const existing = saved.find((client) => client.code === code);
 
-  if (!existsInCreated) {
+  if (!existing) {
+    const maxId = saved.length > 0 ? Math.max(...saved.map((c) => c.id)) : 0;
     persistClients([
       {
-        ...updatedRecord,
+        id: maxId + 1,
         code,
+        documentType: "RUC",
+        ruc: "",
+        name: "",
+        status: "Borrador",
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        ...updatedRecord,
       },
       ...saved,
     ]);
