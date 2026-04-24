@@ -14,10 +14,17 @@ import {
   Search,
 } from "lucide-react";
 
-import { useLayout } from "../../../components/layout/LayoutContext";
 import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
 import { getAllClientsMirror } from "../../../shared/data/clientMirrorStorage";
 import { getAllPreliminaryClients } from "../../../shared/data/preliminaryClientStorage";
+import PageLayout from "../../../shared/components/layout/PageLayout";
+import PageHeader from "../../../shared/components/layout/PageHeader";
+import SectionCard from "../../../shared/components/cards/SectionCard";
+import DataTable, { type TableColumn } from "../../../shared/components/table/DataTable";
+import TableFooterPagination from "../../../shared/components/table/TableFooterPagination";
+import ActionButton from "../../../shared/components/buttons/ActionButton";
+import StatusBadge from "../../../shared/components/display/StatusBadge";
+import EmptyState from "../../../shared/components/display/EmptyState";
 
 type ClientStatusKey = "all" | "active" | "inactive" | "validation" | "rejected" | "converted";
 type SourceKey = "all" | "si" | "odiseo";
@@ -386,7 +393,6 @@ const AvailabilityBadge = ({ client }: { client: ClientListItem }) => {
 
 export default function ClientListPage() {
   const navigate = useNavigate();
-  const { setHeader, resetHeader } = useLayout();
 
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<ClientStatusKey>("all");
@@ -407,15 +413,6 @@ export default function ClientListPage() {
     key: "createdAt",
     direction: "desc",
   });
-
-  useEffect(() => {
-    setHeader({
-      title: "Clientes",
-      breadcrumbs: [{ label: "Clientes" }, { label: "Lista de Clientes" }],
-    });
-
-    return () => resetHeader();
-  }, [setHeader, resetHeader]);
 
   const clients = useMemo<ClientListItem[]>(() => {
     return getClientCatalogRecords() as ClientListItem[];
@@ -662,12 +659,15 @@ export default function ClientListPage() {
     },
   ];
 
-  const startRecord = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const endRecord = Math.min(currentPage * pageSize, totalRecords);
-
   return (
-    <div className="w-full max-w-none bg-[#f6f8fb]">
-      <section className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+    <PageLayout>
+      <PageHeader
+        title="Gestión de Clientes"
+        subtitle="Catálogo de clientes del Sistema Integral y preliminares ODISEO"
+        showBackButton
+      />
+      <div className="space-y-6 p-6">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
@@ -769,8 +769,8 @@ export default function ClientListPage() {
         </div>
       </section>
 
-      <section className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 pt-4 xl:flex-row xl:items-end xl:justify-between">
+      <SectionCard title="Estado" subtitle="Filtrar clientes por estado">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex max-w-full gap-6 overflow-x-auto">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.key;
@@ -802,12 +802,14 @@ export default function ClientListPage() {
             })}
           </div>
 
-          <p className="pb-3 text-xs font-medium text-slate-500">
+          <p className="text-xs font-medium text-slate-500">
             Mostrando {filteredClients.length} de {clients.length} registros
           </p>
         </div>
+      </SectionCard>
 
-        <div className="grid grid-cols-1 gap-4 px-5 py-4 xl:grid-cols-[2.3fr_0.85fr_0.95fr_1fr_1fr_auto]">
+      <SectionCard title="Filtros" noPadding>
+        <div className="grid grid-cols-1 gap-4 px-6 py-4 xl:grid-cols-[2.3fr_0.85fr_0.95fr_1fr_1fr_auto]">
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
               Buscar
@@ -905,28 +907,23 @@ export default function ClientListPage() {
           </div>
 
           <div className="flex items-end gap-2">
-            <button
-              type="button"
+            <ActionButton
+              label="Limpiar Filtros"
               onClick={clearFilters}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:border-[#003b5c] hover:text-[#003b5c]"
-            >
-              <RotateCcw size={16} />
-              Limpiar Filtros
-            </button>
-
-            <button
-              type="button"
+              variant="outline"
+              icon={<RotateCcw size={16} />}
+            />
+            <ActionButton
+              label="Crear Cliente"
               onClick={() => navigate("/clients/new")}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#003b5c] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#002b43]"
-            >
-              <Plus size={16} />
-              Crear Cliente
-            </button>
+              variant="primary"
+              icon={<Plus size={16} />}
+            />
           </div>
         </div>
-      </section>
+      </SectionCard>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <SectionCard title="Listado de Clientes" noPadding>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1500px] border-collapse text-sm">
             <thead>
@@ -1012,21 +1009,18 @@ export default function ClientListPage() {
 
                     <td className="px-4 py-3 text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
+                        <ActionButton
+                          label="Ver"
                           onClick={() => navigate(`/clients/${clientCode}`)}
-                          className="rounded-md border border-[#003b5c] bg-[#003b5c] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#002b43]"
-                        >
-                          Ver
-                        </button>
-
-                        <button
-                          type="button"
+                          variant="primary"
+                          size="sm"
+                        />
+                        <ActionButton
+                          label="Editar"
                           onClick={() => navigate(`/clients/${clientCode}/edit`)}
-                          className="rounded-md border border-[#003b5c] bg-[#003b5c]/5 px-3 py-1.5 text-xs font-bold text-[#003b5c] shadow-sm transition-colors hover:bg-[#003b5c] hover:text-white"
-                        >
-                          Editar
-                        </button>
+                          variant="outline"
+                          size="sm"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -1056,75 +1050,19 @@ export default function ClientListPage() {
           </table>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-            <select
-              value={pageSize}
-              onChange={(event) => {
-                setPageSize(Number(event.target.value));
-                setCurrentPage(1);
-              }}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition-colors focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-
-            <span>N°</span>
-
-            <span className="ml-3 text-xs text-slate-500">
-              Mostrando{" "}
-              <strong className="text-slate-700">{startRecord}</strong>
-              {" - "}
-              <strong className="text-slate-700">{endRecord}</strong>
-              {" de "}
-              <strong className="text-slate-700">{totalRecords}</strong>
-              {" registros"}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-end gap-1">
-            <button
-              type="button"
-              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-              disabled={currentPage === 1}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              ‹ Previous
-            </button>
-
-            {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-              (page) => (
-                <button
-                  key={page}
-                  type="button"
-                  onClick={() => setCurrentPage(page)}
-                  className={`min-w-9 rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${
-                    currentPage === page
-                      ? "border-[#003b5c] bg-[#003b5c] text-white"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-[#003b5c] hover:text-[#003b5c]"
-                  }`}
-                >
-                  {page}
-                </button>
-              ),
-            )}
-
-            <button
-              type="button"
-              onClick={() =>
-                setCurrentPage((page) => Math.min(totalPages, page + 1))
-              }
-              disabled={currentPage === totalPages}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Next ›
-            </button>
-          </div>
-        </div>
+        <TableFooterPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalRecords}
+          itemsPerPage={pageSize}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+        />
+      </SectionCard>
       </div>
-    </div>
+    </PageLayout>
   );
 }

@@ -10,14 +10,49 @@ export type SiProjectStage = "P6" | "P7" | "P8" | "P9";
 
 export type ProjectStatus =
   | "Borrador"
+  | "Registrado"
+  | "Pendiente de validación"
   | "En validación"
+  | "Observada"
+  | "Rechazada"
+  | "Validada por áreas"
+  | "Lista para RFQ"
+  | "Pendiente de precio"
+  | "Precio cargado"
+  | "Ficha aprobada"
   | "Aprobado"
   | "Dado de alta"
   | "Desestimado"
   | "Aprobado para fabricación"
-  | "Aprobado para muestra"
-  | "Registrado"
-  | "Rechazado";
+  | "Aprobado para muestra";
+
+export type ValidationStatus =
+  | "Sin solicitar"
+  | "Pendiente de validación"
+  | "En validación"
+  | "Observada"
+  | "Rechazada"
+  | "Validada por áreas";
+
+export type AreaValidation = "Artes Gráficas" | "R&D Técnica" | "R&D Desarrollo";
+export type ValidationState = "Pendiente" | "Aprobada" | "Observada" | "Rechazada";
+
+export interface AreaValidationRecord {
+  area: AreaValidation;
+  estado: ValidationState;
+  validador?: string;
+  fechaValidacion?: string;
+  campoObservado?: string;
+  accionRequerida?: string;
+  comentarios: {
+    id: string;
+    comentario: string;
+    campo?: string;
+    accionRequerida?: string;
+    fecha: string;
+    autor?: string;
+  }[];
+}
 
 export type SiExternalStatus =
   | "No enviado"
@@ -225,6 +260,13 @@ export type ProjectRecord = {
   peruvianProductLogo?: YesNoPending;
   printingFooter?: string;
 
+  // === VALIDACIONES ===
+  requiereValidacion: boolean;
+  validacionSolicitada: boolean;
+  fechaSolicitudValidacion?: string;
+  estadoValidacionGeneral: ValidationStatus;
+  validaciones: AreaValidationRecord[];
+
   // Auditoría
   createdAt: string;
   updatedAt: string;
@@ -379,6 +421,12 @@ function normalizeProjectRecord(record: ProjectRecord): ProjectRecord {
     requiresDesignWork: record.requiresDesignWork,
     hasCustomerTechnicalSpec: record.hasCustomerTechnicalSpec,
 
+    requiereValidacion: record.requiereValidacion ?? true,
+    validacionSolicitada: record.validacionSolicitada ?? false,
+    fechaSolicitudValidacion: record.fechaSolicitudValidacion,
+    estadoValidacionGeneral: record.estadoValidacionGeneral || "Sin solicitar",
+    validaciones: record.validaciones ?? [],
+
     createdAt: record.createdAt || now,
     updatedAt: record.updatedAt || now,
   };
@@ -498,6 +546,37 @@ const INITIAL_PROJECTS: ProjectRecord[] = [
     siExternalStatus: "No enviado",
 
     completionPercentage: 100,
+
+    requiereValidacion: true,
+    validacionSolicitada: true,
+    fechaSolicitudValidacion: "2026-04-20T10:30:00.000Z",
+    estadoValidacionGeneral: "En validación",
+    validaciones: [
+      {
+        area: "Artes Gráficas",
+        estado: "Aprobada",
+        validador: "Ana Pérez",
+        fechaValidacion: "2026-04-22T14:30:00.000Z",
+        comentarios: [
+          {
+            id: "COM-001",
+            comentario: "Diseño aprobado",
+            fecha: "2026-04-22T14:30:00.000Z",
+          },
+        ],
+      },
+      {
+        area: "R&D Técnica",
+        estado: "Pendiente",
+        comentarios: [],
+      },
+      {
+        area: "R&D Desarrollo",
+        estado: "Pendiente",
+        comentarios: [],
+      },
+    ],
+
     createdAt: "2026-01-15T00:00:00.000Z",
     updatedAt: "2026-01-15T00:00:00.000Z",
   },
@@ -551,6 +630,12 @@ const INITIAL_PROJECTS: ProjectRecord[] = [
     siExternalStatus: "No enviado",
 
     completionPercentage: 80,
+
+    requiereValidacion: true,
+    validacionSolicitada: false,
+    estadoValidacionGeneral: "Sin solicitar",
+    validaciones: [],
+
     createdAt: "2026-02-02T00:00:00.000Z",
     updatedAt: "2026-02-02T00:00:00.000Z",
   },
@@ -604,6 +689,34 @@ export function getProjectsByPortfolioCode(
   return getProjectRecords().filter(
     (project) => project.portfolioCode === portfolioCode
   );
+}
+
+export function getProjectsByValidationStatus(status: ValidationStatus): ProjectRecord[] {
+  return getProjectRecords().filter(
+    (project) => project.estadoValidacionGeneral === status
+  );
+}
+
+export function getProjectsByValidationState(states: ValidationState[]): ProjectRecord[] {
+  return getProjectRecords().filter((project) =>
+    project.validaciones.some((v) => states.includes(v.estado))
+  );
+}
+
+export function getObservedProjects(): ProjectRecord[] {
+  return getProjectRecords().filter((project) =>
+    project.validaciones.some((v) => v.estado === "Observada")
+  );
+}
+
+export function getRejectedProjects(): ProjectRecord[] {
+  return getProjectRecords().filter((project) =>
+    project.validaciones.some((v) => v.estado === "Rechazada")
+  );
+}
+
+export function getProjectsInValidation(): ProjectRecord[] {
+  return getProjectRecords().filter((p) => p.validacionSolicitada && p.requiereValidacion);
 }
 
 export function saveProjectRecord(record: ProjectRecord) {

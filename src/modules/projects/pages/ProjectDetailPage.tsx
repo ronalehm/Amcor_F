@@ -11,6 +11,8 @@ import { exportProjectToExcelMock } from "../services/projectExportService";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import FormCard from "../../../shared/components/forms/FormCard";
 import Button from "../../../shared/components/ui/Button";
+import ValidationObservationsTable from "../../../shared/components/display/ValidationObservationsTable";
+import ValidationStatusCard from "../../../shared/components/display/ValidationStatusCard";
 
 import ProjectStageStepper from "../../../shared/components/projectTracking/ProjectStageStepper";
 import ProjectStageCard from "../../../shared/components/projectTracking/ProjectStageCard";
@@ -287,10 +289,12 @@ export default function ProjectDetailPage() {
 
         {/* Lado Derecho: Tracking, Validaciones, SLAs y Observaciones */}
         <div className="space-y-6">
-          
-          <ProjectStageCard 
-            currentStage={currentStage} 
-            stageUpdatedAt={trackingState.stageUpdatedAt} 
+
+          <ValidationStatusCard project={project} />
+
+          <ProjectStageCard
+            currentStage={currentStage}
+            stageUpdatedAt={trackingState.stageUpdatedAt}
           />
 
           <ProjectFieldImpactList 
@@ -320,12 +324,18 @@ export default function ProjectDetailPage() {
 
           <ProjectSlaPanel sla={slaSummary} isPortalStage={isPortal} />
 
-          <ProjectObservationPanel 
-            projectCode={projectCode as string} 
-            observations={observations} 
-            onUpdate={() => setRefreshTrigger(prev => prev + 1)} 
+          <ProjectObservationPanel
+            projectCode={projectCode as string}
+            observations={observations}
+            onUpdate={() => setRefreshTrigger(prev => prev + 1)}
             isReadOnly={!isPortal}
           />
+
+          {project.validaciones && project.validaciones.length > 0 && (
+            <FormCard title="Observaciones y comentarios de validación" icon="✓" color="#003b5c">
+              <ValidationObservationsTable validaciones={project.validaciones} />
+            </FormCard>
+          )}
 
           <ProjectTrackingTimeline history={history} />
           

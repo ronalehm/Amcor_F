@@ -728,6 +728,11 @@ export default function ProjectCreatePage() {
       status: "Registrado",
       createdAt: now,
       updatedAt: now,
+
+      requiereValidacion: true,
+      validacionSolicitada: false,
+      estadoValidacionGeneral: "Sin solicitar",
+      validaciones: [],
     });
 
     navigate("/projects");
