@@ -1,59 +1,65 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useLayout } from "../../../components/layout/LayoutContext";
 import { getClientByCode } from "../../../shared/data/clientStorage";
 import type { ClientRecord } from "../../../shared/data/clientStorage";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import EntityStatusBadge from "../../../shared/components/display/EntityStatusBadge";
 import FormCard from "../../../shared/components/forms/FormCard";
+import PageLayout from "../../../shared/components/layout/PageLayout";
+import PageHeader from "../../../shared/components/layout/PageHeader";
+import SectionCard from "../../../shared/components/cards/SectionCard";
+import ActionButton from "../../../shared/components/buttons/ActionButton";
+import { Edit } from "lucide-react";
 
 export default function ClientDetailPage() {
   const navigate = useNavigate();
-  const { setHeader, resetHeader } = useLayout();
   const { clientCode } = useParams<{ clientCode: string }>();
 
-  const [client, setClient] = useState<ClientRecord | null>(null);
-
-  useEffect(() => {
-    if (clientCode) {
-      const record = getClientByCode(clientCode);
-      setClient(record || null);
-      
-      setHeader({
-        title: "Detalle de Cliente",
-        breadcrumbs: [
-          { label: "Clientes", href: "/clients" },
-          { label: clientCode },
-          { label: "Ver" },
-        ],
-        actions: (
-          <button
-            onClick={() => navigate(`/clients/${clientCode}/edit`)}
-            className="rounded-lg bg-[#003b5c] px-4 py-2 text-sm font-bold text-white hover:bg-[#002b43]"
-          >
-            Editar Cliente
-          </button>
-        )
-      });
-    }
-
-    return () => resetHeader();
-  }, [clientCode, setHeader, resetHeader, navigate]);
+  const [client] = useState<ClientRecord | null>(() => {
+    return clientCode ? getClientByCode(clientCode) : null;
+  });
 
   if (!client) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <div className="text-red-600 font-semibold">Cliente no encontrado</div>
-        <button onClick={() => navigate("/clients")} className="text-brand-primary hover:underline">
-          Volver a Clientes
-        </button>
-      </div>
+      <PageLayout>
+        <PageHeader
+          title="Cliente no encontrado"
+          subtitle="El cliente solicitado no existe o fue eliminado"
+          showBackButton
+          backPath="/clients"
+        />
+        <div className="p-6">
+          <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
+            <div className="text-red-600 font-semibold mb-4">Cliente no encontrado</div>
+            <ActionButton
+              label="Volver a Clientes"
+              onClick={() => navigate("/clients")}
+              variant="primary"
+            />
+          </div>
+        </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="w-full max-w-none bg-[#f6f8fb] space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <PageLayout>
+      <PageHeader
+        title={client.code}
+        subtitle={client.name}
+        showBackButton
+        backPath="/clients"
+        actions={
+          <ActionButton
+            label="Editar Cliente"
+            onClick={() => navigate(`/clients/${clientCode}/edit`)}
+            variant="primary"
+            icon={<Edit size={16} />}
+          />
+        }
+      />
+      <div className="space-y-6 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-6 bg-gradient-to-br from-[#003b5c] to-[#1E82D9] text-white">
@@ -98,6 +104,7 @@ export default function ClientDetailPage() {
           </FormCard>
         </div>
       </div>
-    </div>
+      </div>
+    </PageLayout>
   );
 }
