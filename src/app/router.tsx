@@ -27,6 +27,9 @@ import DataSheetEditPage from "../modules/datasheets/pages/DataSheetEditPage";
 
 import UserEditPage from "../modules/users/pages/UserEditPage";
 
+import ValidationListPage from "../modules/validaciones/pages/ValidationListPage";
+import ValidationDetailPage from "../modules/validaciones/pages/ValidationDetailPage";
+
 import { getCurrentUser, logoutUser } from "../shared/data/userStorage";
 
 export default function AppRouter() {
@@ -73,6 +76,8 @@ export default function AppRouter() {
           <Route path="users/new" element={<UserCreatePage />} />
           <Route path="users/:userId" element={<div className="p-4">Detalle de Usuario (Ver)</div>} />
           <Route path="users/:userId/edit" element={<UserEditPage />} />
+          <Route path="validaciones" element={<ValidationListPage />} />
+          <Route path="validaciones/:id" element={<ValidationDetailPage />} />
           <Route path="soporte" element={<div className="p-4">Soporte TI</div>} />
           <Route path="configuracion" element={<div className="p-4">Configuración</div>} />
         </Route>
@@ -135,6 +140,10 @@ export default function AppRouter() {
         <Route path="users/new" element={<UserCreatePage />} />
         <Route path="users/:userId" element={<div className="p-4">Detalle de Usuario (Ver)</div>} />
         <Route path="users/:userId/edit" element={<UserEditPage />} />
+
+        {/* Validaciones */}
+        <Route path="validaciones" element={<ValidationListPage />} />
+        <Route path="validaciones/:id" element={<ValidationDetailPage />} />
 
         {/* Rutas temporales del sidebar */}
         <Route

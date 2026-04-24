@@ -6,6 +6,7 @@ import {
   Building2,
   ScanBarcode,
   Users,
+  CheckCircle2,
   LifeBuoy,
   Settings2,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const MENU_ITEMS: MenuItem[] = [
   { path: "/projects", label: "Proyectos", icon: BriefcaseBusiness },
   { path: "/clients", label: "Clientes", icon: Building2 },
   { path: "/datasheets", label: "Fichas de Producto", icon: ScanBarcode },
+  { path: "/validaciones", label: "Validaciones", icon: CheckCircle2 },
   { path: "/users", label: "Usuarios", icon: Users },
 ];
 
