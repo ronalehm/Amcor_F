@@ -13,11 +13,16 @@ import {
   updateUser,
   ROLE_LABELS,
   STATUS_LABELS,
-  getActiveUsers,
   getUserByEmail,
   type UserRole,
   type UserStatus,
 } from "../../../shared/data/userStorage";
+import {
+  getActiveVendorsMirror,
+  getVendorMirrorByCode,
+  getLastSyncTimestamp,
+  formatSyncTimestamp,
+} from "../../../shared/data/vendorMirrorStorage";
 
 type UserFormData = {
   firstName: string;
@@ -41,6 +46,10 @@ export default function UserEditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userCode, setUserCode] = useState<string>("");
+  const [currentVendorCode, setCurrentVendorCode] = useState<string>("");
+
+  const activeVendors = useMemo(() => getActiveVendorsMirror(), []);
+  const lastSyncTime = useMemo(() => getLastSyncTimestamp(), []);
 
   useEffect(() => {
     if (!userId) {
@@ -57,6 +66,7 @@ export default function UserEditPage() {
     }
 
     setUserCode(user.code);
+    setCurrentVendorCode(user.siUserCode || "");
     setForm({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -137,8 +147,7 @@ export default function UserEditPage() {
       return;
     }
 
-    const siUsers = getActiveUsers();
-    const selectedSiUser = siUsers.find(u => u.id === form.siUserId);
+    const selectedVendor = activeVendors.find(v => v.id === form.siUserId);
 
     updateUser(userId, {
       firstName: form.firstName,
@@ -149,7 +158,7 @@ export default function UserEditPage() {
       phone: form.phone || undefined,
       area: form.area || undefined,
       siUserId: form.siUserId || undefined,
-      siUserCode: selectedSiUser?.code,
+      siUserCode: selectedVendor?.code,
     });
 
     navigate("/users");
@@ -254,30 +263,47 @@ export default function UserEditPage() {
             </div>
           </FormCard>
 
-          <FormCard title="Sistema Integral" icon="🔗" color="#0D9488">
+          <FormCard title="Sistema Integral - Catálogo de Vendedores" icon="🔗" color="#0D9488">
             <div className="grid grid-cols-1 gap-4">
+              {currentVendorCode && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-xs font-semibold text-amber-800 mb-1">Vendedor Actual</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-amber-900">{currentVendorCode}</p>
+                    {(() => {
+                      const vendor = getVendorMirrorByCode(currentVendorCode);
+                      return vendor && vendor.status === "Inactivo" ? (
+                        <span className="inline-block rounded-full bg-red-100 px-2 py-1 text-xs font-bold text-red-700 whitespace-nowrap">
+                          Vendedor inactivo
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
+                </div>
+              )}
+
               <FormSelect
-                label={form.role === "comercial" ? "Vendedor / Ejecutivo Comercial *" : "Vendedor / Ejecutivo Comercial"}
+                label={form.role === "comercial" ? "Reasignar Vendedor *" : "Reasignar Vendedor"}
                 value={form.siUserId}
                 onChange={(value) => updateField("siUserId", value)}
                 error={shouldShowFieldError("siUserId") ? validationErrors.siUserId : ""}
-                placeholder="-- Seleccione Vendedor --"
-                options={getActiveUsers().map((u) => ({
-                  value: u.id,
-                  label: `${u.code} - ${u.fullName}`,
+                placeholder="-- Seleccione Vendedor Activo --"
+                options={activeVendors.map((v) => ({
+                  value: v.id,
+                  label: `${v.code} - ${v.name}`,
                 }))}
               />
               {form.role === "comercial" ? (
                 <p className="text-xs text-slate-500 italic">
-                  Obligatorio para ejecutivos comerciales. Selecciona el vendedor del Sistema Integral.
+                  Obligatorio para ejecutivos comerciales. Solo se pueden seleccionar vendedores activos del Sistema Integral.
                 </p>
               ) : (
                 <p className="text-xs text-slate-500 italic">
-                  Opcional. Vincula este usuario con un vendedor del Sistema Integral para sincronización de datos.
+                  Opcional. Vincula este usuario con un vendedor activo del Sistema Integral para sincronización de datos.
                 </p>
               )}
               <p className="text-xs text-slate-400">
-                Última sincronización: Hoy a las 10:30 AM
+                Última sincronización: {formatSyncTimestamp(lastSyncTime)}
               </p>
             </div>
           </FormCard>

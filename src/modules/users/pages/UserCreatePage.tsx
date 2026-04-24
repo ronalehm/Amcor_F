@@ -9,7 +9,11 @@ import {
   type UserRole,
   type UserStatus,
 } from "../../../shared/data/userStorage";
-import { getActiveUsers } from "../../../shared/data/userStorage";
+import {
+  getActiveVendorsMirror,
+  getLastSyncTimestamp,
+  formatSyncTimestamp,
+} from "../../../shared/data/vendorMirrorStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -36,7 +40,8 @@ export default function UserCreatePage() {
 
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  const siUsers = useMemo(() => getActiveUsers(), []);
+  const activeVendors = useMemo(() => getActiveVendorsMirror(), []);
+  const lastSyncTime = useMemo(() => getLastSyncTimestamp(), []);
 
   useEffect(() => {
     setHeader({
@@ -117,7 +122,7 @@ export default function UserCreatePage() {
 
     if (Object.keys(validationErrors).length > 0) return;
 
-    const selectedSiUser = siUsers.find(u => u.id === form.siUserId);
+    const selectedVendor = activeVendors.find(v => v.id === form.siUserId);
 
     createUser({
       email: form.email,
@@ -129,7 +134,7 @@ export default function UserCreatePage() {
       area: form.area || undefined,
       phone: form.phone || undefined,
       siUserId: form.siUserId || undefined,
-      siUserCode: selectedSiUser?.code,
+      siUserCode: selectedVendor?.code,
     });
 
     navigate("/users");
@@ -250,30 +255,30 @@ export default function UserCreatePage() {
               </div>
             </FormCard>
 
-            <FormCard title="Sistema Integral" icon="🔗" color="#0D9488">
+            <FormCard title="Sistema Integral - Catálogo de Vendedores" icon="🔗" color="#0D9488">
               <div className="grid grid-cols-1 gap-4">
                 <FormSelect
                   label={form.role === "comercial" ? "Vendedor / Ejecutivo Comercial *" : "Vendedor / Ejecutivo Comercial"}
                   value={form.siUserId}
                   onChange={(v) => updateField("siUserId", v)}
                   error={submitAttempted ? validationErrors.siUserId : ""}
-                  placeholder="-- Seleccione Vendedor --"
-                  options={siUsers.map((u) => ({
-                    value: u.id,
-                    label: `${u.code} - ${u.fullName}`,
+                  placeholder="-- Seleccione Vendedor Activo --"
+                  options={activeVendors.map((v) => ({
+                    value: v.id,
+                    label: `${v.code} - ${v.name}`,
                   }))}
                 />
                 {form.role === "comercial" ? (
                   <p className="text-xs text-slate-500 italic">
-                    Obligatorio para ejecutivos comerciales. Selecciona el vendedor del Sistema Integral.
+                    Obligatorio para ejecutivos comerciales. Solo se pueden seleccionar vendedores activos del Sistema Integral.
                   </p>
                 ) : (
                   <p className="text-xs text-slate-500 italic">
-                    Opcional. Vincula este usuario con un vendedor del Sistema Integral para sincronización de datos.
+                    Opcional. Vincula este usuario con un vendedor activo del Sistema Integral para sincronización de datos.
                   </p>
                 )}
                 <p className="text-xs text-slate-400">
-                  Última sincronización: Hoy a las 10:30 AM
+                  Última sincronización: {formatSyncTimestamp(lastSyncTime)}
                 </p>
               </div>
             </FormCard>
