@@ -23,7 +23,7 @@ import {
   ROLE_COLORS,
 } from "../../../shared/data/userStorage";
 
-import Button from "../../../shared/components/ui/Button";
+import ActionButton from "../../../shared/components/buttons/ActionButton";
 
 type UserStatus = "active" | "inactive";
 type UserTab = "all" | UserStatus;
@@ -523,23 +523,19 @@ export default function UserListPage() {
           </div>
 
           <div className="flex items-end gap-2">
-            <button
-              type="button"
+            <ActionButton
+              label="Limpiar Filtros"
               onClick={clearFilters}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:border-[#003b5c] hover:text-[#003b5c]"
-            >
-              <RotateCcw size={16} />
-              Limpiar Filtros
-            </button>
+              variant="outline"
+              icon={<RotateCcw size={16} />}
+            />
 
-            <button
-              type="button"
+            <ActionButton
+              label="Crear Usuario"
               onClick={() => navigate("/users/new")}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#003b5c] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#002b43]"
-            >
-              <Plus size={16} />
-              Crear Usuario
-            </button>
+              variant="primary"
+              icon={<Plus size={16} />}
+            />
           </div>
         </div>
       </section>
@@ -622,21 +618,19 @@ export default function UserListPage() {
 
                     <td className="px-4 py-3 text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
-                        <Button
+                        <ActionButton
+                          label="Ver"
                           size="sm"
+                          variant="primary"
                           onClick={() => navigate(`/users/${user.id}`)}
-                          className="border border-[#003b5c] bg-[#003b5c] text-white hover:bg-[#002b43]"
-                        >
-                          Ver
-                        </Button>
+                        />
 
-                        <Button
+                        <ActionButton
+                          label="Editar"
                           variant="outline"
                           size="sm"
                           onClick={() => navigate(`/users/${user.id}/edit`)}
-                        >
-                          Editar
-                        </Button>
+                        />
                       </div>
                     </td>
                   </tr>

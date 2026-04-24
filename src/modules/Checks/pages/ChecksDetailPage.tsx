@@ -7,6 +7,7 @@ import FormInput from "../../../shared/components/forms/FormInput";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import { getCurrentUser } from "../../../shared/data/userStorage";
+import ActionButton from "../../../shared/components/buttons/ActionButton";
 
 export default function ValidationDetailPage() {
   const navigate = useNavigate();
@@ -55,12 +56,11 @@ export default function ValidationDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <div className="text-red-600 font-semibold">Proyecto no encontrado</div>
-        <button
+        <ActionButton
+          label="Volver a Validaciones"
           onClick={() => navigate("/validaciones")}
-          className="px-4 py-2 bg-[#003b5c] text-white rounded-md text-sm font-medium"
-        >
-          Volver a Validaciones
-        </button>
+          variant="primary"
+        />
       </div>
     );
   }
@@ -312,13 +312,13 @@ export default function ValidationDetailPage() {
                         onChange={setAccionRequerida}
                         placeholder="ej: Adjuntar archivo, Confirmar tolerancia, Corregir formato..."
                       />
-                      <button
+                      <ActionButton
+                        label="Registrar comentario"
                         onClick={handleAddComment}
                         disabled={!newComment.trim()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 text-sm"
-                      >
-                        Registrar comentario
-                      </button>
+                        variant="primary"
+                        size="sm"
+                      />
                     </div>
                   </div>
                 </div>
@@ -335,18 +335,16 @@ export default function ValidationDetailPage() {
 
         {/* Botones de acción */}
         <div className="flex gap-3">
-          <button
+          <ActionButton
+            label="Volver"
             onClick={() => navigate("/validaciones")}
-            className="px-6 py-2 rounded-lg border border-slate-300 text-slate-700 font-medium hover:bg-slate-100"
-          >
-            Volver
-          </button>
-          <button
+            variant="outline"
+          />
+          <ActionButton
+            label="Ver Proyecto"
             onClick={() => navigate(`/projects/${projectCode}`)}
-            className="px-6 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700"
-          >
-            Ver Proyecto
-          </button>
+            variant="primary"
+          />
         </div>
       </div>
     </div>

@@ -25,7 +25,7 @@ import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorag
 import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
 
 import SlaStatusBadge from "../../../shared/components/sla/SlaStatusBadge";
-import Button from "../../../shared/components/ui/Button";
+import ActionButton from "../../../shared/components/buttons/ActionButton";
 
 type ProjectBusinessStatus =
   | "Registrado"
@@ -951,23 +951,19 @@ export default function ProjectListPage() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button
-                type="button"
+              <ActionButton
+                label="Limpiar Filtros"
                 onClick={clearFilters}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:border-[#003b5c] hover:text-[#003b5c]"
-              >
-                <RotateCcw size={16} />
-                Limpiar Filtros
-              </button>
+                variant="outline"
+                icon={<RotateCcw size={16} />}
+              />
 
-              <button
-                type="button"
+              <ActionButton
+                label="Nuevo Proyecto"
                 onClick={() => navigate("/projects/new")}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#003b5c] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#002b43]"
-              >
-                <Plus size={16} />
-                Nuevo Proyecto
-              </button>
+                variant="primary"
+                icon={<Plus size={16} />}
+              />
             </div>
           </div>
         </div>
@@ -1260,32 +1256,29 @@ export default function ProjectListPage() {
 
                   <td className="px-4 py-3 text-right text-sm">
                     <div className="flex items-center justify-end gap-2">
-                      <Button
+                      <ActionButton
+                        label="Tracking"
                         variant="outline"
                         size="sm"
                         onClick={() => navigate(`/projects/${item.code || item.id}`)}
-                      >
-                        Tracking
-                      </Button>
+                      />
 
-                      <Button
+                      <ActionButton
+                        label="Editar"
                         variant="outline"
                         size="sm"
                         onClick={() =>
                           navigate(`/projects/${item.code || item.id}/edit`)
                         }
-                      >
-                        Editar
-                      </Button>
+                      />
 
-                      <Button
+                      <ActionButton
+                        label="Duplicar"
                         variant="outline"
                         size="sm"
                         onClick={() => handleDuplicate(item.code || item.id)}
                         className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                      >
-                        Duplicar
-                      </Button>
+                      />
                     </div>
                   </td>
                 </tr>
