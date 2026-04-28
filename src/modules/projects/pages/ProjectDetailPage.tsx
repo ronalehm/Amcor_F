@@ -6,6 +6,7 @@ import { getProjectSlaSummary, getProjectStatusHistory } from "../../../shared/d
 import { getProjectObservations } from "../../../shared/data/observationStorage";
 import { getProjectTrackingState, advanceProjectStage, initializeProjectTracking } from "../../../shared/data/projectTrackingStorage";
 import { getStageConfig, isPortalStage, type ProjectStage } from "../../../shared/data/projectStageConfig";
+import { PHASE_CONFIGS } from "../../../shared/data/projectPhaseConfig";
 import { exportProjectToExcelMock } from "../services/projectExportService";
 
 import PreviewRow from "../../../shared/components/display/PreviewRow";
@@ -121,11 +122,35 @@ export default function ProjectDetailPage() {
     handleAdvanceStage(determineNextStage(currentStage));
   };
 
+  const phaseConfig = PHASE_CONFIGS[currentStage as keyof typeof PHASE_CONFIGS];
+
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] space-y-6 pb-12">
-      
+
       {/* 1. Stepper Global */}
       <ProjectStageStepper currentStage={currentStage} />
+
+      {/* Phase Information Banner */}
+      <div className="mx-5 rounded-xl border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-xs font-bold uppercase text-purple-700 tracking-wide mb-1">Fase Actual</div>
+            <h2 className="text-2xl font-bold text-purple-900">{phaseConfig?.name || currentStage}</h2>
+            <p className="text-sm text-purple-800 mt-2">{phaseConfig?.description}</p>
+          </div>
+          <div className="text-right space-y-2">
+            <div className="text-xs text-purple-700 font-semibold">ROL RESPONSABLE</div>
+            <div className="inline-block bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm">
+              {phaseConfig?.primaryRole}
+            </div>
+            {phaseConfig?.allowedTransitions && phaseConfig.allowedTransitions.length > 0 && (
+              <div className="text-xs text-purple-700 mt-2">
+                <span className="font-semibold">Siguientes fases:</span> {phaseConfig.allowedTransitions.join(", ")}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lado Izquierdo: Ficha Única del Proyecto */}
