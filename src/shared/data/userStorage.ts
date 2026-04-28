@@ -3,7 +3,7 @@ const CURRENT_USER_KEY = "odiseo_current_user";
 
 export type UserRole = "admin" | "comercial" | "artes" | "rd" | "finance" | "viewer";
 
-export type UserStatus = "active" | "inactive" | "pending";
+export type UserStatus = "active" | "inactive" | "pending_activation" | "pending_validation" | "blocked";
 
 export type User = {
   id: string;
@@ -15,6 +15,9 @@ export type User = {
   fullName: string;
   role: UserRole;
   status: UserStatus;
+  workerCode: string; // Cod Trabajador (PK desde Sistema Integral)
+  position: string; // Puesto
+  company: string; // Empresa
   area?: string;
   phone?: string;
   siUserId?: string;
@@ -31,12 +34,15 @@ const INITIAL_USERS: User[] = [
     id: "USR-000001",
     code: "US-000001",
     email: "admin@amcor.com",
-    password: "admin123", // Solo para demo
+    password: "admin123",
     firstName: "Administrador",
     lastName: "Sistema",
     fullName: "Administrador Sistema",
     role: "admin",
     status: "active",
+    workerCode: "ADM-001",
+    position: "Administrador",
+    company: "Amcor",
     area: "TI",
     phone: "+51 999 999 999",
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -52,6 +58,9 @@ const INITIAL_USERS: User[] = [
     fullName: "Ejecutivo Comercial",
     role: "comercial",
     status: "active",
+    workerCode: "COM-001",
+    position: "Ejecutivo Comercial",
+    company: "Amcor",
     area: "Ventas",
     phone: "+51 999 888 888",
     createdAt: "2026-01-15T00:00:00.000Z",
@@ -67,6 +76,9 @@ const INITIAL_USERS: User[] = [
     fullName: "Diseñador Gráfico",
     role: "artes",
     status: "active",
+    workerCode: "AGR-001",
+    position: "Diseñador Gráfico",
+    company: "Amcor",
     area: "Artes Gráficas",
     phone: "+51 999 777 777",
     createdAt: "2026-02-01T00:00:00.000Z",
@@ -82,6 +94,9 @@ const INITIAL_USERS: User[] = [
     fullName: "Ingeniero R&D",
     role: "rd",
     status: "active",
+    workerCode: "RD-001",
+    position: "Ingeniero R&D",
+    company: "Amcor",
     area: "Research & Development",
     phone: "+51 999 666 666",
     createdAt: "2026-02-10T00:00:00.000Z",
@@ -97,6 +112,9 @@ const INITIAL_USERS: User[] = [
     fullName: "Analista Finance",
     role: "finance",
     status: "active",
+    workerCode: "CF-001",
+    position: "Analista Finance",
+    company: "Amcor",
     area: "Commercial Finance",
     phone: "+51 999 555 555",
     createdAt: "2026-03-01T00:00:00.000Z",
@@ -183,7 +201,7 @@ export function saveUserRecord(record: User): void {
   persistUsers([record, ...filtered]);
 }
 
-export function createUser(newUser: Omit<User, "id" | "code" | "createdAt" | "updatedAt" | "fullName">): User {
+export function createUser(newUser: Partial<Pick<User, "workerCode" | "position" | "company">> & Omit<User, "id" | "code" | "createdAt" | "updatedAt" | "fullName" | "workerCode" | "position" | "company">): User {
   const now = new Date().toISOString();
   const allUsers = getAllUsers();
   const maxNumber = Math.max(
@@ -197,6 +215,10 @@ export function createUser(newUser: Omit<User, "id" | "code" | "createdAt" | "up
     id: `USR-${String(nextNumber).padStart(6, "0")}`,
     code: `US-${String(nextNumber).padStart(6, "0")}`,
     fullName: `${newUser.firstName} ${newUser.lastName}`,
+    workerCode: newUser.workerCode || "",
+    position: newUser.position || "",
+    company: newUser.company || "",
+    status: newUser.status || "pending_activation",
     createdAt: now,
     updatedAt: now,
   };
@@ -238,6 +260,38 @@ export function activateUser(id: string): boolean {
   if (!user) return false;
 
   saveUserRecord({ ...user, status: "active", updatedAt: new Date().toISOString() });
+  return true;
+}
+
+export function blockUser(id: string): boolean {
+  const user = getUserById(id);
+  if (!user) return false;
+
+  saveUserRecord({ ...user, status: "blocked", updatedAt: new Date().toISOString() });
+  return true;
+}
+
+export function unblockUser(id: string): boolean {
+  const user = getUserById(id);
+  if (!user) return false;
+
+  saveUserRecord({ ...user, status: "active", updatedAt: new Date().toISOString() });
+  return true;
+}
+
+export function setPendingActivation(id: string): boolean {
+  const user = getUserById(id);
+  if (!user) return false;
+
+  saveUserRecord({ ...user, status: "pending_activation", updatedAt: new Date().toISOString() });
+  return true;
+}
+
+export function setPendingValidation(id: string): boolean {
+  const user = getUserById(id);
+  if (!user) return false;
+
+  saveUserRecord({ ...user, status: "pending_validation", updatedAt: new Date().toISOString() });
   return true;
 }
 
@@ -286,11 +340,15 @@ export const ROLE_COLORS: Record<UserRole, string> = {
 export const STATUS_LABELS: Record<UserStatus, string> = {
   active: "Activo",
   inactive: "Inactivo",
-  pending: "Pendiente",
+  pending_activation: "Pendiente de activación",
+  pending_validation: "Pendiente de validación",
+  blocked: "Bloqueado",
 };
 
 export const STATUS_COLORS: Record<UserStatus, string> = {
   active: "bg-green-100 text-green-700",
-  inactive: "bg-red-100 text-red-700",
-  pending: "bg-yellow-100 text-yellow-700",
+  inactive: "bg-slate-100 text-slate-600",
+  pending_activation: "bg-amber-100 text-amber-700",
+  pending_validation: "bg-blue-100 text-blue-700",
+  blocked: "bg-red-100 text-red-700",
 };
