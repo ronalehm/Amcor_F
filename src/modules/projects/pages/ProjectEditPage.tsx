@@ -4,8 +4,12 @@ import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
 import { getProjectByCode, updateProjectRecord, type ProjectRecord } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
-import { getActiveUsers } from "../../../shared/data/userStorage";
+import { getActiveUsers, getCurrentUser } from "../../../shared/data/userStorage";
 import { getCatalogOptions } from "../../../shared/data/projectCatalogStorage";
+import { getProjectTrackingState } from "../../../shared/data/projectTrackingStorage";
+import { PHASE_CONFIGS, type PhaseRole } from "../../../shared/data/projectPhaseConfig";
+import { useProjectPhase } from "../../../shared/hooks/useProjectPhase";
+import type { ProjectStage } from "../../../shared/data/projectStageConfig";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -132,10 +136,14 @@ export default function ProjectEditPage() {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentStage, setCurrentStage] = useState<ProjectStage>("P1");
+  const [userRole, setUserRole] = useState<PhaseRole>("Comercial");
 
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
   const siUsers = useMemo(() => getActiveUsers(), []);
+
+  const { getFieldStatus } = useProjectPhase({ currentStage, userRole });
 
   useEffect(() => {
     if (!projectCode) {
@@ -149,6 +157,25 @@ export default function ProjectEditPage() {
       setError(`Proyecto ${projectCode} no encontrado`);
       setLoading(false);
       return;
+    }
+
+    // Get current project stage and user role
+    const trackingState = getProjectTrackingState(projectCode);
+    if (trackingState) {
+      setCurrentStage(trackingState.currentStage as ProjectStage);
+    }
+
+    // Determine user role based on current user (simplified - could come from auth system)
+    const currentUser = getCurrentUser();
+    if (currentUser?.role) {
+      const roleMap: Record<string, PhaseRole> = {
+        "Comercial": "Comercial",
+        "ArteGraficas": "ArteGraficas",
+        "RyD": "RyD",
+        "CF": "CF",
+        "Credito": "Credito",
+      };
+      setUserRole(roleMap[currentUser.role] || "Comercial");
     }
 
     // Helper to convert boolean/string to "Sí"/"No"
@@ -192,7 +219,7 @@ export default function ProjectEditPage() {
       currencyType: project.currencyType || "Soles",
       paymentTerms: project.paymentTerms || "Por definir",
     });
-    
+
     setLoading(false);
   }, [projectCode]);
 
@@ -202,15 +229,25 @@ export default function ProjectEditPage() {
 
   useEffect(() => {
     if (projectCode && !loading) {
+      const phaseConfig = PHASE_CONFIGS[currentStage];
       setHeader({
         title: "Editar Proyecto",
-        subtitle: "Modifica los datos del proyecto y guarda el progreso.",
+        subtitle: `${phaseConfig.name} - ${phaseConfig.description}`,
         breadcrumbs: [{ label: "Proyectos", href: "/projects" }, { label: projectCode }, { label: "Editar" }],
-        badges: <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">ID: {projectCode}</span>
+        badges: (
+          <div className="flex gap-2">
+            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+              {phaseConfig.name}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+              ID: {projectCode}
+            </span>
+          </div>
+        )
       });
     }
     return () => resetHeader();
-  }, [setHeader, resetHeader, projectCode, loading]);
+  }, [setHeader, resetHeader, projectCode, loading, currentStage]);
 
   const updateField = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -279,9 +316,34 @@ export default function ProjectEditPage() {
     );
   }
 
+  const phaseConfig = PHASE_CONFIGS[currentStage];
+  const canEditField = (fieldName: string) => getFieldStatus(fieldName).editable;
+
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
       <form onSubmit={handleSubmit}>
+        {/* Phase Information Panel */}
+        <div className="m-5 rounded-xl border-2 border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-sm font-bold uppercase text-blue-700 tracking-wide mb-1">Fase Actual de Edición</div>
+              <h3 className="text-lg font-bold text-blue-900">{phaseConfig.name}</h3>
+              <p className="text-sm text-blue-800 mt-1">{phaseConfig.description}</p>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-blue-700 font-semibold mb-2">ROL REQUERIDO</div>
+              <div className="inline-block bg-blue-200 text-blue-900 px-3 py-1 rounded-full text-sm font-bold">
+                {phaseConfig.primaryRole}
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-blue-200">
+            <p className="text-xs text-blue-700">
+              <span className="font-semibold">ℹ️ Nota:</span> En esta fase, solo puedes editar campos específicos. Los campos de fases anteriores se muestran como referencia (solo lectura).
+            </p>
+          </div>
+        </div>
+
         <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
             <FormCard title="1. Información general" icon="▦" color="#003b5c" required>
