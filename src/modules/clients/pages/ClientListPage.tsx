@@ -16,6 +16,7 @@ import {
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
   getAllClients,
+  deleteClient,
   type Client,
   type ClientStatus,
   STATUS_LABELS,
@@ -176,6 +177,14 @@ export default function ClientListPage() {
     setPageSize(25);
     setCurrentPage(1);
     setSortConfig({ key: "createdAt", direction: "desc" });
+  };
+
+  const handleDeleteClient = (client: Client) => {
+    if (window.confirm(`¿Está seguro de que desea eliminar el cliente "${client.businessName}"? Esta acción no se puede deshacer.`)) {
+      deleteClient(client.id);
+      setQuery("");
+      setCurrentPage(1);
+    }
   };
 
   const requestSort = (key: SortKey) => {
@@ -352,6 +361,7 @@ export default function ClientListPage() {
                     <div className="flex items-center justify-end gap-2">
                       <ActionButton label="Ver" size="sm" variant="primary" onClick={() => navigate(`/clients/${client.code}`)} />
                       <ActionButton label="Editar" variant="outline" size="sm" onClick={() => navigate(`/clients/${client.code}/edit`)} />
+                      <ActionButton label="Borrar" variant="danger" size="sm" onClick={() => handleDeleteClient(client)} />
                     </div>
                   </td>
                 </tr>
