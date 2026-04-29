@@ -93,6 +93,18 @@ export default function ClientDetailPage() {
     setModalState({ type: null, isOpen: false });
   };
 
+  const handleDeleteClient = () => {
+    if (!client) return;
+    setActionInProgress(true);
+
+    try {
+      deleteClient(client.id);
+      navigate("/clients");
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -250,12 +262,19 @@ export default function ClientDetailPage() {
             </div>
           </FormCard>
 
-          <div>
+          <div className="space-y-2">
             <ActionButton
               onClick={() => navigate(`/clients/${client.code}/edit`)}
               variant="outline"
               size="sm"
               label="Editar Cliente"
+              fullWidth
+            />
+            <ActionButton
+              onClick={() => setModalState({ type: "delete", isOpen: true })}
+              variant="danger"
+              size="sm"
+              label="Eliminar Cliente"
               fullWidth
             />
           </div>
@@ -340,6 +359,32 @@ export default function ClientDetailPage() {
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50"
               >
                 Desbloquear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalState.type === "delete" && modalState.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-auto">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Eliminar Cliente</h3>
+            <p className="text-sm text-slate-600 mb-6">
+              ¿Está seguro de que desea eliminar a <strong>{client.businessName}</strong>? Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={closeModal}
+                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteClient}
+                disabled={actionInProgress}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                Eliminar
               </button>
             </div>
           </div>
