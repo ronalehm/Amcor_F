@@ -104,7 +104,7 @@ export default function PortfolioListPage() {
   const portfolios = useMemo(() => {
     const records = getPortfolioDisplayRecords();
     const projects = getProjectRecords();
-    
+
     return records.map(portfolio => {
       const portfolioId = portfolio.id || portfolio.codigo;
       const count = projects.filter(p => p.portfolioCode === portfolioId && p.status !== "Desestimado" && p.status !== "Rechazada").length;
@@ -238,9 +238,8 @@ export default function PortfolioListPage() {
       <button
         type="button"
         onClick={() => requestSort(sortKey)}
-        className={`flex w-full items-center gap-2 ${
-          align === "right" ? "justify-end text-right" : "justify-start text-left"
-        }`}
+        className={`flex w-full items-center gap-2 ${align === "right" ? "justify-end text-right" : "justify-start text-left"
+          }`}
       >
         <span>{label}</span>
         <SortIcon sortKey={sortKey} />
@@ -332,20 +331,18 @@ export default function PortfolioListPage() {
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-colors ${
-                    isActive
-                      ? "border-brand-primary text-brand-primary"
-                      : "border-transparent text-slate-500 hover:text-brand-primary"
-                  }`}
+                  className={`whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-colors ${isActive
+                    ? "border-brand-primary text-brand-primary"
+                    : "border-transparent text-slate-500 hover:text-brand-primary"
+                    }`}
                 >
                   {tab.label}
 
                   <span
-                    className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                      isActive
-                        ? "bg-brand-secondary-soft text-brand-primary"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
+                    className={`ml-2 rounded-full px-2 py-0.5 text-xs ${isActive
+                      ? "bg-brand-secondary-soft text-brand-primary"
+                      : "bg-slate-100 text-slate-500"
+                      }`}
                   >
                     {tab.count}
                   </span>
@@ -408,7 +405,7 @@ export default function PortfolioListPage() {
                 <SortableHeader label="Cliente" sortKey="clientName" />
                 <SortableHeader label="Envoltura" sortKey="envoltura" />
                 <SortableHeader label="Envasado / Máquina de Cliente" sortKey="maquinaCliente" />
-                <SortableHeader label="Proyectos" sortKey="proyectos" align="center" />
+                <SortableHeader label="Proyectos" sortKey="proyectos" align="right" />
                 <SortableHeader label="Estado" sortKey="createdAt" />
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wide">
                   Creado
@@ -427,77 +424,76 @@ export default function PortfolioListPage() {
                   return (
                     <tr
                       key={portfolio.id}
-                      className={`transition-colors hover:bg-brand-secondary-soft ${
-                        index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
-                      }`}
+                      className={`transition-colors hover:bg-brand-secondary-soft ${index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
+                        }`}
                     >
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">
-                      {portfolio.id || "—"}
-                    </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">
+                        {portfolio.id || "—"}
+                      </td>
 
-                    <td className="px-4 py-3 text-sm">
-                      <div className="font-bold text-slate-800">
-                        {(portfolio as any).nom || "—"}
-                      </div>
-                    </td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="font-bold text-slate-800">
+                          {(portfolio as any).nom || "—"}
+                        </div>
+                      </td>
 
-                    <td className="px-4 py-3 text-sm">
-                      <div className="font-semibold text-slate-800">
-                        {(portfolio as any).cli || "—"}
-                      </div>
-                    </td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="font-semibold text-slate-800">
+                          {(portfolio as any).cli || "—"}
+                        </div>
+                      </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-700">
-                      {(portfolio as any).env || "—"}
-                    </td>
+                      <td className="px-4 py-3 text-sm text-slate-700">
+                        {(portfolio as any).env || "—"}
+                      </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-700">
-                      {(portfolio as any).maq || "—"}
-                    </td>
+                      <td className="px-4 py-3 text-sm text-slate-700">
+                        {(portfolio as any).maq || "—"}
+                      </td>
 
-                    <td className="px-4 py-3 text-sm text-center">
-                      <span className={`inline-flex min-w-[2rem] items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold ${(portfolio as any).activeProjectCount > 0 ? 'bg-brand-secondary-soft text-brand-primary' : 'bg-red-50 text-red-600'}`}>
-                        {(portfolio as any).activeProjectCount}
-                      </span>
-                    </td>
+                      <td className="px-4 py-3 text-sm text-center">
+                        <span className={`inline-flex min-w-[2rem] items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold ${(portfolio as any).activeProjectCount > 0 ? 'bg-brand-secondary-soft text-brand-primary' : 'bg-red-50 text-red-600'}`}>
+                          {(portfolio as any).activeProjectCount}
+                        </span>
+                      </td>
 
-                    <td className="px-4 py-3 text-sm">
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[status]}`}
-                      >
-                        {STATUS_LABELS[status]}
-                      </span>
-                    </td>
+                      <td className="px-4 py-3 text-sm">
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[status]}`}
+                        >
+                          {STATUS_LABELS[status]}
+                        </span>
+                      </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {(portfolio as any).createdAt
-                        ? new Date((portfolio as any).createdAt).toLocaleDateString("es-PE", {
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {(portfolio as any).createdAt
+                          ? new Date((portfolio as any).createdAt).toLocaleDateString("es-PE", {
                             day: "2-digit",
                             month: "2-digit",
                             year: "numeric",
                           })
-                        : "—"}
-                    </td>
+                          : "—"}
+                      </td>
 
-                    <td className="px-4 py-3 text-right text-sm">
-                      <div className="flex items-center justify-end gap-2">
-                        <ActionButton
-                          label="Ver"
-                          size="sm"
-                          variant="primary"
-                          onClick={() => navigate(`/portfolio/${portfolio.id}`)}
-                        />
+                      <td className="px-4 py-3 text-right text-sm">
+                        <div className="flex items-center justify-end gap-2">
+                          <ActionButton
+                            label="Ver"
+                            size="sm"
+                            variant="primary"
+                            onClick={() => navigate(`/portfolio/${portfolio.id}`)}
+                          />
 
-                        <ActionButton
-                          label="Editar"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/portfolio/${portfolio.id}/edit`)}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                );
+                          <ActionButton
+                            label="Editar"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/portfolio/${portfolio.id}/edit`)}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
                 })
               ) : (
                 <tr>
@@ -567,11 +563,10 @@ export default function PortfolioListPage() {
                   key={page}
                   type="button"
                   onClick={() => setCurrentPage(page)}
-                  className={`min-w-9 rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${
-                    currentPage === page
-                      ? "border-brand-primary bg-brand-primary text-white"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-brand-primary hover:text-brand-primary"
-                  }`}
+                  className={`min-w-9 rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${currentPage === page
+                    ? "border-brand-primary bg-brand-primary text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-brand-primary hover:text-brand-primary"
+                    }`}
                 >
                   {page}
                 </button>

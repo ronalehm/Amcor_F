@@ -30,8 +30,8 @@ export default function ValidationDetailPage() {
     setLoading(false);
     if (projectCode && project) {
       setHeader({
-        title: "Detalle de Validación",
-        subtitle: `Validación del proyecto ${projectCode}`,
+        title: "Detalle de Validaciï¿½n",
+        subtitle: `Validaciï¿½n del proyecto ${projectCode}`,
         breadcrumbs: [
           { label: "Validaciones", href: "/validaciones" },
           { label: projectCode },
@@ -75,19 +75,19 @@ export default function ValidationDetailPage() {
       validaciones: project.validaciones.map((v) =>
         v.area === activeArea
           ? {
-              ...v,
-              comentarios: [
-                ...v.comentarios,
-                {
-                  id: `COM-${Date.now()}`,
-                  comentario: newComment,
-                  campo: campoObservado || undefined,
-                  accionRequerida: accionRequerida || undefined,
-                  fecha: new Date().toISOString(),
-                  autor: currentUser?.fullName || "Sistema",
-                },
-              ],
-            }
+            ...v,
+            comentarios: [
+              ...v.comentarios,
+              {
+                id: `COM-${Date.now()}`,
+                comentario: newComment,
+                campo: campoObservado || undefined,
+                accionRequerida: accionRequerida || undefined,
+                fecha: new Date().toISOString(),
+                autor: currentUser?.fullName || "Sistema",
+              },
+            ],
+          }
           : v
       ),
     };
@@ -106,11 +106,11 @@ export default function ValidationDetailPage() {
       validaciones: project.validaciones.map((v) =>
         v.area === activeArea
           ? {
-              ...v,
-              estado: newStatus,
-              validador: currentUser?.fullName || "Sistema",
-              fechaValidacion: new Date().toISOString(),
-            }
+            ...v,
+            estado: newStatus,
+            validador: currentUser?.fullName || "Sistema",
+            fechaValidacion: new Date().toISOString(),
+          }
           : v
       ),
     };
@@ -137,25 +137,24 @@ export default function ValidationDetailPage() {
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] pb-12">
       <div className="space-y-5 p-5">
-        {/* Información del Proyecto */}
-        <FormCard title="Información del Proyecto" icon="?" color="#00395A">
+        {/* Informaciï¿½n del Proyecto */}
+        <FormCard title="Informaciï¿½n del Proyecto" icon="?" color="#00395A">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <PreviewRow label="Código" value={project.code} />
+            <PreviewRow label="Cï¿½digo" value={project.code} />
             <PreviewRow label="Proyecto" value={project.projectName} />
             <PreviewRow label="Cliente" value={project.clientName} />
             <div>
               <div className="text-xs font-bold uppercase text-slate-400 mb-1">Estado General</div>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                project.estadoValidacionGeneral === "Validada por áreas"
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${project.estadoValidacionGeneral === "Validada por Ã¡reas"
                   ? "bg-green-100 text-green-700"
-                  : project.estadoValidacionGeneral === "En validación"
+                  : project.estadoValidacionGeneral === "En validaciÃ³n"
                     ? "bg-amber-100 text-amber-700"
                     : project.estadoValidacionGeneral === "Observada"
                       ? "bg-orange-100 text-orange-700"
                       : project.estadoValidacionGeneral === "Rechazada"
                         ? "bg-red-100 text-red-700"
                         : "bg-gray-100 text-gray-700"
-              }`}>
+                }`}>
                 {project.estadoValidacionGeneral}
               </span>
             </div>
@@ -164,7 +163,7 @@ export default function ValidationDetailPage() {
           {hasObservations && (
             <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
               <div className="text-sm font-medium text-orange-800">
-                ?? Este proyecto tiene observaciones que requieren corrección del Ejecutivo
+                ?? Este proyecto tiene observaciones que requieren correcciï¿½n del Ejecutivo
               </div>
             </div>
           )}
@@ -178,20 +177,19 @@ export default function ValidationDetailPage() {
           )}
         </FormCard>
 
-        {/* Áreas de Validación */}
+        {/* ï¿½reas de Validaciï¿½n */}
         {project.validaciones.length > 0 ? (
           <div className="space-y-4">
-            {/* Tabs de áreas */}
+            {/* Tabs de ï¿½reas */}
             <div className="flex gap-2 border-b border-slate-300 overflow-x-auto">
               {project.validaciones.map((v) => (
                 <button
                   key={v.area}
                   onClick={() => setActiveArea(v.area)}
-                  className={`px-4 py-2 font-medium border-b-2 transition-colors whitespace-nowrap ${
-                    activeArea === v.area
+                  className={`px-4 py-2 font-medium border-b-2 transition-colors whitespace-nowrap ${activeArea === v.area
                       ? "border-blue-500 text-blue-600"
                       : "border-transparent text-slate-600 hover:text-slate-800"
-                  }`}
+                    }`}
                 >
                   {v.area}
                   <span
@@ -203,9 +201,9 @@ export default function ValidationDetailPage() {
               ))}
             </div>
 
-            {/* Contenido del área activa */}
+            {/* Contenido del ï¿½rea activa */}
             {activeValidation && (
-              <FormCard title={`Validación - ${activeValidation.area}`} icon="?" color="#00395A">
+              <FormCard title={`Validaciï¿½n - ${activeValidation.area}`} icon="?" color="#00395A">
                 <div className="space-y-5">
                   {/* Estado y Validador */}
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -229,8 +227,8 @@ export default function ValidationDetailPage() {
                       value={activeValidation.validador || currentUser?.fullName || "Sin asignar"}
                     />
                     <PreviewRow
-                      label="Fecha validación"
-                      value={activeValidation.fechaValidacion ? new Date(activeValidation.fechaValidacion).toLocaleDateString() : "—"}
+                      label="Fecha validaciï¿½n"
+                      value={activeValidation.fechaValidacion ? new Date(activeValidation.fechaValidacion).toLocaleDateString() : "ï¿½"}
                     />
                   </div>
 
@@ -242,15 +240,15 @@ export default function ValidationDetailPage() {
                     </div>
                   )}
 
-                  {/* Mostrar acción requerida si existe */}
+                  {/* Mostrar acciï¿½n requerida si existe */}
                   {activeValidation.accionRequerida && (
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="text-xs font-bold text-blue-800 mb-1">ACCIÓN REQUERIDA</div>
+                      <div className="text-xs font-bold text-blue-800 mb-1">ACCIï¿½N REQUERIDA</div>
                       <div className="text-sm text-blue-900">{activeValidation.accionRequerida}</div>
                     </div>
                   )}
 
-                  {/* Histórico de comentarios */}
+                  {/* Histï¿½rico de comentarios */}
                   {activeValidation.comentarios.length > 0 && (
                     <div>
                       <div className="text-sm font-semibold text-slate-700 mb-3">Historial de comentarios:</div>
@@ -280,7 +278,7 @@ export default function ValidationDetailPage() {
                             )}
                             {comment.accionRequerida && (
                               <div className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded inline-block ml-2">
-                                Acción: {comment.accionRequerida}
+                                Acciï¿½n: {comment.accionRequerida}
                               </div>
                             )}
                           </div>
@@ -303,11 +301,11 @@ export default function ValidationDetailPage() {
                         label="Comentario *"
                         value={newComment}
                         onChange={setNewComment}
-                        placeholder="Describa la observación o el motivo del rechazo..."
+                        placeholder="Describa la observaciï¿½n o el motivo del rechazo..."
                         rows={3}
                       />
                       <FormInput
-                        label="Acción requerida (opcional)"
+                        label="Acciï¿½n requerida (opcional)"
                         value={accionRequerida}
                         onChange={setAccionRequerida}
                         placeholder="ej: Adjuntar archivo, Confirmar tolerancia, Corregir formato..."
@@ -328,12 +326,12 @@ export default function ValidationDetailPage() {
         ) : (
           <FormCard title="Validaciones" icon="?" color="#00395A">
             <div className="text-slate-500 text-center py-8">
-              No hay áreas de validación registradas para este proyecto
+              No hay ï¿½reas de validaciï¿½n registradas para este proyecto
             </div>
           </FormCard>
         )}
 
-        {/* Botones de acción */}
+        {/* Botones de acciï¿½n */}
         <div className="flex gap-3">
           <ActionButton
             label="Volver"

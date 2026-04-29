@@ -20,7 +20,7 @@ export default function PortfolioDetailPage() {
   const [projects, setProjects] = useState<any[]>([]);
 
   const currentUser = getCurrentUser();
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = currentUser?.role === "administrador";
 
   useEffect(() => {
     if (portfolioCode) {
@@ -28,7 +28,7 @@ export default function PortfolioDetailPage() {
       const portfolioProjects = getProjectsByPortfolioCode(portfolioCode);
       setPortfolio(record || null);
       setProjects(portfolioProjects);
-      
+
       setHeader({
         title: "Detalle de Portafolio",
         breadcrumbs: [
@@ -123,7 +123,7 @@ export default function PortfolioDetailPage() {
             + Nuevo Proyecto
           </button>
         </div>
-        
+
         <table className="w-full border-collapse text-sm">
           <thead className="bg-white text-gray-500 border-b border-gray-200 uppercase text-xs">
             <tr>
@@ -142,7 +142,7 @@ export default function PortfolioDetailPage() {
                 <td className="px-6 py-4 text-gray-500">{project.format || project.fmt || '—'}</td>
                 <td className="px-6 py-4"><ProjectStatusBadge status={project.status || project.e} /></td>
                 <td className="px-6 py-4">
-                  <RowActionButtons 
+                  <RowActionButtons
                     viewPath={`/projects/${project.code || project.id}`}
                     editPath={`/projects/${project.code || project.id}/edit`}
                   />
