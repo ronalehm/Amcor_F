@@ -15,7 +15,7 @@ export default function SlaTimeline({ history }: SlaTimelineProps) {
         const date = new Date(item.changedAt);
         return (
           <div key={item.id} className="relative pl-6">
-            <div className={`absolute w-4 h-4 rounded-full -left-[9px] top-1 border-2 border-white ${index === 0 ? 'bg-brand-primary' : 'bg-gray-300'}`} style={index === 0 ? { backgroundColor: '#003b5c'} : {}} />
+            <div className={`absolute w-4 h-4 rounded-full -left-[9px] top-1 border-2 border-white ${index === 0 ? 'bg-brand-primary' : 'bg-gray-300'}`} style={index === 0 ? { backgroundColor: '#00395A'} : {}} />
             <div className="flex flex-col">
               <span className="text-sm font-bold text-gray-800">
                 {item.fromStatus} → {item.toStatus}

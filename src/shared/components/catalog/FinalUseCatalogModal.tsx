@@ -168,7 +168,7 @@ export default function FinalUseCatalogModal({
                   <tr
                     key={item.id}
                     onDoubleClick={() => onSelect(String(item.id))}
-                    className={`cursor-pointer hover:bg-[#e8f4f8] ${
+                    className={`cursor-pointer hover:bg-brand-secondary-soft ${
                       isSelected ? "bg-amber-50" : "bg-white"
                     }`}
                   >

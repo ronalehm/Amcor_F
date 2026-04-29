@@ -41,7 +41,7 @@ export default function ListToolbar({
                 value={searchValue}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-64 rounded-md border border-slate-200 bg-white px-3 py-2 pl-9 text-sm outline-none focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
+                className="w-64 rounded-md border border-slate-200 bg-white px-3 py-2 pl-9 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
                 🔍

@@ -13,7 +13,7 @@ export default function ProjectStageCard({ currentStage, stageUpdatedAt }: Proje
   if (!config) return null;
 
   return (
-    <div className={`rounded-xl p-5 border ${isPortal ? 'bg-[#003b5c] text-white border-[#002b43]' : 'bg-slate-100 text-slate-800 border-slate-200'} shadow-sm`}>
+    <div className={`rounded-xl p-5 border ${isPortal ? 'bg-brand-primary text-white border-[#002b43]' : 'bg-slate-100 text-slate-800 border-slate-200'} shadow-sm`}>
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2">
           <span className={`px-2 py-0.5 rounded text-xs font-bold ${isPortal ? 'bg-white/20 text-white' : 'bg-white text-slate-600 border border-slate-300'}`}>
@@ -34,7 +34,7 @@ export default function ProjectStageCard({ currentStage, stageUpdatedAt }: Proje
       <p className={`text-sm mb-4 ${isPortal ? 'text-white/80' : 'text-slate-600'}`}>{config.description}</p>
       
       <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold ${isPortal ? 'bg-white/10' : 'bg-white border border-slate-200'}`}>
-        <Info size={14} className={isPortal ? "text-[#1E82D9]" : "text-slate-400"} />
+        <Info size={14} className={isPortal ? "text-brand-secondary" : "text-slate-400"} />
         Área Responsable: {config.responsibleArea}
       </div>
     </div>

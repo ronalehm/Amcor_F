@@ -117,7 +117,7 @@ export default function SystemIntegrationUserSearch({
                 ? "border-red-300 bg-red-50 text-red-900 placeholder:text-red-400"
                 : "border-slate-200 bg-white text-slate-700 placeholder:text-slate-400"
             }
-            ${disabled ? "cursor-not-allowed bg-slate-50 text-slate-400" : "focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"}`}
+            ${disabled ? "cursor-not-allowed bg-slate-50 text-slate-400" : "focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"}`}
           autoComplete="off"
         />
       </div>
@@ -138,7 +138,7 @@ export default function SystemIntegrationUserSearch({
               onClick={() => handleSelectResult(vendor)}
               onMouseEnter={() => setSelectedIndex(index)}
               className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-0 transition-colors ${
-                index === selectedIndex ? "bg-[#e8f4f8]" : "hover:bg-slate-50"
+                index === selectedIndex ? "bg-brand-secondary-soft" : "hover:bg-slate-50"
               }`}
             >
               <div className="flex items-start justify-between gap-2">

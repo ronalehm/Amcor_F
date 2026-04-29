@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowDown,
@@ -14,11 +14,12 @@ import {
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
+import { getProjectRecords } from "../../../shared/data/projectStorage";
 import ActionButton from "../../../shared/components/buttons/ActionButton";
 
 type PortfolioTab = "all" | "active" | "inactive";
 type SortDirection = "asc" | "desc";
-type SortKey = "codigo" | "nombre" | "clientName" | "createdAt";
+type SortKey = "codigo" | "nombre" | "clientName" | "envoltura" | "maquinaCliente" | "createdAt" | "proyectos";
 
 const getText = (...values: any[]) => {
   const value = values.find(
@@ -49,14 +50,17 @@ const getPortfolioStatus = (portfolio: any): "active" | "inactive" => {
 
 const getSortValue = (portfolio: any, key: SortKey): string | number => {
   switch (key) {
-    case "codigo": return getText(portfolio.codigo, portfolio.id).toLowerCase();
-    case "nombre": return getText(portfolio.nombre, portfolio.portfolioName, portfolio.nom).toLowerCase();
-    case "clientName": return getText(portfolio.clientName, portfolio.cli).toLowerCase();
+    case "codigo": return getText(portfolio.id).toLowerCase();
+    case "nombre": return getText(portfolio.nom).toLowerCase();
+    case "clientName": return getText(portfolio.cli).toLowerCase();
+    case "envoltura": return getText(portfolio.env).toLowerCase();
+    case "maquinaCliente": return getText(portfolio.maq).toLowerCase();
     case "createdAt": {
-      const createdAt = getText(portfolio.createdAt, portfolio.createdDate, portfolio.fechaCreacion);
+      const createdAt = getText(portfolio.createdAt);
       const time = createdAt ? new Date(createdAt).getTime() : 0;
       return Number.isNaN(time) ? 0 : time;
     }
+    case "proyectos": return portfolio.activeProjectCount || 0;
     default: return "";
   }
 };
@@ -97,7 +101,16 @@ export default function PortfolioListPage() {
     return () => resetHeader();
   }, [setHeader, resetHeader]);
 
-  const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
+  const portfolios = useMemo(() => {
+    const records = getPortfolioDisplayRecords();
+    const projects = getProjectRecords();
+    
+    return records.map(portfolio => {
+      const portfolioId = portfolio.id || portfolio.codigo;
+      const count = projects.filter(p => p.portfolioCode === portfolioId && p.status !== "Desestimado" && p.status !== "Rechazada").length;
+      return { ...portfolio, activeProjectCount: count };
+    });
+  }, []);
 
   const activePortfolios = useMemo(
     () => portfolios.filter((p) => getPortfolioStatus(p) === "active"),
@@ -117,11 +130,15 @@ export default function PortfolioListPage() {
       const statusLabel = STATUS_LABELS[status];
 
       const searchableText = [
-        portfolio.codigo,
-        portfolio.nombre,
-        portfolio.clientName,
+        portfolio.id,
+        (portfolio as any).nom,
+        (portfolio as any).cli,
+        (portfolio as any).env,
+        (portfolio as any).maq,
+        (portfolio as any).ej,
+        (portfolio as any).pl,
         statusLabel,
-        portfolio.createdAt,
+        (portfolio as any).fch,
       ]
         .filter(Boolean)
         .join(" ")
@@ -265,7 +282,7 @@ export default function PortfolioListPage() {
                 {portfolios.length}
               </p>
             </div>
-            <div className="rounded-lg bg-[#e8f4f8] p-2 text-[#003b5c]">
+            <div className="rounded-lg bg-brand-secondary-soft p-2 text-brand-primary">
               <BriefcaseBusiness size={18} />
             </div>
           </div>
@@ -317,8 +334,8 @@ export default function PortfolioListPage() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-colors ${
                     isActive
-                      ? "border-[#003b5c] text-[#003b5c]"
-                      : "border-transparent text-slate-500 hover:text-[#003b5c]"
+                      ? "border-brand-primary text-brand-primary"
+                      : "border-transparent text-slate-500 hover:text-brand-primary"
                   }`}
                 >
                   {tab.label}
@@ -326,7 +343,7 @@ export default function PortfolioListPage() {
                   <span
                     className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
                       isActive
-                        ? "bg-[#e8f4f8] text-[#003b5c]"
+                        ? "bg-brand-secondary-soft text-brand-primary"
                         : "bg-slate-100 text-slate-500"
                     }`}
                   >
@@ -357,8 +374,8 @@ export default function PortfolioListPage() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar por código, nombre, cliente..."
-                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
+                placeholder="Buscar por código, nombre, cliente, envoltura, envasado..."
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
               />
             </div>
           </div>
@@ -385,11 +402,17 @@ export default function PortfolioListPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px] border-collapse text-sm">
             <thead>
-              <tr className="bg-[#003b5c] text-white">
+              <tr className="bg-brand-primary text-white">
                 <SortableHeader label="Código" sortKey="codigo" />
                 <SortableHeader label="Nombre" sortKey="nombre" />
                 <SortableHeader label="Cliente" sortKey="clientName" />
+                <SortableHeader label="Envoltura" sortKey="envoltura" />
+                <SortableHeader label="Envasado / Máquina de Cliente" sortKey="maquinaCliente" />
+                <SortableHeader label="Proyectos" sortKey="proyectos" align="center" />
                 <SortableHeader label="Estado" sortKey="createdAt" />
+                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wide">
+                  Creado
+                </th>
 
                 <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
                   Acciones
@@ -398,27 +421,44 @@ export default function PortfolioListPage() {
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-              {paginatedPortfolios.map((portfolio, index) => {
-                const status = getPortfolioStatus(portfolio);
-                return (
-                  <tr
-                    key={portfolio.codigo || portfolio.id}
-                    className={`transition-colors hover:bg-[#e8f4f8] ${
-                      index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
-                    }`}
-                  >
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-[#003b5c]">
-                      {portfolio.codigo || "—"}
+              {paginatedPortfolios.length > 0 ? (
+                paginatedPortfolios.map((portfolio, index) => {
+                  const status = getPortfolioStatus(portfolio);
+                  return (
+                    <tr
+                      key={portfolio.id}
+                      className={`transition-colors hover:bg-brand-secondary-soft ${
+                        index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
+                      }`}
+                    >
+                    <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">
+                      {portfolio.id || "—"}
                     </td>
 
                     <td className="px-4 py-3 text-sm">
                       <div className="font-bold text-slate-800">
-                        {portfolio.nombre || portfolio.portfolioName || "—"}
+                        {(portfolio as any).nom || "—"}
                       </div>
                     </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {portfolio.clientName || "—"}
+                    <td className="px-4 py-3 text-sm">
+                      <div className="font-semibold text-slate-800">
+                        {(portfolio as any).cli || "—"}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {(portfolio as any).env || "—"}
+                    </td>
+
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {(portfolio as any).maq || "—"}
+                    </td>
+
+                    <td className="px-4 py-3 text-sm text-center">
+                      <span className={`inline-flex min-w-[2rem] items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold ${(portfolio as any).activeProjectCount > 0 ? 'bg-brand-secondary-soft text-brand-primary' : 'bg-red-50 text-red-600'}`}>
+                        {(portfolio as any).activeProjectCount}
+                      </span>
                     </td>
 
                     <td className="px-4 py-3 text-sm">
@@ -429,30 +469,39 @@ export default function PortfolioListPage() {
                       </span>
                     </td>
 
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {(portfolio as any).createdAt
+                        ? new Date((portfolio as any).createdAt).toLocaleDateString("es-PE", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })
+                        : "—"}
+                    </td>
+
                     <td className="px-4 py-3 text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
                         <ActionButton
                           label="Ver"
                           size="sm"
                           variant="primary"
-                          onClick={() => navigate(`/portfolio/${portfolio.codigo}`)}
+                          onClick={() => navigate(`/portfolio/${portfolio.id}`)}
                         />
 
                         <ActionButton
                           label="Editar"
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/portfolio/${portfolio.codigo}/edit`)}
+                          onClick={() => navigate(`/portfolio/${portfolio.id}/edit`)}
                         />
                       </div>
                     </td>
                   </tr>
                 );
-              })}
-
-              {filteredPortfolios.length === 0 && (
+                })
+              ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-14 text-center">
+                  <td colSpan={8} className="px-6 py-14 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <BriefcaseBusiness size={26} className="text-slate-400" />
@@ -481,7 +530,7 @@ export default function PortfolioListPage() {
                 setPageSize(Number(event.target.value));
                 setCurrentPage(1);
               }}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition-colors focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition-colors focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
             >
               <option value={10}>10</option>
               <option value={25}>25</option>
@@ -507,7 +556,7 @@ export default function PortfolioListPage() {
               type="button"
               onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
               disabled={currentPage === 1}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-brand-primary hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
               ‹ Previous
             </button>
@@ -520,8 +569,8 @@ export default function PortfolioListPage() {
                   onClick={() => setCurrentPage(page)}
                   className={`min-w-9 rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${
                     currentPage === page
-                      ? "border-[#003b5c] bg-[#003b5c] text-white"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-[#003b5c] hover:text-[#003b5c]"
+                      ? "border-brand-primary bg-brand-primary text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-brand-primary hover:text-brand-primary"
                   }`}
                 >
                   {page}
@@ -535,7 +584,7 @@ export default function PortfolioListPage() {
                 setCurrentPage((page) => Math.min(totalPages, page + 1))
               }
               disabled={currentPage === totalPages}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-brand-primary hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
               Next ›
             </button>

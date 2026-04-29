@@ -179,7 +179,7 @@ export default function DataSheetEditPage() {
         <div className="text-red-600 font-semibold">{error || "Error cargando ficha"}</div>
         <button
           onClick={() => navigate("/datasheets")}
-          className="px-4 py-2 bg-[#003b5c] text-white rounded-md text-sm font-medium"
+          className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium"
         >
           Volver a Fichas
         </button>
@@ -206,7 +206,7 @@ export default function DataSheetEditPage() {
 
       <form onSubmit={handleSubmit}>
         <div className="max-w-4xl mx-auto">
-          <FormCard title="Información General" icon="📋" color="#003b5c" required>
+          <FormCard title="Información General" icon="📋" color="#00395A" required>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormInput
                 label="Nombre de la Ficha *"
@@ -259,7 +259,7 @@ export default function DataSheetEditPage() {
           </FormCard>
 
           <div className="mt-5">
-            <FormCard title="Detalles Técnicos" icon="⚙️" color="#1E82D9">
+            <FormCard title="Detalles Técnicos" icon="⚙️" color="#00A1DE">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormTextarea
                   label="Descripción"

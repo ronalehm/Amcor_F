@@ -1,3 +1,5 @@
+import seedClients from "./seeds/clients.json";
+
 const CLIENTS_STORAGE_KEY = "odiseo_clients";
 
 export type ClientStatus = "active" | "inactive" | "pending_activation" | "pending_validation" | "blocked";
@@ -16,41 +18,7 @@ export type Client = {
   updatedAt: string;
 };
 
-const INITIAL_CLIENTS: Client[] = [
-  {
-    id: "CLI-000001",
-    code: "CL-000001",
-    businessName: "Alicorp S.A.A.",
-    email: "contacto@alicorp.com",
-    ruc: "20100055237",
-    industry: "Consumo masivo",
-    status: "active",
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:00.000Z",
-  },
-  {
-    id: "CLI-000002",
-    code: "CL-000002",
-    businessName: "Kimberly-Clark Perú",
-    email: "contacto@kimberly-clark.com",
-    ruc: "20100152941",
-    industry: "Cuidado personal",
-    status: "active",
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:00.000Z",
-  },
-  {
-    id: "CLI-000003",
-    code: "CL-000003",
-    businessName: "Leche Gloria S.A.",
-    email: "contacto@gloria.com",
-    ruc: "20100190797",
-    industry: "Alimentos y bebidas",
-    status: "active",
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:00.000Z",
-  },
-];
+const INITIAL_CLIENTS: Client[] = seedClients as Client[];
 
 function safeParseArray<T>(value: string | null): T[] {
   try {
@@ -144,6 +112,7 @@ export function createClient(data: {
 
   clients.push(newClient);
   persistClients(clients);
+  saveSeedClients(clients);
   return newClient;
 }
 
@@ -214,4 +183,17 @@ export const STATUS_COLORS: Record<ClientStatus, string> = {
 
 export function getClientCatalogRecords(): Client[] {
   return getAllClients();
+}
+
+export async function saveSeedClients(clients: Client[]): Promise<void> {
+  try {
+    const response = await fetch("/__update-seed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "clients", data: clients }),
+    });
+    if (!response.ok) console.error("Failed to save seed clients");
+  } catch (error) {
+    console.error("Error saving seed clients:", error);
+  }
 }

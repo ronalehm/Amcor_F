@@ -1,4 +1,4 @@
-Ôªøimport { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getProjectByCode, updateProjectRecord, type AreaValidation, type ValidationState } from "../../../shared/data/projectStorage";
@@ -30,8 +30,8 @@ export default function ValidationDetailPage() {
     setLoading(false);
     if (projectCode && project) {
       setHeader({
-        title: "Detalle de Validaci√≥n",
-        subtitle: `Validaci√≥n del proyecto ${projectCode}`,
+        title: "Detalle de ValidaciÛn",
+        subtitle: `ValidaciÛn del proyecto ${projectCode}`,
         breadcrumbs: [
           { label: "Validaciones", href: "/validaciones" },
           { label: projectCode },
@@ -137,18 +137,18 @@ export default function ValidationDetailPage() {
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] pb-12">
       <div className="space-y-5 p-5">
-        {/* Informaci√≥n del Proyecto */}
-        <FormCard title="Informaci√≥n del Proyecto" icon="‚ñ¶" color="#003b5c">
+        {/* InformaciÛn del Proyecto */}
+        <FormCard title="InformaciÛn del Proyecto" icon="?" color="#00395A">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <PreviewRow label="C√≥digo" value={project.code} />
+            <PreviewRow label="CÛdigo" value={project.code} />
             <PreviewRow label="Proyecto" value={project.projectName} />
             <PreviewRow label="Cliente" value={project.clientName} />
             <div>
               <div className="text-xs font-bold uppercase text-slate-400 mb-1">Estado General</div>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                project.estadoValidacionGeneral === "Validada por √°reas"
+                project.estadoValidacionGeneral === "Validada por ·reas"
                   ? "bg-green-100 text-green-700"
-                  : project.estadoValidacionGeneral === "En validaci√≥n"
+                  : project.estadoValidacionGeneral === "En validaciÛn"
                     ? "bg-amber-100 text-amber-700"
                     : project.estadoValidacionGeneral === "Observada"
                       ? "bg-orange-100 text-orange-700"
@@ -164,7 +164,7 @@ export default function ValidationDetailPage() {
           {hasObservations && (
             <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
               <div className="text-sm font-medium text-orange-800">
-                ‚ö†Ô∏è Este proyecto tiene observaciones que requieren correcci√≥n del Ejecutivo
+                ?? Este proyecto tiene observaciones que requieren correcciÛn del Ejecutivo
               </div>
             </div>
           )}
@@ -172,16 +172,16 @@ export default function ValidationDetailPage() {
           {hasRejections && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <div className="text-sm font-medium text-red-800">
-                ‚ùå Este proyecto ha sido RECHAZADO y no puede continuar al RFQ
+                ? Este proyecto ha sido RECHAZADO y no puede continuar al RFQ
               </div>
             </div>
           )}
         </FormCard>
 
-        {/* √Åreas de Validaci√≥n */}
+        {/* ¡reas de ValidaciÛn */}
         {project.validaciones.length > 0 ? (
           <div className="space-y-4">
-            {/* Tabs de √°reas */}
+            {/* Tabs de ·reas */}
             <div className="flex gap-2 border-b border-slate-300 overflow-x-auto">
               {project.validaciones.map((v) => (
                 <button
@@ -203,9 +203,9 @@ export default function ValidationDetailPage() {
               ))}
             </div>
 
-            {/* Contenido del √°rea activa */}
+            {/* Contenido del ·rea activa */}
             {activeValidation && (
-              <FormCard title={`Validaci√≥n - ${activeValidation.area}`} icon="‚úì" color="#003b5c">
+              <FormCard title={`ValidaciÛn - ${activeValidation.area}`} icon="?" color="#00395A">
                 <div className="space-y-5">
                   {/* Estado y Validador */}
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -229,8 +229,8 @@ export default function ValidationDetailPage() {
                       value={activeValidation.validador || currentUser?.fullName || "Sin asignar"}
                     />
                     <PreviewRow
-                      label="Fecha validaci√≥n"
-                      value={activeValidation.fechaValidacion ? new Date(activeValidation.fechaValidacion).toLocaleDateString() : "‚Äî"}
+                      label="Fecha validaciÛn"
+                      value={activeValidation.fechaValidacion ? new Date(activeValidation.fechaValidacion).toLocaleDateString() : "ó"}
                     />
                   </div>
 
@@ -242,15 +242,15 @@ export default function ValidationDetailPage() {
                     </div>
                   )}
 
-                  {/* Mostrar acci√≥n requerida si existe */}
+                  {/* Mostrar acciÛn requerida si existe */}
                   {activeValidation.accionRequerida && (
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="text-xs font-bold text-blue-800 mb-1">ACCI√ìN REQUERIDA</div>
+                      <div className="text-xs font-bold text-blue-800 mb-1">ACCI”N REQUERIDA</div>
                       <div className="text-sm text-blue-900">{activeValidation.accionRequerida}</div>
                     </div>
                   )}
 
-                  {/* Hist√≥rico de comentarios */}
+                  {/* HistÛrico de comentarios */}
                   {activeValidation.comentarios.length > 0 && (
                     <div>
                       <div className="text-sm font-semibold text-slate-700 mb-3">Historial de comentarios:</div>
@@ -280,7 +280,7 @@ export default function ValidationDetailPage() {
                             )}
                             {comment.accionRequerida && (
                               <div className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded inline-block ml-2">
-                                Acci√≥n: {comment.accionRequerida}
+                                AcciÛn: {comment.accionRequerida}
                               </div>
                             )}
                           </div>
@@ -303,11 +303,11 @@ export default function ValidationDetailPage() {
                         label="Comentario *"
                         value={newComment}
                         onChange={setNewComment}
-                        placeholder="Describa la observaci√≥n o el motivo del rechazo..."
+                        placeholder="Describa la observaciÛn o el motivo del rechazo..."
                         rows={3}
                       />
                       <FormInput
-                        label="Acci√≥n requerida (opcional)"
+                        label="AcciÛn requerida (opcional)"
                         value={accionRequerida}
                         onChange={setAccionRequerida}
                         placeholder="ej: Adjuntar archivo, Confirmar tolerancia, Corregir formato..."
@@ -326,14 +326,14 @@ export default function ValidationDetailPage() {
             )}
           </div>
         ) : (
-          <FormCard title="Validaciones" icon="‚äò" color="#003b5c">
+          <FormCard title="Validaciones" icon="?" color="#00395A">
             <div className="text-slate-500 text-center py-8">
-              No hay √°reas de validaci√≥n registradas para este proyecto
+              No hay ·reas de validaciÛn registradas para este proyecto
             </div>
           </FormCard>
         )}
 
-        {/* Botones de acci√≥n */}
+        {/* Botones de acciÛn */}
         <div className="flex gap-3">
           <ActionButton
             label="Volver"

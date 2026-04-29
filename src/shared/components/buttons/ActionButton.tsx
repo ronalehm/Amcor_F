@@ -49,7 +49,7 @@ export default function ActionButton({
       case "ghost":
         return "text-slate-600 hover:bg-slate-100";
       default:
-        return "bg-[#003b5c] text-white hover:bg-[#002b43]";
+        return "bg-brand-primary text-white hover:bg-brand-primary-hover";
     }
   };
 

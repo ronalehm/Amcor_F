@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Search } from "lucide-react";
 
 export type SmartCatalogOption = {
   id: number | string;
@@ -69,26 +70,32 @@ export default function SmartCatalogSearch({
         {label}
       </span>
 
-      <input
-        value={query}
-        onFocus={() => setIsOpen(true)}
-        onBlur={onBlur}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          onChange("");
-          setIsOpen(true);
-          setShowAll(false);
-        }}
-        placeholder={placeholder}
-        className={`w-full rounded-md border bg-white px-3 py-2 text-sm outline-none ${
-          error
-            ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-            : "border-slate-300 focus:border-[#0d4c5c] focus:ring-2 focus:ring-[#0d4c5c]/20"
-        }`}
-      />
+      <div className="relative">
+        <Search
+          size={16}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+        <input
+          value={query}
+          onFocus={() => setIsOpen(true)}
+          onBlur={onBlur}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            onChange("");
+            setIsOpen(true);
+            setShowAll(false);
+          }}
+          placeholder={placeholder}
+          className={`w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm shadow-sm outline-none transition-colors ${
+            error
+              ? "border-red-300 text-red-900 bg-red-50 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+              : "border-slate-200 text-slate-700 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+          } placeholder:text-slate-400`}
+        />
+      </div>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+        <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((option) => (
               <button

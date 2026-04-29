@@ -13,9 +13,9 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const AMCOR_COLORS = {
-  navy: "#003b5c",
+  navy: "#00395A",
   navyHover: "#002b43",
-  blue: "#1E82D9",
+  blue: "#00A1DE",
   blueHover: "#186bb5",
   green: "#27ae60",
   greenHover: "#219653",
@@ -76,12 +76,12 @@ export default function Button({
   // For simplicity, we'll use Tailwind arbitrary values in className combined with the style prop.
   
   let tailwindVariantClass = "";
-  if (variant === "primary") tailwindVariantClass = "hover:bg-[#002b43] focus:ring-[#003b5c]";
-  if (variant === "secondary") tailwindVariantClass = "hover:bg-[#186bb5] focus:ring-[#1E82D9]";
+  if (variant === "primary") tailwindVariantClass = "hover:bg-brand-primary-hover focus:ring-brand-primary";
+  if (variant === "secondary") tailwindVariantClass = "hover:bg-[#186bb5] focus:ring-[#00A1DE]";
   if (variant === "success") tailwindVariantClass = "hover:bg-[#219653] focus:ring-[#27ae60]";
   if (variant === "danger") tailwindVariantClass = "hover:bg-[#c0392b] focus:ring-[#e74c3c]";
   if (variant === "warning") tailwindVariantClass = "hover:bg-[#d68910] focus:ring-[#f39c12]";
-  if (variant === "outline") tailwindVariantClass = "hover:bg-slate-50 focus:ring-[#003b5c]";
+  if (variant === "outline") tailwindVariantClass = "hover:bg-slate-50 focus:ring-brand-primary";
   if (variant === "ghost") tailwindVariantClass = "hover:bg-slate-100 focus:ring-slate-300";
 
   const classes = [

@@ -11,10 +11,9 @@ import FormActionButtons from "../../../shared/components/forms/FormActionButton
 import {
   getUserById,
   updateUser,
-  ROLE_LABELS,
   STATUS_LABELS,
   getUserByEmail,
-  type UserRole,
+  getCurrentUser,
   type UserStatus,
 } from "../../../shared/data/userStorage";
 import {
@@ -23,6 +22,7 @@ import {
   getLastSyncTimestamp,
   formatSyncTimestamp,
 } from "../../../shared/data/vendorMirrorStorage";
+import { AREAS, getPositionsByArea, getRoleByPosition, PORTAL_ROLE_LABELS, PORTAL_ROLE_DESCRIPTIONS } from "../../../shared/data/areaDepartmentConfig";
 
 type UserFormData = {
   firstName: string;
@@ -31,10 +31,10 @@ type UserFormData = {
   workerCode: string;
   position: string;
   company: string;
-  role: UserRole;
   phone: string;
   area: string;
   siUserId: string;
+  role?: string;
 };
 
 export default function UserEditPage() {
@@ -49,6 +49,9 @@ export default function UserEditPage() {
   const [error, setError] = useState<string | null>(null);
   const [userCode, setUserCode] = useState<string>("");
   const [currentVendorCode, setCurrentVendorCode] = useState<string>("");
+
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === "administrador";
 
   const activeVendors = useMemo(() => getActiveVendorsMirror(), []);
   const lastSyncTime = useMemo(() => getLastSyncTimestamp(), []);
@@ -76,10 +79,10 @@ export default function UserEditPage() {
       workerCode: user.workerCode,
       position: user.position,
       company: user.company,
-      role: user.role,
       phone: user.phone || "",
       area: user.area || "",
       siUserId: user.siUserId || "",
+      role: user.role,
     });
     setLoading(false);
   }, [userId]);
@@ -118,13 +121,15 @@ export default function UserEditPage() {
     if (!form.workerCode.trim()) errors.workerCode = "Ingresa el código de trabajador.";
     if (!form.position.trim()) errors.position = "Ingresa el puesto.";
     if (!form.company.trim()) errors.company = "Ingresa la empresa.";
-    if (!form.role) errors.role = "Selecciona un rol.";
-    if (form.role === "comercial" && !form.siUserId) {
+    if (isAdmin && !form.role) {
+      errors.role = "Selecciona un rol.";
+    }
+    if (form.position === "Ejecutivo Comercial" && !form.siUserId) {
       errors.siUserId = "El vendedor es obligatorio para ejecutivos comerciales.";
     }
 
     return errors;
-  }, [form, userId]);
+  }, [form, userId, isAdmin]);
 
   const validationErrorList = Object.values(validationErrors).filter(Boolean) as string[];
 
@@ -140,6 +145,8 @@ export default function UserEditPage() {
     return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
   };
 
+  const assignedRole = form?.position ? getRoleByPosition(form.position) : null;
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitAttempted(true);
@@ -149,12 +156,12 @@ export default function UserEditPage() {
         firstName: true,
         lastName: true,
         email: true,
-        role: true,
       });
       return;
     }
 
     const selectedVendor = activeVendors.find(v => v.id === form.siUserId);
+    const finalRole = isAdmin && form.role ? (form.role as any) : (assignedRole as any);
 
     updateUser(userId, {
       firstName: form.firstName,
@@ -163,7 +170,7 @@ export default function UserEditPage() {
       workerCode: form.workerCode,
       position: form.position,
       company: form.company,
-      role: form.role,
+      role: finalRole,
       phone: form.phone || undefined,
       area: form.area || undefined,
       siUserId: form.siUserId || undefined,
@@ -173,15 +180,23 @@ export default function UserEditPage() {
     navigate("/users");
   };
 
-  const roleOptions = Object.entries(ROLE_LABELS).map(([value, label]) => ({
-    value,
-    label,
-  }));
-
   const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({
     value,
     label,
   }));
+
+  const areaOptions = AREAS.map((area) => ({
+    value: area,
+    label: area,
+  }));
+
+  const positionOptions = useMemo(() => {
+    const positions = getPositionsByArea(form.area);
+    return positions.map((pos: string) => ({
+      value: pos,
+      label: pos,
+    }));
+  }, [form.area]);
 
   if (loading) {
     return (
@@ -197,7 +212,7 @@ export default function UserEditPage() {
         <div className="text-red-600 font-semibold">{error || "Error cargando usuario"}</div>
         <button
           onClick={() => navigate("/users")}
-          className="px-4 py-2 bg-[#003b5c] text-white rounded-md text-sm font-medium"
+          className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium"
         >
           Volver a Usuarios
         </button>
@@ -209,7 +224,7 @@ export default function UserEditPage() {
     <div className="w-full max-w-none bg-[#f6f8fb]">
       <form onSubmit={handleSubmit}>
         <div className="max-w-3xl mx-auto">
-          <FormCard title="Datos del Trabajador" icon="👤" color="#003b5c" required>
+          <FormCard title="Datos del Trabajador" icon="👤" color="#00395A" required>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormInput
                 label="Cod. Trabajador *"
@@ -247,13 +262,32 @@ export default function UserEditPage() {
                 placeholder="Ej. juan.perez@amcor.com"
               />
 
-              <FormInput
+              <FormSelect
+                label="Área / Departamento *"
+                value={form.area}
+                onChange={(value) => {
+                  updateField("area", value);
+                  updateField("position", "");
+                  markFieldAsTouched("area");
+                }}
+                onBlur={() => markFieldAsTouched("area")}
+                error={shouldShowFieldError("area") ? validationErrors.area : ""}
+                options={areaOptions}
+                placeholder="-- Seleccione Área --"
+              />
+
+              <FormSelect
                 label="Puesto *"
                 value={form.position}
-                onChange={(value) => updateField("position", value)}
+                onChange={(value) => {
+                  updateField("position", value);
+                  markFieldAsTouched("position");
+                }}
                 onBlur={() => markFieldAsTouched("position")}
                 error={shouldShowFieldError("position") ? validationErrors.position : ""}
-                placeholder="Ej. Ejecutivo Comercial"
+                options={positionOptions}
+                placeholder="-- Seleccione Puesto --"
+                disabled={!form.area}
               />
 
               <FormInput
@@ -266,30 +300,43 @@ export default function UserEditPage() {
               />
 
               <FormInput
-                label="Área / Departamento"
-                value={form.area}
-                onChange={(value) => updateField("area", value)}
-                placeholder="Ej. Ventas, R&D, etc."
-              />
-
-              <FormInput
                 label="Teléfono"
                 value={form.phone}
                 onChange={(value) => updateField("phone", value)}
                 placeholder="Ej. +51 999 888 777"
                 helper="Opcional"
               />
-
-              <FormSelect
-                label="Rol *"
-                value={form.role}
-                onChange={(value) => updateField("role", value as UserRole)}
-                onBlur={() => markFieldAsTouched("role")}
-                error={shouldShowFieldError("role") ? validationErrors.role : ""}
-                options={roleOptions}
-                placeholder="-- Seleccione --"
-              />
             </div>
+
+            {isAdmin ? (
+              <div className="mt-4 space-y-4">
+                <FormSelect
+                  label="Rol Portal ODISEO *"
+                  value={form?.role || ""}
+                  onChange={(value) => updateField("role", value)}
+                  error={shouldShowFieldError("role") ? validationErrors.role : ""}
+                  options={[
+                    { value: "operador", label: PORTAL_ROLE_LABELS["operador"] },
+                    { value: "validador", label: PORTAL_ROLE_LABELS["validador"] },
+                    { value: "supervisor", label: PORTAL_ROLE_LABELS["supervisor"] },
+                    { value: "administrador", label: PORTAL_ROLE_LABELS["administrador"] },
+                  ]}
+                  placeholder="-- Seleccione Rol --"
+                />
+                {form?.role && (
+                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                    <p className="text-sm font-semibold text-blue-700 mb-2">Descripción:</p>
+                    <p className="text-sm text-blue-600">{PORTAL_ROLE_DESCRIPTIONS[form.role as any]}</p>
+                  </div>
+                )}
+              </div>
+            ) : assignedRole ? (
+              <div className="mt-4 p-4 rounded-lg bg-green-50 border border-green-200">
+                <p className="text-xs font-semibold text-green-800 uppercase mb-2">Rol Asignado Automáticamente</p>
+                <p className="text-lg font-bold text-green-900">{PORTAL_ROLE_LABELS[assignedRole]}</p>
+                <p className="text-sm text-green-700 mt-3">{PORTAL_ROLE_DESCRIPTIONS[assignedRole]}</p>
+              </div>
+            ) : null}
 
             {(() => {
               const currentUser = getUserById(userId || "");
@@ -324,7 +371,7 @@ export default function UserEditPage() {
               )}
 
               <FormSelect
-                label={form.role === "comercial" ? "Reasignar Vendedor *" : "Reasignar Vendedor"}
+                label={form.position === "Ejecutivo Comercial" ? "Reasignar Vendedor *" : "Reasignar Vendedor"}
                 value={form.siUserId}
                 onChange={(value) => updateField("siUserId", value)}
                 error={shouldShowFieldError("siUserId") ? validationErrors.siUserId : ""}
@@ -334,7 +381,7 @@ export default function UserEditPage() {
                   label: `${v.code} - ${v.name}`,
                 }))}
               />
-              {form.role === "comercial" ? (
+              {form.position === "Ejecutivo Comercial" ? (
                 <p className="text-xs text-slate-500 italic">
                   Obligatorio para ejecutivos comerciales. Solo se pueden seleccionar vendedores activos del Sistema Integral.
                 </p>

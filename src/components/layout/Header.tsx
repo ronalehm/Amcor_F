@@ -193,7 +193,7 @@ const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
             className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200"
             aria-label="Men\u00fa de usuario"
           >
-            <div className="w-9 h-9 rounded-full bg-[#003b5c] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-brand-primary flex items-center justify-center">
               <span className="text-white font-bold text-sm">
                 {currentUser ? currentUser.firstName.charAt(0) + currentUser.lastName.charAt(0) : "U"}
               </span>

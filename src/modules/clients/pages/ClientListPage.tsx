@@ -1,4 +1,4 @@
-ï»¿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowDown,
@@ -75,7 +75,7 @@ export default function ClientListPage() {
 
   useEffect(() => {
     setHeader({
-      title: "GestiÃ³n de Clientes",
+      title: "Gestión de Clientes",
       breadcrumbs: [{ label: "Clientes" }, { label: "Lista de Clientes" }],
     });
     return () => resetHeader();
@@ -237,7 +237,7 @@ export default function ClientListPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Total</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{clients.length}</p></div>
-            <div className="rounded-lg bg-[#e8f4f8] p-2 text-[#003b5c]"><Users size={18} /></div>
+            <div className="rounded-lg bg-brand-secondary-soft p-2 text-brand-primary"><Users size={18} /></div>
           </div>
         </div>
         <div className="rounded-2xl border border-green-100 bg-white p-4 shadow-sm">
@@ -248,13 +248,13 @@ export default function ClientListPage() {
         </div>
         <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-amber-600">Pend. ActivaciÃ³n</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{pendingActivationClients.length}</p></div>
+            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-amber-600">Pend. Activación</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{pendingActivationClients.length}</p></div>
             <div className="rounded-lg bg-amber-50 p-2 text-amber-600"><Mail size={18} /></div>
           </div>
         </div>
         <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-blue-600">Pend. ValidaciÃ³n</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{pendingValidationClients.length}</p></div>
+            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-blue-600">Pend. Validación</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{pendingValidationClients.length}</p></div>
             <div className="rounded-lg bg-blue-50 p-2 text-blue-600"><ShieldCheck size={18} /></div>
           </div>
         </div>
@@ -282,10 +282,10 @@ export default function ClientListPage() {
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-colors ${isActive ? "border-[#003b5c] text-[#003b5c]" : "border-transparent text-slate-500 hover:text-[#003b5c]"}`}
+                  className={`whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-colors ${isActive ? "border-brand-primary text-brand-primary" : "border-transparent text-slate-500 hover:text-brand-primary"}`}
                 >
                   {tab.label}
-                  <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${isActive ? "bg-[#e8f4f8] text-[#003b5c]" : "bg-slate-100 text-slate-500"}`}>
+                  <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${isActive ? "bg-brand-secondary-soft text-brand-primary" : "bg-slate-100 text-slate-500"}`}>
                     {tab.count}
                   </span>
                 </button>
@@ -301,14 +301,14 @@ export default function ClientListPage() {
           <div><label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Buscar</label>
             <div className="relative">
               <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por nombre, email, RUC, cÃ³digo o rubro..."
-                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por nombre, email, RUC, código o rubro..."
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" />
             </div>
           </div>
 
           <div><label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Rubro</label>
             <select value={industryFilter} onChange={(event) => setIndustryFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]">
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary">
               <option value="">Todos los rubros</option>
               {industryOptions.map((industry) => (<option key={industry} value={industry}>{industry}</option>))}
             </select>
@@ -325,9 +325,9 @@ export default function ClientListPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1200px] border-collapse text-sm">
             <thead>
-              <tr className="bg-[#003b5c] text-white">
-                <SortableHeader label="CÃ³digo" sortKey="code" />
-                <SortableHeader label="RazÃ³n Social" sortKey="businessName" />
+              <tr className="bg-brand-primary text-white">
+                <SortableHeader label="Código" sortKey="code" />
+                <SortableHeader label="Razón Social" sortKey="businessName" />
                 <SortableHeader label="Email" sortKey="email" />
                 <SortableHeader label="RUC" sortKey="ruc" />
                 <SortableHeader label="Rubro" sortKey="industry" />
@@ -337,12 +337,12 @@ export default function ClientListPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {paginatedClients.map((client, index) => (
-                <tr key={client.id} className={`transition-colors hover:bg-[#e8f4f8] ${index % 2 === 0 ? "bg-white" : "bg-slate-50/70"}`}>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-[#003b5c]">{client.code || "â€”"}</td>
+                <tr key={client.id} className={`transition-colors hover:bg-brand-secondary-soft ${index % 2 === 0 ? "bg-white" : "bg-slate-50/70"}`}>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">{client.code || "—"}</td>
                   <td className="px-4 py-3 text-sm"><div className="font-bold text-slate-800">{client.businessName}</div></td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{client.email || "â€”"}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{client.ruc || "â€”"}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{client.industry || "â€”"}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{client.email || "—"}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{client.ruc || "—"}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{client.industry || "—"}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[client.status]}`}>
                       {STATUS_LABELS[client.status]}
@@ -364,7 +364,7 @@ export default function ClientListPage() {
                         <Users size={26} className="text-slate-400" />
                       </div>
                       <p className="text-sm font-bold text-slate-700">No se encontraron clientes</p>
-                      <p className="mt-1 text-xs text-slate-400">Intenta limpiar filtros o cambiar el criterio de bÃºsqueda.</p>
+                      <p className="mt-1 text-xs text-slate-400">Intenta limpiar filtros o cambiar el criterio de búsqueda.</p>
                     </div>
                   </td>
                 </tr>
@@ -375,31 +375,31 @@ export default function ClientListPage() {
 
         <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-            <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition-colors focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]">
+            <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setCurrentPage(1); }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition-colors focus:border-brand-primary focus:ring-1 focus:ring-brand-primary">
               <option value={10}>10</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
             </select>
-            <span>NÂ°</span>
+            <span>N°</span>
             <span className="ml-3 text-xs text-slate-500">
               Mostrando <strong className="text-slate-700">{startRecord}</strong> - <strong className="text-slate-700">{endRecord}</strong> de <strong className="text-slate-700">{totalRecords}</strong> registros
             </span>
           </div>
 
           <div className="flex items-center justify-end gap-1">
-            <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:cursor-not-allowed disabled:opacity-50">
-              â€¹ Previous
+            <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-brand-primary hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-50">
+              ‹ Previous
             </button>
 
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-              <button key={page} type="button" onClick={() => setCurrentPage(page)} className={`min-w-9 rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${currentPage === page ? "border-[#003b5c] bg-[#003b5c] text-white" : "border-slate-200 bg-white text-slate-600 hover:border-[#003b5c] hover:text-[#003b5c]"}`}>
+              <button key={page} type="button" onClick={() => setCurrentPage(page)} className={`min-w-9 rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${currentPage === page ? "border-brand-primary bg-brand-primary text-white" : "border-slate-200 bg-white text-slate-600 hover:border-brand-primary hover:text-brand-primary"}`}>
                 {page}
               </button>
             ))}
 
-            <button type="button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:cursor-not-allowed disabled:opacity-50">
-              Next â€º
+            <button type="button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-brand-primary hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-50">
+              Next ›
             </button>
           </div>
         </div>

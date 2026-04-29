@@ -22,7 +22,7 @@ export default function BackButton({ fallbackPath, label = "Atrás" }: BackButto
   return (
     <button
       onClick={handleClick}
-      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#003b5c] rounded-lg hover:bg-slate-100 transition-colors"
+      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-brand-primary rounded-lg hover:bg-slate-100 transition-colors"
       title={label}
     >
       <ArrowLeft size={18} />

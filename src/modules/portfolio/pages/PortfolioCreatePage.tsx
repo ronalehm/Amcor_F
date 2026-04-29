@@ -24,7 +24,6 @@ import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogS
 import FinalUseSelector from "../../../shared/components/catalog/FinalUseSelector";
 import FinalUseCatalogModal from "../../../shared/components/catalog/FinalUseCatalogModal";
 import PortfolioPreview from "../../../shared/components/ui/PortfolioPreview.tsx";
-import CommercialExecutiveSearch from "../../../shared/components/forms/CommercialExecutiveSearch";
 import {
   FormInput,
   FormSelect,
@@ -50,9 +49,9 @@ type PortfolioFormData = {
 };
 
 const AMCOR = {
-  navy: "#003b5c",
+  navy: "#00395A",
   navyDark: "#002b43",
-  blue: "#1E82D9",
+  blue: "#00A1DE",
   green: "#27ae60",
   purple: "#7E3FB2",
   amber: "#f39c12",
@@ -104,8 +103,9 @@ export default function PortfolioCreatePage() {
   >({});
 
   const selectedStatus = getStatusById(Number(form.estadoId));
-  const realClients = getClientCatalogRecords();
-  const selectedClient = realClients.find((c) => c.id === form.clienteId);
+  const allClients = getClientCatalogRecords();
+  const realClients = allClients.filter((c) => c.status === "active");
+  const selectedClient = allClients.find((c) => c.id === form.clienteId);
   const comercialUsers = getCommercialExecutives();
   const selectedExecutive = comercialUsers.find((u) => u.id === form.ejecutivoId);
 
@@ -323,6 +323,7 @@ export default function PortfolioCreatePage() {
       codigoRFQ: form.codigoRFQ,
       portafolioEstandar: form.portafolioEstandar,
 
+      createdAt: now,
       fch: new Intl.DateTimeFormat("es-PE").format(new Date()),
       proy: [],
     };
@@ -367,18 +368,22 @@ export default function PortfolioCreatePage() {
                   placeholder="Escribe para buscar cliente..."
                 />
 
-                <CommercialExecutiveSearch
+                <SmartCatalogSearch
                   label="Ejecutivo Comercial *"
                   value={form.ejecutivoId}
-                  onChange={(value) => {
-                    updateField("ejecutivoId", value);
-                    markFieldAsTouched("ejecutivoId");
-                  }}
+                  onChange={(value) => updateField("ejecutivoId", value)}
+                  onBlur={() => markFieldAsTouched("ejecutivoId")}
                   error={
                     shouldShowFieldError("ejecutivoId")
                       ? validationErrors.ejecutivoId
                       : ""
                   }
+                  options={comercialUsers.map((item) => ({
+                    id: item.id,
+                    code: item.code,
+                    name: item.fullName,
+                    meta: item.email,
+                  }))}
                   placeholder="Escribe para buscar ejecutivo..."
                 />
 

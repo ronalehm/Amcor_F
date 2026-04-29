@@ -156,7 +156,7 @@ export default function ProjectDetailPage() {
         {/* Lado Izquierdo: Ficha Única del Proyecto */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-6 bg-gradient-to-br from-[#003b5c] to-[#1E82D9] text-white">
+            <div className="p-6 bg-gradient-to-br from-brand-primary to-brand-secondary text-white">
               <div className="text-xs font-bold uppercase tracking-wide text-white/75 mb-1">
                 Proyecto {project.code}
               </div>
@@ -166,7 +166,7 @@ export default function ProjectDetailPage() {
           </div>
 
           {/* 1. INFORMACIÓN GENERAL */}
-          <FormCard title="1. Información General" icon="▦" color="#003b5c">
+          <FormCard title="1. Información General" icon="▦" color="#00395A">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               <PreviewRow label="Código" value={project.code} />
               <PreviewRow label="Portafolio" value={project.portfolioCode} />
@@ -178,11 +178,7 @@ export default function ProjectDetailPage() {
               <PreviewRow label="Sub-clasificación" value={project.subClassification} />
               <PreviewRow label="Tipo de Proyecto" value={project.projectType} />
               <PreviewRow label="Acción Salesforce" value={project.salesforceAction} />
-              <PreviewRow label="Responsable Artes Gráficas" value={project.graphicResponsible} />
-              <PreviewRow label="Comentarios AG" value={project.graphicComments} />
-              <PreviewRow label="Responsable R&D" value={project.rdResponsible} />
-              <PreviewRow label="Comentarios R&D" value={project.rdComments} />
-              <PreviewRow label="Responsable Commercial Finance" value={project.commercialFinanceResponsible} />
+
               <PreviewRow label="Fecha Registro" value={new Date(project.createdAt).toLocaleDateString()} />
             </div>
           </FormCard>
@@ -221,7 +217,7 @@ export default function ProjectDetailPage() {
           </FormCard>
 
           {/* 4. ESPECIFICACIONES DE ESTRUCTURA */}
-          <FormCard title="4. Especificaciones de Estructura" icon="⚙" color="#1E82D9">
+          <FormCard title="4. Especificaciones de Estructura" icon="⚙" color="#00A1DE">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               <PreviewRow label="¿Estructura de referencia?" value={typeof project.hasReferenceStructure === 'boolean' ? (project.hasReferenceStructure ? "Sí" : "No") : String(project.hasReferenceStructure)} />
               <PreviewRow label="Código EM Referencia" value={project.referenceEmCode} />
@@ -357,7 +353,7 @@ export default function ProjectDetailPage() {
           />
 
           {project.validaciones && project.validaciones.length > 0 && (
-            <FormCard title="Observaciones y comentarios de validación" icon="✓" color="#003b5c">
+            <FormCard title="Observaciones y comentarios de validación" icon="✓" color="#00395A">
               <ValidationObservationsTable validaciones={project.validaciones} />
             </FormCard>
           )}
