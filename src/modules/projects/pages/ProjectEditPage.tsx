@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
+import { getPortfolioDisplayRecords, TECHNICAL_APPLICATION_OPTIONS } from "../../../shared/data/portfolioStorage";
 import { getProjectByCode, updateProjectRecord, type ProjectRecord } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers, getCurrentUser } from "../../../shared/data/userStorage";
@@ -19,6 +19,53 @@ import FormActionButtons from "../../../shared/components/forms/FormActionButton
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import PortfolioSearch from "../../../shared/components/forms/PortfolioSearch";
 import CommercialExecutiveSearch from "../../../shared/components/forms/CommercialExecutiveSearch";
+
+const POUCH_FORMAT_OPTIONS = [
+  { value: "POUCH C/SELLO EN FUELLE\\TIPO 4-1\\FUELLE PROPIO", label: "POUCH C/SELLO EN FUELLE\\TIPO 4-1\\FUELLE PROPIO" },
+  { value: "POUCH STAND UP\\TIPO K\\FUELLE PROPIO", label: "POUCH STAND UP\\TIPO K\\FUELLE PROPIO" },
+  { value: "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE PROPIO", label: "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE PROPIO" },
+  { value: "POUCH STAND UP\\DOY PACK CUADRADO\\FUELLE PROPIO", label: "POUCH STAND UP\\DOY PACK CUADRADO\\FUELLE PROPIO" },
+  { value: "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE INSERTADO", label: "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE INSERTADO" },
+  { value: "POUCH STAND UP\\DOY PACK CUADRADO\\FUELLE INSERTADO", label: "POUCH STAND UP\\DOY PACK CUADRADO\\FUELLE INSERTADO" },
+  { value: "POUCH STAND UP\\NORMAL\\FUELLE PROPIO", label: "POUCH STAND UP\\NORMAL\\FUELLE PROPIO" },
+  { value: "POUCH PLANO\\DOS SELLOS", label: "POUCH PLANO\\DOS SELLOS" },
+  { value: "POUCH PLANO\\TRES SELLOS", label: "POUCH PLANO\\TRES SELLOS" },
+  { value: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\CON FUELLE", label: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\CON FUELLE" },
+  { value: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\SIN FUELLE", label: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\SIN FUELLE" },
+  { value: "POUCH C/SELLO EN FUELLE\\TIPO 1-1", label: "POUCH C/SELLO EN FUELLE\\TIPO 1-1" },
+  { value: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\CON FUELLE (PE-PE/PE)", label: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\CON FUELLE (PE-PE/PE)" },
+  { value: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\SIN FUELLE (PE-PE/PE)", label: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\SIN FUELLE (PE-PE/PE)" },
+];
+
+const BOLSA_FORMAT_OPTIONS = [
+  { value: "SELLO LATERAL\\CORTE\\CON FUELLE FONDO", label: "SELLO LATERAL\\CORTE\\CON FUELLE FONDO" },
+  { value: "SELLO LATERAL\\PESTAÑA\\CON FUELLE FONDO", label: "SELLO LATERAL\\PESTAÑA\\CON FUELLE FONDO" },
+  { value: "SELLO LATERAL\\PESTAÑA\\SIN FUELLE FONDO", label: "SELLO LATERAL\\PESTAÑA\\SIN FUELLE FONDO" },
+  { value: "SELLO LATERAL\\CORTE\\SIN FUELLE FONDO", label: "SELLO LATERAL\\CORTE\\SIN FUELLE FONDO" },
+  { value: "SELLO DE FONDO\\CON FUELLE LATERAL", label: "SELLO DE FONDO\\CON FUELLE LATERAL" },
+  { value: "SELLO DE FONDO\\SIN FUELLE LATERAL", label: "SELLO DE FONDO\\SIN FUELLE LATERAL" },
+  { value: "WICKET", label: "WICKET" },
+  { value: "HOJAS", label: "HOJAS" },
+];
+
+const LAMINA_FORMAT_OPTIONS = [
+  { value: "GENERICA", label: "GENERICA" },
+  { value: "TISSUE", label: "TISSUE" },
+  { value: "FOOD", label: "FOOD" },
+];
+
+function normalizeWrapping(value: string): string {
+  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+function getBlueprintFormatOptions(wrapping: string | undefined): Array<{ value: string; label: string }> {
+  if (!wrapping) return [];
+  const normalized = normalizeWrapping(wrapping);
+  if (normalized === "pouch") return POUCH_FORMAT_OPTIONS;
+  if (normalized === "bolsa") return BOLSA_FORMAT_OPTIONS;
+  if (normalized === "lamina") return LAMINA_FORMAT_OPTIONS;
+  return [];
+}
 
 export default function ProjectEditPage() {
   const navigate = useNavigate();
@@ -222,6 +269,8 @@ export default function ProjectEditPage() {
     return portfolios.find(p => p.id === form.portfolioCode || p.codigo === form.portfolioCode) || null;
   }, [form.portfolioCode, portfolios]);
 
+  const inheritedWrapping = selectedPortfolio?.env || selectedPortfolio?.envoltura || selectedPortfolio?.wrappingName || "";
+
   useEffect(() => {
     if (projectCode && !loading) {
       const phaseConfig = PHASE_CONFIGS[currentStage];
@@ -382,7 +431,10 @@ export default function ProjectEditPage() {
                   <PortfolioSearch
                   label="Portafolio base *"
                   value={form.portfolioCode || ""}
-                  onChange={(v) => updateField("portfolioCode", v)}
+                  onChange={(v) => {
+                    updateField("portfolioCode", v);
+                    updateField("blueprintFormat", "");
+                  }}
                   error={getError("portfolioCode")}
                 />
                 <CommercialExecutiveSearch
@@ -459,24 +511,22 @@ export default function ProjectEditPage() {
 
 
 
-            <FormCard title="3. Datos de producto comercial" icon="◈" color="#27ae60" required>
+            <FormCard title="2. Datos de producto comercial" icon="◈" color="#27ae60" required>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <FormInput
+                  label="Envoltura (heredado del Portafolio)"
+                  value={inheritedWrapping || "— Sin portafolio seleccionado —"}
+                  onChange={() => {}}
+                  disabled={true}
+                />
                 <FormSelect
                   label="Formato de Plano *"
                   value={form.blueprintFormat}
                   onChange={(v) => updateField("blueprintFormat", v)}
                   error={getError("blueprintFormat")}
-                  placeholder="-- Seleccione --"
-                  options={[
-                    { value: "Stand Up Pouch", label: "Stand Up Pouch" },
-                    { value: "Doy Pack Fuelle Cuadrado", label: "Doy Pack Fuelle Cuadrado" },
-                    { value: "Doy Pack sin fuelle", label: "Doy Pack sin fuelle" },
-                    { value: "Sachet 4 sellos", label: "Sachet 4 sellos" },
-                    { value: "Pillow Pack", label: "Pillow Pack" },
-                    { value: "Flat Bottom", label: "Flat Bottom" },
-                    { value: "Lámina", label: "Lámina" },
-                    { value: "Bolsa", label: "Bolsa" },
-                  ]}
+                  placeholder={!inheritedWrapping ? "Seleccione un portafolio primero" : "-- Seleccione --"}
+                  options={getBlueprintFormatOptions(inheritedWrapping)}
+                  disabled={!inheritedWrapping}
                 />
                 <FormSelect
                   label="Aplicación Técnica *"
@@ -484,13 +534,7 @@ export default function ProjectEditPage() {
                   onChange={(v) => updateField("technicalApplication", v)}
                   error={getError("technicalApplication")}
                   placeholder="-- Seleccione --"
-                  options={[
-                    { value: "Pastoso/Ketchup, Mayonesa", label: "Pastoso/Ketchup, Mayonesa" },
-                    { value: "Pastoso/Champú", label: "Pastoso/Champú" },
-                    { value: "Seco/Café Soluble", label: "Seco/Café Soluble" },
-                    { value: "Líquido", label: "Líquido" },
-                    { value: "Congelado", label: "Congelado" },
-                  ]}
+                  options={TECHNICAL_APPLICATION_OPTIONS}
                 />
                 <FormInput
                   label="Código de Empaque del Cliente"
@@ -870,12 +914,16 @@ export default function ProjectEditPage() {
                 </div>
               </div>
               <div className="space-y-2 p-5 text-sm">
+                <PreviewRow label="Código Portafolio" value={selectedPortfolio?.id || selectedPortfolio?.codigo || "—"} />
                 <PreviewRow label="Cliente" value={selectedPortfolio?.cli || selectedPortfolio?.clientName || "—"} />
-                <PreviewRow label="Planta" value={selectedPortfolio?.pl || selectedPortfolio?.plantaCode || "—"} />
-                <PreviewRow label="Envoltura" value={selectedPortfolio?.env || selectedPortfolio?.envoltura || "—"} />
+                <PreviewRow label="Planta" value={selectedPortfolio?.pl || selectedPortfolio?.plantaName || selectedPortfolio?.plantaCode || "—"} />
+                <PreviewRow label="Envoltura" value={inheritedWrapping || "—"} />
                 <PreviewRow label="Uso Final" value={selectedPortfolio?.uf || selectedPortfolio?.usoFinal || "—"} />
+                <PreviewRow label="Sub-segmento" value={selectedPortfolio?.subseg || selectedPortfolio?.subSegmento || "—"} />
+                <PreviewRow label="Segmento" value={selectedPortfolio?.seg || selectedPortfolio?.segmento || "—"} />
                 <PreviewRow label="Sector" value={selectedPortfolio?.sector || "—"} />
-                <PreviewRow label="Máquina" value={selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || "—"} />
+                <PreviewRow label="AFMarketID" value={selectedPortfolio?.af || selectedPortfolio?.afMarketId || "—"} />
+                <PreviewRow label="Máquina / Envasado de cliente" value={selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || "—"} />
               </div>
             </div>
           </div>

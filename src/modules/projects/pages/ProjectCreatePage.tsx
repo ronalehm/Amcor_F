@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
+import { getPortfolioDisplayRecords, TECHNICAL_APPLICATION_OPTIONS } from "../../../shared/data/portfolioStorage";
 import {
   getNextProjectCode,
   saveProjectRecord,
@@ -217,13 +217,7 @@ function getBlueprintFormatOptions(wrapping: string | undefined): Array<{ value:
   return [];
 }
 
-const TECHNICAL_APPLICATION_OPTIONS = [
-  { value: "Pastoso/Ketchup, Mayonesa", label: "Pastoso/Ketchup, Mayonesa" },
-  { value: "Pastoso/Champú", label: "Pastoso/Champú" },
-  { value: "Seco/Café Soluble", label: "Seco/Café Soluble" },
-  { value: "Líquido", label: "Líquido" },
-  { value: "Congelado", label: "Congelado" },
-];
+
 
 const UNIT_OPTIONS = [
   { value: "KG", label: "KG" },
@@ -842,7 +836,10 @@ export default function ProjectCreatePage() {
                   <PortfolioSearch
                     label="Portafolio base *"
                     value={form.portfolioCode}
-                    onChange={(value) => updateField("portfolioCode", value)}
+                    onChange={(value) => {
+                      updateField("portfolioCode", value);
+                      updateField("blueprintFormat", "");
+                    }}
                     error={getError("portfolioCode")}
                   />
 
@@ -898,15 +895,22 @@ export default function ProjectCreatePage() {
               </FormCard>
 
 
-            <FormCard title="3. Datos de producto comercial" icon="◈" color="#27ae60" required>
+            <FormCard title="2. Datos de producto comercial" icon="◈" color="#27ae60" required>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <FormInput
+                  label="Envoltura (heredado del Portafolio)"
+                  value={inheritedWrapping || "— Sin portafolio seleccionado —"}
+                  onChange={() => {}}
+                  disabled={true}
+                />
                 <FormSelect
                   label="Formato de Plano *"
                   value={form.blueprintFormat}
                   onChange={(value) => updateField("blueprintFormat", value)}
                   error={getError("blueprintFormat")}
-                  placeholder="-- Seleccione --"
-                  options={BLUEPRINT_FORMAT_OPTIONS}
+                  placeholder={!inheritedWrapping ? "Seleccione un portafolio primero" : "-- Seleccione --"}
+                  options={getBlueprintFormatOptions(inheritedWrapping)}
+                  disabled={!inheritedWrapping}
                 />
                 <FormSelect
                   label="Aplicación Técnica *"
@@ -1289,7 +1293,7 @@ export default function ProjectCreatePage() {
               </div>
 
               <div className="space-y-2 p-5 text-sm">
-                <PreviewRow label="Código Proyecto" value={projectCode} />
+                <PreviewRow label="Código Portafolio" value={selectedPortfolio?.id || selectedPortfolio?.codigo || "—"} />
                 <PreviewRow label="Cliente" value={inheritedClient || "—"} />
                 <PreviewRow label="Planta" value={inheritedPlant || "—"} />
                 <PreviewRow label="Envoltura" value={inheritedWrapping || "—"} />
@@ -1298,7 +1302,7 @@ export default function ProjectCreatePage() {
                 <PreviewRow label="Segmento" value={inheritedSegment || "—"} />
                 <PreviewRow label="Sector" value={inheritedSector || "—"} />
                 <PreviewRow label="AFMarketID" value={inheritedAfMarketId || "—"} />
-                <PreviewRow label="Máquina" value={inheritedMachine || "—"} />
+                <PreviewRow label="Máquina / Envasado de cliente" value={inheritedMachine || "—"} />
               </div>
 
               <div className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-xs text-slate-500">

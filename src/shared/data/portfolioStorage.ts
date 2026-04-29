@@ -44,7 +44,7 @@ export const INITIAL_PORTFOLIOS: PortfolioRecord[] = [
     clientName: "Alicorp S.A.A.",
     ejecutivoName: "BALDEON, EDUARDO",
     plantaName: "Callao",
-    envoltura: "Flowpack",
+    envoltura: "Pouch",
     usoFinal: "Galletas",
     sector: "Alimentos y bebidas",
     segmento: "Consumo Humano",
@@ -62,7 +62,7 @@ export const INITIAL_PORTFOLIOS: PortfolioRecord[] = [
     clientName: "Kimberly-Clark Perú",
     ejecutivoName: "BOERO A.",
     plantaName: "Santa Anita",
-    envoltura: "Bolsa Doypack",
+    envoltura: "Bolsa",
     usoFinal: "Pañales",
     sector: "Manufactura",
     segmento: "Bebés",
@@ -80,7 +80,7 @@ export const INITIAL_PORTFOLIOS: PortfolioRecord[] = [
     clientName: "Leche Gloria S.A.",
     ejecutivoName: "GUARDAMINO, KATIA",
     plantaName: "Huachipa",
-    envoltura: "Sachet",
+    envoltura: "Pouch",
     usoFinal: "Leche Evaporada",
     sector: "Alimentos y bebidas",
     segmento: "Lácteos",
@@ -116,7 +116,7 @@ export const INITIAL_PORTFOLIOS: PortfolioRecord[] = [
     clientName: "Nestlé Perú",
     ejecutivoName: "OTERO, AUGUSTO",
     plantaName: "Lima",
-    envoltura: "Stick Pack",
+    envoltura: "Bolsa",
     usoFinal: "Café Soluble",
     sector: "Bebidas",
     segmento: "Café",
@@ -196,3 +196,62 @@ export function deletePortfolioRecord(code: string): boolean {
   localStorage.setItem(PORTFOLIO_DISPLAY_KEY, JSON.stringify(filtered));
   return true;
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Catálogo oficial de Aplicación Técnica
+// Fuente única reutilizable para Portafolio y Proyecto
+// ──────────────────────────────────────────────────────────────────────────────
+
+export const TECHNICAL_APPLICATION_OPTIONS = [
+  // Seco
+  { value: "Seco/Galletas", label: "Seco/Galletas" },
+  { value: "Seco/Fideos/Fideos", label: "Seco/Fideos/Fideos" },
+  { value: "Seco/Fideos/Fideos a granel", label: "Seco/Fideos/Fideos a granel" },
+  { value: "Seco/Fideos/Fideos cortos", label: "Seco/Fideos/Fideos cortos" },
+  { value: "Seco/Fideos/Fideos largos", label: "Seco/Fideos/Fideos largos" },
+  { value: "Seco/Fideos/Fideos en bloque", label: "Seco/Fideos/Fideos en bloque" },
+  { value: "Seco/Arroz y menestras", label: "Seco/Arroz y menestras" },
+  { value: "Seco/Cereales y cereales procesadas", label: "Seco/Cereales y cereales procesadas" },
+  { value: "Seco/Snacks", label: "Seco/Snacks" },
+  { value: "Seco/Harinas", label: "Seco/Harinas" },
+  { value: "Seco/Detergente/Detergente en Escamas", label: "Seco/Detergente/Detergente en Escamas" },
+  { value: "Seco/Detergente/Detergente en Polvo", label: "Seco/Detergente/Detergente en Polvo" },
+  { value: "Seco/Jabón", label: "Seco/Jabón" },
+  { value: "Seco/Fertilizante", label: "Seco/Fertilizante" },
+  { value: "Seco/Postres en Polvo", label: "Seco/Postres en Polvo" },
+  { value: "Seco/Refrescos en Polvo", label: "Seco/Refrescos en Polvo" },
+  { value: "Seco/Cocoa y Derivados en Polvo", label: "Seco/Cocoa y Derivados en Polvo" },
+  { value: "Seco/Leche y Mezclas Lácteas en Polvo", label: "Seco/Leche y Mezclas Lácteas en Polvo" },
+  { value: "Seco/Helados", label: "Seco/Helados" },
+  { value: "Seco/Quesos", label: "Seco/Quesos" },
+  { value: "Seco/Mezclas secas", label: "Seco/Mezclas secas" },
+  { value: "Seco/Café Soluble / Molido", label: "Seco/Café Soluble / Molido" },
+  { value: "Seco/Embutidos / Carnes Procesadas", label: "Seco/Embutidos / Carnes Procesadas" },
+  { value: "Seco/Otro Alimentario", label: "Seco/Otro Alimentario" },
+  { value: "Seco/Otro no Alimentario", label: "Seco/Otro no Alimentario" },
+  { value: "Seco/Alimentos Balanceados", label: "Seco/Alimentos Balanceados" },
+  // Pastoso
+  { value: "Pastoso/Cera en Pasta", label: "Pastoso/Cera en Pasta" },
+  { value: "Pastoso/Ketchup, Mayonesa, Mostaza", label: "Pastoso/Ketchup, Mayonesa, Mostaza" },
+  { value: "Pastoso/Champu, Productos Cosméticos", label: "Pastoso/Champu, Productos Cosméticos" },
+  { value: "Pastoso/Mermelada y Purés de Fruta", label: "Pastoso/Mermelada y Purés de Fruta" },
+  { value: "Pastoso/Queso Crema", label: "Pastoso/Queso Crema" },
+  { value: "Pastoso/Margarina Mantequilla", label: "Pastoso/Margarina Mantequilla" },
+  { value: "Pastoso/Otro Alimentario", label: "Pastoso/Otro Alimentario" },
+  { value: "Pastoso/Otro No Alimentario", label: "Pastoso/Otro No Alimentario" },
+  // Líquido
+  { value: "Líquido/Productos Comestibles/Aceites/Aceite de Oliva", label: "Líquido/Productos Comestibles/Aceites/Aceite de Oliva" },
+  { value: "Líquido/Productos Comestibles/Aceites/Aceite para cocina", label: "Líquido/Productos Comestibles/Aceites/Aceite para cocina" },
+  { value: "Líquido/Productos Comestibles/Vinagre", label: "Líquido/Productos Comestibles/Vinagre" },
+  { value: "Líquido/Productos No Comestibles", label: "Líquido/Productos No Comestibles" },
+  { value: "Líquido/Ceras y Limpiadores", label: "Líquido/Ceras y Limpiadores" },
+  { value: "Líquido/Leche y Mezclas Lácteas", label: "Líquido/Leche y Mezclas Lácteas" },
+  { value: "Líquido/Jugos y Néctares de Fruta", label: "Líquido/Jugos y Néctares de Fruta" },
+  { value: "Líquido/Detergentes", label: "Líquido/Detergentes" },
+  { value: "Líquido/Otro Alimentario", label: "Líquido/Otro Alimentario" },
+  { value: "Líquido/Otro No Alimentario", label: "Líquido/Otro No Alimentario" },
+  // Otros
+  { value: "Otros/Contacto Indirecto/Seco", label: "Otros/Contacto Indirecto/Seco" },
+  { value: "Otros/Contacto Indirecto/Pastoso", label: "Otros/Contacto Indirecto/Pastoso" },
+  { value: "Otros/Contacto Indirecto/Líquido", label: "Otros/Contacto Indirecto/Líquido" },
+];
