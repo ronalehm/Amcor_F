@@ -196,3 +196,24 @@ export function formatSyncTimestamp(timestamp: string): string {
     minute: "2-digit",
   });
 }
+
+export function searchSistemaIntegralUsers(query: string): VendorMirror[] {
+  if (!query.trim()) return [];
+
+  const searchTerm = query.toLowerCase().trim();
+  const allVendors = getAllVendorsMirror();
+
+  return allVendors.filter((vendor) => {
+    const code = vendor.code.toLowerCase();
+    const name = vendor.name.toLowerCase();
+    const email = (vendor.email || "").toLowerCase();
+    const area = vendor.area.toLowerCase();
+
+    return (
+      code.includes(searchTerm) ||
+      name.includes(searchTerm) ||
+      email.includes(searchTerm) ||
+      area.includes(searchTerm)
+    );
+  });
+}

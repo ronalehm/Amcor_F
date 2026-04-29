@@ -26,6 +26,7 @@ import ProductSheetPage from "../modules/datasheets/pages/ProductSheetPage";
 import DataSheetEditPage from "../modules/datasheets/pages/DataSheetEditPage";
 
 import UserEditPage from "../modules/users/pages/UserEditPage";
+import UserDetailPage from "../modules/users/pages/UserDetailPage";
 
 import ChecksListPage from "../modules/Checks/pages/ChecksListPage";
 import ChecksDetailPage from "../modules/Checks/pages/ChecksDetailPage";
@@ -74,7 +75,7 @@ export default function AppRouter() {
           <Route path="datasheets/:datasheetId/edit" element={<DataSheetEditPage />} />
           <Route path="users" element={<UserListPage />} />
           <Route path="users/new" element={<UserCreatePage />} />
-          <Route path="users/:userId" element={<div className="p-4">Detalle de Usuario (Ver)</div>} />
+          <Route path="users/:userId" element={<UserDetailPage />} />
           <Route path="users/:userId/edit" element={<UserEditPage />} />
           <Route path="validaciones" element={<ChecksListPage />} />
           <Route path="validaciones/:id" element={<ChecksDetailPage />} />
@@ -138,7 +139,7 @@ export default function AppRouter() {
         {/* Usuarios */}
         <Route path="users" element={<UserListPage />} />
         <Route path="users/new" element={<UserCreatePage />} />
-        <Route path="users/:userId" element={<div className="p-4">Detalle de Usuario (Ver)</div>} />
+        <Route path="users/:userId" element={<UserDetailPage />} />
         <Route path="users/:userId/edit" element={<UserEditPage />} />
 
         {/* Validaciones */}

@@ -28,8 +28,10 @@ type UserFormData = {
   firstName: string;
   lastName: string;
   email: string;
+  workerCode: string;
+  position: string;
+  company: string;
   role: UserRole;
-  status: UserStatus;
   phone: string;
   area: string;
   siUserId: string;
@@ -71,8 +73,10 @@ export default function UserEditPage() {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      workerCode: user.workerCode,
+      position: user.position,
+      company: user.company,
       role: user.role,
-      status: user.status,
       phone: user.phone || "",
       area: user.area || "",
       siUserId: user.siUserId || "",
@@ -111,6 +115,9 @@ export default function UserEditPage() {
         errors.email = "Este correo ya está registrado en el sistema.";
       }
     }
+    if (!form.workerCode.trim()) errors.workerCode = "Ingresa el código de trabajador.";
+    if (!form.position.trim()) errors.position = "Ingresa el puesto.";
+    if (!form.company.trim()) errors.company = "Ingresa la empresa.";
     if (!form.role) errors.role = "Selecciona un rol.";
     if (form.role === "comercial" && !form.siUserId) {
       errors.siUserId = "El vendedor es obligatorio para ejecutivos comerciales.";
@@ -153,8 +160,10 @@ export default function UserEditPage() {
       firstName: form.firstName,
       lastName: form.lastName,
       email: form.email,
+      workerCode: form.workerCode,
+      position: form.position,
+      company: form.company,
       role: form.role,
-      status: form.status,
       phone: form.phone || undefined,
       area: form.area || undefined,
       siUserId: form.siUserId || undefined,
@@ -200,8 +209,17 @@ export default function UserEditPage() {
     <div className="w-full max-w-none bg-[#f6f8fb]">
       <form onSubmit={handleSubmit}>
         <div className="max-w-3xl mx-auto">
-          <FormCard title="Información del Usuario" icon="👤" color="#003b5c" required>
+          <FormCard title="Datos del Trabajador" icon="👤" color="#003b5c" required>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FormInput
+                label="Cod. Trabajador *"
+                value={form.workerCode}
+                onChange={(value) => updateField("workerCode", value)}
+                onBlur={() => markFieldAsTouched("workerCode")}
+                error={shouldShowFieldError("workerCode") ? validationErrors.workerCode : ""}
+                placeholder="Ej. EMP-001"
+              />
+
               <FormInput
                 label="Nombre *"
                 value={form.firstName}
@@ -229,14 +247,22 @@ export default function UserEditPage() {
                 placeholder="Ej. juan.perez@amcor.com"
               />
 
-              <FormSelect
-                label="Rol *"
-                value={form.role}
-                onChange={(value) => updateField("role", value as UserRole)}
-                onBlur={() => markFieldAsTouched("role")}
-                error={shouldShowFieldError("role") ? validationErrors.role : ""}
-                options={roleOptions}
-                placeholder="-- Seleccione --"
+              <FormInput
+                label="Puesto *"
+                value={form.position}
+                onChange={(value) => updateField("position", value)}
+                onBlur={() => markFieldAsTouched("position")}
+                error={shouldShowFieldError("position") ? validationErrors.position : ""}
+                placeholder="Ej. Ejecutivo Comercial"
+              />
+
+              <FormInput
+                label="Empresa *"
+                value={form.company}
+                onChange={(value) => updateField("company", value)}
+                onBlur={() => markFieldAsTouched("company")}
+                error={shouldShowFieldError("company") ? validationErrors.company : ""}
+                placeholder="Ej. Amcor"
               />
 
               <FormInput
@@ -255,12 +281,27 @@ export default function UserEditPage() {
               />
 
               <FormSelect
-                label="Estado"
-                value={form.status}
-                onChange={(value) => updateField("status", value as UserStatus)}
-                options={statusOptions}
+                label="Rol *"
+                value={form.role}
+                onChange={(value) => updateField("role", value as UserRole)}
+                onBlur={() => markFieldAsTouched("role")}
+                error={shouldShowFieldError("role") ? validationErrors.role : ""}
+                options={roleOptions}
+                placeholder="-- Seleccione --"
               />
             </div>
+
+            {(() => {
+              const currentUser = getUserById(userId || "");
+              const statusLabel = currentUser ? STATUS_LABELS[currentUser.status] : "Desconocido";
+              return (
+                <div className="mt-4 p-4 rounded-lg border border-slate-200 bg-slate-50">
+                  <p className="text-xs font-semibold text-slate-600 uppercase mb-2">Estado (Solo lectura)</p>
+                  <p className="text-sm font-medium text-slate-900">{statusLabel}</p>
+                  <p className="text-xs text-slate-500 mt-1">El estado se gestiona desde la vista de detalle del usuario.</p>
+                </div>
+              );
+            })()}
           </FormCard>
 
           <FormCard title="Sistema Integral - Catálogo de Vendedores" icon="🔗" color="#0D9488">

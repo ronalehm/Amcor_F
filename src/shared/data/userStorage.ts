@@ -319,6 +319,21 @@ export function getActiveUsers(): User[] {
   return getAllUsers().filter((user) => user.status === "active");
 }
 
+export function getUserByWorkerCode(workerCode: string): User | undefined {
+  return getAllUsers().find((user) => user.workerCode === workerCode);
+}
+
+export function findDuplicateUser(email: string, workerCode?: string): User | undefined {
+  const allUsers = getAllUsers();
+  const normalizedEmail = email.toLowerCase().trim();
+
+  return allUsers.find((user) => {
+    const emailMatch = user.email.toLowerCase().trim() === normalizedEmail;
+    const workerCodeMatch = workerCode ? user.workerCode === workerCode : false;
+    return emailMatch || workerCodeMatch;
+  });
+}
+
 export const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Administrador",
   comercial: "Ejecutivo Comercial",

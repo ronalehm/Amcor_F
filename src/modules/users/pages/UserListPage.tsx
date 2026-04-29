@@ -19,13 +19,15 @@ import { useLayout } from "../../../components/layout/LayoutContext";
 import {
   getAllUsers,
   type User,
+  type UserStatus,
   ROLE_LABELS,
   ROLE_COLORS,
+  STATUS_LABELS,
+  STATUS_COLORS,
 } from "../../../shared/data/userStorage";
 
 import ActionButton from "../../../shared/components/buttons/ActionButton";
 
-type UserStatus = "active" | "inactive";
 type UserTab = "all" | UserStatus;
 
 type SortDirection = "asc" | "desc";
@@ -39,16 +41,6 @@ type SortKey =
   | "status"
   | "lastLoginAt"
   | "createdAt";
-
-const USER_STATUS_LABELS: Record<UserStatus, string> = {
-  active: "Activo",
-  inactive: "Inactivo",
-};
-
-const USER_STATUS_STYLES: Record<UserStatus, string> = {
-  active: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  inactive: "border-rose-200 bg-rose-50 text-rose-700",
-};
 
 const getText = (...values: any[]) => {
   const value = values.find(
@@ -89,8 +81,8 @@ const getUserExtraField = (user: User, ...keys: string[]) => {
   return getText(...keys.map((key) => userRecord[key]));
 };
 
-const getNormalizedUserStatus = (user: User): UserStatus => {
-  return user.status === "active" ? "active" : "inactive";
+const getUserStatus = (user: User): UserStatus => {
+  return user.status;
 };
 
 const getLastLoginLabel = (user: User) => {
@@ -115,7 +107,7 @@ const getSortValue = (user: User, key: SortKey): string | number => {
       return getText(user.area).toLowerCase();
 
     case "status":
-      return USER_STATUS_LABELS[getNormalizedUserStatus(user)].toLowerCase();
+      return STATUS_LABELS[getUserStatus(user)].toLowerCase();
 
     case "lastLoginAt": {
       const time = user.lastLoginAt ? new Date(user.lastLoginAt).getTime() : 0;
@@ -174,12 +166,27 @@ export default function UserListPage() {
   const users = useMemo(() => getAllUsers(), []);
 
   const activeUsers = useMemo(
-    () => users.filter((user) => getNormalizedUserStatus(user) === "active"),
+    () => users.filter((user) => getUserStatus(user) === "active"),
     [users],
   );
 
   const inactiveUsers = useMemo(
-    () => users.filter((user) => getNormalizedUserStatus(user) === "inactive"),
+    () => users.filter((user) => getUserStatus(user) === "inactive"),
+    [users],
+  );
+
+  const pendingActivationUsers = useMemo(
+    () => users.filter((user) => getUserStatus(user) === "pending_activation"),
+    [users],
+  );
+
+  const pendingValidationUsers = useMemo(
+    () => users.filter((user) => getUserStatus(user) === "pending_validation"),
+    [users],
+  );
+
+  const blockedUsers = useMemo(
+    () => users.filter((user) => getUserStatus(user) === "blocked"),
     [users],
   );
 
@@ -202,9 +209,9 @@ export default function UserListPage() {
     const search = query.trim().toLowerCase();
 
     const filtered = users.filter((user) => {
-      const normalizedStatus = getNormalizedUserStatus(user);
+      const userStatus = getUserStatus(user);
       const roleLabel = getText(ROLE_LABELS[user.role], user.role);
-      const statusLabel = USER_STATUS_LABELS[normalizedStatus];
+      const statusLabel = STATUS_LABELS[userStatus];
 
       const createdAt = getUserExtraField(
         user,
@@ -231,7 +238,7 @@ export default function UserListPage() {
         .toLowerCase();
 
       const matchesSearch = !search || searchableText.includes(search);
-      const matchesTab = activeTab === "all" || normalizedStatus === activeTab;
+      const matchesTab = activeTab === "all" || userStatus === activeTab;
       const matchesRole = !roleFilter || user.role === roleFilter;
       const matchesArea = !areaFilter || user.area === areaFilter;
 
@@ -341,13 +348,28 @@ export default function UserListPage() {
   const tabs = [
     {
       key: "all" as UserTab,
-      label: "Todos los usuarios",
+      label: "Todos",
       count: users.length,
     },
     {
       key: "active" as UserTab,
       label: "Activos",
       count: activeUsers.length,
+    },
+    {
+      key: "pending_activation" as UserTab,
+      label: "Pendiente Act.",
+      count: pendingActivationUsers.length,
+    },
+    {
+      key: "pending_validation" as UserTab,
+      label: "Pendiente Val.",
+      count: pendingValidationUsers.length,
+    },
+    {
+      key: "blocked" as UserTab,
+      label: "Bloqueados",
+      count: blockedUsers.length,
     },
     {
       key: "inactive" as UserTab,
@@ -361,63 +383,99 @@ export default function UserListPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
-      <section className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
+      <section className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Total usuarios
+                Total
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-slate-900">
+              <p className="mt-2 text-2xl font-extrabold text-slate-900">
                 {users.length}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Registrados en el sistema
-              </p>
             </div>
-
-            <div className="rounded-xl bg-[#e8f4f8] p-3 text-[#003b5c]">
-              <Users size={22} />
+            <div className="rounded-lg bg-[#e8f4f8] p-2 text-[#003b5c]">
+              <Users size={18} />
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-emerald-600">
-                Usuarios activos
+        <div className="rounded-2xl border border-green-100 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-green-600">
+                Activos
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-slate-900">
+              <p className="mt-2 text-2xl font-extrabold text-slate-900">
                 {activeUsers.length}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Con acceso habilitado
-              </p>
             </div>
-
-            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
-              <UserCheck size={22} />
+            <div className="rounded-lg bg-green-50 p-2 text-green-600">
+              <UserCheck size={18} />
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-rose-100 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-rose-600">
-                Usuarios inactivos
+        <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-600">
+                Pend. Activación
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-slate-900">
-                {inactiveUsers.length}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Acceso deshabilitado
+              <p className="mt-2 text-2xl font-extrabold text-slate-900">
+                {pendingActivationUsers.length}
               </p>
             </div>
+            <div className="rounded-lg bg-amber-50 p-2 text-amber-600">
+              <Mail size={18} />
+            </div>
+          </div>
+        </div>
 
-            <div className="rounded-xl bg-rose-50 p-3 text-rose-600">
-              <UserX size={22} />
+        <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
+                Pend. Validación
+              </p>
+              <p className="mt-2 text-2xl font-extrabold text-slate-900">
+                {pendingValidationUsers.length}
+              </p>
+            </div>
+            <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
+              <ShieldCheck size={18} />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-red-100 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-red-600">
+                Bloqueados
+              </p>
+              <p className="mt-2 text-2xl font-extrabold text-slate-900">
+                {blockedUsers.length}
+              </p>
+            </div>
+            <div className="rounded-lg bg-red-50 p-2 text-red-600">
+              <UserX size={18} />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                Inactivos
+              </p>
+              <p className="mt-2 text-2xl font-extrabold text-slate-900">
+                {inactiveUsers.length}
+              </p>
+            </div>
+            <div className="rounded-lg bg-slate-100 p-2 text-slate-600">
+              <UserX size={18} />
             </div>
           </div>
         </div>
@@ -561,8 +619,6 @@ export default function UserListPage() {
 
             <tbody className="divide-y divide-slate-100">
               {paginatedUsers.map((user, index) => {
-                const normalizedStatus = getNormalizedUserStatus(user);
-
                 return (
                   <tr
                     key={user.id}
@@ -606,9 +662,9 @@ export default function UserListPage() {
 
                     <td className="px-4 py-3 text-sm">
                       <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${USER_STATUS_STYLES[normalizedStatus]}`}
+                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[user.status]}`}
                       >
-                        {USER_STATUS_LABELS[normalizedStatus]}
+                        {STATUS_LABELS[user.status]}
                       </span>
                     </td>
 
