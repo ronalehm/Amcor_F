@@ -278,22 +278,6 @@ export default function ClientCreatePage() {
         `Cliente creado - ${form.siClient ? "Información autocompleta de SI" : "Ingreso manual - pendiente validación en SI"}`
       );
 
-      mockSendEmail(
-        newClient.email,
-        "Cliente Registrado en ODISEO",
-        `Hola,\n\nEl cliente ${newClient.businessName} ha sido registrado en el sistema ODISEO.\n\nPuede crear portafolios y proyectos mientras se completa la validación.\n\nEquipo ODISEO`,
-        newClient.id,
-        "activation"
-      );
-
-      mockSendEmail(
-        "tesoreria@amcor.com",
-        "Nuevo Cliente Registrado - Requiere Evaluación",
-        `Se ha registrado un nuevo cliente en el sistema:\n\nCliente: ${newClient.businessName}\nRUC: ${newClient.ruc}\nEmail: ${newClient.email}\nIndustria: ${newClient.industry}\n${form.siClient ? `SI ID: ${form.siClient.id}` : "Registro manual - Requiere correlación en SI"}\n\nPor favor evaluar y validar para activación.\n\nEquipo ODISEO`,
-        newClient.id,
-        "approval_request"
-      );
-
       const successMsg = form.siClient
         ? "Cliente enlazado con el sistema integral"
         : "Cliente creado exitosamente y se solicitó la validación de Tesorería";
