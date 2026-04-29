@@ -299,6 +299,9 @@ export default function ClientCreatePage() {
         : "Cliente creado exitosamente y se solicitó la validación de Tesorería";
       setSuccessMessage(successMsg);
       setTimeout(() => navigate("/clients"), 2000);
+    } catch (error) {
+      console.error("Error al crear cliente:", error);
+      alert("Error al crear el cliente. Por favor intente nuevamente.");
     } finally {
       setLoading(false);
     }
