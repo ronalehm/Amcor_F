@@ -300,8 +300,9 @@ export default function ClientCreatePage() {
       setSuccessMessage(successMsg);
       setTimeout(() => navigate("/clients"), 2000);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Error al crear cliente:", error);
-      alert("Error al crear el cliente. Por favor intente nuevamente.");
+      alert(`Error al crear el cliente: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
