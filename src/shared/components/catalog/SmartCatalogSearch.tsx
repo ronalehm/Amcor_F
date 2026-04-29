@@ -15,7 +15,6 @@ type SmartCatalogSearchProps = {
   options: SmartCatalogOption[];
   placeholder?: string;
   error?: string;
-  buttonLabel?: string;
 };
 
 export default function SmartCatalogSearch({
@@ -26,7 +25,6 @@ export default function SmartCatalogSearch({
   options,
   placeholder,
   error,
-  buttonLabel = "Buscar",
 }: SmartCatalogSearchProps) {
   const selectedOption = options.find((option) => String(option.id) === value);
 
@@ -71,36 +69,23 @@ export default function SmartCatalogSearch({
         {label}
       </span>
 
-      <div className="flex gap-2">
-        <input
-          value={query}
-          onFocus={() => setIsOpen(true)}
-          onBlur={onBlur}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            onChange("");
-            setIsOpen(true);
-            setShowAll(false);
-          }}
-          placeholder={placeholder}
-          className={`w-full rounded-md border bg-white px-3 py-2 text-sm outline-none ${
-            error
-              ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-              : "border-slate-300 focus:border-[#0d4c5c] focus:ring-2 focus:ring-[#0d4c5c]/20"
-          }`}
-        />
-
-        <button
-          type="button"
-          onClick={() => {
-            setShowAll(true);
-            setIsOpen((prev) => !prev);
-          }}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-        >
-          {buttonLabel}
-        </button>
-      </div>
+      <input
+        value={query}
+        onFocus={() => setIsOpen(true)}
+        onBlur={onBlur}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          onChange("");
+          setIsOpen(true);
+          setShowAll(false);
+        }}
+        placeholder={placeholder}
+        className={`w-full rounded-md border bg-white px-3 py-2 text-sm outline-none ${
+          error
+            ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+            : "border-slate-300 focus:border-[#0d4c5c] focus:ring-2 focus:ring-[#0d4c5c]/20"
+        }`}
+      />
 
       {isOpen && (
         <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
