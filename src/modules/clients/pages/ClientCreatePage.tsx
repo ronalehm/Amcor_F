@@ -294,7 +294,10 @@ export default function ClientCreatePage() {
         "validation"
       );
 
-      setSuccessMessage("Cliente creado correctamente.");
+      const successMsg = form.siClient
+        ? "Cliente enlazado con el sistema integral"
+        : "Cliente creado exitosamente y se solicitó la validación de Tesorería";
+      setSuccessMessage(successMsg);
       setTimeout(() => navigate("/clients"), 2000);
     } finally {
       setLoading(false);
