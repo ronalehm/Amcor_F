@@ -1,69 +1,40 @@
-import { useMemo, useState, useEffect } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  BriefcaseBusiness,
-  CheckCircle2,
-  CircleOff,
+  Mail,
   Plus,
   RotateCcw,
   Search,
+  Users,
+  BriefcaseBusiness,
 } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
-import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
-import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
+import ActionButton from "../../../shared/components/buttons/ActionButton";
 
 type PortfolioTab = "all" | "active" | "inactive";
-type QuickFilter = "all" | "withWrapper" | "withMachine" | "withoutMachine";
 type SortDirection = "asc" | "desc";
-
-type SortKey =
-  | "codigo"
-  | "nombre"
-  | "clientName"
-  | "ejecutivoName"
-  | "envoltura"
-  | "maquinaCliente"
-  | "usoFinal"
-  | "createdAt"
-  | "createdBy";
+type SortKey = "codigo" | "nombre" | "clientName" | "createdAt";
 
 const getText = (...values: any[]) => {
   const value = values.find(
-    (item) => item !== undefined && item !== null && String(item).trim() !== ""
+    (item) => item !== undefined && item !== null && String(item).trim() !== "",
   );
-
   return value ? String(value) : "";
 };
 
-const formatDate = (...values: any[]) => {
-  const value = getText(...values);
-
-  if (!value) return "—";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleDateString("es-PE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-};
-
-const getPortfolioStatus = (portfolio: any): "activo" | "inactivo" => {
+const getPortfolioStatus = (portfolio: any): "active" | "inactive" => {
   const rawStatus = getText(
     portfolio.status,
     portfolio.est,
     portfolio.estado,
-    portfolio.isActive === false ? "inactivo" : "",
-    portfolio.active === false ? "inactivo" : "",
-    "activo"
+    portfolio.isActive === false ? "inactive" : "",
+    portfolio.active === false ? "inactive" : "",
+    "active"
   ).toLowerCase();
 
   if (
@@ -71,64 +42,33 @@ const getPortfolioStatus = (portfolio: any): "activo" | "inactivo" => {
     rawStatus.includes("inactive") ||
     rawStatus === "false"
   ) {
-    return "inactivo";
+    return "inactive";
   }
-
-  return "activo";
+  return "active";
 };
 
 const getSortValue = (portfolio: any, key: SortKey): string | number => {
   switch (key) {
-    case "codigo":
-      return getText(portfolio.codigo, portfolio.id).toLowerCase();
-
-    case "nombre":
-      return getText(
-        portfolio.nombre,
-        portfolio.portfolioName,
-        portfolio.nom
-      ).toLowerCase();
-
-    case "clientName":
-      return getText(portfolio.clientName, portfolio.cli).toLowerCase();
-
-    case "ejecutivoName":
-      return getText(portfolio.ejecutivoName, portfolio.ej).toLowerCase();
-
-    case "envoltura":
-      return getText(portfolio.envoltura, portfolio.env).toLowerCase();
-
-    case "maquinaCliente":
-      return getText(portfolio.maquinaCliente, portfolio.maquina).toLowerCase();
-
-    case "usoFinal":
-      return getText(portfolio.usoFinal, portfolio.uso).toLowerCase();
-
+    case "codigo": return getText(portfolio.codigo, portfolio.id).toLowerCase();
+    case "nombre": return getText(portfolio.nombre, portfolio.portfolioName, portfolio.nom).toLowerCase();
+    case "clientName": return getText(portfolio.clientName, portfolio.cli).toLowerCase();
     case "createdAt": {
-      const dateValue = getText(
-        portfolio.createdAt,
-        portfolio.createdDate,
-        portfolio.fechaCreacion,
-        portfolio.fecha_creacion
-      );
-
-      const time = new Date(dateValue).getTime();
-
+      const createdAt = getText(portfolio.createdAt, portfolio.createdDate, portfolio.fechaCreacion);
+      const time = createdAt ? new Date(createdAt).getTime() : 0;
       return Number.isNaN(time) ? 0 : time;
     }
-
-    case "createdBy":
-      return getText(
-        portfolio.createdByName,
-        portfolio.createdBy,
-        portfolio.userName,
-        portfolio.username,
-        portfolio.usuario
-      ).toLowerCase();
-
-    default:
-      return "";
+    default: return "";
   }
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "Activo",
+  inactive: "Inactivo",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  active: "border-green-200 bg-green-50 text-green-700 font-bold",
+  inactive: "border-slate-300 bg-slate-50 text-slate-700 font-bold",
 };
 
 export default function PortfolioListPage() {
@@ -137,13 +77,6 @@ export default function PortfolioListPage() {
 
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<PortfolioTab>("all");
-
-  const [clientFilter, setClientFilter] = useState("");
-  const [executiveFilter, setExecutiveFilter] = useState("");
-  const [envolturaFilter, setEnvolturaFilter] = useState("");
-  const [usoFinalFilter, setUsoFinalFilter] = useState("");
-  const [maquinaFilter, setMaquinaFilter] = useState("");
-
   const [pageSize, setPageSize] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -157,7 +90,7 @@ export default function PortfolioListPage() {
 
   useEffect(() => {
     setHeader({
-      title: "Portafolios",
+      title: "Gestión de Portafolios",
       breadcrumbs: [{ label: "Portafolios" }, { label: "Lista de Portafolios" }],
     });
 
@@ -166,52 +99,14 @@ export default function PortfolioListPage() {
 
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
 
-  const recentClients = useMemo(() => {
-    const clients = getClientCatalogRecords();
-
-    return clients
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime()
-      )
-      .slice(0, 5);
-  }, []);
-
-  const executiveOptions = useMemo(() => getActiveExecutiveRecords(), []);
-
-  const uniqueEnvolturas = useMemo(() => {
-    const values = new Set(
-      portfolios.map((p) => getText(p.envoltura, p.env)).filter(Boolean)
-    );
-
-    return Array.from(values).sort();
-  }, [portfolios]);
-
-  const uniqueUsosFinales = useMemo(() => {
-    const values = new Set(
-      portfolios.map((p) => getText(p.usoFinal, p.uso)).filter(Boolean)
-    );
-
-    return Array.from(values).sort();
-  }, [portfolios]);
-
-  const uniqueMaquinas = useMemo(() => {
-    const values = new Set(
-      portfolios.map((p) => getText(p.maquinaCliente, p.maquina)).filter(Boolean)
-    );
-
-    return Array.from(values).sort();
-  }, [portfolios]);
-
   const activePortfolios = useMemo(
-    () => portfolios.filter((portfolio) => getPortfolioStatus(portfolio) === "activo"),
-    [portfolios]
+    () => portfolios.filter((p) => getPortfolioStatus(p) === "active"),
+    [portfolios],
   );
 
   const inactivePortfolios = useMemo(
-    () => portfolios.filter((portfolio) => getPortfolioStatus(portfolio) === "inactivo"),
-    [portfolios]
+    () => portfolios.filter((p) => getPortfolioStatus(p) === "inactive"),
+    [portfolios],
   );
 
   const filteredPortfolios = useMemo(() => {
@@ -219,68 +114,23 @@ export default function PortfolioListPage() {
 
     const filtered = portfolios.filter((portfolio) => {
       const status = getPortfolioStatus(portfolio);
+      const statusLabel = STATUS_LABELS[status];
 
       const searchableText = [
         portfolio.codigo,
-        portfolio.id,
         portfolio.nombre,
-        portfolio.portfolioName,
-        portfolio.nom,
         portfolio.clientName,
-        portfolio.cli,
-        portfolio.ejecutivoName,
-        portfolio.ej,
-        portfolio.envoltura,
-        portfolio.env,
-        portfolio.maquinaCliente,
-        portfolio.maquina,
-        portfolio.usoFinal,
-        portfolio.uso,
-        portfolio.createdByName,
-        portfolio.createdBy,
-        portfolio.userName,
-        portfolio.username,
-        portfolio.usuario,
+        statusLabel,
+        portfolio.createdAt,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
-      const wrapper = getText(portfolio.envoltura, portfolio.env);
-      const machine = getText(portfolio.maquinaCliente, portfolio.maquina);
-
       const matchesSearch = !search || searchableText.includes(search);
+      const matchesTab = activeTab === "all" || status === activeTab;
 
-      const matchesTab =
-        activeTab === "all" ||
-        (activeTab === "active" && status === "activo") ||
-        (activeTab === "inactive" && status === "inactivo");
-
-      const matchesClient =
-        !clientFilter ||
-        portfolio.clientName === clientFilter ||
-        portfolio.clientCode === clientFilter;
-
-      const matchesExecutive =
-        !executiveFilter || portfolio.ejecutivoName === executiveFilter;
-
-      const matchesEnvoltura = !envolturaFilter || wrapper === envolturaFilter;
-
-      const matchesUsoFinal =
-        !usoFinalFilter ||
-        getText(portfolio.usoFinal, portfolio.uso) === usoFinalFilter;
-
-      const matchesMaquina = !maquinaFilter || machine === maquinaFilter;
-
-      return (
-        matchesSearch &&
-        matchesTab &&
-        matchesClient &&
-        matchesExecutive &&
-        matchesEnvoltura &&
-        matchesUsoFinal &&
-        matchesMaquina
-      );
+      return matchesSearch && matchesTab;
     });
 
     return [...filtered].sort((a, b) => {
@@ -300,17 +150,7 @@ export default function PortfolioListPage() {
 
       return sortConfig.direction === "asc" ? result : result * -1;
     });
-  }, [
-    portfolios,
-    query,
-    activeTab,
-    clientFilter,
-    executiveFilter,
-    envolturaFilter,
-    usoFinalFilter,
-    maquinaFilter,
-    sortConfig,
-  ]);
+  }, [portfolios, query, activeTab, sortConfig]);
 
   const totalRecords = filteredPortfolios.length;
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
@@ -324,16 +164,7 @@ export default function PortfolioListPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [
-    query,
-    activeTab,
-    clientFilter,
-    executiveFilter,
-    envolturaFilter,
-    usoFinalFilter,
-    maquinaFilter,
-    pageSize,
-  ]);
+  }, [query, activeTab, pageSize]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -344,11 +175,6 @@ export default function PortfolioListPage() {
   const clearFilters = () => {
     setQuery("");
     setActiveTab("all");
-    setClientFilter("");
-    setExecutiveFilter("");
-    setEnvolturaFilter("");
-    setUsoFinalFilter("");
-    setMaquinaFilter("");
     setPageSize(25);
     setCurrentPage(1);
     setSortConfig({ key: "createdAt", direction: "desc" });
@@ -408,7 +234,7 @@ export default function PortfolioListPage() {
   const tabs = [
     {
       key: "all" as PortfolioTab,
-      label: "Todos los portafolios",
+      label: "Todos",
       count: portfolios.length,
     },
     {
@@ -428,71 +254,59 @@ export default function PortfolioListPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
-      <section className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
+      <section className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Total portafolios
+                Total
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-slate-900">
+              <p className="mt-2 text-2xl font-extrabold text-slate-900">
                 {portfolios.length}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Registrados en plataforma
-              </p>
             </div>
-
-            <div className="rounded-xl bg-[#e8f4f8] p-3 text-[#003b5c]">
-              <BriefcaseBusiness size={22} />
+            <div className="rounded-lg bg-[#e8f4f8] p-2 text-[#003b5c]">
+              <BriefcaseBusiness size={18} />
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-emerald-600">
-                Portafolios activos
+        <div className="rounded-2xl border border-green-100 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-green-600">
+                Activos
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-slate-900">
+              <p className="mt-2 text-2xl font-extrabold text-slate-900">
                 {activePortfolios.length}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Disponibles para gestión
-              </p>
             </div>
-
-            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
-              <CheckCircle2 size={22} />
+            <div className="rounded-lg bg-green-50 p-2 text-green-600">
+              <BriefcaseBusiness size={18} />
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Portafolios inactivos
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                Inactivos
               </p>
-              <p className="mt-2 text-3xl font-extrabold text-slate-900">
+              <p className="mt-2 text-2xl font-extrabold text-slate-900">
                 {inactivePortfolios.length}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Fuera de gestión activa
-              </p>
             </div>
-
-            <div className="rounded-xl bg-slate-100 p-3 text-slate-500">
-              <CircleOff size={22} />
+            <div className="rounded-lg bg-slate-100 p-2 text-slate-600">
+              <BriefcaseBusiness size={18} />
             </div>
           </div>
         </div>
       </section>
 
       <section className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 pt-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex flex-wrap gap-6">
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 pt-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex max-w-full gap-6 overflow-x-auto">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.key;
 
@@ -501,7 +315,7 @@ export default function PortfolioListPage() {
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key)}
-                  className={`border-b-2 pb-3 text-sm font-bold transition-colors ${
+                  className={`whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-colors ${
                     isActive
                       ? "border-[#003b5c] text-[#003b5c]"
                       : "border-transparent text-slate-500 hover:text-[#003b5c]"
@@ -528,9 +342,13 @@ export default function PortfolioListPage() {
           </p>
         </div>
 
-        <div className="border-b border-slate-100 px-5 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full sm:w-[340px]">
+        <div className="grid grid-cols-1 gap-4 px-5 py-4 xl:grid-cols-[2.4fr_auto]">
+          <div>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
+              Buscar
+            </label>
+
+            <div className="relative">
               <Search
                 size={16}
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -538,151 +356,40 @@ export default function PortfolioListPage() {
 
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar por código, nombre, cliente..."
                 className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
               />
             </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button
-                type="button"
-                onClick={clearFilters}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:border-[#003b5c] hover:text-[#003b5c]"
-              >
-                <RotateCcw size={16} />
-                Limpiar Filtros
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate("/portfolio/new")}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#003b5c] px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#002b43]"
-              >
-                <Plus size={16} />
-                Crear Portafolio
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 px-5 py-4 md:grid-cols-2 lg:grid-cols-5">
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Cliente
-            </label>
-
-            <select
-              value={clientFilter}
-              onChange={(e) => setClientFilter(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todos los clientes</option>
-
-              {recentClients.map((client) => (
-                <option key={client.code} value={client.name}>
-                  {client.name}
-                </option>
-              ))}
-            </select>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Ejecutivo
-            </label>
+          <div className="flex items-end gap-2">
+            <ActionButton
+              label="Limpiar Filtros"
+              onClick={clearFilters}
+              variant="outline"
+              icon={<RotateCcw size={16} />}
+            />
 
-            <select
-              value={executiveFilter}
-              onChange={(e) => setExecutiveFilter(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todos los ejecutivos</option>
-
-              {executiveOptions.map((exec) => (
-                <option key={exec.id} value={exec.name}>
-                  {exec.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Envoltura
-            </label>
-
-            <select
-              value={envolturaFilter}
-              onChange={(e) => setEnvolturaFilter(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todas</option>
-
-              {uniqueEnvolturas.map((env) => (
-                <option key={env} value={env}>
-                  {env}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Uso Final
-            </label>
-
-            <select
-              value={usoFinalFilter}
-              onChange={(e) => setUsoFinalFilter(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todos</option>
-
-              {uniqueUsosFinales.map((uso) => (
-                <option key={uso} value={uso}>
-                  {uso}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Máquina Cliente
-            </label>
-
-            <select
-              value={maquinaFilter}
-              onChange={(e) => setMaquinaFilter(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todas</option>
-
-              {uniqueMaquinas.map((maq) => (
-                <option key={maq} value={maq}>
-                  {maq}
-                </option>
-              ))}
-            </select>
+            <ActionButton
+              label="Crear Portafolio"
+              onClick={() => navigate("/portfolio/new")}
+              variant="primary"
+              icon={<Plus size={16} />}
+            />
           </div>
         </div>
       </section>
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1300px] border-collapse text-sm">
+          <table className="w-full min-w-[1000px] border-collapse text-sm">
             <thead>
               <tr className="bg-[#003b5c] text-white">
                 <SortableHeader label="Código" sortKey="codigo" />
-                <SortableHeader label="Nombre Portafolio" sortKey="nombre" />
+                <SortableHeader label="Nombre" sortKey="nombre" />
                 <SortableHeader label="Cliente" sortKey="clientName" />
-                <SortableHeader label="Ejecutivo" sortKey="ejecutivoName" />
-                <SortableHeader label="Envoltura" sortKey="envoltura" />
-                <SortableHeader label="Máquina Cliente" sortKey="maquinaCliente" />
-                <SortableHeader label="Uso Final" sortKey="usoFinal" />
-                <SortableHeader label="Fecha de creación" sortKey="createdAt" />
-                <SortableHeader label="Usuario" sortKey="createdBy" />
+                <SortableHeader label="Estado" sortKey="createdAt" />
 
                 <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
                   Acciones
@@ -690,88 +397,62 @@ export default function PortfolioListPage() {
               </tr>
             </thead>
 
-            <tbody>
-              {paginatedPortfolios.map((item, index) => (
-                <tr
-                  key={item.codigo || item.id}
-                  className={`border-b border-slate-100 transition-colors ${
-                    index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
-                  } hover:bg-[#e8f4f8]`}
-                >
-                  <td className="px-4 py-3 text-sm font-extrabold text-[#003b5c]">
-                    {item.codigo || item.id || "—"}
-                  </td>
+            <tbody className="divide-y divide-slate-100">
+              {paginatedPortfolios.map((portfolio, index) => {
+                const status = getPortfolioStatus(portfolio);
+                return (
+                  <tr
+                    key={portfolio.codigo || portfolio.id}
+                    className={`transition-colors hover:bg-[#e8f4f8] ${
+                      index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
+                    }`}
+                  >
+                    <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-[#003b5c]">
+                      {portfolio.codigo || "—"}
+                    </td>
 
-                  <td className="px-4 py-3 text-sm font-semibold text-slate-800">
-                    {getText(item.nombre, item.portfolioName, item.nom) || "—"}
-                  </td>
+                    <td className="px-4 py-3 text-sm">
+                      <div className="font-bold text-slate-800">
+                        {portfolio.nombre || portfolio.portfolioName || "—"}
+                      </div>
+                    </td>
 
-                  <td className="px-4 py-3 text-sm font-medium text-slate-700">
-                    {getText(item.clientName, item.cli) || "—"}
-                  </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      {portfolio.clientName || "—"}
+                    </td>
 
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    {getText(item.ejecutivoName, item.ej) || "—"}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    {getText(item.envoltura, item.env) || "—"}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    {getText(item.maquinaCliente, item.maquina) || "—"}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    {getText(item.usoFinal, item.uso) || "—"}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    {formatDate(
-                      item.createdAt,
-                      item.createdDate,
-                      item.fechaCreacion,
-                      item.fecha_creacion
-                    )}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    {getText(
-                      item.createdByName,
-                      item.createdBy,
-                      item.userName,
-                      item.username,
-                      item.usuario
-                    ) || "—"}
-                  </td>
-
-                  <td className="px-4 py-3 text-right text-sm">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/portfolio/${item.codigo || item.id}`)}
-                        className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-[#003b5c]"
+                    <td className="px-4 py-3 text-sm">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[status]}`}
                       >
-                        Ver Detalle
-                      </button>
+                        {STATUS_LABELS[status]}
+                      </span>
+                    </td>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          navigate(`/portfolio/${item.codigo || item.id}/edit`)
-                        }
-                        className="rounded-md border border-[#003b5c] bg-[#003b5c]/5 px-3 py-1.5 text-xs font-bold text-[#003b5c] shadow-sm transition-colors hover:bg-[#003b5c] hover:text-white"
-                      >
-                        Editar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-4 py-3 text-right text-sm">
+                      <div className="flex items-center justify-end gap-2">
+                        <ActionButton
+                          label="Ver"
+                          size="sm"
+                          variant="primary"
+                          onClick={() => navigate(`/portfolio/${portfolio.codigo}`)}
+                        />
+
+                        <ActionButton
+                          label="Editar"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/portfolio/${portfolio.codigo}/edit`)}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
 
               {filteredPortfolios.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-6 py-14 text-center">
+                  <td colSpan={5} className="px-6 py-14 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <BriefcaseBusiness size={26} className="text-slate-400" />

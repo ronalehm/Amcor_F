@@ -27,6 +27,7 @@ import DataSheetEditPage from "../modules/datasheets/pages/DataSheetEditPage";
 
 import UserEditPage from "../modules/users/pages/UserEditPage";
 import UserDetailPage from "../modules/users/pages/UserDetailPage";
+import ClientDetailPage from "../modules/clients/pages/ClientDetailPage";
 
 import ChecksListPage from "../modules/Checks/pages/ChecksListPage";
 import ChecksDetailPage from "../modules/Checks/pages/ChecksDetailPage";
@@ -67,7 +68,7 @@ export default function AppRouter() {
           <Route path="projects/:projectCode/edit" element={<ProjectEditPage />} />
           <Route path="clients" element={<ClientListPage />} />
           <Route path="clients/new" element={<ClientCreatePage />} />
-          <Route path="clients/:clientCode" element={<div className="p-4">Detalle del Cliente (Ver)</div>} />
+          <Route path="clients/:clientCode" element={<ClientDetailPage />} />
           <Route path="clients/:clientCode/edit" element={<ClientEditPage />} />
           <Route path="datasheets" element={<DataSheetListPage />} />
           <Route path="datasheets/new" element={<ProductSheetPage />} />
@@ -127,7 +128,7 @@ export default function AppRouter() {
         {/* Clientes */}
         <Route path="clients" element={<ClientListPage />} />
         <Route path="clients/new" element={<ClientCreatePage />} />
-        <Route path="clients/:clientCode" element={<div className="p-4">Detalle del Cliente (Ver)</div>} />
+        <Route path="clients/:clientCode" element={<ClientDetailPage />} />
         <Route path="clients/:clientCode/edit" element={<ClientEditPage />} />
 
         {/* Fichas de Producto */}

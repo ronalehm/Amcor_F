@@ -25,6 +25,7 @@ import SystemIntegrationUserSearch from "../../../shared/components/forms/System
 import UserDuplicateHandler from "../../../shared/components/forms/UserDuplicateHandler";
 
 const AREAS = ["Comercial", "Artes Gráficas", "R&D", "Commercial Finance", "Administración", "TI"];
+const VALID_ROLES = Object.keys(ROLE_LABELS) as UserRole[];
 
 interface FormState {
   siUser: VendorMirror | null;
@@ -137,30 +138,44 @@ export default function UserCreatePage() {
     setExcelError(null);
     setExcelWarning(null);
 
+    // Validate file extension
+    const validExtensions = [".xlsx", ".xls"];
+    const fileExtension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (!validExtensions.includes(fileExtension)) {
+      setExcelError("Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls.");
+      return;
+    }
+
     const reader = new FileReader();
+    reader.onerror = () => {
+      setExcelError("Error al leer el archivo. Intente con otro archivo o verifique que no esté corrupto.");
+    };
     reader.onload = (evt) => {
       try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
+        const data = evt.target?.result;
+        if (!data) {
+          setExcelError("No se pudo leer el contenido del archivo.");
+          return;
+        }
+        const wb = XLSX.read(data, { type: "array" });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json<any>(ws);
+        const rows = XLSX.utils.sheet_to_json<any>(ws);
 
-        if (data.length === 0) {
+        if (rows.length === 0) {
           setExcelError("El archivo no contiene datos para importar.");
           return;
         }
 
-        if (data.length > 1) {
+        if (rows.length > 1) {
           setExcelError(
             "La plantilla contiene más de un usuario. Para este flujo solo se permite registrar un usuario por vez."
           );
           return;
         }
 
-        const row = data[0];
-        
-        // Check required columns (they might be undefined if completely empty in excel, but at least headers should exist. We will just check if row has keys or validate fields)
+        const row = rows[0];
+
         const expectedColumns = [
           "codigoTrabajador",
           "nombre",
@@ -171,9 +186,6 @@ export default function UserCreatePage() {
           "area",
         ];
 
-        // Ensure keys exist in row, even if empty, or we can just validate the data. 
-        // The requirement: "Si falta una columna obligatoria, mostrar: La plantilla no tiene la estructura requerida. Descargue la plantilla oficial."
-        // A better check: sheet_to_json with header: 1 to check exact headers.
         const headerData = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
         const headers = headerData.length > 0 ? headerData[0] : [];
         const missingCols = expectedColumns.filter(c => !headers.includes(c));
@@ -184,19 +196,13 @@ export default function UserCreatePage() {
 
         const workerCode = (row.codigoTrabajador || "").toString().trim();
         const email = (row.correoCorporativo || "").toString().trim();
-        
+
         if (!workerCode) {
           setExcelError("El código de trabajador es obligatorio.");
-          return;
+          // Still autocomplete what we can so user can fix other fields
         }
 
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          setExcelError("El correo corporativo importado no tiene un formato válido.");
-          // Still autocomplete what's possible, but mark error? Wait, requirement says:
-          // "Si el correo tiene formato inválido, mostrar: El correo corporativo importado no tiene un formato válido."
-          // But also "Caso 7: El Excel tiene correo inválido... Resultado esperado: El sistema autocompleta lo posible, marca los errores y mantiene deshabilitado el botón “Crear Usuario”."
-          // So we don't return here, we set warning or we let the form validation handle it.
-          // Let's set a warning but continue.
           setExcelWarning("El correo corporativo importado no tiene un formato válido.");
         }
 
@@ -211,6 +217,11 @@ export default function UserCreatePage() {
           }
         }
 
+        const importedRole = (row.rolPortalOdiseo || "").toString().trim().toLowerCase();
+        const matchedRole = importedRole
+          ? VALID_ROLES.find(r => r.toLowerCase() === importedRole || ROLE_LABELS[r].toLowerCase() === importedRole)
+          : undefined;
+
         setForm(prev => ({
           ...prev,
           siUser: null,
@@ -222,15 +233,16 @@ export default function UserCreatePage() {
           company: (row.empresa || "").toString().trim(),
           area: finalArea,
           phone: (row.telefono || "").toString().trim(),
+          role: matchedRole || prev.role,
         }));
-        
+
         setIsExcelImported(true);
 
       } catch (error) {
         setExcelError("Error al procesar el archivo Excel. Asegúrese de que el formato sea correcto.");
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
     
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -325,9 +337,6 @@ export default function UserCreatePage() {
     setLoading(true);
     try {
       // Cambiar estado a pending_activation
-      const result = duplicateUser.status === "inactive"
-        ? duplicateUser // Just keep reference
-        : duplicateUser;
 
       registerUserStatusChange(
         duplicateUser.id,
@@ -384,7 +393,7 @@ export default function UserCreatePage() {
     setSubmitAttempted(true);
     setSuccessMessage(null);
 
-    if (Object.keys(validationErrors).length > 0) return;
+    if (Object.keys(validationErrors).length > 0 || excelError) return;
 
     setLoading(true);
     try {
@@ -837,7 +846,10 @@ export default function UserCreatePage() {
         <div className="sticky bottom-0 z-40 mt-6 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
           <FormActionButtons
             onCancel={() => navigate("/users")}
-            validationErrorList={Object.values(validationErrors)}
+            validationErrorList={[
+              ...Object.values(validationErrors),
+              ...(excelError ? [excelError] : []),
+            ]}
             submitAttempted={submitAttempted}
             submitLabel="Crear Usuario"
             cancelLabel="Cancelar"

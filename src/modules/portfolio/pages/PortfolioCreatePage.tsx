@@ -6,12 +6,10 @@ import { useLayout } from "../../../components/layout/LayoutContext";
 
 import {
   STATUS_CATALOG,
-  CLIENTS_CATALOG,
   PLANTS_CATALOG,
   WRAPPINGS_CATALOG,
   FINAL_USE_CATALOG,
   getStatusById,
-  getClientById,
   getPlantById,
   getWrappingById,
   getFinalUseById,
@@ -19,16 +17,14 @@ import {
   getPackingMachinesByWrappingId,
 } from "../../../shared/data/mockDatabase";
 
-import {
-  getActiveExecutiveRecords,
-  getExecutiveById,
-} from "../../../shared/data/executiveStorage";
-
+import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
+import { getCommercialExecutives } from "../../../shared/data/userStorage";
 import { savePortfolioRecord } from "../../../shared/data/portfolioStorage";
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
 import FinalUseSelector from "../../../shared/components/catalog/FinalUseSelector";
 import FinalUseCatalogModal from "../../../shared/components/catalog/FinalUseCatalogModal";
 import PortfolioPreview from "../../../shared/components/ui/PortfolioPreview.tsx";
+import CommercialExecutiveSearch from "../../../shared/components/forms/CommercialExecutiveSearch";
 import {
   FormInput,
   FormSelect,
@@ -108,10 +104,11 @@ export default function PortfolioCreatePage() {
   >({});
 
   const selectedStatus = getStatusById(Number(form.estadoId));
-  const selectedClient = getClientById(Number(form.clienteId));
-  const executiveOptions = useMemo(() => getActiveExecutiveRecords(), []);
+  const realClients = getClientCatalogRecords();
+  const selectedClient = realClients.find((c) => c.id === form.clienteId);
+  const comercialUsers = getCommercialExecutives();
+  const selectedExecutive = comercialUsers.find((u) => u.id === form.ejecutivoId);
 
-  const selectedExecutive = getExecutiveById(Number(form.ejecutivoId));
   const selectedPlant = getPlantById(Number(form.plantaId));
   const selectedWrapping = getWrappingById(Number(form.envolturaId));
   const selectedFinalUse = getFinalUseById(Number(form.usoFinalId));
@@ -293,11 +290,11 @@ export default function PortfolioCreatePage() {
 
       clienteId: selectedClient.id,
       clienteCode: selectedClient.code,
-      cli: selectedClient.name,
+      cli: selectedClient.businessName,
 
       ejecutivoId: selectedExecutive.id,
       ejecutivoCode: selectedExecutive.code,
-      ej: selectedExecutive.name,
+      ej: selectedExecutive.fullName,
 
       plantaId: selectedPlant.id,
       plantaCode: selectedPlant.code,
@@ -361,31 +358,27 @@ export default function PortfolioCreatePage() {
                       ? validationErrors.clienteId
                       : ""
                   }
-                  options={CLIENTS_CATALOG.map((item) => ({
+                  options={realClients.map((item) => ({
                     id: item.id,
                     code: item.code,
-                    name: item.name,
+                    name: item.businessName,
                     meta: item.ruc,
                   }))}
                   placeholder="Escribe para buscar cliente..."
                 />
 
-                <SmartCatalogSearch
+                <CommercialExecutiveSearch
                   label="Ejecutivo Comercial *"
                   value={form.ejecutivoId}
-                  onChange={(value) => updateField("ejecutivoId", value)}
-                  onBlur={() => markFieldAsTouched("ejecutivoId")}
+                  onChange={(value) => {
+                    updateField("ejecutivoId", value);
+                    markFieldAsTouched("ejecutivoId");
+                  }}
                   error={
                     shouldShowFieldError("ejecutivoId")
                       ? validationErrors.ejecutivoId
                       : ""
                   }
-                  options={executiveOptions.map((item) => ({
-                    id: item.id,
-                    code: item.code,
-                    name: item.name,
-                    meta: item.email,
-                  }))}
                   placeholder="Escribe para buscar ejecutivo..."
                 />
 
@@ -475,8 +468,8 @@ export default function PortfolioCreatePage() {
               estado={selectedStatus?.name || "Registrado"}
               completionPercentage={completionPercentage}
               items={[
-                { label: "Cliente", value: selectedClient?.name },
-                { label: "Ejecutivo", value: selectedExecutive?.name },
+                { label: "Cliente", value: selectedClient?.businessName },
+                { label: "Ejecutivo", value: selectedExecutive?.fullName },
                 { label: "Planta", value: selectedPlant?.name },
                 { label: "Portafolio", value: form.nombrePortafolio },
               ]}

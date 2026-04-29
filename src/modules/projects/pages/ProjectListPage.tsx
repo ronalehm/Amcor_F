@@ -6,9 +6,7 @@ import {
   ArrowUp,
   ArrowUpDown,
   BriefcaseBusiness,
-  CheckCircle2,
   Clock3,
-  FileWarning,
   Layers3,
   Plus,
   RotateCcw,
@@ -22,7 +20,6 @@ import { getProjectSlaSummary } from "../../../shared/data/slaStorage";
 import { getStageConfig, type ProjectStage } from "../../../shared/data/projectStageConfig";
 import { getProjectObservations } from "../../../shared/data/observationStorage";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
-import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
 
 import SlaStatusBadge from "../../../shared/components/sla/SlaStatusBadge";
 import ActionButton from "../../../shared/components/buttons/ActionButton";
@@ -38,15 +35,6 @@ type ProjectBusinessStatus =
   | "Desestimado";
 
 type ProjectTab = "all" | ProjectBusinessStatus;
-
-type QuickFilter =
-  | "all"
-  | "portal"
-  | "sistemaIntegral"
-  | "overdue"
-  | "observed"
-  | "dueSoon"
-  | "withoutSla";
 
 type SortDirection = "asc" | "desc";
 
@@ -307,15 +295,6 @@ export default function ProjectListPage() {
 
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<ProjectTab>("all");
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
-
-  const [clientFilter, setClientFilter] = useState("");
-  const [portfolioFilter, setPortfolioFilter] = useState("");
-  const [stageFilter, setStageFilter] = useState("");
-  const [areaFilter, setAreaFilter] = useState("");
-  const [envolturaFilter, setEnvolturaFilter] = useState("");
-  const [usoFinalFilter, setUsoFinalFilter] = useState("");
-  const [maquinaFilter, setMaquinaFilter] = useState("");
 
   const [sortConfig, setSortConfig] = useState<{
     key: SortKey;
@@ -324,6 +303,9 @@ export default function ProjectListPage() {
     key: "createdAt",
     direction: "desc",
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   useEffect(() => {
     setHeader({
@@ -337,78 +319,7 @@ export default function ProjectListPage() {
   const projects = useMemo(() => getProjectRecords(), []);
   const trackingStates = useMemo(() => getAllProjectTrackingStates(), []);
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
-  const clients = useMemo(() => getClientCatalogRecords(), []);
   const observations = useMemo(() => getProjectObservations(), []);
-
-  const recentClients = useMemo(() => {
-    return [...clients]
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime()
-      )
-      .slice(0, 5);
-  }, [clients]);
-
-  const portfolioOptions = useMemo(() => {
-    return portfolios.map((portfolio) => ({
-      code: getText(portfolio.codigo, portfolio.id),
-      name: getText(portfolio.nombre, portfolio.portfolioName, portfolio.nom),
-    }));
-  }, [portfolios]);
-
-  const uniqueStages = useMemo(() => {
-    const stages = new Set(
-      trackingStates.map((tracking) => getText(tracking.currentStage)).filter(Boolean)
-    );
-
-    return Array.from(stages).sort();
-  }, [trackingStates]);
-
-  const uniqueAreas = useMemo(() => {
-    const areas = new Set(
-      trackingStates
-        .map((tracking) => {
-          const config = getStageConfig(tracking.currentStage);
-          return getText(config?.responsibleArea);
-        })
-        .filter(Boolean)
-    );
-
-    return Array.from(areas).sort();
-  }, [trackingStates]);
-
-  const uniqueEnvolturas = useMemo(() => {
-    const values = new Set(
-      projects
-        .map((project) => getText(project.envoltura, project.wrappingName))
-        .filter(Boolean)
-    );
-
-    return Array.from(values).sort();
-  }, [projects]);
-
-  const uniqueUsosFinales = useMemo(() => {
-    const values = new Set(
-      projects
-        .map((project) => getText(project.usoFinal, project.useFinalName))
-        .filter(Boolean)
-    );
-
-    return Array.from(values).sort();
-  }, [projects]);
-
-  const uniqueMaquinas = useMemo(() => {
-    const values = new Set(
-      projects
-        .map((project) =>
-          getText(project.maquinaCliente, project.packingMachineName)
-        )
-        .filter(Boolean)
-    );
-
-    return Array.from(values).sort();
-  }, [projects]);
 
   const augmentedProjects = useMemo(() => {
     return projects.map((project) => {
@@ -544,18 +455,6 @@ export default function ProjectListPage() {
     [augmentedProjects]
   );
 
-  const overdueProjects = useMemo(
-    () => augmentedProjects.filter((project) => project.isSlaOverdue),
-    [augmentedProjects]
-  );
-
-  const completedProjects = useMemo(
-    () =>
-      augmentedProjects.filter(
-        (project) => project.businessStatus === "Dado de alta"
-      ),
-    [augmentedProjects]
-  );
 
   const filteredProjects = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -568,69 +467,15 @@ export default function ProjectListPage() {
         project.portfolioCodeLabel,
         project.portfolioNameLabel,
         project.businessStatus,
-        project.stageId,
-        project.stageName,
-        project.responsibleArea,
-        project.envoltura,
-        project.wrappingName,
-        project.usoFinal,
-        project.useFinalName,
-        project.maquinaCliente,
-        project.packingMachineName,
-        project.createdByLabel,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
-      const wrapper = getText(project.envoltura, project.wrappingName);
-      const usoFinal = getText(project.usoFinal, project.useFinalName);
-      const machine = getText(project.maquinaCliente, project.packingMachineName);
-
       const matchesSearch = !search || searchableText.includes(search);
+      const matchesTab = activeTab === "all" || project.businessStatus === activeTab;
 
-      const matchesTab =
-        activeTab === "all" || project.businessStatus === activeTab;
-
-      const matchesQuickFilter =
-        quickFilter === "all" ||
-        (quickFilter === "portal" && !project.isExternal) ||
-        (quickFilter === "sistemaIntegral" && project.isExternal) ||
-        (quickFilter === "overdue" && project.isSlaOverdue) ||
-        (quickFilter === "observed" && project.openObs > 0) ||
-        (quickFilter === "dueSoon" && project.isSlaDueSoon) ||
-        (quickFilter === "withoutSla" && !project.activeSla);
-
-      const matchesClient =
-        !clientFilter || project.clientNameLabel === clientFilter;
-
-      const matchesPortfolio =
-        !portfolioFilter || project.portfolioCodeLabel === portfolioFilter;
-
-      const matchesStage = !stageFilter || project.stageId === stageFilter;
-
-      const matchesArea =
-        !areaFilter || project.responsibleArea === areaFilter;
-
-      const matchesEnvoltura =
-        !envolturaFilter || wrapper === envolturaFilter;
-
-      const matchesUsoFinal = !usoFinalFilter || usoFinal === usoFinalFilter;
-
-      const matchesMaquina = !maquinaFilter || machine === maquinaFilter;
-
-      return (
-        matchesSearch &&
-        matchesTab &&
-        matchesQuickFilter &&
-        matchesClient &&
-        matchesPortfolio &&
-        matchesStage &&
-        matchesArea &&
-        matchesEnvoltura &&
-        matchesUsoFinal &&
-        matchesMaquina
-      );
+      return matchesSearch && matchesTab;
     });
 
     return [...filtered].sort((a, b) => {
@@ -650,33 +495,13 @@ export default function ProjectListPage() {
 
       return sortConfig.direction === "asc" ? result : result * -1;
     });
-  }, [
-    augmentedProjects,
-    query,
-    activeTab,
-    quickFilter,
-    clientFilter,
-    portfolioFilter,
-    stageFilter,
-    areaFilter,
-    envolturaFilter,
-    usoFinalFilter,
-    maquinaFilter,
-    sortConfig,
-  ]);
+  }, [augmentedProjects, query, activeTab, sortConfig]);
 
   const clearFilters = () => {
     setQuery("");
     setActiveTab("all");
-    setQuickFilter("all");
-    setClientFilter("");
-    setPortfolioFilter("");
-    setStageFilter("");
-    setAreaFilter("");
-    setEnvolturaFilter("");
-    setUsoFinalFilter("");
-    setMaquinaFilter("");
     setSortConfig({ key: "createdAt", direction: "desc" });
+    setCurrentPage(1);
   };
 
   const requestSort = (key: SortKey) => {
@@ -734,6 +559,13 @@ export default function ProjectListPage() {
     </th>
   );
 
+  const paginatedProjects = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredProjects.slice(startIndex, startIndex + pageSize);
+  }, [filteredProjects, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(filteredProjects.length / pageSize);
+
   const tabs = [
     {
       key: "all" as ProjectTab,
@@ -749,19 +581,9 @@ export default function ProjectListPage() {
     })),
   ];
 
-  const quickFilters = [
-    { key: "all" as QuickFilter, label: "Todos" },
-    { key: "portal" as QuickFilter, label: "En Portal Web" },
-    { key: "sistemaIntegral" as QuickFilter, label: "Sistema Integral" },
-    { key: "overdue" as QuickFilter, label: "SLA vencido" },
-    { key: "observed" as QuickFilter, label: "Con observaciones" },
-    { key: "dueSoon" as QuickFilter, label: "Por vencer" },
-    { key: "withoutSla" as QuickFilter, label: "Sin SLA" },
-  ];
-
   return (
-    <div className="w-full max-w-none bg-[#f6f8fb]">
-      <section className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+    <div className="w-full max-w-none">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
@@ -782,7 +604,7 @@ export default function ProjectListPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-blue-700">
@@ -802,10 +624,10 @@ export default function ProjectListPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-amber-100 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-amber-600">
+              <p className="text-xs font-bold uppercase tracking-wide text-emerald-600">
                 Observados
               </p>
               <p className="mt-2 text-3xl font-extrabold text-slate-900">
@@ -816,48 +638,8 @@ export default function ProjectListPage() {
               </p>
             </div>
 
-            <div className="rounded-xl bg-amber-50 p-3 text-amber-600">
-              <FileWarning size={22} />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-red-100 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-red-600">
-                SLA vencido
-              </p>
-              <p className="mt-2 text-3xl font-extrabold text-slate-900">
-                {overdueProjects.length}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Proyectos críticos
-              </p>
-            </div>
-
-            <div className="rounded-xl bg-red-50 p-3 text-red-600">
-              <AlertTriangle size={22} />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-emerald-600">
-                Dados de alta
-              </p>
-              <p className="mt-2 text-3xl font-extrabold text-slate-900">
-                {completedProjects.length}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                SKU confirmado
-              </p>
-            </div>
-
             <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
-              <CheckCircle2 size={22} />
+              <AlertTriangle size={22} />
             </div>
           </div>
         </div>
@@ -901,39 +683,6 @@ export default function ProjectListPage() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 pt-4 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-600">
-              Filtros rápidos
-            </h3>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {quickFilters.map((filter) => {
-                const isActive = quickFilter === filter.key;
-
-                return (
-                  <button
-                    key={filter.key}
-                    type="button"
-                    onClick={() => setQuickFilter(filter.key)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
-                      isActive
-                        ? "border-[#003b5c] bg-[#003b5c] text-white"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-[#003b5c] hover:text-[#003b5c]"
-                    }`}
-                  >
-                    {filter.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <p className="pb-3 text-xs font-medium text-slate-500">
-            Mostrando {filteredProjects.length} de {augmentedProjects.length} registros
-          </p>
-        </div>
-
         <div className="border-b border-slate-100 px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:w-[340px]">
@@ -967,155 +716,6 @@ export default function ProjectListPage() {
             </div>
           </div>
         </div>
-
-        <div className="border-b border-slate-100 px-5 py-4">
-          <details className="group">
-            <summary className="cursor-pointer text-xs font-bold uppercase tracking-wide text-slate-600 transition-colors hover:text-[#003b5c]">
-              Filtros adicionales
-            </summary>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Cliente
-            </label>
-
-            <select
-              value={clientFilter}
-              onChange={(event) => setClientFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todos los clientes</option>
-
-              {recentClients.map((client) => (
-                <option key={client.code} value={client.name}>
-                  {client.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Portafolio
-            </label>
-
-            <select
-              value={portfolioFilter}
-              onChange={(event) => setPortfolioFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todos los portafolios</option>
-
-              {portfolioOptions.map((portfolio) => (
-                <option key={portfolio.code} value={portfolio.code}>
-                  {portfolio.code} - {portfolio.name || "Sin nombre"}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Etapa
-            </label>
-
-            <select
-              value={stageFilter}
-              onChange={(event) => setStageFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todas las etapas</option>
-
-              {uniqueStages.map((stage) => (
-                <option key={stage} value={stage}>
-                  {stage}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Área
-            </label>
-
-            <select
-              value={areaFilter}
-              onChange={(event) => setAreaFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todas las áreas</option>
-
-              {uniqueAreas.map((area) => (
-                <option key={area} value={area}>
-                  {area}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Envoltura
-            </label>
-
-            <select
-              value={envolturaFilter}
-              onChange={(event) => setEnvolturaFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todas</option>
-
-              {uniqueEnvolturas.map((env) => (
-                <option key={env} value={env}>
-                  {env}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Uso Final
-            </label>
-
-            <select
-              value={usoFinalFilter}
-              onChange={(event) => setUsoFinalFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todos</option>
-
-              {uniqueUsosFinales.map((uso) => (
-                <option key={uso} value={uso}>
-                  {uso}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Máquina Cliente
-            </label>
-
-            <select
-              value={maquinaFilter}
-              onChange={(event) => setMaquinaFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
-            >
-              <option value="">Todas</option>
-
-              {uniqueMaquinas.map((machine) => (
-                <option key={machine} value={machine}>
-                  {machine}
-                </option>
-              ))}
-            </select>
-          </div>
-            </div>
-          </details>
-        </div>
       </section>
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -1142,7 +742,7 @@ export default function ProjectListPage() {
             </thead>
 
             <tbody>
-              {filteredProjects.map((item, index) => (
+              {paginatedProjects.map((item, index) => (
                 <tr
                   key={item.code || item.id}
                   className={`border-b border-slate-100 transition-colors ${
@@ -1305,6 +905,52 @@ export default function ProjectListPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="border-t border-slate-100 px-5 py-4">
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <p className="text-xs font-medium text-slate-600">
+              Mostrando {paginatedProjects.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} a{" "}
+              {Math.min(currentPage * pageSize, filteredProjects.length)} de{" "}
+              {filteredProjects.length} registros
+            </p>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
+              >
+                <option value={10}>10 por página</option>
+                <option value={25}>25 por página</option>
+                <option value={50}>50 por página</option>
+                <option value={100}>100 por página</option>
+              </select>
+
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Anterior
+              </button>
+
+              <span className="text-xs font-medium text-slate-600">
+                Página {currentPage} de {totalPages || 1}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

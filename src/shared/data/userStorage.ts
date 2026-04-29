@@ -315,6 +315,14 @@ export function getUsersByRole(role: UserRole): User[] {
   return getAllUsers().filter((user) => user.role === role);
 }
 
+export function getCommercialExecutives(): User[] {
+  return getAllUsers().filter((user) =>
+    user.status === "active" &&
+    user.role === "comercial" &&
+    user.position === "Ejecutivo Comercial"
+  );
+}
+
 export function getActiveUsers(): User[] {
   return getAllUsers().filter((user) => user.status === "active");
 }
