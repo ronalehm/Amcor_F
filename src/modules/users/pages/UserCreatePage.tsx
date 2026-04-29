@@ -853,6 +853,7 @@ export default function UserCreatePage() {
             submitAttempted={submitAttempted}
             submitLabel="Crear Usuario"
             cancelLabel="Cancelar"
+            isLoading={loading}
           />
         </div>
       </form>

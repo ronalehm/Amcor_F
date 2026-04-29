@@ -611,6 +611,7 @@ export default function ClientCreatePage() {
             submitAttempted={submitAttempted}
             submitLabel="Crear Cliente"
             cancelLabel="Cancelar"
+            isLoading={loading}
           />
         </div>
       </form>

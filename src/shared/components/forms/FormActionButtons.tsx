@@ -8,6 +8,7 @@ type FormActionButtonsProps = {
   validationErrorList?: string[];
   submitAttempted?: boolean;
   validationTitle?: string;
+  isLoading?: boolean;
 };
 
 export default function FormActionButtons({
@@ -17,6 +18,7 @@ export default function FormActionButtons({
   validationErrorList = [],
   submitAttempted = false,
   validationTitle = "Faltan campos obligatorios.",
+  isLoading = false,
 }: FormActionButtonsProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -53,6 +55,8 @@ export default function FormActionButtons({
         <Button
           type="submit"
           variant="primary"
+          isLoading={isLoading}
+          disabled={isLoading || validationErrorList.length > 0}
         >
           {submitLabel}
         </Button>
