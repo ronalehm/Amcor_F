@@ -209,7 +209,7 @@ export default function UserDetailPage() {
       registerUserStatusChange(
         user.id,
         user.status,
-        "deleted",
+        "inactive",
         currentUser?.id || "system",
         "Usuario eliminado"
       );

@@ -48,6 +48,16 @@ export function getClientMirrorByCode(code: string): ClientMirror | undefined {
   return CLIENTS_MIRROR.find((client) => client.code === code);
 }
 
+export function getClientMirrorByRuc(ruc: string): ClientMirror | undefined {
+  return CLIENTS_MIRROR.find((client) => client.ruc === ruc);
+}
+
+export function getClientMirrorByRazonSocial(razonSocial: string): ClientMirror | undefined {
+  return CLIENTS_MIRROR.find((client) =>
+    client.razonSocial.toLowerCase() === razonSocial.toLowerCase()
+  );
+}
+
 export function getActiveClientsMirror(): ClientMirror[] {
   return CLIENTS_MIRROR.filter((client) => client.status === "Activo");
 }

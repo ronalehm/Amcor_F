@@ -31,7 +31,7 @@ export function checkClientDuplicity(
       duplicateField: "RUC",
       conflictingClient: {
         type: "Espejo SI",
-        code: siClientByRuc.siCode,
+        code: siClientByRuc.code,
         razonSocial: siClientByRuc.razonSocial,
       },
     };
@@ -46,7 +46,7 @@ export function checkClientDuplicity(
       duplicateField: "Razón Social",
       conflictingClient: {
         type: "Espejo SI",
-        code: siClientByRazonSocial.siCode,
+        code: siClientByRazonSocial.code,
         razonSocial: siClientByRazonSocial.razonSocial,
       },
     };
