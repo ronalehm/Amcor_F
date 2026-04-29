@@ -337,36 +337,23 @@ export default function ClientCreatePage() {
         <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
             <FormCard title="Buscar en Sistema Integral" icon="🔍" color="#0D9488" required>
-              <SystemIntegrationClientSearch
-                value={searchQuery}
-                onChange={setSearchQuery}
-                onSelect={handleSiClientSelect}
-                onNoResults={setHasNoSiResults}
-                placeholder="Buscar por código, razón social, RUC..."
-              />
-              
-              {isSiClientSelected && (
-                <div className="mt-4 p-4 rounded-lg bg-green-50 border border-green-200">
-                  <p className="text-sm font-semibold text-green-900 mb-2">
-                    ✓ Cliente del Sistema Integral seleccionado
-                  </p>
-                  <p className="text-sm text-green-800">
-                    Los datos básicos se completarán automáticamente.
-                  </p>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <SystemIntegrationClientSearch
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    onSelect={handleSiClientSelect}
+                    onNoResults={setHasNoSiResults}
+                    placeholder="Buscar por código, razón social, RUC..."
+                  />
                 </div>
-              )}
 
-              {hasNoSiResults && !isSiClientSelected && (
-                <div className="mt-4 p-4 rounded-lg bg-amber-50 border border-amber-200">
-                  <p className="text-sm font-semibold text-amber-900 mb-3">
-                    No se encontró el cliente en el Sistema Integral. Puede registrar los datos manualmente o importar una plantilla Excel.
-                  </p>
-                  
-                  <div className="flex gap-3">
+                {!isSiClientSelected && (
+                  <div className="flex flex-col gap-2 justify-start pt-1">
                     <button
                       type="button"
                       onClick={() => setCreationMode("manual")}
-                      className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors border ${
+                      className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors border whitespace-nowrap ${
                         creationMode === "manual"
                           ? "bg-amber-600 text-white border-amber-600"
                           : "bg-white text-amber-700 border-amber-300 hover:bg-amber-100"
@@ -377,7 +364,7 @@ export default function ClientCreatePage() {
                     <button
                       type="button"
                       onClick={() => setCreationMode("excel")}
-                      className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors border ${
+                      className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors border whitespace-nowrap ${
                         creationMode === "excel"
                           ? "bg-amber-600 text-white border-amber-600"
                           : "bg-white text-amber-700 border-amber-300 hover:bg-amber-100"
@@ -386,6 +373,17 @@ export default function ClientCreatePage() {
                       Importar plantilla Excel
                     </button>
                   </div>
+                )}
+              </div>
+
+              {isSiClientSelected && (
+                <div className="mt-4 p-4 rounded-lg bg-green-50 border border-green-200">
+                  <p className="text-sm font-semibold text-green-900 mb-2">
+                    ✓ Cliente del Sistema Integral seleccionado
+                  </p>
+                  <p className="text-sm text-green-800">
+                    Los datos básicos se completarán automáticamente.
+                  </p>
                 </div>
               )}
 
