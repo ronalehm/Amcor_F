@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 export type SmartCatalogOption = {
-  id: number;
+  id: number | string;
   code: string;
   name: string;
   meta?: string;
