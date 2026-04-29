@@ -46,7 +46,6 @@ export default function ClientCreatePage() {
   const [duplicateClient, setDuplicateClient] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [createdClient, setCreatedClient] = useState<any>(null);
 
   const [hasNoSiResults, setHasNoSiResults] = useState(false);
   const [creationMode, setCreationMode] = useState<"manual" | "excel" | null>(null);
@@ -299,7 +298,7 @@ export default function ClientCreatePage() {
         ? "Cliente enlazado con el sistema integral"
         : "Cliente creado exitosamente y se solicitó la validación de Tesorería";
       setSuccessMessage(successMsg);
-      setCreatedClient(newClient);
+      setTimeout(() => navigate("/clients"), 2000);
     } finally {
       setLoading(false);
     }
@@ -310,55 +309,13 @@ export default function ClientCreatePage() {
     label: industry,
   }));
 
-  if (successMessage && createdClient) {
+  if (successMessage) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4">
-          <div className="p-8">
-            <div className="text-center mb-6">
-              <div className="text-5xl mb-4">✓</div>
-              <p className="text-lg font-bold text-green-900">{successMessage}</p>
-            </div>
-
-            <div className="space-y-4 mb-8 bg-slate-50 rounded-lg p-4">
-              <div className="border-b border-slate-200 pb-3">
-                <p className="text-xs font-semibold text-slate-600 uppercase">Código Cliente</p>
-                <p className="text-sm font-bold text-slate-900 mt-1">{createdClient.code}</p>
-              </div>
-
-              <div className="border-b border-slate-200 pb-3">
-                <p className="text-xs font-semibold text-slate-600 uppercase">Razón Social</p>
-                <p className="text-sm font-bold text-slate-900 mt-1">{createdClient.businessName}</p>
-              </div>
-
-              <div className="border-b border-slate-200 pb-3">
-                <p className="text-xs font-semibold text-slate-600 uppercase">RUC</p>
-                <p className="text-sm font-bold text-slate-900 mt-1">{createdClient.ruc}</p>
-              </div>
-
-              <div className="border-b border-slate-200 pb-3">
-                <p className="text-xs font-semibold text-slate-600 uppercase">Correo</p>
-                <p className="text-sm font-bold text-slate-900 mt-1">{createdClient.email}</p>
-              </div>
-
-              <div className="border-b border-slate-200 pb-3">
-                <p className="text-xs font-semibold text-slate-600 uppercase">Rubro</p>
-                <p className="text-sm font-bold text-slate-900 mt-1">{createdClient.industry}</p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-slate-600 uppercase">Estado</p>
-                <p className="text-sm font-bold text-amber-700 mt-1">Pendiente de validación</p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate("/clients")}
-              className="w-full bg-[#003b5c] hover:bg-[#002b43] text-white font-semibold py-3 rounded-lg transition-colors"
-            >
-              Ir a lista de clientes
-            </button>
-          </div>
+      <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+        <div className="rounded-lg border-2 border-green-300 bg-green-50 p-8 text-center max-w-md">
+          <div className="text-4xl mb-4">✓</div>
+          <p className="text-lg font-bold text-green-900">{successMessage}</p>
+          <p className="text-sm text-green-700 mt-2">Redirigiendo...</p>
         </div>
       </div>
     );
