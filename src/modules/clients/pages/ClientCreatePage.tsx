@@ -291,7 +291,7 @@ export default function ClientCreatePage() {
         "Nuevo Cliente Registrado - Requiere Evaluación",
         `Se ha registrado un nuevo cliente en el sistema:\n\nCliente: ${newClient.businessName}\nRUC: ${newClient.ruc}\nEmail: ${newClient.email}\nIndustria: ${newClient.industry}\n${form.siClient ? `SI ID: ${form.siClient.id}` : "Registro manual - Requiere correlación en SI"}\n\nPor favor evaluar y validar para activación.\n\nEquipo ODISEO`,
         newClient.id,
-        "validation"
+        "approval_request"
       );
 
       const successMsg = form.siClient
