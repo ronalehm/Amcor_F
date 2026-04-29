@@ -337,55 +337,40 @@ export default function ClientCreatePage() {
         <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
             <FormCard title="Buscar en Sistema Integral" icon="🔍" color="#0D9488" required>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <SystemIntegrationClientSearch
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    onSelect={handleSiClientSelect}
-                    onNoResults={setHasNoSiResults}
-                    placeholder="Buscar por código, razón social, RUC..."
-                  />
-                </div>
+              <div className="space-y-3">
+                <SystemIntegrationClientSearch
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  onSelect={handleSiClientSelect}
+                  onNoResults={setHasNoSiResults}
+                  placeholder="Buscar por código, razón social, RUC..."
+                />
 
                 {!isSiClientSelected && (
-                  <div className="flex flex-col gap-2 justify-start pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setCreationMode("manual")}
-                      className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors border whitespace-nowrap ${
-                        creationMode === "manual"
-                          ? "bg-amber-600 text-white border-amber-600"
-                          : "bg-white text-amber-700 border-amber-300 hover:bg-amber-100"
-                      }`}
-                    >
-                      Completar manualmente
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCreationMode("excel")}
-                      className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors border whitespace-nowrap ${
-                        creationMode === "excel"
-                          ? "bg-amber-600 text-white border-amber-600"
-                          : "bg-white text-amber-700 border-amber-300 hover:bg-amber-100"
-                      }`}
-                    >
-                      Importar plantilla Excel
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => setCreationMode("excel")}
+                    className={`w-full px-4 py-2 text-sm font-semibold rounded-lg transition-colors border ${
+                      creationMode === "excel"
+                        ? "bg-amber-600 text-white border-amber-600"
+                        : "bg-white text-amber-700 border-amber-300 hover:bg-amber-100"
+                    }`}
+                  >
+                    Importar plantilla Excel
+                  </button>
+                )}
+
+                {isSiClientSelected && (
+                  <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                    <p className="text-sm font-semibold text-green-900 mb-2">
+                      ✓ Cliente del Sistema Integral seleccionado
+                    </p>
+                    <p className="text-sm text-green-800">
+                      Los datos básicos se completarán automáticamente.
+                    </p>
                   </div>
                 )}
               </div>
-
-              {isSiClientSelected && (
-                <div className="mt-4 p-4 rounded-lg bg-green-50 border border-green-200">
-                  <p className="text-sm font-semibold text-green-900 mb-2">
-                    ✓ Cliente del Sistema Integral seleccionado
-                  </p>
-                  <p className="text-sm text-green-800">
-                    Los datos básicos se completarán automáticamente.
-                  </p>
-                </div>
-              )}
 
               {creationMode === "excel" && (
                 <div className="mt-4 p-5 rounded-xl border border-[#003b5c]/20 bg-[#003b5c]/5 shadow-sm">
