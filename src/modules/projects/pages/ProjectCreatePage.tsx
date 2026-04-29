@@ -19,6 +19,9 @@ import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
+import PortfolioSearch from "../../../shared/components/forms/PortfolioSearch";
+import CommercialExecutiveSearch from "../../../shared/components/forms/CommercialExecutiveSearch";
+import ProjectDocumentsSection from "../components/ProjectDocumentsSection";
 
 type ProjectFormData = {
   portfolioCode: string;
@@ -31,12 +34,6 @@ type ProjectFormData = {
   subClassification: string;
   projectType: string;
   salesforceAction: string;
-
-  graphicResponsible: string;
-  graphicComments: string;
-  rdResponsible: string;
-  rdComments: string;
-  commercialFinanceResponsible: string;
 
   blueprintFormat: string;
   technicalApplication: string;
@@ -135,13 +132,14 @@ const YES_NO_OPTIONS = [
 const CLASSIFICATION_OPTIONS = [
   { value: "Nuevo", label: "Nuevo" },
   { value: "Modificado", label: "Modificado" },
-  { value: "Extensión de línea", label: "Extensión de línea" },
 ];
 
-const SUBCLASSIFICATION_OPTIONS = [
-  { value: "SFDC - R&D", label: "SFDC - R&D" },
-  { value: "SFDC - Técnica", label: "SFDC - Técnica" },
-  { value: "Extensiones en línea", label: "Extensiones en línea" },
+const SUBCLASSIFICATION_NUEVO_OPTIONS = [
+  { value: "Desarrollo_RD", label: "Desarrollo_RD" },
+  { value: "Área_Técnica", label: "Área_Técnica" },
+];
+
+const SUBCLASSIFICATION_MODIFICADO_OPTIONS = [
   { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
   { value: "Estructura", label: "Estructura" },
 ];
@@ -153,16 +151,71 @@ const PROJECT_TYPE_OPTIONS = [
   { value: "Muestra", label: "Muestra" },
 ];
 
-const BLUEPRINT_FORMAT_OPTIONS = [
-  { value: "Stand Up Pouch", label: "Stand Up Pouch" },
-  { value: "Doy Pack Fuelle Cuadrado", label: "Doy Pack Fuelle Cuadrado" },
-  { value: "Doy Pack sin fuelle", label: "Doy Pack sin fuelle" },
-  { value: "Sachet 4 sellos", label: "Sachet 4 sellos" },
-  { value: "Pillow Pack", label: "Pillow Pack" },
-  { value: "Flat Bottom", label: "Flat Bottom" },
-  { value: "Lámina", label: "Lámina" },
-  { value: "Bolsa", label: "Bolsa" },
+const PROJECT_TYPE_RD_OPTIONS = [
+  { value: "Producto nuevo", label: "Producto nuevo" },
+  { value: "Nuevo equipamiento de envasado", label: "Nuevo equipamiento de envasado" },
+  { value: "Nuevos insumos", label: "Nuevos insumos" },
+  { value: "Nueva estructura", label: "Nueva estructura" },
+  { value: "Nuevo formato de envasado", label: "Nuevo formato de envasado" },
+  { value: "Nuevos accesorios", label: "Nuevos accesorios" },
+  { value: "Nuevos procesos por el lado del cliente", label: "Nuevos procesos por el lado del cliente" },
+  { value: "Nuevas temperaturas de envasado y almacenaje", label: "Nuevas temperaturas de envasado y almacenaje" },
 ];
+
+const PROJECT_TYPE_TECNICA_OPTIONS = [
+  { value: "Extensión de línea por familia (EM de referencia)", label: "Extensión de línea por familia (EM de referencia)" },
+  { value: "Modifica Dimensiones", label: "Modifica Dimensiones" },
+  { value: "Modifica Propiedades", label: "Modifica Propiedades" },
+  { value: "Portafolio Estándar", label: "Portafolio Estándar" },
+  { value: "ICO (Intercompany), BCP (Business Continous Production)", label: "ICO (Intercompany), BCP (Business Continous Production)" },
+];
+
+const POUCH_FORMAT_OPTIONS = [
+  { value: "POUCH C/SELLO EN FUELLE\\TIPO 4-1\\FUELLE PROPIO", label: "POUCH C/SELLO EN FUELLE\\TIPO 4-1\\FUELLE PROPIO" },
+  { value: "POUCH STAND UP\\TIPO K\\FUELLE PROPIO", label: "POUCH STAND UP\\TIPO K\\FUELLE PROPIO" },
+  { value: "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE PROPIO", label: "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE PROPIO" },
+  { value: "POUCH STAND UP\\DOY PACK CUADRADO\\FUELLE PROPIO", label: "POUCH STAND UP\\DOY PACK CUADRADO\\FUELLE PROPIO" },
+  { value: "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE INSERTADO", label: "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE INSERTADO" },
+  { value: "POUCH STAND UP\\DOY PACK CUADRADO\\FUELLE INSERTADO", label: "POUCH STAND UP\\DOY PACK CUADRADO\\FUELLE INSERTADO" },
+  { value: "POUCH STAND UP\\NORMAL\\FUELLE PROPIO", label: "POUCH STAND UP\\NORMAL\\FUELLE PROPIO" },
+  { value: "POUCH PLANO\\DOS SELLOS", label: "POUCH PLANO\\DOS SELLOS" },
+  { value: "POUCH PLANO\\TRES SELLOS", label: "POUCH PLANO\\TRES SELLOS" },
+  { value: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\CON FUELLE", label: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\CON FUELLE" },
+  { value: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\SIN FUELLE", label: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\SIN FUELLE" },
+  { value: "POUCH C/SELLO EN FUELLE\\TIPO 1-1", label: "POUCH C/SELLO EN FUELLE\\TIPO 1-1" },
+  { value: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\CON FUELLE (PE-PE/PE)", label: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\CON FUELLE (PE-PE/PE)" },
+  { value: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\SIN FUELLE (PE-PE/PE)", label: "POUCH C/SELLO CENTRAL\\TIPO ALETA\\SIN FUELLE (PE-PE/PE)" },
+];
+
+const BOLSA_FORMAT_OPTIONS = [
+  { value: "SELLO LATERAL\\CORTE\\CON FUELLE FONDO", label: "SELLO LATERAL\\CORTE\\CON FUELLE FONDO" },
+  { value: "SELLO LATERAL\\PESTAÑA\\CON FUELLE FONDO", label: "SELLO LATERAL\\PESTAÑA\\CON FUELLE FONDO" },
+  { value: "SELLO LATERAL\\PESTAÑA\\SIN FUELLE FONDO", label: "SELLO LATERAL\\PESTAÑA\\SIN FUELLE FONDO" },
+  { value: "SELLO LATERAL\\CORTE\\SIN FUELLE FONDO", label: "SELLO LATERAL\\CORTE\\SIN FUELLE FONDO" },
+  { value: "SELLO DE FONDO\\CON FUELLE LATERAL", label: "SELLO DE FONDO\\CON FUELLE LATERAL" },
+  { value: "SELLO DE FONDO\\SIN FUELLE LATERAL", label: "SELLO DE FONDO\\SIN FUELLE LATERAL" },
+  { value: "WICKET", label: "WICKET" },
+  { value: "HOJAS", label: "HOJAS" },
+];
+
+const LAMINA_FORMAT_OPTIONS = [
+  { value: "GENERICA", label: "GENERICA" },
+  { value: "TISSUE", label: "TISSUE" },
+  { value: "FOOD", label: "FOOD" },
+];
+
+function normalizeWrapping(value: string): string {
+  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+function getBlueprintFormatOptions(wrapping: string | undefined): Array<{ value: string; label: string }> {
+  if (!wrapping) return [];
+  const normalized = normalizeWrapping(wrapping);
+  if (normalized === "pouch") return POUCH_FORMAT_OPTIONS;
+  if (normalized === "bolsa") return BOLSA_FORMAT_OPTIONS;
+  if (normalized === "lamina") return LAMINA_FORMAT_OPTIONS;
+  return [];
+}
 
 const TECHNICAL_APPLICATION_OPTIONS = [
   { value: "Pastoso/Ketchup, Mayonesa", label: "Pastoso/Ketchup, Mayonesa" },
@@ -264,12 +317,6 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   subClassification: "SFDC - R&D",
   projectType: "ICO",
   salesforceAction: "",
-
-  graphicResponsible: "",
-  graphicComments: "",
-  rdResponsible: "",
-  rdComments: "",
-  commercialFinanceResponsible: "",
 
   blueprintFormat: "",
   technicalApplication: "",
@@ -411,11 +458,6 @@ export default function ProjectCreatePage() {
           subClassification: original.subClassification || "SFDC - R&D",
           projectType: original.projectType || "ICO",
           salesforceAction: "",
-          graphicResponsible: original.graphicResponsible || "",
-          graphicComments: original.graphicComments || "",
-          rdResponsible: original.rdResponsible || "",
-          rdComments: original.rdComments || "",
-          commercialFinanceResponsible: original.commercialFinanceResponsible || "",
           blueprintFormat: original.blueprintFormat || "",
           technicalApplication: original.technicalApplication || "",
           estimatedVolume: original.estimatedVolume || "",
@@ -612,12 +654,6 @@ export default function ProjectCreatePage() {
       projectType: form.projectType,
       salesforceAction: form.salesforceAction,
 
-      graphicResponsible: form.graphicResponsible,
-      graphicComments: form.graphicComments,
-      rdResponsible: form.rdResponsible,
-      rdComments: form.rdComments,
-      commercialFinanceResponsible: form.commercialFinanceResponsible,
-
       blueprintFormat: form.blueprintFormat,
       technicalApplication: form.technicalApplication,
       estimatedVolume: form.estimatedVolume,
@@ -738,71 +774,19 @@ export default function ProjectCreatePage() {
     navigate("/projects");
   };
 
+  const isBaseInfoComplete = Boolean(
+    form.salesforceAction?.trim() &&
+    form.projectName?.trim() &&
+    form.projectDescription?.trim()
+  );
+
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] pb-12">
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
           <div className="space-y-5">
-            <FormCard title="1. Información general" icon="▦" color="#003b5c" required>
+            <FormCard title="Datos Iniciales Requeridos" icon="⚡" color="#E98300" required>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormSelect
-                  label="Portafolio base *"
-                  value={form.portfolioCode}
-                  onChange={(value) => updateField("portfolioCode", value)}
-                  error={getError("portfolioCode")}
-                  placeholder="-- Seleccione Portafolio --"
-                  options={portfolios.map((portfolio) => ({
-                    value: String(portfolio.id || portfolio.codigo || portfolio.code),
-                    label: `${portfolio.id || portfolio.codigo || portfolio.code} - ${
-                      portfolio.nom || portfolio.portfolioName
-                    }`,
-                  }))}
-                />
-
-                <FormSelect
-                  label="Ejecutivo Comercial *"
-                  value={form.executiveId}
-                  onChange={(value) => updateField("executiveId", value)}
-                  error={getError("executiveId")}
-                  placeholder="-- Seleccione Ejecutivo --"
-                  options={executives.map((executive) => ({
-                    value: String(executive.id),
-                    label: executive.name,
-                  }))}
-                />
-
-                <FormSelect
-                  label="Usuario Sistema Integral"
-                  value={form.siUserId}
-                  onChange={(value) => updateField("siUserId", value)}
-                  placeholder="-- Seleccione Usuario --"
-                  options={siUsers.map((u) => ({
-                    value: u.id,
-                    label: `${u.code} - ${u.fullName}`,
-                  }))}
-                />
-
-                <FormSelect
-                  label="Tipo de Proyecto"
-                  value={form.projectType}
-                  onChange={(value) => updateField("projectType", value)}
-                  options={PROJECT_TYPE_OPTIONS}
-                />
-
-                <FormSelect
-                  label="Clasificación"
-                  value={form.classification}
-                  onChange={(value) => updateField("classification", value)}
-                  options={CLASSIFICATION_OPTIONS}
-                />
-
-                <FormSelect
-                  label="Subclasificación"
-                  value={form.subClassification}
-                  onChange={(value) => updateField("subClassification", value)}
-                  options={SUBCLASSIFICATION_OPTIONS}
-                />
-
                 <div className={isDuplicateMode ? "rounded-lg bg-amber-50/50 border border-amber-200 p-3" : ""}>
                   {isDuplicateMode && (
                     <div className="mb-2 flex items-center gap-2 text-amber-700">
@@ -843,7 +827,7 @@ export default function ProjectCreatePage() {
 
                 <div className="md:col-span-3">
                   <FormTextarea
-                    label="Descripción del Proyecto"
+                    label="Descripción del Proyecto *"
                     value={form.projectDescription}
                     onChange={(value) => updateField("projectDescription", value)}
                     placeholder="Descripción comercial y técnica del proyecto..."
@@ -852,42 +836,67 @@ export default function ProjectCreatePage() {
               </div>
             </FormCard>
 
-            <FormCard title="2. Responsables y comentarios por área" icon="☷" color="#0d4c5c">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormInput
-                  label="Responsable Artes Gráficas"
-                  value={form.graphicResponsible}
-                  onChange={(value) => updateField("graphicResponsible", value)}
-                  placeholder="Ej. BALDEÓN, J."
-                />
-                <FormInput
-                  label="Responsable R&D"
-                  value={form.rdResponsible}
-                  onChange={(value) => updateField("rdResponsible", value)}
-                  placeholder="Ej. GUARDAMINO, K."
-                />
-                <FormInput
-                  label="Responsable Commercial Finance"
-                  value={form.commercialFinanceResponsible}
-                  onChange={(value) =>
-                    updateField("commercialFinanceResponsible", value)
-                  }
-                  placeholder="Ej. Analista CF"
-                />
-                <FormTextarea
-                  label="Comentarios generales AG"
-                  value={form.graphicComments}
-                  onChange={(value) => updateField("graphicComments", value)}
-                  placeholder="Comentarios de diseño, arte, impresión..."
-                />
-                <FormTextarea
-                  label="Comentarios generales R&D"
-                  value={form.rdComments}
-                  onChange={(value) => updateField("rdComments", value)}
-                  placeholder="Comentarios técnicos, estructura, viabilidad..."
-                />
-              </div>
-            </FormCard>
+            <fieldset disabled={!isBaseInfoComplete} className={`space-y-5 transition-all duration-300 ${!isBaseInfoComplete ? "opacity-50 pointer-events-none grayscale-[0.2]" : ""}`}>
+              <FormCard title="1. Información general" icon="▦" color="#00395A" required>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <PortfolioSearch
+                    label="Portafolio base *"
+                    value={form.portfolioCode}
+                    onChange={(value) => updateField("portfolioCode", value)}
+                    error={getError("portfolioCode")}
+                  />
+
+                  <CommercialExecutiveSearch
+                    label="Ejecutivo Comercial *"
+                    value={form.executiveId}
+                    onChange={(value) => updateField("executiveId", value)}
+                    error={getError("executiveId")}
+                  />
+
+                  <FormSelect
+                    label="Clasificación"
+                    value={form.classification}
+                    onChange={(value) => {
+                      updateField("classification", value);
+                      updateField("subClassification", "");
+                      updateField("projectType", "");
+                    }}
+                    options={CLASSIFICATION_OPTIONS}
+                  />
+
+                  <FormSelect
+                    label="Subsección Clasificación"
+                    value={form.subClassification}
+                    onChange={(value) => {
+                      updateField("subClassification", value);
+                      updateField("projectType", "");
+                    }}
+                    options={
+                      form.classification === "Nuevo" 
+                        ? SUBCLASSIFICATION_NUEVO_OPTIONS 
+                        : form.classification === "Modificado" 
+                          ? SUBCLASSIFICATION_MODIFICADO_OPTIONS 
+                          : []
+                    }
+                    disabled={!form.classification}
+                  />
+
+                  <FormSelect
+                    label="Tipo de Proyecto"
+                    value={form.projectType}
+                    onChange={(value) => updateField("projectType", value)}
+                    options={
+                      form.subClassification === "Desarrollo_RD" || form.subClassification?.includes("R&D")
+                        ? PROJECT_TYPE_RD_OPTIONS
+                        : form.subClassification === "Área_Técnica" || form.subClassification?.includes("T\u00E9cnica")
+                          ? PROJECT_TYPE_TECNICA_OPTIONS
+                          : []
+                    }
+                    disabled={!form.subClassification}
+                  />
+                </div>
+              </FormCard>
+
 
             <FormCard title="3. Datos de producto comercial" icon="◈" color="#27ae60" required>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -1099,7 +1108,7 @@ export default function ProjectCreatePage() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   {[1, 2, 3, 4].map((layer) => (
                     <div key={layer} className="rounded-lg border border-slate-200 bg-white p-4">
-                      <p className="mb-3 text-xs font-bold uppercase text-[#003b5c]">
+                      <p className="mb-3 text-xs font-bold uppercase text-brand-primary">
                         Capa {layer}
                       </p>
                       <div className="space-y-3">
@@ -1263,11 +1272,12 @@ export default function ProjectCreatePage() {
                 </div>
               </div>
             </FormCard>
+            </fieldset>
           </div>
 
           <div className="space-y-5">
             <div className="sticky top-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="bg-gradient-to-br from-[#003b5c] to-[#1E82D9] px-5 py-4 text-white">
+              <div className="bg-gradient-to-br from-brand-primary to-brand-secondary px-5 py-4 text-white">
                 <div className="text-xs font-bold uppercase tracking-wide text-white/75">
                   Herencia de Portafolio
                 </div>
@@ -1295,6 +1305,8 @@ export default function ProjectCreatePage() {
                 Los datos del portafolio se heredan para evitar duplicidad y mantener trazabilidad entre Cliente → Portafolio → Proyecto.
               </div>
             </div>
+
+            <ProjectDocumentsSection projectCode={projectCode} />
           </div>
         </div>
 

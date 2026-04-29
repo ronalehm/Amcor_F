@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getPortfolioByCode, type PortfolioRecord } from "../../../shared/data/portfolioStorage";
+import { getPortfolioByCode, deletePortfolioRecord, type PortfolioRecord } from "../../../shared/data/portfolioStorage";
 import { getProjectsByPortfolioCode } from "../../../shared/data/projectStorage";
+import { getCurrentUser } from "../../../shared/data/userStorage";
+import Button from "../../../shared/components/ui/Button";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import PortfolioStatusBadge from "../../../shared/components/display/PortfolioStatusBadge";
 import ProjectStatusBadge from "../../../shared/components/display/ProjectStatusBadge";
@@ -17,11 +19,15 @@ export default function PortfolioDetailPage() {
   const [portfolio, setPortfolio] = useState<PortfolioRecord | null>(null);
   const [projects, setProjects] = useState<any[]>([]);
 
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === "admin";
+
   useEffect(() => {
     if (portfolioCode) {
       const record = getPortfolioByCode(portfolioCode);
+      const portfolioProjects = getProjectsByPortfolioCode(portfolioCode);
       setPortfolio(record || null);
-      setProjects(getProjectsByPortfolioCode(portfolioCode));
+      setProjects(portfolioProjects);
       
       setHeader({
         title: "Detalle de Portafolio",
@@ -31,18 +37,33 @@ export default function PortfolioDetailPage() {
           { label: "Ver" },
         ],
         actions: (
-          <button
-            onClick={() => navigate(`/portfolio/${portfolioCode}/edit`)}
-            className="rounded-lg bg-white border border-[#003b5c] px-4 py-2 text-sm font-bold text-[#003b5c] hover:bg-slate-50"
-          >
-            Editar Portafolio
-          </button>
+          <div className="flex gap-2">
+            {isAdmin && portfolioProjects.length === 0 && (
+              <Button
+                variant="danger"
+                onClick={() => {
+                  if (window.confirm("¿Está seguro de que desea eliminar este portafolio?")) {
+                    deletePortfolioRecord(portfolioCode);
+                    navigate("/portfolio");
+                  }
+                }}
+              >
+                Eliminar
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/portfolio/${portfolioCode}/edit`)}
+            >
+              Editar Portafolio
+            </Button>
+          </div>
         )
       });
     }
 
     return () => resetHeader();
-  }, [portfolioCode, setHeader, resetHeader, navigate]);
+  }, [portfolioCode, setHeader, resetHeader, navigate, isAdmin]);
 
   if (!portfolio) {
     return (
@@ -58,7 +79,7 @@ export default function PortfolioDetailPage() {
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] space-y-6">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-6 bg-gradient-to-br from-[#003b5c] to-[#1E82D9] text-white">
+        <div className="p-6 bg-gradient-to-br from-brand-primary to-brand-secondary text-white">
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-bold">{portfolio.nom}</h2>
@@ -70,7 +91,7 @@ export default function PortfolioDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormCard title="Datos Generales" icon="▦" color="#003b5c">
+        <FormCard title="Datos Generales" icon="▦" color="#00395A">
           <div className="space-y-4">
             <PreviewRow label="Cliente" value={portfolio.clientName || portfolio.cli} />
             <PreviewRow label="Ejecutivo Comercial" value={portfolio.ejecutivoName || portfolio.ej} />
@@ -79,7 +100,7 @@ export default function PortfolioDetailPage() {
           </div>
         </FormCard>
 
-        <FormCard title="Datos de Producto (ADN)" icon="◇" color="#1E82D9">
+        <FormCard title="Datos de Producto (ADN)" icon="◇" color="#00A1DE">
           <div className="space-y-4">
             <PreviewRow label="Envoltura" value={portfolio.envoltura || portfolio.env} />
             <PreviewRow label="Sector" value={portfolio.sector} />
@@ -97,7 +118,7 @@ export default function PortfolioDetailPage() {
           <h3 className="font-bold text-gray-800">Proyectos Asociados</h3>
           <button
             onClick={() => navigate(`/projects/new?portfolioCode=${portfolioCode}`)}
-            className="rounded-lg bg-[#003b5c] px-4 py-2 text-sm font-bold text-white hover:bg-[#002b43]"
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-bold text-white hover:bg-brand-primary-hover"
           >
             + Nuevo Proyecto
           </button>
@@ -116,7 +137,7 @@ export default function PortfolioDetailPage() {
           <tbody>
             {projects.map((project, index) => (
               <tr key={project.code || project.id} className={`border-b border-gray-100 hover:bg-gray-50`}>
-                <td className="px-6 py-4 font-bold text-[#003b5c]">{project.code || project.id}</td>
+                <td className="px-6 py-4 font-bold text-brand-primary">{project.code || project.id}</td>
                 <td className="px-6 py-4">{project.projectName || project.n}</td>
                 <td className="px-6 py-4 text-gray-500">{project.format || project.fmt || '—'}</td>
                 <td className="px-6 py-4"><ProjectStatusBadge status={project.status || project.e} /></td>

@@ -1,4 +1,4 @@
-Ôªøimport { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLayout } from "../../../components/layout/LayoutContext";
 
@@ -35,14 +35,14 @@ export default function ClientEditPage() {
 
   useEffect(() => {
     if (!clientCode) {
-      setError("C√≥digo de cliente no v√°lido");
+      setError("CÛdigo de cliente no v·lido");
       setLoading(false);
       return;
     }
 
     const client = getClientByCode(clientCode);
     if (!client) {
-      setError(`Cliente con c√≥digo ${clientCode} no encontrado`);
+      setError(`Cliente con cÛdigo ${clientCode} no encontrado`);
       setLoading(false);
       return;
     }
@@ -75,16 +75,16 @@ export default function ClientEditPage() {
     if (!form) return {};
     const errors: Partial<Record<keyof ClientFormData, string>> = {};
 
-    if (!form.businessName.trim()) errors.businessName = "Ingresa la raz√≥n social.";
+    if (!form.businessName.trim()) errors.businessName = "Ingresa la razÛn social.";
     if (!form.email.trim()) {
-      errors.email = "Ingresa el correo electr√≥nico.";
+      errors.email = "Ingresa el correo electrÛnico.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "Ingresa un correo v√°lido.";
+      errors.email = "Ingresa un correo v·lido.";
     } else {
       const existingClient = getClientByEmail(form.email);
       const currentClient = getClientByCode(clientCode || "");
       if (existingClient && existingClient.id !== currentClient?.id) {
-        errors.email = "Este correo ya est√° registrado en el sistema.";
+        errors.email = "Este correo ya est· registrado en el sistema.";
       }
     }
     if (!form.ruc.trim()) errors.ruc = "Ingresa el RUC.";
@@ -145,7 +145,7 @@ export default function ClientEditPage() {
         <div className="text-red-600 font-semibold">{error || "Error cargando cliente"}</div>
         <button
           onClick={() => navigate("/clients")}
-          className="px-4 py-2 bg-[#003b5c] text-white rounded-md text-sm font-medium"
+          className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium"
         >
           Volver a Clientes
         </button>
@@ -157,10 +157,10 @@ export default function ClientEditPage() {
     <div className="w-full max-w-none bg-[#f6f8fb]">
       <form onSubmit={handleSubmit}>
         <div className="max-w-3xl mx-auto">
-          <FormCard title="Datos del Cliente" icon="üè¢" color="#003b5c" required>
+          <FormCard title="Datos del Cliente" icon="??" color="#00395A" required>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormInput
-                label="Raz√≥n Social *"
+                label="RazÛn Social *"
                 value={form.businessName}
                 onChange={(value) => updateField("businessName", value)}
                 onBlur={() => markFieldAsTouched("businessName")}
@@ -169,7 +169,7 @@ export default function ClientEditPage() {
               />
 
               <FormInput
-                label="Correo Electr√≥nico *"
+                label="Correo ElectrÛnico *"
                 value={form.email}
                 onChange={(value) => updateField("email", value)}
                 onBlur={() => markFieldAsTouched("email")}
@@ -178,7 +178,7 @@ export default function ClientEditPage() {
               />
 
               <FormInput
-                label="N√∫mero de RUC *"
+                label="N˙mero de RUC *"
                 value={form.ruc}
                 onChange={(value) => updateField("ruc", value)}
                 onBlur={() => markFieldAsTouched("ruc")}
@@ -192,7 +192,7 @@ export default function ClientEditPage() {
                 onChange={(value) => updateField("industry", value)}
                 onBlur={() => markFieldAsTouched("industry")}
                 error={shouldShowFieldError("industry") ? validationErrors.industry : ""}
-                placeholder="Ej. Distribuci√≥n, Manufactura, etc."
+                placeholder="Ej. DistribuciÛn, Manufactura, etc."
               />
             </div>
           </FormCard>

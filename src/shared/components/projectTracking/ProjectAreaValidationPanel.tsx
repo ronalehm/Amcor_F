@@ -27,7 +27,7 @@ export default function ProjectAreaValidationPanel({ currentStage, hasOpenBlocki
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mt-6">
-      <h3 className="font-bold text-[#003b5c] mb-4">Acciones de Área: {config.responsibleArea}</h3>
+      <h3 className="font-bold text-brand-primary mb-4">Acciones de Área: {config.responsibleArea}</h3>
       
       {hasOpenBlockingObservations && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">

@@ -28,7 +28,7 @@ export default function ProjectFieldImpactList({ currentStage }: ProjectFieldImp
   return (
     <div className="bg-white border border-slate-200 shadow-sm rounded-xl overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-        <ShieldAlert size={16} className="text-[#003b5c]" />
+        <ShieldAlert size={16} className="text-brand-primary" />
         <h3 className="font-bold text-slate-800 text-sm uppercase">Matriz de Impacto</h3>
       </div>
       <div className="p-0">

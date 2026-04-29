@@ -17,6 +17,8 @@ import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
+import PortfolioSearch from "../../../shared/components/forms/PortfolioSearch";
+import CommercialExecutiveSearch from "../../../shared/components/forms/CommercialExecutiveSearch";
 
 export default function ProjectEditPage() {
   const navigate = useNavigate();
@@ -34,13 +36,6 @@ export default function ProjectEditPage() {
     subClassification: "SFDC - R&D",
     projectType: "ICO",
     salesforceAction: "",
-
-    // 2. Responsables
-    graphicResponsible: "",
-    graphicComments: "",
-    rdResponsible: "",
-    rdComments: "",
-    commercialFinanceResponsible: "",
 
     // 3. Datos de Producto Comercial
     blueprintFormat: "",
@@ -311,13 +306,19 @@ export default function ProjectEditPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <div className="text-red-600 font-semibold">{error}</div>
-        <button onClick={() => navigate("/projects")} className="px-4 py-2 bg-[#003b5c] text-white rounded-md text-sm font-medium">Volver a Proyectos</button>
+        <button onClick={() => navigate("/projects")} className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium">Volver a Proyectos</button>
       </div>
     );
   }
 
   const phaseConfig = PHASE_CONFIGS[currentStage];
   const canEditField = (fieldName: string) => getFieldStatus(fieldName).editable;
+
+  const isBaseInfoComplete = Boolean(
+    form.salesforceAction?.trim() &&
+    form.projectName?.trim() &&
+    form.projectDescription?.trim()
+  );
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
@@ -346,70 +347,11 @@ export default function ProjectEditPage() {
 
         <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
-            <FormCard title="1. Información general" icon="▦" color="#003b5c" required>
+            <FormCard title="Datos Iniciales Requeridos" icon="⚡" color="#E98300" required>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormSelect
-                  label="Portafolio base *"
-                  value={form.portfolioCode}
-                  onChange={(v) => updateField("portfolioCode", v)}
-                  error={getError("portfolioCode")}
-                  placeholder="-- Seleccione Portafolio --"
-                  options={portfolios.map(p => ({
-                    value: String(p.id || p.codigo || p.code),
-                    label: `${p.id || p.codigo || p.code} - ${p.nom || p.portfolioName}`
-                  }))}
-                />
-                <FormSelect
-                  label="Ejecutivo Comercial *"
-                  value={form.ejecutivoId ? String(form.ejecutivoId) : ""}
-                  onChange={(v) => updateField("ejecutivoId", v)}
-                  error={getError("ejecutivoId")}
-                  placeholder="-- Seleccione Ejecutivo --"
-                  options={executives.map(e => ({ value: String(e.id), label: e.name }))}
-                />
-                <FormSelect
-                  label="Usuario Sistema Integral"
-                  value={form.siUserId || ""}
-                  onChange={(v) => updateField("siUserId", v)}
-                  placeholder="-- Seleccione Usuario --"
-                  options={siUsers.map(u => ({ value: u.id, label: `${u.code} - ${u.fullName}` }))}
-                />
-                <FormSelect
-                  label="Tipo de Proyecto"
-                  value={form.projectType}
-                  onChange={(v) => updateField("projectType", v)}
-                  options={[
-                    { value: "ICO", label: "ICO" },
-                    { value: "BCP", label: "BCP" },
-                    { value: "RFQ", label: "RFQ" },
-                    { value: "Muestra", label: "Muestra" },
-                  ]}
-                />
-                <FormSelect
-                  label="Clasificación"
-                  value={form.classification}
-                  onChange={(v) => updateField("classification", v)}
-                  options={[
-                    { value: "Nuevo", label: "Nuevo" },
-                    { value: "Modificado", label: "Modificado" },
-                    { value: "Extensión de línea", label: "Extensión de línea" },
-                  ]}
-                />
-                <FormSelect
-                  label="Subclasificación"
-                  value={form.subClassification}
-                  onChange={(v) => updateField("subClassification", v)}
-                  options={[
-                    { value: "SFDC - R&D", label: "SFDC - R&D" },
-                    { value: "SFDC - Técnica", label: "SFDC - Técnica" },
-                    { value: "Extensiones en línea", label: "Extensiones en línea" },
-                    { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
-                    { value: "Estructura", label: "Estructura" },
-                  ]}
-                />
                 <FormInput
                   label="Acción Salesforce *"
-                  value={form.salesforceAction}
+                  value={form.salesforceAction || ""}
                   onChange={(v) => updateField("salesforceAction", v)}
                   error={getError("salesforceAction")}
                   placeholder="Ej. Nueva oportunidad / RFQ / Muestra"
@@ -417,7 +359,7 @@ export default function ProjectEditPage() {
                 <div className="md:col-span-3">
                   <FormInput
                     label="Nombre del Proyecto *"
-                    value={form.projectName}
+                    value={form.projectName || ""}
                     onChange={(v) => updateField("projectName", v)}
                     error={getError("projectName")}
                     placeholder="Ej. Mayonesa Light 100ml Doypack"
@@ -425,7 +367,7 @@ export default function ProjectEditPage() {
                 </div>
                 <div className="md:col-span-3">
                   <FormTextarea
-                    label="Descripción del Proyecto"
+                    label="Descripción del Proyecto *"
                     value={form.projectDescription || ""}
                     onChange={(v) => updateField("projectDescription", v)}
                     placeholder="Descripción comercial y técnica del proyecto..."
@@ -434,40 +376,88 @@ export default function ProjectEditPage() {
               </div>
             </FormCard>
 
-            <FormCard title="2. Responsables y comentarios por área" icon="☷" color="#0d4c5c">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormInput
-                  label="Responsable Artes Gráficas"
-                  value={form.graphicResponsible}
-                  onChange={(v) => updateField("graphicResponsible", v)}
-                  placeholder="Ej. BALDEÓN, J."
+            <fieldset disabled={!isBaseInfoComplete} className={`space-y-5 transition-all duration-300 ${!isBaseInfoComplete ? "opacity-50 pointer-events-none grayscale-[0.2]" : ""}`}>
+              <FormCard title="1. Información general" icon="▦" color="#00395A" required>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <PortfolioSearch
+                  label="Portafolio base *"
+                  value={form.portfolioCode || ""}
+                  onChange={(v) => updateField("portfolioCode", v)}
+                  error={getError("portfolioCode")}
                 />
-                <FormInput
-                  label="Responsable R&D"
-                  value={form.rdResponsible}
-                  onChange={(v) => updateField("rdResponsible", v)}
-                  placeholder="Ej. GUARDAMINO, K."
+                <CommercialExecutiveSearch
+                  label="Ejecutivo Comercial *"
+                  value={form.ejecutivoId ? String(form.ejecutivoId) : ""}
+                  onChange={(v) => updateField("ejecutivoId", v)}
+                  error={getError("ejecutivoId")}
                 />
-                <FormInput
-                  label="Responsable Commercial Finance"
-                  value={form.commercialFinanceResponsible}
-                  onChange={(v) => updateField("commercialFinanceResponsible", v)}
-                  placeholder="Ej. Analista CF"
+                <FormSelect
+                  label="Clasificación"
+                  value={form.classification}
+                  onChange={(v) => {
+                    updateField("classification", v);
+                    updateField("subClassification", "");
+                    updateField("projectType", "");
+                  }}
+                  options={[
+                    { value: "Nuevo", label: "Nuevo" },
+                    { value: "Modificado", label: "Modificado" },
+                  ]}
                 />
-                <FormTextarea
-                  label="Comentarios generales AG"
-                  value={form.graphicComments}
-                  onChange={(v) => updateField("graphicComments", v)}
-                  placeholder="Comentarios de diseño, arte, impresión..."
+                <FormSelect
+                  label="Subsección Clasificación"
+                  value={form.subClassification}
+                  onChange={(v) => {
+                    updateField("subClassification", v);
+                    updateField("projectType", "");
+                  }}
+                  options={
+                    form.classification === "Nuevo"
+                      ? [
+                          { value: "Desarrollo_RD", label: "Desarrollo_RD" },
+                          { value: "Área_Técnica", label: "Área_Técnica" },
+                        ]
+                      : form.classification === "Modificado"
+                        ? [
+                            { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
+                            { value: "Estructura", label: "Estructura" },
+                          ]
+                        : []
+                  }
+                  disabled={!form.classification}
                 />
-                <FormTextarea
-                  label="Comentarios generales R&D"
-                  value={form.rdComments}
-                  onChange={(v) => updateField("rdComments", v)}
-                  placeholder="Comentarios técnicos, estructura, viabilidad..."
+                <FormSelect
+                  label="Tipo de Proyecto"
+                  value={form.projectType}
+                  onChange={(v) => updateField("projectType", v)}
+                  options={
+                    form.subClassification === "Desarrollo_RD" || form.subClassification?.includes("R&D")
+                      ? [
+                          { value: "Producto nuevo", label: "Producto nuevo" },
+                          { value: "Nuevo equipamiento de envasado", label: "Nuevo equipamiento de envasado" },
+                          { value: "Nuevos insumos", label: "Nuevos insumos" },
+                          { value: "Nueva estructura", label: "Nueva estructura" },
+                          { value: "Nuevo formato de envasado", label: "Nuevo formato de envasado" },
+                          { value: "Nuevos accesorios", label: "Nuevos accesorios" },
+                          { value: "Nuevos procesos por el lado del cliente", label: "Nuevos procesos por el lado del cliente" },
+                          { value: "Nuevas temperaturas de envasado y almacenaje", label: "Nuevas temperaturas de envasado y almacenaje" },
+                        ]
+                      : form.subClassification === "Área_Técnica" || form.subClassification?.includes("T\u00E9cnica")
+                        ? [
+                            { value: "Extensión de línea por familia (EM de referencia)", label: "Extensión de línea por familia (EM de referencia)" },
+                            { value: "Modifica Dimensiones", label: "Modifica Dimensiones" },
+                            { value: "Modifica Propiedades", label: "Modifica Propiedades" },
+                            { value: "Portafolio Estándar", label: "Portafolio Estándar" },
+                            { value: "ICO (Intercompany), BCP (Business Continous Production)", label: "ICO (Intercompany), BCP (Business Continous Production)" },
+                          ]
+                        : []
+                  }
+                  disabled={!form.subClassification}
                 />
               </div>
             </FormCard>
+
+
 
             <FormCard title="3. Datos de producto comercial" icon="◈" color="#27ae60" required>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -713,7 +703,7 @@ export default function ProjectEditPage() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   {[1, 2, 3, 4].map((layer) => (
                     <div key={layer} className="rounded-lg border border-slate-200 bg-white p-4">
-                      <p className="mb-3 text-xs font-bold uppercase text-[#003b5c]">Capa {layer}</p>
+                      <p className="mb-3 text-xs font-bold uppercase text-brand-primary">Capa {layer}</p>
                       <div className="space-y-3">
                         <FormSelect
                           label="Material"
@@ -866,11 +856,12 @@ export default function ProjectEditPage() {
                 </div>
               </div>
             </FormCard>
+            </fieldset>
           </div>
 
           <div className="space-y-5">
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="px-5 py-4 text-white bg-gradient-to-br from-[#003b5c] to-[#1E82D9]">
+              <div className="px-5 py-4 text-white bg-gradient-to-br from-brand-primary to-brand-secondary">
                 <div className="text-xs font-bold uppercase tracking-wide text-white/75">
                   Herencia de Portafolio
                 </div>

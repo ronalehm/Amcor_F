@@ -240,7 +240,7 @@ export default function UserDetailPage() {
         <div className="text-red-600 font-semibold">{error || "Error cargando usuario"}</div>
         <button
           onClick={() => navigate("/users")}
-          className="px-4 py-2 bg-[#003b5c] text-white rounded-md text-sm font-medium"
+          className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium"
         >
           Volver a Usuarios
         </button>
@@ -255,7 +255,7 @@ export default function UserDetailPage() {
       <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(380px,0.5fr)] p-5">
         {/* Columna izquierda - Ficha */}
         <div className="space-y-5">
-          <FormCard title="Datos del Trabajador" icon="👤" color="#003b5c">
+          <FormCard title="Datos del Trabajador" icon="👤" color="#00395A">
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -427,7 +427,7 @@ export default function UserDetailPage() {
                       label="Reenviar Link de Activación"
                       fullWidth
                     />
-                    {currentUser?.role === "admin" && (
+                    {currentUser?.role === "administrador" && (
                       <ActionButton
                         onClick={() => setModalState({ type: "delete", isOpen: true })}
                         disabled={actionInProgress}
@@ -458,7 +458,7 @@ export default function UserDetailPage() {
                       label="Rechazar → Inactivo"
                       fullWidth
                     />
-                    {currentUser?.role === "admin" && (
+                    {currentUser?.role === "administrador" && (
                       <ActionButton
                         onClick={() => setModalState({ type: "delete", isOpen: true })}
                         disabled={actionInProgress}
@@ -481,7 +481,7 @@ export default function UserDetailPage() {
                       label="Desactivar"
                       fullWidth
                     />
-                    {currentUser?.role === "admin" && (
+                    {currentUser?.role === "administrador" && (
                       <ActionButton
                         onClick={() => setModalState({ type: "block", isOpen: true })}
                         disabled={actionInProgress}
@@ -505,7 +505,7 @@ export default function UserDetailPage() {
                   />
                 )}
 
-                {user.status === "blocked" && currentUser?.role === "admin" && (
+                {user.status === "blocked" && currentUser?.role === "administrador" && (
                   <ActionButton
                     onClick={() => setModalState({ type: "unblock", isOpen: true })}
                     disabled={actionInProgress}
@@ -549,7 +549,7 @@ export default function UserDetailPage() {
               <button
                 onClick={handleResendActivation}
                 disabled={actionInProgress}
-                className="flex-1 px-4 py-2 bg-[#003b5c] text-white rounded-md text-sm font-medium hover:bg-[#002944] disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium hover:bg-[#002944] disabled:opacity-50"
               >
                 Reenviar
               </button>

@@ -136,7 +136,7 @@ export default function DataSheetListPage() {
             <tbody>
               {filtered.map((d) => (
                 <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-xs font-bold text-[#003b5c]">
+                  <td className="px-4 py-3 font-mono text-xs font-bold text-brand-primary">
                     {d.code}
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-900">{d.name}</td>

@@ -48,7 +48,7 @@ export default function FinalUseSelector({
         <button
           type="button"
           onClick={onOpenTable}
-          className="rounded-md border border-[#0d4c5c] bg-white px-3 py-2 text-xs font-bold text-[#0d4c5c] hover:bg-[#e8f4f8]"
+          className="rounded-md border border-[#0d4c5c] bg-white px-3 py-2 text-xs font-bold text-[#0d4c5c] hover:bg-brand-secondary-soft"
         >
           Ver tabla
         </button>

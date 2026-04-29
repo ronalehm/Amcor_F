@@ -51,7 +51,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   return (
     <div className="flex min-h-screen font-sans bg-[#f4f7f9]">
       {/* Left section: Branding/Hero */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#003b5c] via-[#002a42] to-[#001b2a] flex-col justify-center items-center relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-primary via-[#002a42] to-[#001b2a] flex-col justify-center items-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         <div className="z-10 px-12 text-center text-white">
           <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/20 mb-8">
@@ -86,7 +86,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-[#003b5c] focus:outline-none focus:ring-4 focus:ring-[#003b5c]/10 transition-all duration-200"
+                  className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10 transition-all duration-200"
                   placeholder="usuario@amcor.com"
                   required
                 />
@@ -100,7 +100,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-[#003b5c] focus:outline-none focus:ring-4 focus:ring-[#003b5c]/10 transition-all duration-200"
+                  className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10 transition-all duration-200"
                   placeholder="••••••••"
                   required
                 />
@@ -116,7 +116,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             <button
               type="submit"
               disabled={loading}
-              className="group relative flex w-full justify-center rounded-xl bg-[#003b5c] px-4 py-3.5 text-sm font-bold text-white shadow-lg hover:bg-[#002b43] focus:outline-none focus:ring-4 focus:ring-[#003b5c]/30 disabled:opacity-70 disabled:cursor-wait transition-all duration-200 ease-in-out hover:-translate-y-0.5"
+              className="group relative flex w-full justify-center rounded-xl bg-brand-primary px-4 py-3.5 text-sm font-bold text-white shadow-lg hover:bg-brand-primary-hover focus:outline-none focus:ring-4 focus:ring-brand-primary/30 disabled:opacity-70 disabled:cursor-wait transition-all duration-200 ease-in-out hover:-translate-y-0.5"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -143,15 +143,15 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                   key={demo.email}
                   type="button"
                   onClick={() => fillDemo(demo)}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3 hover:border-[#003b5c] hover:bg-[#003b5c]/5 hover:shadow-sm transition-all duration-200 text-left group"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-3 hover:border-brand-primary hover:bg-brand-primary/5 hover:shadow-sm transition-all duration-200 text-left group"
                 >
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-slate-700 group-hover:text-[#003b5c]">
+                    <span className="text-sm font-semibold text-slate-700 group-hover:text-brand-primary">
                       {ROLE_LABELS[demo.role]}
                     </span>
                     <span className="text-xs text-slate-500 mt-0.5">{demo.email}</span>
                   </div>
-                  <svg className="w-4 h-4 text-slate-300 group-hover:text-[#003b5c] transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 text-slate-300 group-hover:text-brand-primary transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>

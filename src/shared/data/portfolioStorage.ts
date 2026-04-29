@@ -1,5 +1,6 @@
 const PORTFOLIO_DISPLAY_KEY = "odiseo_created_portfolios";
 const TABPORT_RECORDS_KEY = "odiseo_tabport_records";
+const PORTFOLIO_DELETED_KEY = "odiseo_deleted_portfolios";
 
 function safeParseArray<T>(value: string | null): T[] {
   try {
@@ -130,9 +131,14 @@ export const INITIAL_PORTFOLIOS: PortfolioRecord[] = [
 
 export function getPortfolioDisplayRecords(): PortfolioRecord[] {
   const created = safeParseArray<PortfolioRecord>(localStorage.getItem(PORTFOLIO_DISPLAY_KEY));
+  const deletedIds = safeParseArray<string>(localStorage.getItem(PORTFOLIO_DELETED_KEY));
+  
   const createdIds = new Set(created.map(c => c.id || c.codigo));
-  const initials = INITIAL_PORTFOLIOS.filter(p => !createdIds.has(p.id));
-  return [...created, ...initials];
+  const deletedSet = new Set(deletedIds);
+
+  const initials = INITIAL_PORTFOLIOS.filter(p => !createdIds.has(p.id) && !deletedSet.has(p.id));
+  
+  return [...created, ...initials].filter(p => !deletedSet.has(p.id) && !deletedSet.has(p.codigo));
 }
 
 export function getTabportRecords<T>() {
@@ -176,4 +182,17 @@ export function updatePortfolioRecord(
   saved[index] = { ...saved[index], ...updates };
   localStorage.setItem(PORTFOLIO_DISPLAY_KEY, JSON.stringify(saved));
   return saved[index];
+}
+
+export function deletePortfolioRecord(code: string): boolean {
+  const deletedIds = safeParseArray<string>(localStorage.getItem(PORTFOLIO_DELETED_KEY));
+  if (!deletedIds.includes(code)) {
+    deletedIds.push(code);
+    localStorage.setItem(PORTFOLIO_DELETED_KEY, JSON.stringify(deletedIds));
+  }
+
+  const created = safeParseArray<PortfolioRecord>(localStorage.getItem(PORTFOLIO_DISPLAY_KEY));
+  const filtered = created.filter((item) => item.id !== code && item.codigo !== code);
+  localStorage.setItem(PORTFOLIO_DISPLAY_KEY, JSON.stringify(filtered));
+  return true;
 }

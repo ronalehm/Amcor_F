@@ -38,7 +38,7 @@ export default function PageModuleHeader({
                 <span className="mx-2 text-slate-400">&gt;&gt;</span>
               )}
               {crumb.href ? (
-                <span className="cursor-pointer hover:underline" style={{ color: "#003b5c" }}>
+                <span className="cursor-pointer hover:underline" style={{ color: "#00395A" }}>
                   {crumb.label}
                 </span>
               ) : (

@@ -23,7 +23,7 @@ export default function RowActionButtons({
       <button
         type="button"
         onClick={() => navigate(viewPath)}
-        className={`rounded-md border border-slate-300 bg-white font-bold text-[#003b5c] transition-colors hover:border-[#003b5c] hover:bg-[#f6f8fb] ${sizeClasses[size]}`}
+        className={`rounded-md border border-slate-300 bg-white font-bold text-brand-primary transition-colors hover:border-brand-primary hover:bg-[#f6f8fb] ${sizeClasses[size]}`}
         title="Ver detalle"
       >
         Ver
@@ -32,7 +32,7 @@ export default function RowActionButtons({
       <button
         type="button"
         onClick={() => navigate(editPath)}
-        className={`rounded-md border border-[#003b5c] bg-[#003b5c] font-bold text-white transition-colors hover:bg-[#002b43] ${sizeClasses[size]}`}
+        className={`rounded-md border border-brand-primary bg-brand-primary font-bold text-white transition-colors hover:bg-brand-primary-hover ${sizeClasses[size]}`}
         title="Editar"
       >
         Editar

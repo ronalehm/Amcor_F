@@ -131,7 +131,7 @@ export default function DashboardPage() {
       value: String(activePortalProjects.length),
       description: "Seguimiento P1-P5",
       icon: <BriefcaseBusiness size={24} />,
-      colorClass: "text-[#003b5c] bg-blue-50",
+      colorClass: "text-brand-primary bg-blue-50",
     },
     {
       label: "En Sistema Integral",
@@ -179,10 +179,10 @@ export default function DashboardPage() {
           {funnelStages.map((stage, idx) => (
             <div key={stage.code} className="flex-1 flex items-center relative group">
               <div className={`flex-1 rounded-lg p-4 transition-all ${
-                stage.count > 0 ? "bg-[#e8f4f8] border border-[#1E82D9]" : "bg-slate-50 border border-slate-200"
+                stage.count > 0 ? "bg-brand-secondary-soft border border-brand-secondary" : "bg-slate-50 border border-slate-200"
               }`}>
                 <div className="text-xs font-bold text-slate-500 uppercase">{stage.code} - {stage.name}</div>
-                <div className={`text-3xl font-extrabold mt-1 ${stage.count > 0 ? "text-[#003b5c]" : "text-slate-400"}`}>
+                <div className={`text-3xl font-extrabold mt-1 ${stage.count > 0 ? "text-brand-primary" : "text-slate-400"}`}>
                   {stage.count}
                 </div>
               </div>
@@ -244,7 +244,7 @@ export default function DashboardPage() {
                   
                   return (
                     <tr key={sla.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/projects/${sla.projectCode}`)}>
-                      <td className="px-5 py-4 font-bold text-[#003b5c]">{sla.projectCode}</td>
+                      <td className="px-5 py-4 font-bold text-brand-primary">{sla.projectCode}</td>
                       <td className="px-5 py-4 text-gray-600">{sla.responsibleArea}</td>
                       <td className="px-5 py-4 text-gray-500">{new Date(sla.dueAt).toLocaleDateString()}</td>
                       <td className={`px-5 py-4 ${daysClass}`}>{daysText}</td>
@@ -274,17 +274,17 @@ export default function DashboardPage() {
                 <button
                   key={action.path}
                   onClick={() => navigate(action.path)}
-                  className="group flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-[#003b5c] hover:bg-[#f8fbfd] transition-colors"
+                  className="group flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-brand-primary hover:bg-[#f8fbfd] transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="text-[#003b5c]">
+                    <div className="text-brand-primary">
                       <action.icon size={20} />
                     </div>
                     <div>
                       <div className="text-sm font-bold text-slate-800">{action.label}</div>
                     </div>
                   </div>
-                  <ArrowRight size={18} className="text-slate-400 group-hover:text-[#003b5c]" />
+                  <ArrowRight size={18} className="text-slate-400 group-hover:text-brand-primary" />
                 </button>
               ))}
             </div>
@@ -341,7 +341,7 @@ export default function DashboardPage() {
             <tbody className="divide-y divide-gray-50">
               {observedProjects.slice(0, 10).map((obs) => (
                 <tr key={obs.projectCode} className="hover:bg-gray-50">
-                  <td className="px-5 py-4 font-bold text-[#003b5c]">{obs.projectCode}</td>
+                  <td className="px-5 py-4 font-bold text-brand-primary">{obs.projectCode}</td>
                   <td className="px-5 py-4 text-gray-600">{obs.clientName}</td>
                   <td className="px-5 py-4 text-gray-600">
                     <span className="px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
@@ -371,7 +371,7 @@ export default function DashboardPage() {
                   <td className="px-5 py-4">
                     <button
                       onClick={() => navigate(`/projects/${obs.projectCode}`)}
-                      className="text-xs font-semibold text-[#003b5c] hover:text-[#1E82D9] underline"
+                      className="text-xs font-semibold text-brand-primary hover:text-brand-secondary underline"
                     >
                       Ver
                     </button>

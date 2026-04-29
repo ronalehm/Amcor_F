@@ -1,0 +1,35 @@
+[
+  {
+    "id": "CLI-000001",
+    "code": "CL-000001",
+    "businessName": "Alicorp S.A.A.",
+    "email": "contacto@alicorp.com",
+    "ruc": "20100055237",
+    "industry": "Consumo masivo",
+    "status": "active",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "CLI-000002",
+    "code": "CL-000002",
+    "businessName": "Kimberly-Clark Perú",
+    "email": "contacto@kimberly-clark.com",
+    "ruc": "20100152941",
+    "industry": "Cuidado personal",
+    "status": "active",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "CLI-000003",
+    "code": "CL-000003",
+    "businessName": "Leche Gloria S.A.",
+    "email": "contacto@gloria.com",
+    "ruc": "20100190797",
+    "industry": "Alimentos y bebidas",
+    "status": "active",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+]

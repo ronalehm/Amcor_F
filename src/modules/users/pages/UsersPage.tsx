@@ -148,7 +148,7 @@ export default function UsersPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="border-b border-gray-200 bg-[#003b5c]">
+            <thead className="border-b border-gray-200 bg-brand-primary">
               <tr className="text-left text-white">
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wide">
                   Código
@@ -175,11 +175,11 @@ export default function UsersPage() {
               {filtered.map((u, index) => (
                 <tr
                   key={u.id}
-                  className={`border-b border-gray-100 transition-colors hover:bg-[#e8f4f8] ${
+                  className={`border-b border-gray-100 transition-colors hover:bg-brand-secondary-soft ${
                     index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
                   }`}
                 >
-                  <td className="px-4 py-3 font-mono text-xs font-bold text-[#003b5c]">
+                  <td className="px-4 py-3 font-mono text-xs font-bold text-brand-primary">
                     {USER_CODES[u.id]}
                   </td>
 
@@ -216,7 +216,7 @@ export default function UsersPage() {
                       <button
                         type="button"
                         onClick={() => navigate(`/users/${USER_CODES[u.id]}`)}
-                        className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-[#003b5c]"
+                        className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-brand-primary"
                       >
                         Ver
                       </button>
@@ -226,7 +226,7 @@ export default function UsersPage() {
                         onClick={() =>
                           navigate(`/users/${USER_CODES[u.id]}/edit`)
                         }
-                        className="rounded-md border border-[#003b5c] bg-[#003b5c]/5 px-3 py-1.5 text-xs font-bold text-[#003b5c] shadow-sm transition-colors hover:bg-[#003b5c] hover:text-white"
+                        className="rounded-md border border-brand-primary bg-brand-primary/5 px-3 py-1.5 text-xs font-bold text-brand-primary shadow-sm transition-colors hover:bg-brand-primary hover:text-white"
                       >
                         Editar
                       </button>

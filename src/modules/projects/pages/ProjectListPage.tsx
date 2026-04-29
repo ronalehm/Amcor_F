@@ -598,7 +598,7 @@ export default function ProjectListPage() {
               </p>
             </div>
 
-            <div className="rounded-xl bg-[#e8f4f8] p-3 text-[#003b5c]">
+            <div className="rounded-xl bg-brand-secondary-soft p-3 text-brand-primary">
               <BriefcaseBusiness size={22} />
             </div>
           </div>
@@ -658,8 +658,8 @@ export default function ProjectListPage() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-colors ${
                     isActive
-                      ? "border-[#003b5c] text-[#003b5c]"
-                      : "border-transparent text-slate-500 hover:text-[#003b5c]"
+                      ? "border-brand-primary text-brand-primary"
+                      : "border-transparent text-slate-500 hover:text-brand-primary"
                   }`}
                 >
                   {tab.label}
@@ -667,7 +667,7 @@ export default function ProjectListPage() {
                   <span
                     className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
                       isActive
-                        ? "bg-[#e8f4f8] text-[#003b5c]"
+                        ? "bg-brand-secondary-soft text-brand-primary"
                         : "bg-slate-100 text-slate-500"
                     }`}
                   >
@@ -695,7 +695,7 @@ export default function ProjectListPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar por código, proyecto, cliente..."
-                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
               />
             </div>
 
@@ -722,7 +722,7 @@ export default function ProjectListPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1650px] border-collapse text-sm">
             <thead>
-              <tr className="bg-[#003b5c] text-white">
+              <tr className="bg-brand-primary text-white">
                 <SortableHeader label="Código" sortKey="code" />
                 <SortableHeader label="Proyecto" sortKey="projectName" />
                 <SortableHeader label="Cliente" sortKey="clientName" />
@@ -747,9 +747,9 @@ export default function ProjectListPage() {
                   key={item.code || item.id}
                   className={`border-b border-slate-100 transition-colors ${
                     index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
-                  } hover:bg-[#e8f4f8]`}
+                  } hover:bg-brand-secondary-soft`}
                 >
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-[#003b5c]">
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">
                     {item.code || item.id || "—"}
                   </td>
 
@@ -786,7 +786,7 @@ export default function ProjectListPage() {
                   <td className="px-4 py-3 text-sm">
                     <div
                       className={`font-bold ${
-                        item.isExternal ? "text-slate-500" : "text-[#003b5c]"
+                        item.isExternal ? "text-slate-500" : "text-brand-primary"
                       }`}
                     >
                       {item.stageId} - {item.stageName}
@@ -922,7 +922,7 @@ export default function ProjectListPage() {
                   setPageSize(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
               >
                 <option value={10}>10 por página</option>
                 <option value={25}>25 por página</option>
@@ -933,7 +933,7 @@ export default function ProjectListPage() {
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-brand-primary hover:text-brand-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Anterior
               </button>
@@ -945,7 +945,7 @@ export default function ProjectListPage() {
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-[#003b5c] hover:text-[#003b5c] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-brand-primary hover:text-brand-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Siguiente
               </button>

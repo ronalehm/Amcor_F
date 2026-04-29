@@ -37,7 +37,7 @@ export default function ProjectSlaPanel({ sla, isPortalStage }: ProjectSlaPanelP
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6">
       <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-        <div className="flex items-center gap-2 text-[#003b5c]">
+        <div className="flex items-center gap-2 text-brand-primary">
           <Clock size={16} />
           <h3 className="font-bold text-sm uppercase tracking-wide">Acuerdo de Nivel de Servicio (SLA)</h3>
         </div>
@@ -52,7 +52,7 @@ export default function ProjectSlaPanel({ sla, isPortalStage }: ProjectSlaPanelP
           </div>
           <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
             <div className="text-xs font-bold text-slate-500 mb-1">Días Restantes</div>
-            <div className={`text-xl font-black ${sla.remainingDays < 0 ? 'text-red-600' : 'text-[#1E82D9]'}`}>
+            <div className={`text-xl font-black ${sla.remainingDays < 0 ? 'text-red-600' : 'text-brand-secondary'}`}>
               {sla.remainingDays}
             </div>
           </div>

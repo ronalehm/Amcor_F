@@ -81,7 +81,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
 
   return (
     <aside
-      className={`h-full bg-[#003b5c] transition-all duration-300 ${
+      className={`h-full bg-brand-primary transition-all duration-300 ${
         isOpen ? "w-72" : "w-20"
       }`}
     >

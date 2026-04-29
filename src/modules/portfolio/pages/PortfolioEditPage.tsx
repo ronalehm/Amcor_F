@@ -4,12 +4,10 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import {
   STATUS_CATALOG,
-  CLIENTS_CATALOG,
   PLANTS_CATALOG,
   WRAPPINGS_CATALOG,
   FINAL_USE_CATALOG,
   getStatusById,
-  getClientById,
   getPlantById,
   getWrappingById,
   getFinalUseById,
@@ -23,7 +21,8 @@ import {
 } from "../../../shared/data/executiveStorage";
 
 import { getPortfolioByCode, updatePortfolioRecord } from "../../../shared/data/portfolioStorage";
-import { getCurrentUser } from "../../../shared/data/userStorage";
+import { getCurrentUser, getCommercialExecutives } from "../../../shared/data/userStorage";
+import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
 
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
 import FinalUseSelector from "../../../shared/components/catalog/FinalUseSelector";
@@ -55,9 +54,9 @@ type PortfolioFormData = {
 };
 
 const AMCOR = {
-  navy: "#003b5c",
+  navy: "#00395A",
   navyDark: "#002b43",
-  blue: "#1E82D9",
+  blue: "#00A1DE",
   green: "#27ae60",
   purple: "#7E3FB2",
   amber: "#f39c12",
@@ -126,10 +125,12 @@ export default function PortfolioEditPage() {
   }, [portfolioCodeStr]);
 
   const selectedStatus = getStatusById(Number(form?.estadoId));
-  const selectedClient = getClientById(Number(form?.clienteId));
-  const executiveOptions = useMemo(() => getActiveExecutiveRecords(), []);
+  const allClients = getClientCatalogRecords();
+  const activeClients = useMemo(() => allClients.filter((c) => c.status === "active"), [allClients]);
+  const selectedClient = allClients.find((c) => c.id === form?.clienteId);
 
-  const selectedExecutive = getExecutiveById(Number(form?.ejecutivoId));
+  const comercialExecutives = useMemo(() => getCommercialExecutives(), []);
+  const selectedExecutive = comercialExecutives.find((u) => u.id === form?.ejecutivoId);
   const selectedPlant = getPlantById(Number(form?.plantaId));
   const selectedWrapping = getWrappingById(Number(form?.envolturaId));
   const selectedFinalUse = getFinalUseById(Number(form?.usoFinalId));
@@ -314,10 +315,10 @@ export default function PortfolioEditPage() {
       est: selectedStatus.name,
       clienteId: selectedClient.id,
       clienteCode: selectedClient.code,
-      cli: selectedClient.name,
+      cli: selectedClient.businessName,
       ejecutivoId: selectedExecutive.id,
       ejecutivoCode: selectedExecutive.code,
-      ej: selectedExecutive.name,
+      ej: selectedExecutive.fullName,
       plantaId: selectedPlant.id,
       plantaCode: selectedPlant.code,
       pl: selectedPlant.name,
@@ -364,7 +365,7 @@ export default function PortfolioEditPage() {
         <div className="text-red-600 font-semibold">{error || "Error cargando portafolio"}</div>
         <button
           onClick={() => navigate("/portfolio")}
-          className="px-4 py-2 bg-[#003b5c] text-white rounded-md text-sm font-medium"
+          className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium"
         >
           Volver a Portafolios
         </button>
@@ -382,7 +383,7 @@ export default function PortfolioEditPage() {
         <p className="text-slate-500 text-sm">Debes iniciar sesión para editar portafolios.</p>
         <button
           onClick={() => navigate("/login")}
-          className="px-4 py-2 bg-[#003b5c] text-white rounded-md text-sm font-medium mt-2"
+          className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium mt-2"
         >
           Iniciar Sesión
         </button>
@@ -413,10 +414,10 @@ export default function PortfolioEditPage() {
                       ? validationErrors.clienteId
                       : ""
                   }
-                  options={CLIENTS_CATALOG.map((item) => ({
+                  options={activeClients.map((item) => ({
                     id: item.id,
                     code: item.code,
-                    name: item.name,
+                    name: item.businessName,
                     meta: item.ruc,
                   }))}
                   placeholder="Escribe para buscar cliente..."
@@ -432,10 +433,10 @@ export default function PortfolioEditPage() {
                       ? validationErrors.ejecutivoId
                       : ""
                   }
-                  options={executiveOptions.map((item) => ({
+                  options={comercialExecutives.map((item) => ({
                     id: item.id,
                     code: item.code,
-                    name: item.name,
+                    name: item.fullName,
                     meta: item.email,
                   }))}
                   placeholder="Escribe para buscar ejecutivo..."
@@ -521,8 +522,8 @@ export default function PortfolioEditPage() {
               estado={selectedStatus?.name || "Registrado"}
               completionPercentage={completionPercentage}
               items={[
-                { label: "Cliente", value: selectedClient?.name },
-                { label: "Ejecutivo", value: selectedExecutive?.name },
+                { label: "Cliente", value: selectedClient?.businessName },
+                { label: "Ejecutivo", value: selectedExecutive?.fullName },
                 { label: "Planta", value: selectedPlant?.name },
                 { label: "Portafolio", value: form.nombrePortafolio },
               ]}

@@ -1,3 +1,6 @@
+import seedUsers from "./seeds/users.json";
+import { type PortalRole, getRoleByPosition } from "./areaDepartmentConfig";
+
 const USERS_STORAGE_KEY = "odiseo_users";
 const CURRENT_USER_KEY = "odiseo_current_user";
 
@@ -13,7 +16,7 @@ export type User = {
   firstName: string;
   lastName: string;
   fullName: string;
-  role: UserRole;
+  role: PortalRole;
   status: UserStatus;
   workerCode: string; // Cod Trabajador (PK desde Sistema Integral)
   position: string; // Puesto
@@ -29,98 +32,7 @@ export type User = {
 
 export type UserPublic = Omit<User, "password">;
 
-const INITIAL_USERS: User[] = [
-  {
-    id: "USR-000001",
-    code: "US-000001",
-    email: "admin@amcor.com",
-    password: "admin123",
-    firstName: "Administrador",
-    lastName: "Sistema",
-    fullName: "Administrador Sistema",
-    role: "admin",
-    status: "active",
-    workerCode: "ADM-001",
-    position: "Administrador",
-    company: "Amcor",
-    area: "TI",
-    phone: "+51 999 999 999",
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:00.000Z",
-  },
-  {
-    id: "USR-000002",
-    code: "US-000002",
-    email: "comercial@amcor.com",
-    password: "demo123",
-    firstName: "Ejecutivo",
-    lastName: "Comercial",
-    fullName: "Ejecutivo Comercial",
-    role: "comercial",
-    status: "active",
-    workerCode: "COM-001",
-    position: "Ejecutivo Comercial",
-    company: "Amcor",
-    area: "Ventas",
-    phone: "+51 999 888 888",
-    createdAt: "2026-01-15T00:00:00.000Z",
-    updatedAt: "2026-01-15T00:00:00.000Z",
-  },
-  {
-    id: "USR-000003",
-    code: "US-000003",
-    email: "artes@amcor.com",
-    password: "demo123",
-    firstName: "Diseñador",
-    lastName: "Gráfico",
-    fullName: "Diseñador Gráfico",
-    role: "artes",
-    status: "active",
-    workerCode: "AGR-001",
-    position: "Diseñador Gráfico",
-    company: "Amcor",
-    area: "Artes Gráficas",
-    phone: "+51 999 777 777",
-    createdAt: "2026-02-01T00:00:00.000Z",
-    updatedAt: "2026-02-01T00:00:00.000Z",
-  },
-  {
-    id: "USR-000004",
-    code: "US-000004",
-    email: "rnd@amcor.com",
-    password: "demo123",
-    firstName: "Ingeniero",
-    lastName: "R&D",
-    fullName: "Ingeniero R&D",
-    role: "rd",
-    status: "active",
-    workerCode: "RD-001",
-    position: "Ingeniero R&D",
-    company: "Amcor",
-    area: "Research & Development",
-    phone: "+51 999 666 666",
-    createdAt: "2026-02-10T00:00:00.000Z",
-    updatedAt: "2026-02-10T00:00:00.000Z",
-  },
-  {
-    id: "USR-000005",
-    code: "US-000005",
-    email: "finance@amcor.com",
-    password: "demo123",
-    firstName: "Analista",
-    lastName: "Finance",
-    fullName: "Analista Finance",
-    role: "finance",
-    status: "active",
-    workerCode: "CF-001",
-    position: "Analista Finance",
-    company: "Amcor",
-    area: "Commercial Finance",
-    phone: "+51 999 555 555",
-    createdAt: "2026-03-01T00:00:00.000Z",
-    updatedAt: "2026-03-01T00:00:00.000Z",
-  },
-];
+const INITIAL_USERS: User[] = seedUsers as User[];
 
 function safeParseArray<T>(value: string | null): T[] {
   try {
@@ -199,6 +111,7 @@ export function saveUserRecord(record: User): void {
   const saved = safeParseArray<User>(localStorage.getItem(USERS_STORAGE_KEY));
   const filtered = saved.filter((user) => user.id !== record.id);
   persistUsers([record, ...filtered]);
+  saveSeedUsers([record, ...filtered]);
 }
 
 export function createUser(newUser: Partial<Pick<User, "workerCode" | "position" | "company">> & Omit<User, "id" | "code" | "createdAt" | "updatedAt" | "fullName" | "workerCode" | "position" | "company">): User {
@@ -311,15 +224,14 @@ export function getNextUserCode(): string {
   return `US-${String(maxNumber + 1).padStart(6, "0")}`;
 }
 
-export function getUsersByRole(role: UserRole): User[] {
+export function getUsersByRole(role: PortalRole): User[] {
   return getAllUsers().filter((user) => user.role === role);
 }
 
 export function getCommercialExecutives(): User[] {
   return getAllUsers().filter((user) =>
     user.status === "active" &&
-    user.role === "comercial" &&
-    user.position === "Ejecutivo Comercial"
+    user.area === "Comercial"
   );
 }
 
@@ -375,3 +287,16 @@ export const STATUS_COLORS: Record<UserStatus, string> = {
   pending_validation: "bg-blue-100 text-blue-700",
   blocked: "bg-red-100 text-red-700",
 };
+
+export async function saveSeedUsers(users: User[]): Promise<void> {
+  try {
+    const response = await fetch("/__update-seed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "users", data: users }),
+    });
+    if (!response.ok) console.error("Failed to save seed users");
+  } catch (error) {
+    console.error("Error saving seed users:", error);
+  }
+}

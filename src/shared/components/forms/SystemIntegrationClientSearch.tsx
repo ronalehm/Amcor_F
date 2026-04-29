@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import { type VendorMirror } from "../../../shared/data/vendorMirrorStorage";
 import { getAllClientsMirror } from "../../../shared/data/clientMirrorStorage";
@@ -55,7 +55,7 @@ export default function SystemIntegrationClientSearch({
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
-          className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-9 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-[#003b5c] focus:ring-1 focus:ring-[#003b5c]"
+          className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-9 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
         />
         {value && (
           <button
@@ -89,7 +89,7 @@ export default function SystemIntegrationClientSearch({
                   >
                     <div className="font-semibold text-slate-900">{client.razonSocial || client.nombreComercial}</div>
                     <div className="text-xs text-slate-500 mt-0.5">
-                      {client.code} • RUC: {client.ruc}
+                      {client.code} � RUC: {client.ruc}
                     </div>
                   </button>
                 ))}

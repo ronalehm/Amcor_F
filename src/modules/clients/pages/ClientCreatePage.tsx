@@ -1,4 +1,4 @@
-Ôªøimport { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, Download, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -18,7 +18,7 @@ import FormActionButtons from "../../../shared/components/forms/FormActionButton
 import SystemIntegrationClientSearch from "../../../shared/components/forms/SystemIntegrationClientSearch";
 import ClientDuplicateHandler from "../../../shared/components/forms/ClientDuplicateHandler";
 
-const INDUSTRIES = ["Distribuci√≥n", "Manufactura", "Consumo masivo", "Cuidado personal", "Alimentos y bebidas", "Retail"];
+const INDUSTRIES = ["DistribuciÛn", "Manufactura", "Consumo masivo", "Cuidado personal", "Alimentos y bebidas", "Retail"];
 
 interface FormState {
   siClient: ClientMirror | null;
@@ -114,13 +114,13 @@ export default function ClientCreatePage() {
     const validExtensions = [".xlsx", ".xls"];
     const fileExtension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
     if (!validExtensions.includes(fileExtension)) {
-      setExcelError("Formato de archivo no v√°lido. Solo se permiten archivos .xlsx o .xls.");
+      setExcelError("Formato de archivo no v·lido. Solo se permiten archivos .xlsx o .xls.");
       return;
     }
 
     const reader = new FileReader();
     reader.onerror = () => {
-      setExcelError("Error al leer el archivo. Intente con otro archivo o verifique que no est√© corrupto.");
+      setExcelError("Error al leer el archivo. Intente con otro archivo o verifique que no estÈ corrupto.");
     };
     reader.onload = (evt) => {
       try {
@@ -141,7 +141,7 @@ export default function ClientCreatePage() {
 
         if (rows.length > 1) {
           setExcelError(
-            "La plantilla contiene m√°s de un cliente. Para este flujo solo se permite registrar un cliente por vez."
+            "La plantilla contiene m·s de un cliente. Para este flujo solo se permite registrar un cliente por vez."
           );
           return;
         }
@@ -168,11 +168,11 @@ export default function ClientCreatePage() {
         const ruc = (row.numerodeRUC || "").toString().trim();
 
         if (!businessName) {
-          setExcelError("La raz√≥n social es obligatoria.");
+          setExcelError("La razÛn social es obligatoria.");
         }
 
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          setExcelWarning("El correo importado no tiene un formato v√°lido.");
+          setExcelWarning("El correo importado no tiene un formato v·lido.");
         }
 
         let importedIndustry = (row.rubro || "").toString().trim();
@@ -182,7 +182,7 @@ export default function ClientCreatePage() {
           if (industryMatch) {
             finalIndustry = industryMatch;
           } else {
-            setExcelWarning("El rubro importado no existe en el cat√°logo. Seleccione un rubro v√°lido.");
+            setExcelWarning("El rubro importado no existe en el cat·logo. Seleccione un rubro v·lido.");
           }
         }
 
@@ -198,7 +198,7 @@ export default function ClientCreatePage() {
         setIsExcelImported(true);
 
       } catch (error) {
-        setExcelError("Error al procesar el archivo Excel. Aseg√∫rese de que el formato sea correcto.");
+        setExcelError("Error al procesar el archivo Excel. Aseg˙rese de que el formato sea correcto.");
       }
     };
     reader.readAsArrayBuffer(file);
@@ -218,13 +218,13 @@ export default function ClientCreatePage() {
     }
 
     if (!form.email.trim()) {
-      errors.email = "El correo electr√≥nico es obligatorio";
+      errors.email = "El correo electrÛnico es obligatorio";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "El formato del correo no es v√°lido";
+      errors.email = "El formato del correo no es v·lido";
     }
 
     if (!form.businessName.trim()) {
-      errors.businessName = "La raz√≥n social es obligatoria";
+      errors.businessName = "La razÛn social es obligatoria";
     }
 
     if (!form.industry.trim()) {
@@ -275,12 +275,12 @@ export default function ClientCreatePage() {
         null,
         "pending_validation",
         "system",
-        `Cliente creado - ${form.siClient ? "Informaci√≥n autocompleta de SI" : "Ingreso manual - pendiente validaci√≥n en SI"}`
+        `Cliente creado - ${form.siClient ? "InformaciÛn autocompleta de SI" : "Ingreso manual - pendiente validaciÛn en SI"}`
       );
 
       const successMsg = form.siClient
         ? "Cliente enlazado con el sistema integral"
-        : "Cliente creado exitosamente y se solicit√≥ la validaci√≥n de Tesorer√≠a";
+        : "Cliente creado exitosamente y se solicitÛ la validaciÛn de TesorerÌa";
       setSuccessMessage(successMsg);
       setTimeout(() => navigate("/clients"), 2000);
     } catch (error) {
@@ -301,7 +301,7 @@ export default function ClientCreatePage() {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="rounded-lg border-2 border-green-300 bg-green-50 p-8 text-center max-w-md">
-          <div className="text-4xl mb-4">‚úì</div>
+          <div className="text-4xl mb-4">?</div>
           <p className="text-lg font-bold text-green-900">{successMessage}</p>
           <p className="text-sm text-green-700 mt-2">Redirigiendo...</p>
         </div>
@@ -316,9 +316,9 @@ export default function ClientCreatePage() {
           <button
             type="button"
             onClick={() => setDuplicateClient(null)}
-            className="mb-4 text-sm text-[#003b5c] hover:underline"
+            className="mb-4 text-sm text-brand-primary hover:underline"
           >
-            ‚Üê Volver al formulario
+            ? Volver al formulario
           </button>
 
           <ClientDuplicateHandler
@@ -336,14 +336,14 @@ export default function ClientCreatePage() {
       <form onSubmit={handleSubmit}>
         <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
-            <FormCard title="Buscar en Sistema Integral" icon="üîç" color="#0D9488" required>
+            <FormCard title="Buscar en Sistema Integral" icon="??" color="#0D9488" required>
               <div className="space-y-3">
                 <SystemIntegrationClientSearch
                   value={searchQuery}
                   onChange={setSearchQuery}
                   onSelect={handleSiClientSelect}
                   onNoResults={setHasNoSiResults}
-                  placeholder="Buscar por c√≥digo, raz√≥n social, RUC..."
+                  placeholder="Buscar por cÛdigo, razÛn social, RUC..."
                 />
 
                 {!isSiClientSelected && (
@@ -363,22 +363,22 @@ export default function ClientCreatePage() {
                 {isSiClientSelected && (
                   <div className="p-4 rounded-lg bg-green-50 border border-green-200">
                     <p className="text-sm font-semibold text-green-900 mb-2">
-                      ‚úì Cliente del Sistema Integral seleccionado
+                      ? Cliente del Sistema Integral seleccionado
                     </p>
                     <p className="text-sm text-green-800">
-                      Los datos b√°sicos se completar√°n autom√°ticamente.
+                      Los datos b·sicos se completar·n autom·ticamente.
                     </p>
                   </div>
                 )}
               </div>
 
               {creationMode === "excel" && (
-                <div className="mt-4 p-5 rounded-xl border border-[#003b5c]/20 bg-[#003b5c]/5 shadow-sm">
+                <div className="mt-4 p-5 rounded-xl border border-brand-primary/20 bg-brand-primary/5 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h4 className="font-semibold text-[#003b5c]">Importar desde Excel</h4>
+                      <h4 className="font-semibold text-brand-primary">Importar desde Excel</h4>
                       <p className="text-xs text-slate-600 mt-1">
-                        Descarga la plantilla, completa los datos y s√∫bela para autocompletar el formulario.
+                        Descarga la plantilla, completa los datos y s˙bela para autocompletar el formulario.
                       </p>
                     </div>
                   </div>
@@ -387,7 +387,7 @@ export default function ClientCreatePage() {
                     <button
                       type="button"
                       onClick={handleDownloadTemplate}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#003b5c] bg-white border border-[#003b5c]/30 rounded-lg hover:bg-slate-50 transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-brand-primary bg-white border border-brand-primary/30 rounded-lg hover:bg-slate-50 transition-colors"
                     >
                       <Download size={16} />
                       Descargar plantilla
@@ -403,7 +403,7 @@ export default function ClientCreatePage() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#003b5c] rounded-lg hover:bg-[#002f4a] transition-colors shadow-sm"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-primary rounded-lg hover:bg-[#002f4a] transition-colors shadow-sm"
                     >
                       <Upload size={16} />
                       Importar Excel
@@ -427,7 +427,7 @@ export default function ClientCreatePage() {
                   {isExcelImported && !excelError && (
                     <div className="mt-4 p-3 rounded bg-green-50 border border-green-200">
                       <p className="text-sm font-medium text-green-800">
-                        ‚úì Datos importados desde plantilla Excel. Revise la informaci√≥n antes de crear el cliente.
+                        ? Datos importados desde plantilla Excel. Revise la informaciÛn antes de crear el cliente.
                       </p>
                     </div>
                   )}
@@ -437,13 +437,13 @@ export default function ClientCreatePage() {
 
             <FormCard
               title={isSiClientSelected ? "Datos del Sistema Integral" : "Datos del Cliente"}
-              icon="üè¢"
-              color="#003b5c"
+              icon="??"
+              color="#00395A"
               required
             >
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormInput
-                  label="Raz√≥n Social *"
+                  label="RazÛn Social *"
                   value={form.businessName}
                   onChange={(v) => updateField("businessName", v)}
                   onBlur={() => {}}
@@ -464,7 +464,7 @@ export default function ClientCreatePage() {
                 />
 
                 <FormInput
-                  label="N√∫mero de RUC *"
+                  label="N˙mero de RUC *"
                   value={form.ruc}
                   onChange={(v) => updateField("ruc", v)}
                   onBlur={() => {}}
@@ -480,7 +480,7 @@ export default function ClientCreatePage() {
                   <select
                     value={form.industry}
                     onChange={(e) => updateField("industry", e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-[#003b5c] focus:outline-none focus:ring-1 focus:ring-[#003b5c]"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
                   >
                     <option value="">-- Seleccione Rubro --</option>
                     {industryOptions.map((option) => (
@@ -499,7 +499,7 @@ export default function ClientCreatePage() {
                 <div className="mt-4 p-3 rounded-lg bg-blue-50 border border-blue-200 flex gap-2">
                   <AlertCircle size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-blue-800">
-                    Los campos provenientes del Sistema Integral est√°n bloqueados y no pueden editarse.
+                    Los campos provenientes del Sistema Integral est·n bloqueados y no pueden editarse.
                   </p>
                 </div>
               )}
@@ -508,7 +508,7 @@ export default function ClientCreatePage() {
 
           <div className="space-y-5">
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="px-5 py-4 bg-gradient-to-br from-[#003b5c] to-[#1E82D9] text-white">
+              <div className="px-5 py-4 bg-gradient-to-br from-brand-primary to-brand-secondary text-white">
                 <div className="text-xs font-bold uppercase tracking-wide text-white/75">
                   Resumen
                 </div>
@@ -516,13 +516,13 @@ export default function ClientCreatePage() {
               </div>
               <div className="p-5 space-y-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">C√≥digo</p>
-                  <p className="text-lg font-bold text-[#003b5c]">{clientCode}</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">CÛdigo</p>
+                  <p className="text-lg font-bold text-brand-primary">{clientCode}</p>
                 </div>
 
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase">Origen</p>
-                  <p className="text-sm font-bold text-[#003b5c]">
+                  <p className="text-sm font-bold text-brand-primary">
                     {isExcelImported ? "Plantilla Excel" : isSiClientSelected ? "Sistema Integral" : "Manual"}
                   </p>
                 </div>
@@ -548,16 +548,16 @@ export default function ClientCreatePage() {
                   </p>
                   <ul className="text-sm space-y-1">
                     <li className={form.businessName ? "text-green-600" : "text-slate-400"}>
-                      {form.businessName ? "‚úì" : "‚óã"} Raz√≥n Social
+                      {form.businessName ? "?" : "?"} RazÛn Social
                     </li>
                     <li className={form.email ? "text-green-600" : "text-slate-400"}>
-                      {form.email ? "‚úì" : "‚óã"} Correo Corporativo
+                      {form.email ? "?" : "?"} Correo Corporativo
                     </li>
                     <li className={form.ruc ? "text-green-600" : "text-slate-400"}>
-                      {form.ruc ? "‚úì" : "‚óã"} RUC
+                      {form.ruc ? "?" : "?"} RUC
                     </li>
                     <li className={form.industry ? "text-green-600" : "text-slate-400"}>
-                      {form.industry ? "‚úì" : "‚óã"} Rubro
+                      {form.industry ? "?" : "?"} Rubro
                     </li>
                   </ul>
                 </div>
