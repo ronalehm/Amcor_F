@@ -224,25 +224,30 @@ const UNIT_OPTIONS = [
   { value: "UN", label: "UN" },
   { value: "MILLAR", label: "MILLAR" },
   { value: "TN", label: "TN" },
+  { value: "KGS", label: "KGS" },
+  { value: "MILL", label: "MILL" },
+  { value: "MT", label: "MT" },
+  { value: "MT2", label: "MT2" },
+  { value: "LBS", label: "LBS" },
+  { value: "UNI", label: "UNI" },
 ];
 
 const PRINT_CLASS_OPTIONS = [
   { value: "Flexo", label: "Flexo" },
-  { value: "Rotograbado", label: "Rotograbado" },
+  { value: "Huecograbado", label: "Huecograbado" },
   { value: "Sin impresión", label: "Sin impresión" },
 ];
 
 const PRINT_TYPE_OPTIONS = [
   { value: "Nuevo", label: "Nuevo" },
   { value: "Repetitivo", label: "Repetitivo" },
-  { value: "Cambio menor", label: "Cambio menor" },
 ];
 
 const STRUCTURE_TYPE_OPTIONS = [
   { value: "Monocapa", label: "Monocapa" },
   { value: "Bilaminado", label: "Bilaminado" },
   { value: "Trilaminado", label: "Trilaminado" },
-  { value: "Multicapa", label: "Multicapa" },
+  { value: "Tetralaminado", label: "Tetralaminado" },
 ];
 
 const MATERIAL_OPTIONS = [
@@ -263,11 +268,17 @@ const SALE_TYPE_OPTIONS = [
 ];
 
 const INCOTERM_OPTIONS = [
-  { value: "No aplica", label: "No aplica" },
   { value: "EXW", label: "EXW" },
+  { value: "FCA", label: "FCA" },
+  { value: "FAS", label: "FAS" },
   { value: "FOB", label: "FOB" },
+  { value: "CPT", label: "CPT" },
+  { value: "CIP", label: "CIP" },
+  { value: "CFR", label: "CFR" },
   { value: "CIF", label: "CIF" },
   { value: "DAP", label: "DAP" },
+  { value: "DPU", label: "DPU" },
+  { value: "DDP", label: "DDP" },
 ];
 
 const CURRENCY_OPTIONS = [
@@ -1149,7 +1160,7 @@ export default function ProjectCreatePage() {
 
               <div className={`mt-4 grid grid-cols-1 gap-4 md:grid-cols-3 ${isDuplicateMode ? "opacity-70 pointer-events-none" : ""}`}>
                 <FormInput
-                  label="Gramaje general"
+                  label="Gramaje general (g/m2)"
                   value={form.grammage}
                   onChange={(value) => updateField("grammage", value)}
                   placeholder="Ej. 40"
