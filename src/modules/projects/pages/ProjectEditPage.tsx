@@ -155,7 +155,7 @@ export default function ProjectEditPage() {
     blueprintFormat: "",
     technicalApplication: "",
     estimatedVolume: "",
-    unitOfMeasure: "KG",
+    unitOfMeasure: "KGS",
     customerPackingCode: "",
 
     // 4. Especificaciones de Diseño
@@ -163,16 +163,17 @@ export default function ProjectEditPage() {
     printType: "",
     specialDesignSpecs: "",
     specialDesignComments: "",
-    requiresDesignWork: "No",
-    designRoute: "Sin diseño",
+    edagCode: "",
+    edagVersion: "",
+    isPreviousDesign: "No",
+    previousEdagCode: "",
+    previousEdagVersion: "",
 
     // 5. Especificaciones de Estructura
     hasReferenceStructure: "No",
     referenceEmCode: "",
     referenceEmVersion: "",
     structureType: "Monocapa",
-    hasCustomerTechnicalSpec: "No",
-    customerTechnicalSpecAttachment: "",
     layer1Material: "",
     layer1Micron: "",
     layer1Grammage: "",
@@ -292,8 +293,6 @@ export default function ProjectEditPage() {
       ...project,
       // Convertir campos booleanos a strings "Sí"/"No"
       hasReferenceStructure: toYesNo(project.hasReferenceStructure),
-      requiresDesignWork: toYesNo(project.requiresDesignWork),
-      hasCustomerTechnicalSpec: toYesNo(project.hasCustomerTechnicalSpec),
       sampleRequest: toYesNo(project.sampleRequest),
       hasZipper: toYesNo(project.hasZipper),
       hasTinTie: toYesNo(project.hasTinTie),
@@ -318,6 +317,9 @@ export default function ProjectEditPage() {
       incoterm: project.incoterm || "No aplica",
       destinationCountry: project.destinationCountry || "Perú",
       currencyType: project.currencyType || "Soles",
+      isPreviousDesign: toYesNo(project.isPreviousDesign),
+      previousEdagCode: project.previousEdagCode || "",
+      previousEdagVersion: project.previousEdagVersion || "",
     });
 
     setLoading(false);
@@ -398,6 +400,10 @@ export default function ProjectEditPage() {
       segment: selectedPortfolio?.seg || selectedPortfolio?.segmento || form.segment,
       subSegment: selectedPortfolio?.subseg || selectedPortfolio?.subSegmento || form.subSegment,
       afMarketId: selectedPortfolio?.af || selectedPortfolio?.afMarketId || form.afMarketId,
+      requiresDesignWork: (form.printClass as string) === "Sin impresión" ? "No" : "Sí",
+      isPreviousDesign: form.isPreviousDesign as BooleanLike,
+      previousEdagCode: form.previousEdagCode,
+      previousEdagVersion: form.previousEdagVersion,
       status: form.status || "Registrado",
       updatedAt: new Date().toISOString(),
     } as ProjectRecord);
@@ -562,7 +568,7 @@ export default function ProjectEditPage() {
                           ]
                         : []
                   }
-                  disabled={!form.subClassification}
+                  disabled={!form.subClassification || (form.classification === "Modificado" && (form.subClassification === "Estructura" || form.subClassification === "Diseño y dimensiones"))}
                 />
               </div>
             </FormCard>
@@ -613,10 +619,12 @@ export default function ProjectEditPage() {
                   onChange={(v) => updateField("unitOfMeasure", v)}
                   error={getError("unitOfMeasure")}
                   options={[
-                    { value: "KG", label: "KG" },
-                    { value: "UN", label: "UN" },
-                    { value: "MILLAR", label: "MILLAR" },
-                    { value: "TN", label: "TN" },
+                    { value: "KGS", label: "KGS" },
+                    { value: "MLL", label: "MLL" },
+                    { value: "MTS", label: "MTS" },
+                    { value: "MT2", label: "MT2" },
+                    { value: "LBS", label: "LBS" },
+                    { value: "UNI", label: "UNI" },
                   ]}
                 />
               </div>
@@ -624,61 +632,96 @@ export default function ProjectEditPage() {
 
             <FormCard title="4. Especificaciones de diseño" icon="🎨" color="#8e44ad">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormSelect
-                  label="Ruta de Diseño *"
-                  value={form.designRoute}
-                  onChange={(v) => updateField("designRoute", v)}
-                  error={getError("designRoute")}
-                  options={[
-                    { value: "Con diseño", label: "Con diseño" },
-                    { value: "Sin diseño", label: "Sin diseño" },
-                  ]}
-                />
-                <FormSelect
-                  label="Clase de Impresión"
-                  value={form.printClass}
-                  onChange={(v) => updateField("printClass", v)}
-                  placeholder="-- Seleccione --"
-                  options={[
-                    { value: "Flexo", label: "Flexo" },
-                    { value: "Rotograbado", label: "Rotograbado" },
-                    { value: "Sin impresión", label: "Sin impresión" },
-                  ]}
-                />
-                <FormSelect
-                  label="Tipo de Impresión"
-                  value={form.printType}
-                  onChange={(v) => updateField("printType", v)}
-                  placeholder="-- Seleccione --"
-                  options={[
-                    { value: "Nuevo", label: "Nuevo" },
-                    { value: "Repetitivo", label: "Repetitivo" },
-                  ]}
-                />
-                <FormSelect
-                  label="¿Requiere trabajo de diseño?"
-                  value={form.requiresDesignWork as string}
-                  onChange={(v) => updateField("requiresDesignWork", v)}
-                  options={[
-                    { value: "Sí", label: "Sí" },
-                    { value: "No", label: "No" },
-                  ]}
-                />
-                <FormSelect
-                  label="Especificaciones de Diseño Especiales"
-                  value={form.specialDesignSpecs}
-                  onChange={(v) => updateField("specialDesignSpecs", v)}
-                  placeholder="-- Seleccione --"
-                  options={SPECIAL_DESIGN_SPECS_OPTIONS}
-                />
-                <div className="md:col-span-3">
-                  <FormTextarea
-                    label="Comentarios de Diseño"
-                    value={form.specialDesignComments}
-                    onChange={(v) => updateField("specialDesignComments", v)}
-                    placeholder="Comentarios adicionales de Artes Gráficas..."
-                  />
-                </div>
+                {(() => {
+                  const isPrintingDisabled = (form.printClass as string) === "Sin impresión";
+                  return (
+                    <>
+                      <FormSelect
+                        label="Clase de Impresión"
+                        value={form.printClass}
+                        onChange={(v) => updateField("printClass", v)}
+                        placeholder="-- Seleccione --"
+                        options={[
+                          { value: "Flexo", label: "Flexo" },
+                          { value: "Huecograbado", label: "Huecograbado" },
+                          { value: "Sin impresión", label: "Sin impresión" },
+                        ]}
+                      />
+                      <FormSelect
+                        label="Tipo de Impresión"
+                        value={form.printType}
+                        onChange={(v) => updateField("printType", v)}
+                        placeholder="-- Seleccione --"
+                        options={[
+                          { value: "Nuevo", label: "Nuevo" },
+                          { value: "Repetitivo", label: "Repetitivo" },
+                        ]}
+                        disabled={isPrintingDisabled}
+                      />
+                      <FormSelect
+                        label="Especificaciones de Diseño Especiales"
+                        value={form.specialDesignSpecs}
+                        onChange={(v) => updateField("specialDesignSpecs", v)}
+                        placeholder="-- Seleccione --"
+                        options={SPECIAL_DESIGN_SPECS_OPTIONS}
+                        disabled={isPrintingDisabled}
+                      />
+                      <FormSelect
+                        label="¿Tiene Diseño de referencia?"
+                        value={form.isPreviousDesign as string}
+                        onChange={(v) => updateField("isPreviousDesign", v)}
+                        placeholder="-- Seleccione --"
+                        options={[
+                          { value: "Sí", label: "Sí" },
+                          { value: "No", label: "No" },
+                        ]}
+                      />
+                    </>
+                  );
+                })()}
+                {form.specialDesignSpecs === "Otros (comentar cuáles)" && (
+                  <div className="md:col-span-3">
+                    <FormTextarea
+                      label="Comentarios de diseños especiales"
+                      value={form.specialDesignComments}
+                      onChange={(v) => updateField("specialDesignComments", v)}
+                      placeholder="Comentarios adicionales de Artes Gráficas..."
+                    />
+                  </div>
+                )}
+
+                {form.isPreviousDesign === "Sí" && (
+                  <>
+                    <FormInput
+                      label="Código EDAG"
+                      value={form.edagCode as string}
+                      onChange={(v) => updateField("edagCode", v)}
+                      placeholder="Ej. EDAG-000001"
+                      disabled={(form.printClass as string) === "Sin impresión"}
+                    />
+                    <FormInput
+                      label="Versión EDAG"
+                      value={form.edagVersion as string}
+                      onChange={(v) => updateField("edagVersion", v)}
+                      placeholder="Ej. 01"
+                      disabled={(form.printClass as string) === "Sin impresión"}
+                    />
+                  </>
+                )}
+                {form.printClass && (
+                  <div className="md:col-span-3">
+                    <FormSelect
+                      label="¿Requiere trabajo de diseño?"
+                      value={(form.printClass as string) === "Sin impresión" ? "No" : "Sí"}
+                      onChange={() => {}}
+                      options={[
+                        { value: "Sí", label: "Sí" },
+                        { value: "No", label: "No" },
+                      ]}
+                      disabled={true}
+                    />
+                  </div>
+                )}
               </div>
             </FormCard>
 
@@ -709,42 +752,43 @@ export default function ProjectEditPage() {
                     />
                   </>
                 )}
-                <FormSelect
-                  label="Tipo de Estructura"
-                  value={form.structureType}
-                  onChange={(v) => updateField("structureType", v)}
-                  options={[
-                    { value: "Monocapa", label: "Monocapa" },
-                    { value: "Bilaminado", label: "Bilaminado" },
-                    { value: "Trilaminado", label: "Trilaminado" },
-                    { value: "Multicapa", label: "Multicapa" },
-                  ]}
-                />
-                <FormSelect
-                  label="¿Tiene especificación técnica cliente?"
-                  value={form.hasCustomerTechnicalSpec as string}
-                  onChange={(v) => updateField("hasCustomerTechnicalSpec", v)}
-                  options={[
-                    { value: "Sí", label: "Sí" },
-                    { value: "No", label: "No" },
-                  ]}
-                />
-                {form.hasCustomerTechnicalSpec === "Sí" && (
-                  <FormInput
-                    label="Adjunto especificación técnica"
-                    value={form.customerTechnicalSpecAttachment}
-                    onChange={(v) => updateField("customerTechnicalSpecAttachment", v)}
-                    placeholder="Nombre/link del archivo"
+                {form.hasReferenceStructure !== "Sí" && (
+                  <FormSelect
+                    label="Tipo de Estructura"
+                    value={form.structureType}
+                    onChange={(v) => updateField("structureType", v)}
+                    options={[
+                      { value: "Monocapa", label: "Monocapa" },
+                      { value: "Bilaminado", label: "Bilaminado" },
+                      { value: "Trilaminado", label: "Trilaminado" },
+                      { value: "Multicapa", label: "Multicapa" },
+                    ]}
                   />
                 )}
               </div>
 
+              {form.hasReferenceStructure !== "Sí" && (
               <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <p className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600">
                   Capas de estructura
                 </p>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {[1, 2, 3, 4].map((layer) => (
+                  {(() => {
+                    const maxLayers = (() => {
+                      switch (form.structureType as string) {
+                        case "Monocapa":
+                          return 1;
+                        case "Bilaminado":
+                          return 2;
+                        case "Trilaminado":
+                          return 3;
+                        case "Tetralaminado":
+                          return 4;
+                        default:
+                          return 0;
+                      }
+                    })();
+                    return [1, 2, 3, 4].filter(layer => layer <= maxLayers).map((layer) => (
                     <div key={layer} className="rounded-lg border border-slate-200 bg-white p-4">
                       <p className="mb-3 text-xs font-bold uppercase text-brand-primary">Capa {layer}</p>
                       <div className="space-y-3">
@@ -779,9 +823,30 @@ export default function ProjectEditPage() {
                         />
                       </div>
                     </div>
-                  ))}
+                  ));
+                  })()}
                 </div>
+
+                {(() => {
+                  const completedLayers = [];
+                  for (let i = 1; i <= 4; i++) {
+                    const material = (form as any)[`layer${i}Material`];
+                    const micron = (form as any)[`layer${i}Micron`];
+                    if (material && micron) {
+                      completedLayers.push(`${material} / ${micron}`);
+                    }
+                  }
+                  return completedLayers.length > 0 ? (
+                    <div className="mt-4 rounded-lg bg-white border border-slate-200 p-3">
+                      <p className="text-xs font-semibold text-slate-600 mb-2">Resumen de Capas:</p>
+                      <p className="text-sm text-slate-700 font-medium break-words">
+                        {completedLayers.join(" | ")}
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
               </div>
+              )}
 
               <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <FormInput
@@ -831,7 +896,9 @@ export default function ProjectEditPage() {
                       {isLamina && (
                         <FormInput label="Repetición" value={form.repetition} onChange={(v) => updateField("repetition", v)} placeholder="mm" />
                       )}
-                      <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(v) => updateField("doyPackBase", v)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
+                      {wrapping.includes("pouch") && (
+                        <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(v) => updateField("doyPackBase", v)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
+                      )}
                       <FormInput label="Ancho Fuelle" value={form.gussetWidth} onChange={(v) => updateField("gussetWidth", v)} placeholder="mm" />
                       <FormSelect label="Tipo de Fuelle" value={form.gussetType} onChange={(v) => updateField("gussetType", v)} placeholder="-- Seleccione --" options={GUSSET_TYPE_OPTIONS} />
                     </>
@@ -898,19 +965,25 @@ export default function ProjectEditPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Producto</p>
-                        <div className="space-y-3">
-                          <AccessoryCheckbox field="hasDieCutHandle" label="Asa Troquelada" />
-                          <AccessoryCheckbox field="hasReinforcement" label="Refuerzo" />
-                          {(form.hasReinforcement as string) === "Sí" && (
-                            <div className="grid grid-cols-2 gap-3">
-                              <FormInput label="Espesor Refuerzo (g/m2)" value={form.reinforcementThickness as string} onChange={(v) => updateField("reinforcementThickness", v)} placeholder="Ej. 100" />
-                              <FormInput label="Ancho Refuerzo (mm)" value={form.reinforcementWidth as string} onChange={(v) => updateField("reinforcementWidth", v)} placeholder="Ej. 50" />
+                      {(() => {
+                        const wrappingForAccesorios = inheritedWrapping?.toLowerCase() || "";
+                        const isBolsa = wrappingForAccesorios.includes("bolsa");
+                        return isBolsa ? (
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                            <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Producto</p>
+                            <div className="space-y-3">
+                              <AccessoryCheckbox field="hasDieCutHandle" label="Asa Troquelada" />
+                              <AccessoryCheckbox field="hasReinforcement" label="Refuerzo" />
+                              {(form.hasReinforcement as string) === "Sí" && (
+                                <div className="grid grid-cols-2 gap-3">
+                                  <FormInput label="Espesor Refuerzo (g/m2)" value={form.reinforcementThickness as string} onChange={(v) => updateField("reinforcementThickness", v)} placeholder="Ej. 100" />
+                                  <FormInput label="Ancho Refuerzo (mm)" value={form.reinforcementWidth as string} onChange={(v) => updateField("reinforcementWidth", v)} placeholder="Ej. 50" />
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </div>
+                          </div>
+                        ) : null;
+                      })()}
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
@@ -959,16 +1032,7 @@ export default function ProjectEditPage() {
                 <FormSelect label="Incoterm" value={form.incoterm} onChange={(v) => updateField("incoterm", v)} options={[{ value: "No aplica", label: "No aplica" }, { value: "EXW", label: "EXW" }, { value: "FOB", label: "FOB" }, { value: "CIF", label: "CIF" }, { value: "DAP", label: "DAP" }]} />
                 <FormSelect label="País Destino" value={form.destinationCountry} onChange={(v) => updateField("destinationCountry", v)} options={[{ value: "Perú", label: "Perú" }, { value: "Chile", label: "Chile" }, { value: "Colombia", label: "Colombia" }, { value: "Ecuador", label: "Ecuador" }, { value: "Portugal", label: "Portugal" }, { value: "Otro", label: "Otro" }]} />
                 <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(v) => updateField("targetPrice", v)} placeholder="Ej. 45" />
-                <FormInput label="Precio Venta" value={form.salePrice} onChange={(v) => updateField("salePrice", v)} placeholder="Ej. 46" />
                 <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(v) => updateField("currencyType", v)} options={[{ value: "Soles", label: "Soles" }, { value: "Dólares", label: "Dólares" }]} />
-                <FormSelect label="Material de Tuco / Core" value={form.coreMaterial} onChange={(v) => updateField("coreMaterial", v)} placeholder="-- Seleccione --" options={CORE_MATERIAL_OPTIONS} />
-                <FormInput label="Tuco / Core (mm)" value={form.coreDiameter} onChange={(v) => updateField("coreDiameter", v)} />
-                <FormInput label="Externo (mm)" value={form.externalDiameter} onChange={(v) => updateField("externalDiameter", v)} />
-                <FormInput label="Variación Externo (+)" value={form.externalVariationPlus} onChange={(v) => updateField("externalVariationPlus", v)} />
-                <FormInput label="Variación Externo (-)" value={form.externalVariationMinus} onChange={(v) => updateField("externalVariationMinus", v)} />
-                <FormInput label="Peso máximo de bobina" value={form.maxRollWeight} onChange={(v) => updateField("maxRollWeight", v)} />
-                <FormSelect label="Logo Producto Peruano" value={form.peruvianProductLogo} onChange={(v) => updateField("peruvianProductLogo", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                <FormSelect label="Pie de Imprenta" value={form.printingFooter} onChange={(v) => updateField("printingFooter", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
                 <div className="md:col-span-3">
                   <FormTextarea
                     label="Información adicional del cliente"

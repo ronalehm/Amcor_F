@@ -43,17 +43,19 @@ type ProjectFormData = {
 
   printClass: string;
   printType: string;
+  requiresDesignWork: string;
+  hasEdagReference: string;
+  referenceEdagCode: string;
+  referenceEdagVersion: string;
   specialDesignSpecs: string;
   specialDesignComments: string;
-  requiresDesignWork: string;
-  designRoute: string;
+  edagCode: string;
+  edagVersion: string;
 
   hasReferenceStructure: string;
   referenceEmCode: string;
   referenceEmVersion: string;
   structureType: string;
-  hasCustomerTechnicalSpec: string;
-  customerTechnicalSpecAttachment: string;
 
   layer1MaterialGroup: string;
   layer1Material: string;
@@ -224,13 +226,9 @@ function extractMaterialGroupFromValue(materialValue: string): string {
 
 
 const UNIT_OPTIONS = [
-  { value: "KG", label: "KG" },
-  { value: "UN", label: "UN" },
-  { value: "MILLAR", label: "MILLAR" },
-  { value: "TN", label: "TN" },
   { value: "KGS", label: "KGS" },
-  { value: "MILL", label: "MILL" },
-  { value: "MT", label: "MT" },
+  { value: "MLL", label: "MLL" },
+  { value: "MTS", label: "MTS" },
   { value: "MT2", label: "MT2" },
   { value: "LBS", label: "LBS" },
   { value: "UNI", label: "UNI" },
@@ -447,22 +445,24 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   blueprintFormat: "",
   technicalApplication: "",
   estimatedVolume: "",
-  unitOfMeasure: "KG",
+  unitOfMeasure: "KGS",
   customerPackingCode: "",
 
   printClass: "",
   printType: "",
+  requiresDesignWork: "No",
+  hasEdagReference: "No",
+  referenceEdagCode: "",
+  referenceEdagVersion: "",
   specialDesignSpecs: "",
   specialDesignComments: "",
-  requiresDesignWork: "No",
-  designRoute: "Sin diseño",
+  edagCode: "",
+  edagVersion: "",
 
   hasReferenceStructure: "No",
   referenceEmCode: "",
   referenceEmVersion: "",
   structureType: "Monocapa",
-  hasCustomerTechnicalSpec: "No",
-  customerTechnicalSpecAttachment: "",
 
   layer1MaterialGroup: "",
   layer1Material: "",
@@ -591,14 +591,10 @@ export default function ProjectCreatePage() {
           printType: original.printType || "",
           specialDesignSpecs: original.specialDesignSpecs || "",
           specialDesignComments: original.specialDesignComments || "",
-          requiresDesignWork: original.requiresDesignWork === true ? "Sí" : original.requiresDesignWork === false ? "No" : (original.requiresDesignWork || "No"),
-          designRoute: original.designRoute || "Sin diseño",
           hasReferenceStructure: original.hasReferenceStructure === true ? "Sí" : original.hasReferenceStructure === false ? "No" : (original.hasReferenceStructure || "No"),
           referenceEmCode: original.referenceEmCode || "",
           referenceEmVersion: original.referenceEmVersion || "",
           structureType: original.structureType || "Monocapa",
-          hasCustomerTechnicalSpec: original.hasCustomerTechnicalSpec === true ? "Sí" : original.hasCustomerTechnicalSpec === false ? "No" : (original.hasCustomerTechnicalSpec || "No"),
-          customerTechnicalSpecAttachment: original.customerTechnicalSpecAttachment || "",
           layer1MaterialGroup: extractMaterialGroupFromValue(original.layer1Material || ""),
           layer1Material: original.layer1Material || "",
           layer1Micron: original.layer1Micron || "",
@@ -720,12 +716,12 @@ export default function ProjectCreatePage() {
     if (!form.portfolioCode) errors.portfolioCode = "Seleccione un portafolio base.";
     if (!form.executiveId) errors.executiveId = "Seleccione un ejecutivo comercial.";
     if (!form.projectName.trim()) errors.projectName = "Ingrese el nombre del proyecto.";
+    if (!form.projectDescription.trim()) errors.projectDescription = "Ingrese la descripción del proyecto.";
     if (!form.salesforceAction.trim()) errors.salesforceAction = "Ingrese la acción Salesforce.";
     if (!form.blueprintFormat) errors.blueprintFormat = "Seleccione el formato de plano.";
     if (!form.technicalApplication) errors.technicalApplication = "Seleccione la aplicación técnica.";
     if (!form.estimatedVolume.trim()) errors.estimatedVolume = "Ingrese el volumen estimado.";
     if (!form.unitOfMeasure) errors.unitOfMeasure = "Seleccione la unidad de medida.";
-    if (!form.designRoute) errors.designRoute = "Seleccione la ruta de diseño.";
 
     return errors;
   }, [form]);
@@ -790,17 +786,17 @@ export default function ProjectCreatePage() {
       printType: form.printType,
       specialDesignSpecs: form.specialDesignSpecs,
       specialDesignComments: form.specialDesignComments,
-      requiresDesignWork: form.requiresDesignWork as BooleanLike,
-      designRoute: form.designRoute,
-      routeType: form.designRoute === "Con diseño" ? "Con diseño" : "Sin diseño",
-      hasArtworkDesign: form.designRoute === "Con diseño",
+      edagCode: form.edagCode,
+      edagVersion: form.edagVersion,
+      isPreviousDesign: form.hasEdagReference as BooleanLike,
+      previousEdagCode: form.referenceEdagCode,
+      previousEdagVersion: form.referenceEdagVersion,
+      requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
 
       hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
       referenceEmCode: form.referenceEmCode,
       referenceEmVersion: form.referenceEmVersion,
       structureType: form.structureType,
-      hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec as BooleanLike,
-      customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
 
       layer1Material: form.layer1Material,
       layer1Micron: form.layer1Micron,
@@ -946,6 +942,7 @@ export default function ProjectCreatePage() {
                     label="Descripción del Proyecto *"
                     value={form.projectDescription}
                     onChange={(value) => updateField("projectDescription", value)}
+                    error={getError("projectDescription")}
                     placeholder="Descripción comercial y técnica del proyecto..."
                   />
                 </div>
@@ -1011,7 +1008,7 @@ export default function ProjectCreatePage() {
                           ? PROJECT_TYPE_TECNICA_OPTIONS
                           : []
                     }
-                    disabled={!form.subClassification}
+                    disabled={!form.subClassification || (form.classification === "Modificado" && (form.subClassification === "Estructura" || form.subClassification === "Diseño y dimensiones"))}
                   />
                 </div>
               </FormCard>
@@ -1067,51 +1064,83 @@ export default function ProjectCreatePage() {
 
             <FormCard title="4. Especificaciones de diseño" icon="🎨" color="#8e44ad">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormSelect
-                  label="Ruta de Diseño *"
-                  value={form.designRoute}
-                  onChange={(value) => updateField("designRoute", value)}
-                  error={getError("designRoute")}
-                  options={[
-                    { value: "Con diseño", label: "Con diseño" },
-                    { value: "Sin diseño", label: "Sin diseño" },
-                  ]}
-                />
-                <FormSelect
-                  label="Clase de Impresión"
-                  value={form.printClass}
-                  onChange={(value) => updateField("printClass", value)}
-                  placeholder="-- Seleccione --"
-                  options={PRINT_CLASS_OPTIONS}
-                />
-                <FormSelect
-                  label="Tipo de Impresión"
-                  value={form.printType}
-                  onChange={(value) => updateField("printType", value)}
-                  placeholder="-- Seleccione --"
-                  options={PRINT_TYPE_OPTIONS}
-                />
-                <FormSelect
-                  label="¿Requiere trabajo de diseño?"
-                  value={form.requiresDesignWork}
-                  onChange={(value) => updateField("requiresDesignWork", value)}
-                  options={YES_NO_OPTIONS}
-                />
-                <FormSelect
-                  label="Especificaciones de Diseño Especiales"
-                  value={form.specialDesignSpecs}
-                  onChange={(value) => updateField("specialDesignSpecs", value)}
-                  placeholder="-- Seleccione --"
-                  options={SPECIAL_DESIGN_SPECS_OPTIONS}
-                />
-                <div className="md:col-span-3">
-                  <FormTextarea
-                    label="Comentarios de Diseño"
-                    value={form.specialDesignComments}
-                    onChange={(value) => updateField("specialDesignComments", value)}
-                    placeholder="Comentarios adicionales de Artes Gráficas..."
-                  />
-                </div>
+                {(() => {
+                  const isPrintingDisabled = form.printClass === "Sin impresión";
+                  return (
+                    <>
+                      <FormSelect
+                        label="Clase de Impresión"
+                        value={form.printClass}
+                        onChange={(value) => updateField("printClass", value)}
+                        placeholder="-- Seleccione --"
+                        options={PRINT_CLASS_OPTIONS}
+                      />
+                      <FormSelect
+                        label="Tipo de Impresión"
+                        value={form.printType}
+                        onChange={(value) => updateField("printType", value)}
+                        placeholder="-- Seleccione --"
+                        options={PRINT_TYPE_OPTIONS}
+                        disabled={isPrintingDisabled}
+                      />
+                      <FormSelect
+                        label="Especificaciones de Diseño Especiales"
+                        value={form.specialDesignSpecs}
+                        onChange={(value) => updateField("specialDesignSpecs", value)}
+                        placeholder="-- Seleccione --"
+                        options={SPECIAL_DESIGN_SPECS_OPTIONS}
+                        disabled={isPrintingDisabled}
+                      />
+                      <FormSelect
+                        label="¿Tiene Diseño de referencia?"
+                        value={form.hasEdagReference}
+                        onChange={(value) => updateField("hasEdagReference", value)}
+                        placeholder="-- Seleccione --"
+                        options={YES_NO_OPTIONS}
+                      />
+                    </>
+                  );
+                })()}
+                {form.specialDesignSpecs === "Otros (comentar cuáles)" && (
+                  <div className="md:col-span-3">
+                    <FormTextarea
+                      label="Comentarios de diseños especiales"
+                      value={form.specialDesignComments}
+                      onChange={(value) => updateField("specialDesignComments", value)}
+                      placeholder="Comentarios adicionales de Artes Gráficas..."
+                    />
+                  </div>
+                )}
+
+                {form.hasEdagReference === "Sí" && (
+                  <>
+                    <FormInput
+                      label="Código EDAG"
+                      value={form.edagCode}
+                      onChange={(value) => updateField("edagCode", value)}
+                      placeholder="Ej. EDAG-000001"
+                      disabled={form.printClass === "Sin impresión"}
+                    />
+                    <FormInput
+                      label="Versión EDAG"
+                      value={form.edagVersion}
+                      onChange={(value) => updateField("edagVersion", value)}
+                      placeholder="Ej. 01"
+                      disabled={form.printClass === "Sin impresión"}
+                    />
+                  </>
+                )}
+                {form.printClass && (
+                  <div className="md:col-span-3">
+                    <FormSelect
+                      label="¿Requiere trabajo de diseño?"
+                      value={form.printClass === "Sin impresión" ? "No" : "Sí"}
+                      onChange={() => {}}
+                      options={YES_NO_OPTIONS}
+                      disabled={true}
+                    />
+                  </div>
+                )}
               </div>
             </FormCard>
 
@@ -1154,39 +1183,39 @@ export default function ProjectCreatePage() {
                     />
                   </>
                 )}
-                <FormSelect
-                  label="Tipo de Estructura"
-                  value={form.structureType}
-                  onChange={(value) => updateField("structureType", value)}
-                  options={STRUCTURE_TYPE_OPTIONS}
-                />
-                <FormSelect
-                  label="¿Tiene especificación técnica cliente?"
-                  value={form.hasCustomerTechnicalSpec}
-                  onChange={(value) =>
-                    updateField("hasCustomerTechnicalSpec", value)
-                  }
-                  options={YES_NO_OPTIONS}
-                />
-                {form.hasCustomerTechnicalSpec === "Sí" && (
-                  <FormInput
-                    label="Adjunto especificación técnica"
-                    value={form.customerTechnicalSpecAttachment}
-                    onChange={(value) =>
-                      updateField("customerTechnicalSpecAttachment", value)
-                    }
-                    placeholder="Nombre/link del archivo"
+                {form.hasReferenceStructure !== "Sí" && (
+                  <FormSelect
+                    label="Tipo de Estructura"
+                    value={form.structureType}
+                    onChange={(value) => updateField("structureType", value)}
+                    options={STRUCTURE_TYPE_OPTIONS}
                   />
                 )}
               </div>
 
+              {form.hasReferenceStructure !== "Sí" && (
               <div className={`mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 ${isDuplicateMode ? "opacity-70 pointer-events-none" : ""}`}>
                 <p className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600">
                   Capas de estructura
                 </p>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {[1, 2, 3, 4].map((layer) => {
+                  {(() => {
+                    const maxLayers = (() => {
+                      switch (form.structureType) {
+                        case "Monocapa":
+                          return 1;
+                        case "Bilaminado":
+                          return 2;
+                        case "Trilaminado":
+                          return 3;
+                        case "Tetralaminado":
+                          return 4;
+                        default:
+                          return 0;
+                      }
+                    })();
+                    return [1, 2, 3, 4].filter(layer => layer <= maxLayers).map((layer) => {
                     const groupKey = `layer${layer}MaterialGroup` as keyof ProjectFormData;
                     const materialKey = `layer${layer}Material` as keyof ProjectFormData;
                     const micronKey = `layer${layer}Micron` as keyof ProjectFormData;
@@ -1250,9 +1279,31 @@ export default function ProjectCreatePage() {
                         </div>
                       </div>
                     );
-                  })}
+                  });
+                  })()}
                 </div>
+
+                {(() => {
+                  const completedLayers = [];
+                  for (let i = 1; i <= 4; i++) {
+                    const material = form[`layer${i}Material` as keyof ProjectFormData] as string;
+                    const micron = form[`layer${i}Micron` as keyof ProjectFormData] as string;
+                    if (material && micron) {
+                      const materialDisplay = material.split(" - ").slice(1).join(" - ");
+                      completedLayers.push(`${materialDisplay} / ${micron}`);
+                    }
+                  }
+                  return completedLayers.length > 0 ? (
+                    <div className="mt-4 rounded-lg bg-white border border-slate-200 p-3">
+                      <p className="text-xs font-semibold text-slate-600 mb-2">Resumen de Capas:</p>
+                      <p className="text-sm text-slate-700 font-medium break-words">
+                        {completedLayers.join(" | ")}
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
               </div>
+              )}
 
               <div className={`mt-4 grid grid-cols-1 gap-4 md:grid-cols-3 ${isDuplicateMode ? "opacity-70 pointer-events-none" : ""}`}>
                 <FormInput
@@ -1299,7 +1350,9 @@ export default function ProjectCreatePage() {
                       {isLamina && (
                         <FormInput label="Repetición" value={form.repetition} onChange={(value) => updateField("repetition", value)} placeholder="mm" />
                       )}
-                      <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(value) => updateField("doyPackBase", value)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
+                      {wrapping.includes("pouch") && (
+                        <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(value) => updateField("doyPackBase", value)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
+                      )}
                       <FormInput label="Ancho Fuelle" value={form.gussetWidth} onChange={(value) => updateField("gussetWidth", value)} placeholder="mm" />
                       <FormSelect label="Tipo de Fuelle" value={form.gussetType} onChange={(value) => updateField("gussetType", value)} placeholder="-- Seleccione --" options={GUSSET_TYPE_OPTIONS} />
                     </>
@@ -1366,19 +1419,25 @@ export default function ProjectCreatePage() {
                         </div>
                       </div>
 
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Producto</p>
-                        <div className="space-y-3">
-                          <AccessoryCheckbox field="hasDieCutHandle" label="Asa Troquelada" />
-                          <AccessoryCheckbox field="hasReinforcement" label="Refuerzo" />
-                          {form.hasReinforcement === "Sí" && (
-                            <div className="grid grid-cols-2 gap-3">
-                              <FormInput label="Espesor Refuerzo (g/m2)" value={form.reinforcementThickness} onChange={(value) => updateField("reinforcementThickness", value)} placeholder="Ej. 100" />
-                              <FormInput label="Ancho Refuerzo (mm)" value={form.reinforcementWidth} onChange={(value) => updateField("reinforcementWidth", value)} placeholder="Ej. 50" />
+                      {(() => {
+                        const wrappingForAccesorios = inheritedWrapping?.toLowerCase() || "";
+                        const isBolsa = wrappingForAccesorios.includes("bolsa");
+                        return isBolsa ? (
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                            <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Producto</p>
+                            <div className="space-y-3">
+                              <AccessoryCheckbox field="hasDieCutHandle" label="Asa Troquelada" />
+                              <AccessoryCheckbox field="hasReinforcement" label="Refuerzo" />
+                              {form.hasReinforcement === "Sí" && (
+                                <div className="grid grid-cols-2 gap-3">
+                                  <FormInput label="Espesor Refuerzo (g/m2)" value={form.reinforcementThickness} onChange={(value) => updateField("reinforcementThickness", value)} placeholder="Ej. 100" />
+                                  <FormInput label="Ancho Refuerzo (mm)" value={form.reinforcementWidth} onChange={(value) => updateField("reinforcementWidth", value)} placeholder="Ej. 50" />
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </div>
+                          </div>
+                        ) : null;
+                      })()}
 
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                         <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
@@ -1428,19 +1487,7 @@ export default function ProjectCreatePage() {
                 <FormSelect label="País Destino" value={form.destinationCountry} onChange={(value) => updateField("destinationCountry", value)} options={DESTINATION_COUNTRY_OPTIONS} />
 
                 <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(value) => updateField("targetPrice", value)} placeholder="Ej. 45" />
-                <FormInput label="Precio Venta" value={form.salePrice} onChange={(value) => updateField("salePrice", value)} placeholder="Ej. 46" />
                 <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={CURRENCY_OPTIONS} />
-
-                <FormSelect label="Material de Tuco / Core" value={form.coreMaterial} onChange={(value) => updateField("coreMaterial", value)} placeholder="-- Seleccione --" options={CORE_MATERIAL_OPTIONS} />
-                <FormInput label="Tuco / Core (mm)" value={form.coreDiameter} onChange={(value) => updateField("coreDiameter", value)} />
-
-                <FormInput label="Externo (mm)" value={form.externalDiameter} onChange={(value) => updateField("externalDiameter", value)} />
-                <FormInput label="Variación Externo (+)" value={form.externalVariationPlus} onChange={(value) => updateField("externalVariationPlus", value)} />
-                <FormInput label="Variación Externo (-)" value={form.externalVariationMinus} onChange={(value) => updateField("externalVariationMinus", value)} />
-
-                <FormInput label="Peso máximo de bobina" value={form.maxRollWeight} onChange={(value) => updateField("maxRollWeight", value)} />
-                <FormSelect label="Logo Producto Peruano" value={form.peruvianProductLogo} onChange={(value) => updateField("peruvianProductLogo", value)} options={YES_NO_OPTIONS} />
-                <FormSelect label="Pie de Imprenta" value={form.printingFooter} onChange={(value) => updateField("printingFooter", value)} options={YES_NO_OPTIONS} />
 
                 <div className="md:col-span-3">
                   <FormTextarea
