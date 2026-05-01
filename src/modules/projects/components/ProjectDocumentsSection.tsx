@@ -9,24 +9,45 @@ import {
 import ActionButton from "../../../shared/components/buttons/ActionButton";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const DOCUMENTOS_EXTENSIONS = ["doc", "docx", "xls", "xlsx", "txt", "pdf"];
+const PLANOS_EXTENSIONS = ["ai", "zip", "links", "pdf"];
 
 interface ProjectDocumentsSectionProps {
   projectCode: string;
 }
 
+interface DocumentType {
+  type: "documentos" | "planos";
+  label: string;
+  extensions: string[];
+  icon: string;
+}
+
+const DOCUMENT_TYPES: DocumentType[] = [
+  { type: "documentos", label: "Documentos", extensions: DOCUMENTOS_EXTENSIONS, icon: "📄" },
+  { type: "planos", label: "Planos", extensions: PLANOS_EXTENSIONS, icon: "📐" },
+];
+
 export default function ProjectDocumentsSection({
   projectCode,
 }: ProjectDocumentsSectionProps) {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingDocumentos, setIsDraggingDocumentos] = useState(false);
+  const [isDraggingPlanos, setIsDraggingPlanos] = useState(false);
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputDocumentosRef = useRef<HTMLInputElement>(null);
+  const fileInputPlanosRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setDocuments(getDocumentsByProject(projectCode));
   }, [projectCode]);
 
-  const validateFile = (file: File): string | null => {
+  const getFileExtension = (fileName: string): string => {
+    const extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
+    return extension;
+  };
+
+  const validateFile = (file: File, allowedExtensions: string[]): string | null => {
     if (file.size === 0) {
       return `${file.name}: El archivo no puede estar vacío.`;
     }
@@ -34,15 +55,22 @@ export default function ProjectDocumentsSection({
       const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
       return `${file.name}: Tamaño ${sizeMB}MB excede límite de 10MB.`;
     }
+
+    const ext = getFileExtension(file.name);
+    if (!allowedExtensions.includes(ext)) {
+      const validExts = allowedExtensions.join(", ");
+      return `${file.name}: Formato no válido. Permitidos: ${validExts}`;
+    }
+
     return null;
   };
 
-  const processFiles = (files: File[]) => {
+  const processFiles = (files: File[], allowedExtensions: string[]) => {
     const errors: string[] = [];
     const toUpload: File[] = [];
 
     for (const file of files) {
-      const error = validateFile(file);
+      const error = validateFile(file, allowedExtensions);
       if (error) {
         errors.push(error);
       } else {
@@ -60,7 +88,7 @@ export default function ProjectDocumentsSection({
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
-        const extension = file.name.substring(file.name.lastIndexOf("."));
+        const extension = "." + getFileExtension(file.name);
         const newDoc: ProjectDocument = {
           id: generateDocumentId(),
           projectCode,
@@ -79,25 +107,25 @@ export default function ProjectDocumentsSection({
     });
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, setDragging: (state: boolean) => void) => {
     e.preventDefault();
-    setIsDragging(true);
+    setDragging(true);
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
+  const handleDragLeave = (setDragging: (state: boolean) => void) => {
+    setDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, setDragging: (state: boolean) => void, extensions: string[]) => {
     e.preventDefault();
-    setIsDragging(false);
+    setDragging(false);
     const files = Array.from(e.dataTransfer.files);
-    processFiles(files);
+    processFiles(files, extensions);
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, extensions: string[]) => {
     const files = Array.from(e.currentTarget.files || []);
-    processFiles(files);
+    processFiles(files, extensions);
     e.currentTarget.value = "";
   };
 
@@ -125,17 +153,6 @@ export default function ProjectDocumentsSection({
     }
   };
 
-  const handleDownloadAll = async () => {
-    if (documents.length === 0) return;
-
-    for (let i = 0; i < documents.length; i++) {
-      const doc = documents[i];
-      setTimeout(() => {
-        handleDownloadDocument(doc);
-      }, i * 200);
-    }
-  };
-
   const handleDeleteDocument = (docId: string) => {
     deleteDocument(docId);
     setDocuments(getDocumentsByProject(projectCode));
@@ -158,49 +175,36 @@ export default function ProjectDocumentsSection({
     });
   };
 
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
-        <span
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold"
-          style={{ backgroundColor: "#0d4c5c15", color: "#0d4c5c" }}
-        >
-          📄
-        </span>
-        <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
-          Documentos y Planos
-        </h2>
-      </div>
+  const DocumentTypeSection = ({ docType }: { docType: DocumentType }) => {
+    const filteredDocs = documents.filter((doc) => {
+      const ext = getFileExtension(doc.fileName);
+      return docType.extensions.includes(ext);
+    });
 
-      <div className="p-5 space-y-4">
-        {/* Error messages */}
-        {uploadErrors.length > 0 && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-            <p className="text-xs font-bold text-red-700 mb-2">Errores al cargar:</p>
-            <ul className="space-y-1">
-              {uploadErrors.map((error, idx) => (
-                <li key={idx} className="text-xs text-red-600">
-                  • {error}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+    const isDragging = docType.type === "documentos" ? isDraggingDocumentos : isDraggingPlanos;
+    const setIsDragging = docType.type === "documentos" ? setIsDraggingDocumentos : setIsDraggingPlanos;
+    const fileInputRef = docType.type === "documentos" ? fileInputDocumentosRef : fileInputPlanosRef;
+
+    return (
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">{docType.icon}</span>
+          <h3 className="text-sm font-bold uppercase text-slate-700">{docType.label}</h3>
+          <span className="text-xs text-slate-500">({docType.extensions.join(", ")})</span>
+        </div>
 
         {/* Drag & drop area */}
         <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+          onDragOver={(e) => handleDragOver(e, setIsDragging)}
+          onDragLeave={() => handleDragLeave(setIsDragging)}
+          onDrop={(e) => handleDrop(e, setIsDragging, docType.extensions)}
+          className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
             isDragging
-              ? "border-brand-primary bg-blue-50/50 shadow-sm"
-              : "border-slate-300 hover:border-brand-primary hover:bg-slate-50/50"
+              ? "border-brand-primary bg-blue-50 shadow-sm"
+              : "border-slate-300 hover:border-brand-primary hover:bg-white"
           }`}
         >
-          <div className="text-3xl mb-2">📁</div>
-          <p className="text-sm font-semibold text-slate-600 mb-1">
+          <p className="text-sm font-semibold text-slate-600 mb-2">
             Soltar archivos para subir
           </p>
           <p className="text-xs text-slate-500 mb-3">o</p>
@@ -216,17 +220,17 @@ export default function ProjectDocumentsSection({
             type="file"
             multiple
             hidden
-            onChange={handleFileInputChange}
+            onChange={(e) => handleFileInputChange(e, docType.extensions)}
           />
         </div>
 
         {/* File list */}
-        {documents.length > 0 ? (
+        {filteredDocs.length > 0 ? (
           <div className="space-y-2">
             <p className="text-xs font-bold text-slate-600 uppercase">
-              Archivos cargados ({documents.length})
+              Archivos cargados ({filteredDocs.length})
             </p>
-            <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            <div className="overflow-x-auto border border-slate-200 rounded-lg bg-white">
               <table className="w-full text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
@@ -248,7 +252,7 @@ export default function ProjectDocumentsSection({
                   </tr>
                 </thead>
                 <tbody>
-                  {documents.map((doc) => (
+                  {filteredDocs.map((doc) => (
                     <tr
                       key={doc.id}
                       className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
@@ -290,24 +294,71 @@ export default function ProjectDocumentsSection({
             </div>
           </div>
         ) : (
-          <div className="text-center py-6">
+          <div className="text-center py-4">
             <p className="text-xs text-slate-500">
-              No hay documentos cargados. Carga archivos para este proyecto.
+              No hay {docType.label.toLowerCase()} cargados.
             </p>
           </div>
         )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+        <span
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold"
+          style={{ backgroundColor: "#0d4c5c15", color: "#0d4c5c" }}
+        >
+          📦
+        </span>
+        <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
+          Documentos y Planos
+        </h2>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Error messages */}
+        {uploadErrors.length > 0 && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+            <p className="text-xs font-bold text-red-700 mb-2">Errores al cargar:</p>
+            <ul className="space-y-1">
+              {uploadErrors.map((error, idx) => (
+                <li key={idx} className="text-xs text-red-600">
+                  • {error}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Document sections */}
+        <div className="space-y-4">
+          {DOCUMENT_TYPES.map((docType) => (
+            <DocumentTypeSection key={docType.type} docType={docType} />
+          ))}
+        </div>
 
         {/* Download all button */}
-        <div className="flex justify-end pt-2">
-          <ActionButton
-            type="button"
-            label="Descargar Todo"
-            onClick={handleDownloadAll}
-            variant={documents.length > 0 ? "primary" : "secondary"}
-            disabled={documents.length === 0}
-            size="sm"
-          />
-        </div>
+        {documents.length > 0 && (
+          <div className="flex justify-end pt-2">
+            <ActionButton
+              type="button"
+              label="Descargar Todo"
+              onClick={() => {
+                documents.forEach((doc, idx) => {
+                  setTimeout(() => {
+                    handleDownloadDocument(doc);
+                  }, idx * 200);
+                });
+              }}
+              variant="primary"
+              size="sm"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

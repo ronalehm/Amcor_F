@@ -43,33 +43,33 @@ type ProjectFormData = {
 
   printClass: string;
   printType: string;
-  isPreviousDesign: string;
-  previousEdagCode: string;
-  previousEdagVersion: string;
+  requiresDesignWork: string;
+  hasEdagReference: string;
+  referenceEdagCode: string;
+  referenceEdagVersion: string;
   specialDesignSpecs: string;
   specialDesignComments: string;
-  hasDigitalFiles: string;
-  artworkFileType: string;
-  artworkAttachments: string;
-  requiresDesignWork: string;
-  designRoute: string;
+  edagCode: string;
+  edagVersion: string;
 
   hasReferenceStructure: string;
   referenceEmCode: string;
   referenceEmVersion: string;
   structureType: string;
-  hasCustomerTechnicalSpec: string;
-  customerTechnicalSpecAttachment: string;
 
+  layer1MaterialGroup: string;
   layer1Material: string;
   layer1Micron: string;
   layer1Grammage: string;
+  layer2MaterialGroup: string;
   layer2Material: string;
   layer2Micron: string;
   layer2Grammage: string;
+  layer3MaterialGroup: string;
   layer3Material: string;
   layer3Micron: string;
   layer3Grammage: string;
+  layer4MaterialGroup: string;
   layer4Material: string;
   layer4Micron: string;
   layer4Grammage: string;
@@ -84,6 +84,7 @@ type ProjectFormData = {
   repetition: string;
   doyPackBase: string;
   gussetWidth: string;
+  gussetType: string;
 
   hasZipper: string;
   zipperType: string;
@@ -112,7 +113,6 @@ type ProjectFormData = {
   targetPrice: string;
   salePrice: string;
   currencyType: string;
-  paymentTerms: string;
   coreMaterial: string;
   coreDiameter: string;
   externalDiameter: string;
@@ -217,45 +217,118 @@ function getBlueprintFormatOptions(wrapping: string | undefined): Array<{ value:
   return [];
 }
 
+function extractMaterialGroupFromValue(materialValue: string): string {
+  if (!materialValue) return "";
+  const group = materialValue.split(" - ")[0];
+  return Object.keys(MATERIAL_CATALOG).includes(group) ? group : "";
+}
+
 
 
 const UNIT_OPTIONS = [
-  { value: "KG", label: "KG" },
-  { value: "UN", label: "UN" },
-  { value: "MILLAR", label: "MILLAR" },
-  { value: "TN", label: "TN" },
+  { value: "KGS", label: "KGS" },
+  { value: "MLL", label: "MLL" },
+  { value: "MTS", label: "MTS" },
+  { value: "MT2", label: "MT2" },
+  { value: "LBS", label: "LBS" },
+  { value: "UNI", label: "UNI" },
 ];
 
 const PRINT_CLASS_OPTIONS = [
   { value: "Flexo", label: "Flexo" },
-  { value: "Rotograbado", label: "Rotograbado" },
+  { value: "Huecograbado", label: "Huecograbado" },
   { value: "Sin impresión", label: "Sin impresión" },
 ];
 
 const PRINT_TYPE_OPTIONS = [
   { value: "Nuevo", label: "Nuevo" },
   { value: "Repetitivo", label: "Repetitivo" },
-  { value: "Cambio menor", label: "Cambio menor" },
 ];
 
 const STRUCTURE_TYPE_OPTIONS = [
   { value: "Monocapa", label: "Monocapa" },
   { value: "Bilaminado", label: "Bilaminado" },
   { value: "Trilaminado", label: "Trilaminado" },
-  { value: "Multicapa", label: "Multicapa" },
+  { value: "Tetralaminado", label: "Tetralaminado" },
 ];
 
-const MATERIAL_OPTIONS = [
-  { value: "BOPP - Cristal", label: "BOPP - Cristal" },
-  { value: "BOPP - Metalizado", label: "BOPP - Metalizado" },
-  { value: "PET - Cristal", label: "PET - Cristal" },
-  { value: "PET - Mate", label: "PET - Mate" },
-  { value: "NYLON", label: "NYLON" },
-  { value: "ALU", label: "ALU" },
-  { value: "PE - PEBD", label: "PE - PEBD" },
-  { value: "COEX", label: "COEX" },
-  { value: "ADHESIVO", label: "ADHESIVO" },
-];
+type MaterialEntry = { value: string; label: string; micron: string; isFree: boolean };
+type MaterialCatalog = Record<string, MaterialEntry[]>;
+
+const MATERIAL_CATALOG: MaterialCatalog = {
+  "BOPP": [
+    { value: "BOPP - BOPP CRISTAL - 15",         label: "BOPP CRISTAL - 15",         micron: "15",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL - 17",         label: "BOPP CRISTAL - 17",         micron: "17",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL - 20",         label: "BOPP CRISTAL - 20",         micron: "20",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL - 25",         label: "BOPP CRISTAL - 25",         micron: "25",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL - 30",         label: "BOPP CRISTAL - 30",         micron: "30",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL - 35",         label: "BOPP CRISTAL - 35",         micron: "35",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL ETIQUETA - 13.5", label: "BOPP CRISTAL ETIQUETA - 13.5", micron: "13.5", isFree: false },
+    { value: "BOPP - BOPP BLANCO/MATE - 17",     label: "BOPP BLANCO/MATE - 17",     micron: "17",  isFree: false },
+    { value: "BOPP - BOPP BLANCO/MATE - 20",     label: "BOPP BLANCO/MATE - 20",     micron: "20",  isFree: false },
+    { value: "BOPP - BOPP BLANCO/MATE - 27",     label: "BOPP BLANCO/MATE - 27",     micron: "27",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 15",            label: "BOPP ALOX - 15",            micron: "15",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 17",            label: "BOPP ALOX - 17",            micron: "17",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 20",            label: "BOPP ALOX - 20",            micron: "20",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 25",            label: "BOPP ALOX - 25",            micron: "25",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 30",            label: "BOPP ALOX - 30",            micron: "30",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 35",            label: "BOPP ALOX - 35",            micron: "35",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 15",      label: "BOPP METALIZADO - 15",      micron: "15",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 17",      label: "BOPP METALIZADO - 17",      micron: "17",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 20",      label: "BOPP METALIZADO - 20",      micron: "20",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 25",      label: "BOPP METALIZADO - 25",      micron: "25",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 30",      label: "BOPP METALIZADO - 30",      micron: "30",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 35",      label: "BOPP METALIZADO - 35",      micron: "35",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO UHB - 18",  label: "BOPP METALIZADO UHB - 18",  micron: "18",  isFree: false },
+  ],
+  "POLIESTER": [
+    { value: "POLIESTER - PET CRISTAL - 10",         label: "PET CRISTAL - 10",         micron: "10", isFree: false },
+    { value: "POLIESTER - PET CRISTAL - 12",         label: "PET CRISTAL - 12",         micron: "12", isFree: false },
+    { value: "POLIESTER - PET METALIZADO - 12",      label: "PET METALIZADO - 12",      micron: "12", isFree: false },
+    { value: "POLIESTER - PET METALIZADO UHB - 12",  label: "PET METALIZADO UHB - 12",  micron: "12", isFree: false },
+  ],
+  "PAPEL": [
+    { value: "PAPEL - PAPEL ANTIGRASA - 40",    label: "PAPEL ANTIGRASA - 40",    micron: "40", isFree: false },
+    { value: "PAPEL - PAPEL ANTIGRASA - 60",    label: "PAPEL ANTIGRASA - 60",    micron: "60", isFree: false },
+    { value: "PAPEL - PAPEL ESTUCADO - 40",     label: "PAPEL ESTUCADO - 40",     micron: "40", isFree: false },
+    { value: "PAPEL - PAPEL ESTUCADO - 60",     label: "PAPEL ESTUCADO - 60",     micron: "60", isFree: false },
+    { value: "PAPEL - PAPEL ESTUCADO - 70",     label: "PAPEL ESTUCADO - 70",     micron: "70", isFree: false },
+    { value: "PAPEL - PAPEL ESPECIAL - Libre",  label: "PAPEL ESPECIAL - Libre",  micron: "",   isFree: true  },
+  ],
+  "COEX": [
+    { value: "COEX - PE - Libre",     label: "PE - Libre",     micron: "", isFree: true },
+    { value: "COEX - BARVAL - Libre", label: "BARVAL - Libre", micron: "", isFree: true },
+    { value: "COEX - BARLON - Libre", label: "BARLON - Libre", micron: "", isFree: true },
+  ],
+  "ALUMINIO": [
+    { value: "ALUMINIO - ALUMINIO - 7", label: "ALUMINIO - 7", micron: "7", isFree: false },
+    { value: "ALUMINIO - ALUMINIO - 8", label: "ALUMINIO - 8", micron: "8", isFree: false },
+    { value: "ALUMINIO - ALUMINIO - 9", label: "ALUMINIO - 9", micron: "9", isFree: false },
+  ],
+  "AMPRIMA": [
+    { value: "AMPRIMA - AMPRIMA - 25", label: "AMPRIMA - 25", micron: "25", isFree: false },
+  ],
+  "PPCAST": [
+    { value: "PPCAST - CAST CRISTAL - 20", label: "CAST CRISTAL - 20", micron: "20", isFree: false },
+    { value: "PPCAST - CAST CRISTAL - 25", label: "CAST CRISTAL - 25", micron: "25", isFree: false },
+    { value: "PPCAST - CAST CRISTAL - 30", label: "CAST CRISTAL - 30", micron: "30", isFree: false },
+    { value: "PPCAST - CAST CRISTAL - 60", label: "CAST CRISTAL - 60", micron: "60", isFree: false },
+  ],
+  "BOPA": [
+    { value: "BOPA - BOPA CRISTAL - 15", label: "BOPA CRISTAL - 15", micron: "15", isFree: false },
+  ],
+  "TERMOFORMADOS": [
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 75",  label: "TERMOFORMADO ALTA - 75",  micron: "75",  isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 90",  label: "TERMOFORMADO ALTA - 90",  micron: "90",  isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 100", label: "TERMOFORMADO ALTA - 100", micron: "100", isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 110", label: "TERMOFORMADO ALTA - 110", micron: "110", isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 150", label: "TERMOFORMADO ALTA - 150", micron: "150", isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 178", label: "TERMOFORMADO ALTA - 178", micron: "178", isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 200", label: "TERMOFORMADO ALTA - 200", micron: "200", isFree: false },
+  ],
+};
+
+const MATERIAL_GROUP_OPTIONS = Object.keys(MATERIAL_CATALOG).map(g => ({ value: g, label: g }));
 
 const SALE_TYPE_OPTIONS = [
   { value: "Nacional", label: "Nacional" },
@@ -263,11 +336,17 @@ const SALE_TYPE_OPTIONS = [
 ];
 
 const INCOTERM_OPTIONS = [
-  { value: "No aplica", label: "No aplica" },
   { value: "EXW", label: "EXW" },
+  { value: "FCA", label: "FCA" },
+  { value: "FAS", label: "FAS" },
   { value: "FOB", label: "FOB" },
+  { value: "CPT", label: "CPT" },
+  { value: "CIP", label: "CIP" },
+  { value: "CFR", label: "CFR" },
   { value: "CIF", label: "CIF" },
   { value: "DAP", label: "DAP" },
+  { value: "DPU", label: "DPU" },
+  { value: "DDP", label: "DDP" },
 ];
 
 const CURRENCY_OPTIONS = [
@@ -275,20 +354,71 @@ const CURRENCY_OPTIONS = [
   { value: "Dólares", label: "Dólares" },
 ];
 
-const PAYMENT_TERMS_OPTIONS = [
-  { value: "Por definir", label: "Por definir" },
-  { value: "Al contado", label: "Al contado" },
-  { value: "Crédito 30 días", label: "Crédito 30 días" },
-  { value: "Crédito 60 días", label: "Crédito 60 días" },
-  { value: "Crédito 90 días", label: "Crédito 90 días" },
+const SPECIAL_DESIGN_SPECS_OPTIONS = [
+  { value: "Tintas Holográficas", label: "Tintas Holográficas" },
+  { value: "Efectos/texturas/características especiales", label: "Efectos/texturas/características especiales" },
+  { value: "Acabados Especiales o Barnices nuevos", label: "Acabados Especiales o Barnices nuevos" },
+  { value: "Otros (comentar cuáles)", label: "Otros (comentar cuáles)" },
+  { value: "No aplica", label: "No aplica" },
 ];
 
-const FILE_TYPE_OPTIONS = [
-  { value: "AI", label: "AI" },
-  { value: "PDF", label: "PDF" },
-  { value: "ZIP", label: "ZIP" },
-  { value: "PSD", label: "PSD" },
-  { value: "Otro", label: "Otro" },
+const DOY_PACK_BASE_OPTIONS = [
+  { value: "Redonda", label: "Redonda" },
+  { value: "Cuadrada", label: "Cuadrada" },
+  { value: "No aplica", label: "No aplica" },
+];
+
+const CORE_MATERIAL_OPTIONS = [
+  { value: "Cartón", label: "Cartón" },
+  { value: "Plástico", label: "Plástico" },
+  { value: "Metal", label: "Metal" },
+  { value: "Otros", label: "Otros" },
+];
+
+const GUSSET_TYPE_OPTIONS = [
+  { value: "Lateral", label: "Lateral" },
+  { value: "Fondo", label: "Fondo" },
+];
+
+const ZIPPER_TYPE_OPTIONS = [
+  { value: "Convencional", label: "Convencional" },
+  { value: "String Zipper", label: "String Zipper" },
+];
+
+const VALVE_TYPE_OPTIONS = [
+  { value: "Degasificadora", label: "Degasificadora" },
+  { value: "Dosificadora", label: "Dosificadora" },
+];
+
+const ROUNDED_CORNERS_TYPE_OPTIONS = [
+  { value: "Redondeo esquinas del Fondo", label: "Redondeo esquinas del Fondo" },
+  { value: "Redondeo todas las esquinas", label: "Redondeo todas las esquinas" },
+];
+
+const POUCH_PERFORATION_TYPE_OPTIONS = [
+  { value: "Ojal", label: "Ojal" },
+  { value: "Circular", label: "Circular" },
+  { value: "Europunch", label: "Europunch" },
+];
+
+const BAG_PERFORATION_TYPE_OPTIONS = [
+  { value: "Cruz", label: "Cruz" },
+  { value: "Media luna", label: "Media luna" },
+];
+
+const PERFORATION_LOCATION_OPTIONS = [
+  { value: "Delantero", label: "Delantero" },
+  { value: "Posterior", label: "Posterior" },
+];
+
+const PRECUT_TYPE_OPTIONS = [
+  { value: "Pre-corte mecánico abre fácil sectorizado", label: "Pre-corte mecánico abre fácil sectorizado" },
+  { value: "Pre-corte mecánico abre fácil", label: "Pre-corte mecánico abre fácil" },
+];
+
+const OTHER_ACCESSORIES_OPTIONS = [
+  { value: "Pega-pega", label: "Pega-pega" },
+  { value: "No aplica", label: "No aplica" },
 ];
 
 const DESTINATION_COUNTRY_OPTIONS = [
@@ -315,38 +445,38 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   blueprintFormat: "",
   technicalApplication: "",
   estimatedVolume: "",
-  unitOfMeasure: "KG",
+  unitOfMeasure: "KGS",
   customerPackingCode: "",
 
   printClass: "",
   printType: "",
-  isPreviousDesign: "No",
-  previousEdagCode: "",
-  previousEdagVersion: "",
+  requiresDesignWork: "No",
+  hasEdagReference: "No",
+  referenceEdagCode: "",
+  referenceEdagVersion: "",
   specialDesignSpecs: "",
   specialDesignComments: "",
-  hasDigitalFiles: "No",
-  artworkFileType: "",
-  artworkAttachments: "",
-  requiresDesignWork: "No",
-  designRoute: "Sin diseño",
+  edagCode: "",
+  edagVersion: "",
 
   hasReferenceStructure: "No",
   referenceEmCode: "",
   referenceEmVersion: "",
   structureType: "Monocapa",
-  hasCustomerTechnicalSpec: "No",
-  customerTechnicalSpecAttachment: "",
 
+  layer1MaterialGroup: "",
   layer1Material: "",
   layer1Micron: "",
   layer1Grammage: "",
+  layer2MaterialGroup: "",
   layer2Material: "",
   layer2Micron: "",
   layer2Grammage: "",
+  layer3MaterialGroup: "",
   layer3Material: "",
   layer3Micron: "",
   layer3Grammage: "",
+  layer4MaterialGroup: "",
   layer4Material: "",
   layer4Micron: "",
   layer4Grammage: "",
@@ -361,6 +491,7 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   repetition: "",
   doyPackBase: "",
   gussetWidth: "",
+  gussetType: "",
 
   hasZipper: "No",
   zipperType: "",
@@ -389,7 +520,6 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   targetPrice: "",
   salePrice: "",
   currencyType: "Soles",
-  paymentTerms: "Por definir",
   coreMaterial: "",
   coreDiameter: "",
   externalDiameter: "",
@@ -459,31 +589,25 @@ export default function ProjectCreatePage() {
           customerPackingCode: "",
           printClass: original.printClass || "",
           printType: original.printType || "",
-          isPreviousDesign: original.isPreviousDesign === true ? "Sí" : original.isPreviousDesign === false ? "No" : (original.isPreviousDesign || "No"),
-          previousEdagCode: original.previousEdagCode || "",
-          previousEdagVersion: original.previousEdagVersion || "",
           specialDesignSpecs: original.specialDesignSpecs || "",
           specialDesignComments: original.specialDesignComments || "",
-          hasDigitalFiles: original.hasDigitalFiles === true ? "Sí" : original.hasDigitalFiles === false ? "No" : (original.hasDigitalFiles || "No"),
-          artworkFileType: original.artworkFileType || "",
-          artworkAttachments: original.artworkAttachments || "",
-          requiresDesignWork: original.requiresDesignWork === true ? "Sí" : original.requiresDesignWork === false ? "No" : (original.requiresDesignWork || "No"),
-          designRoute: original.designRoute || "Sin diseño",
           hasReferenceStructure: original.hasReferenceStructure === true ? "Sí" : original.hasReferenceStructure === false ? "No" : (original.hasReferenceStructure || "No"),
           referenceEmCode: original.referenceEmCode || "",
           referenceEmVersion: original.referenceEmVersion || "",
           structureType: original.structureType || "Monocapa",
-          hasCustomerTechnicalSpec: original.hasCustomerTechnicalSpec === true ? "Sí" : original.hasCustomerTechnicalSpec === false ? "No" : (original.hasCustomerTechnicalSpec || "No"),
-          customerTechnicalSpecAttachment: original.customerTechnicalSpecAttachment || "",
+          layer1MaterialGroup: extractMaterialGroupFromValue(original.layer1Material || ""),
           layer1Material: original.layer1Material || "",
           layer1Micron: original.layer1Micron || "",
           layer1Grammage: original.layer1Grammage || "",
+          layer2MaterialGroup: extractMaterialGroupFromValue(original.layer2Material || ""),
           layer2Material: original.layer2Material || "",
           layer2Micron: original.layer2Micron || "",
           layer2Grammage: original.layer2Grammage || "",
+          layer3MaterialGroup: extractMaterialGroupFromValue(original.layer3Material || ""),
           layer3Material: original.layer3Material || "",
           layer3Micron: original.layer3Micron || "",
           layer3Grammage: original.layer3Grammage || "",
+          layer4MaterialGroup: extractMaterialGroupFromValue(original.layer4Material || ""),
           layer4Material: original.layer4Material || "",
           layer4Micron: original.layer4Micron || "",
           layer4Grammage: original.layer4Grammage || "",
@@ -496,6 +620,7 @@ export default function ProjectCreatePage() {
           repetition: original.repetition || "",
           doyPackBase: original.doyPackBase || "",
           gussetWidth: original.gussetWidth || "",
+          gussetType: original.gussetType || "",
           hasZipper: original.hasZipper === true ? "Sí" : original.hasZipper === false ? "No" : (original.hasZipper || "No"),
           zipperType: original.zipperType || "",
           hasTinTie: original.hasTinTie === true ? "Sí" : original.hasTinTie === false ? "No" : (original.hasTinTie || "No"),
@@ -522,7 +647,6 @@ export default function ProjectCreatePage() {
           targetPrice: original.targetPrice || "",
           salePrice: original.salePrice || "",
           currencyType: original.currencyType || "Soles",
-          paymentTerms: original.paymentTerms || "Por definir",
           coreMaterial: original.coreMaterial || "",
           coreDiameter: original.coreDiameter || "",
           externalDiameter: original.externalDiameter || "",
@@ -592,12 +716,12 @@ export default function ProjectCreatePage() {
     if (!form.portfolioCode) errors.portfolioCode = "Seleccione un portafolio base.";
     if (!form.executiveId) errors.executiveId = "Seleccione un ejecutivo comercial.";
     if (!form.projectName.trim()) errors.projectName = "Ingrese el nombre del proyecto.";
+    if (!form.projectDescription.trim()) errors.projectDescription = "Ingrese la descripción del proyecto.";
     if (!form.salesforceAction.trim()) errors.salesforceAction = "Ingrese la acción Salesforce.";
     if (!form.blueprintFormat) errors.blueprintFormat = "Seleccione el formato de plano.";
     if (!form.technicalApplication) errors.technicalApplication = "Seleccione la aplicación técnica.";
     if (!form.estimatedVolume.trim()) errors.estimatedVolume = "Ingrese el volumen estimado.";
     if (!form.unitOfMeasure) errors.unitOfMeasure = "Seleccione la unidad de medida.";
-    if (!form.designRoute) errors.designRoute = "Seleccione la ruta de diseño.";
 
     return errors;
   }, [form]);
@@ -660,25 +784,19 @@ export default function ProjectCreatePage() {
 
       printClass: form.printClass,
       printType: form.printType,
-      isPreviousDesign: form.isPreviousDesign as BooleanLike,
-      previousEdagCode: form.previousEdagCode,
-      previousEdagVersion: form.previousEdagVersion,
       specialDesignSpecs: form.specialDesignSpecs,
       specialDesignComments: form.specialDesignComments,
-      hasDigitalFiles: form.hasDigitalFiles as BooleanLike,
-      artworkFileType: form.artworkFileType,
-      artworkAttachments: form.artworkAttachments,
-      requiresDesignWork: form.requiresDesignWork as BooleanLike,
-      designRoute: form.designRoute,
-      routeType: form.designRoute === "Con diseño" ? "Con diseño" : "Sin diseño",
-      hasArtworkDesign: form.designRoute === "Con diseño",
+      edagCode: form.edagCode,
+      edagVersion: form.edagVersion,
+      isPreviousDesign: form.hasEdagReference as BooleanLike,
+      previousEdagCode: form.referenceEdagCode,
+      previousEdagVersion: form.referenceEdagVersion,
+      requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
 
       hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
       referenceEmCode: form.referenceEmCode,
       referenceEmVersion: form.referenceEmVersion,
       structureType: form.structureType,
-      hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec as BooleanLike,
-      customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
 
       layer1Material: form.layer1Material,
       layer1Micron: form.layer1Micron,
@@ -713,6 +831,7 @@ export default function ProjectCreatePage() {
       repetition: form.repetition,
       doyPackBase: form.doyPackBase,
       gussetWidth: form.gussetWidth,
+      gussetType: form.gussetType,
       dimensions: [form.width, form.length, form.gussetWidth]
         .filter(Boolean)
         .join(" x "),
@@ -744,7 +863,6 @@ export default function ProjectCreatePage() {
       targetPrice: form.targetPrice,
       salePrice: form.salePrice,
       currencyType: form.currencyType,
-      paymentTerms: form.paymentTerms,
       coreMaterial: form.coreMaterial,
       coreDiameter: form.coreDiameter,
       externalDiameter: form.externalDiameter,
@@ -824,6 +942,7 @@ export default function ProjectCreatePage() {
                     label="Descripción del Proyecto *"
                     value={form.projectDescription}
                     onChange={(value) => updateField("projectDescription", value)}
+                    error={getError("projectDescription")}
                     placeholder="Descripción comercial y técnica del proyecto..."
                   />
                 </div>
@@ -889,7 +1008,7 @@ export default function ProjectCreatePage() {
                           ? PROJECT_TYPE_TECNICA_OPTIONS
                           : []
                     }
-                    disabled={!form.subClassification}
+                    disabled={!form.subClassification || (form.classification === "Modificado" && (form.subClassification === "Estructura" || form.subClassification === "Diseño y dimensiones"))}
                   />
                 </div>
               </FormCard>
@@ -945,97 +1064,83 @@ export default function ProjectCreatePage() {
 
             <FormCard title="4. Especificaciones de diseño" icon="🎨" color="#8e44ad">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormSelect
-                  label="Ruta de Diseño *"
-                  value={form.designRoute}
-                  onChange={(value) => updateField("designRoute", value)}
-                  error={getError("designRoute")}
-                  options={[
-                    { value: "Con diseño", label: "Con diseño" },
-                    { value: "Sin diseño", label: "Sin diseño" },
-                  ]}
-                />
-                <FormSelect
-                  label="Clase de Impresión"
-                  value={form.printClass}
-                  onChange={(value) => updateField("printClass", value)}
-                  placeholder="-- Seleccione --"
-                  options={PRINT_CLASS_OPTIONS}
-                />
-                <FormSelect
-                  label="Tipo de Impresión"
-                  value={form.printType}
-                  onChange={(value) => updateField("printType", value)}
-                  placeholder="-- Seleccione --"
-                  options={PRINT_TYPE_OPTIONS}
-                />
-                <FormSelect
-                  label="¿Diseño ya trabajado?"
-                  value={form.isPreviousDesign}
-                  onChange={(value) => updateField("isPreviousDesign", value)}
-                  options={YES_NO_OPTIONS}
-                />
-                {form.isPreviousDesign === "Sí" && (
+                {(() => {
+                  const isPrintingDisabled = form.printClass === "Sin impresión";
+                  return (
+                    <>
+                      <FormSelect
+                        label="Clase de Impresión"
+                        value={form.printClass}
+                        onChange={(value) => updateField("printClass", value)}
+                        placeholder="-- Seleccione --"
+                        options={PRINT_CLASS_OPTIONS}
+                      />
+                      <FormSelect
+                        label="Tipo de Impresión"
+                        value={form.printType}
+                        onChange={(value) => updateField("printType", value)}
+                        placeholder="-- Seleccione --"
+                        options={PRINT_TYPE_OPTIONS}
+                        disabled={isPrintingDisabled}
+                      />
+                      <FormSelect
+                        label="Especificaciones de Diseño Especiales"
+                        value={form.specialDesignSpecs}
+                        onChange={(value) => updateField("specialDesignSpecs", value)}
+                        placeholder="-- Seleccione --"
+                        options={SPECIAL_DESIGN_SPECS_OPTIONS}
+                        disabled={isPrintingDisabled}
+                      />
+                      <FormSelect
+                        label="¿Tiene Diseño de referencia?"
+                        value={form.hasEdagReference}
+                        onChange={(value) => updateField("hasEdagReference", value)}
+                        placeholder="-- Seleccione --"
+                        options={YES_NO_OPTIONS}
+                      />
+                    </>
+                  );
+                })()}
+                {form.specialDesignSpecs === "Otros (comentar cuáles)" && (
+                  <div className="md:col-span-3">
+                    <FormTextarea
+                      label="Comentarios de diseños especiales"
+                      value={form.specialDesignComments}
+                      onChange={(value) => updateField("specialDesignComments", value)}
+                      placeholder="Comentarios adicionales de Artes Gráficas..."
+                    />
+                  </div>
+                )}
+
+                {form.hasEdagReference === "Sí" && (
                   <>
                     <FormInput
-                      label="Cód. EDAG del Diseño"
-                      value={form.previousEdagCode}
-                      onChange={(value) => updateField("previousEdagCode", value)}
-                      placeholder="Ej. 40267"
+                      label="Código EDAG"
+                      value={form.edagCode}
+                      onChange={(value) => updateField("edagCode", value)}
+                      placeholder="Ej. EDAG-000001"
+                      disabled={form.printClass === "Sin impresión"}
                     />
                     <FormInput
                       label="Versión EDAG"
-                      value={form.previousEdagVersion}
-                      onChange={(value) => updateField("previousEdagVersion", value)}
-                      placeholder="Ej. 05"
+                      value={form.edagVersion}
+                      onChange={(value) => updateField("edagVersion", value)}
+                      placeholder="Ej. 01"
+                      disabled={form.printClass === "Sin impresión"}
                     />
                   </>
                 )}
-                <FormSelect
-                  label="¿Tiene archivos digitales?"
-                  value={form.hasDigitalFiles}
-                  onChange={(value) => updateField("hasDigitalFiles", value)}
-                  options={YES_NO_OPTIONS}
-                />
-                {form.hasDigitalFiles === "Sí" && (
-                  <>
+                {form.printClass && (
+                  <div className="md:col-span-3">
                     <FormSelect
-                      label="Tipo Archivo Arte"
-                      value={form.artworkFileType}
-                      onChange={(value) => updateField("artworkFileType", value)}
-                      options={FILE_TYPE_OPTIONS}
-                      placeholder="-- Seleccione --"
+                      label="¿Requiere trabajo de diseño?"
+                      value={form.printClass === "Sin impresión" ? "No" : "Sí"}
+                      onChange={() => {}}
+                      options={YES_NO_OPTIONS}
+                      disabled={true}
                     />
-                    <FormInput
-                      label="Archivos adjuntos"
-                      value={form.artworkAttachments}
-                      onChange={(value) => updateField("artworkAttachments", value)}
-                      placeholder="Nombre/link del archivo"
-                    />
-                  </>
+                  </div>
                 )}
-                <FormSelect
-                  label="¿Requiere trabajo de diseño?"
-                  value={form.requiresDesignWork}
-                  onChange={(value) => updateField("requiresDesignWork", value)}
-                  options={YES_NO_OPTIONS}
-                />
-                <div className="md:col-span-3">
-                  <FormTextarea
-                    label="Especificaciones de Diseño Especiales"
-                    value={form.specialDesignSpecs}
-                    onChange={(value) => updateField("specialDesignSpecs", value)}
-                    placeholder="Efectos, texturas, acabados, restricciones de impresión..."
-                  />
-                </div>
-                <div className="md:col-span-3">
-                  <FormTextarea
-                    label="Comentarios de Diseño"
-                    value={form.specialDesignComments}
-                    onChange={(value) => updateField("specialDesignComments", value)}
-                    placeholder="Comentarios adicionales de Artes Gráficas..."
-                  />
-                </div>
               </div>
             </FormCard>
 
@@ -1078,78 +1183,131 @@ export default function ProjectCreatePage() {
                     />
                   </>
                 )}
-                <FormSelect
-                  label="Tipo de Estructura"
-                  value={form.structureType}
-                  onChange={(value) => updateField("structureType", value)}
-                  options={STRUCTURE_TYPE_OPTIONS}
-                />
-                <FormSelect
-                  label="¿Tiene especificación técnica cliente?"
-                  value={form.hasCustomerTechnicalSpec}
-                  onChange={(value) =>
-                    updateField("hasCustomerTechnicalSpec", value)
-                  }
-                  options={YES_NO_OPTIONS}
-                />
-                {form.hasCustomerTechnicalSpec === "Sí" && (
-                  <FormInput
-                    label="Adjunto especificación técnica"
-                    value={form.customerTechnicalSpecAttachment}
-                    onChange={(value) =>
-                      updateField("customerTechnicalSpecAttachment", value)
-                    }
-                    placeholder="Nombre/link del archivo"
+                {form.hasReferenceStructure !== "Sí" && (
+                  <FormSelect
+                    label="Tipo de Estructura"
+                    value={form.structureType}
+                    onChange={(value) => updateField("structureType", value)}
+                    options={STRUCTURE_TYPE_OPTIONS}
                   />
                 )}
               </div>
 
+              {form.hasReferenceStructure !== "Sí" && (
               <div className={`mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 ${isDuplicateMode ? "opacity-70 pointer-events-none" : ""}`}>
                 <p className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600">
                   Capas de estructura
                 </p>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {[1, 2, 3, 4].map((layer) => (
-                    <div key={layer} className="rounded-lg border border-slate-200 bg-white p-4">
-                      <p className="mb-3 text-xs font-bold uppercase text-brand-primary">
-                        Capa {layer}
-                      </p>
-                      <div className="space-y-3">
-                        <FormSelect
-                          label="Material"
-                          value={form[`layer${layer}Material` as keyof ProjectFormData]}
-                          onChange={(value) =>
-                            updateField(`layer${layer}Material` as keyof ProjectFormData, value)
-                          }
-                          placeholder="-- Seleccione --"
-                          options={MATERIAL_OPTIONS}
-                        />
-                        <FormInput
-                          label="Micraje"
-                          value={form[`layer${layer}Micron` as keyof ProjectFormData]}
-                          onChange={(value) =>
-                            updateField(`layer${layer}Micron` as keyof ProjectFormData, value)
-                          }
-                          placeholder="Ej. 80"
-                        />
-                        <FormInput
-                          label="Gramaje"
-                          value={form[`layer${layer}Grammage` as keyof ProjectFormData]}
-                          onChange={(value) =>
-                            updateField(`layer${layer}Grammage` as keyof ProjectFormData, value)
-                          }
-                          placeholder="Ej. 35"
-                        />
+                  {(() => {
+                    const maxLayers = (() => {
+                      switch (form.structureType) {
+                        case "Monocapa":
+                          return 1;
+                        case "Bilaminado":
+                          return 2;
+                        case "Trilaminado":
+                          return 3;
+                        case "Tetralaminado":
+                          return 4;
+                        default:
+                          return 0;
+                      }
+                    })();
+                    return [1, 2, 3, 4].filter(layer => layer <= maxLayers).map((layer) => {
+                    const groupKey = `layer${layer}MaterialGroup` as keyof ProjectFormData;
+                    const materialKey = `layer${layer}Material` as keyof ProjectFormData;
+                    const micronKey = `layer${layer}Micron` as keyof ProjectFormData;
+                    const grammageKey = `layer${layer}Grammage` as keyof ProjectFormData;
+
+                    const group = form[groupKey] as string;
+                    const groupOptions = group ? MATERIAL_CATALOG[group] : [];
+                    const selectedMaterial = group ? MATERIAL_CATALOG[group]?.find(m => m.value === form[materialKey]) : null;
+                    const isMicronFree = selectedMaterial?.isFree ?? false;
+
+                    return (
+                      <div key={layer} className="rounded-lg border border-slate-200 bg-white p-4">
+                        <p className="mb-3 text-xs font-bold uppercase text-brand-primary">
+                          Capa {layer}
+                        </p>
+                        <div className="space-y-3">
+                          <FormSelect
+                            label="Grupo Material"
+                            value={group}
+                            onChange={(value) => {
+                              updateField(groupKey, value);
+                              updateField(materialKey, "");
+                              updateField(micronKey, "");
+                            }}
+                            placeholder="-- Seleccione grupo --"
+                            options={MATERIAL_GROUP_OPTIONS}
+                          />
+                          <FormSelect
+                            label="Tipo de Material y Micraje"
+                            value={form[materialKey] as string}
+                            onChange={(value) => {
+                              updateField(materialKey, value);
+                              const entry = MATERIAL_CATALOG[group]?.find(m => m.value === value);
+                              if (entry && !entry.isFree) {
+                                updateField(micronKey, entry.micron);
+                              } else {
+                                updateField(micronKey, "");
+                              }
+                            }}
+                            options={groupOptions}
+                            disabled={!group}
+                            placeholder="-- Seleccione tipo --"
+                          />
+                          <FormInput
+                            label="Micraje"
+                            value={form[micronKey] as string}
+                            onChange={(value) =>
+                              updateField(micronKey, value)
+                            }
+                            disabled={!isMicronFree}
+                            placeholder={isMicronFree ? "Ingrese micraje" : "Auto"}
+                          />
+                          <FormInput
+                            label="Gramaje"
+                            value={form[grammageKey] as string}
+                            onChange={(value) =>
+                              updateField(grammageKey, value)
+                            }
+                            placeholder="Ej. 35"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  });
+                  })()}
                 </div>
+
+                {(() => {
+                  const completedLayers = [];
+                  for (let i = 1; i <= 4; i++) {
+                    const material = form[`layer${i}Material` as keyof ProjectFormData] as string;
+                    const micron = form[`layer${i}Micron` as keyof ProjectFormData] as string;
+                    if (material && micron) {
+                      const materialDisplay = material.split(" - ").slice(1).join(" - ");
+                      completedLayers.push(`${materialDisplay} / ${micron}`);
+                    }
+                  }
+                  return completedLayers.length > 0 ? (
+                    <div className="mt-4 rounded-lg bg-white border border-slate-200 p-3">
+                      <p className="text-xs font-semibold text-slate-600 mb-2">Resumen de Capas:</p>
+                      <p className="text-sm text-slate-700 font-medium break-words">
+                        {completedLayers.join(" | ")}
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
               </div>
+              )}
 
               <div className={`mt-4 grid grid-cols-1 gap-4 md:grid-cols-3 ${isDuplicateMode ? "opacity-70 pointer-events-none" : ""}`}>
                 <FormInput
-                  label="Gramaje general"
+                  label="Gramaje general (g/m2)"
                   value={form.grammage}
                   onChange={(value) => updateField("grammage", value)}
                   placeholder="Ej. 40"
@@ -1179,68 +1337,146 @@ export default function ProjectCreatePage() {
 
             <FormCard title="6. Dimensiones y accesorios" icon="⌗" color="#16a085">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-                <FormInput label="Ancho" value={form.width} onChange={(value) => updateField("width", value)} placeholder="mm" />
-                <FormInput label="Largo" value={form.length} onChange={(value) => updateField("length", value)} placeholder="mm" />
-                <FormInput label="Repetición" value={form.repetition} onChange={(value) => updateField("repetition", value)} placeholder="mm" />
-                <FormInput label="Base Doy Pack" value={form.doyPackBase} onChange={(value) => updateField("doyPackBase", value)} placeholder="Ej. Cuadrada" />
-                <FormInput label="Ancho Fuelle" value={form.gussetWidth} onChange={(value) => updateField("gussetWidth", value)} placeholder="mm" />
+                {(() => {
+                  const wrapping = inheritedWrapping?.toLowerCase() || "";
+                  const isLamina = wrapping.includes("lamina") || wrapping.includes("lámina");
+                  const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
+                  return (
+                    <>
+                      {isPouchOrBolsa && (
+                        <FormInput label="Ancho" value={form.width} onChange={(value) => updateField("width", value)} placeholder="mm" />
+                      )}
+                      <FormInput label="Largo" value={form.length} onChange={(value) => updateField("length", value)} placeholder="mm" />
+                      {isLamina && (
+                        <FormInput label="Repetición" value={form.repetition} onChange={(value) => updateField("repetition", value)} placeholder="mm" />
+                      )}
+                      {wrapping.includes("pouch") && (
+                        <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(value) => updateField("doyPackBase", value)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
+                      )}
+                      <FormInput label="Ancho Fuelle" value={form.gussetWidth} onChange={(value) => updateField("gussetWidth", value)} placeholder="mm" />
+                      <FormSelect label="Tipo de Fuelle" value={form.gussetType} onChange={(value) => updateField("gussetType", value)} placeholder="-- Seleccione --" options={GUSSET_TYPE_OPTIONS} />
+                    </>
+                  );
+                })()}
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-                <FormSelect label="Zipper" value={form.hasZipper} onChange={(value) => updateField("hasZipper", value)} options={YES_NO_OPTIONS} />
-                {form.hasZipper === "Sí" && (
-                  <FormInput label="Tipo de Zipper" value={form.zipperType} onChange={(value) => updateField("zipperType", value)} />
-                )}
+              <div className="mt-4 space-y-5">
+                {(() => {
+                  const selectedAccessories = [
+                    form.hasZipper === "Sí" ? "hasZipper" : null,
+                    form.hasTinTie === "Sí" ? "hasTinTie" : null,
+                    form.hasValve === "Sí" ? "hasValve" : null,
+                    form.hasDieCutHandle === "Sí" ? "hasDieCutHandle" : null,
+                    form.hasReinforcement === "Sí" ? "hasReinforcement" : null,
+                    form.hasAngularCut === "Sí" ? "hasAngularCut" : null,
+                    form.hasRoundedCorners === "Sí" ? "hasRoundedCorners" : null,
+                    form.hasNotch === "Sí" ? "hasNotch" : null,
+                    form.hasPerforation === "Sí" ? "hasPerforation" : null,
+                    form.hasPreCut === "Sí" ? "hasPreCut" : null,
+                  ].filter(Boolean) as string[];
 
-                <FormSelect label="Tin-Tie" value={form.hasTinTie} onChange={(value) => updateField("hasTinTie", value)} options={YES_NO_OPTIONS} />
+                  const selectedCount = selectedAccessories.length;
+                  const canSelectMore = selectedCount < 3;
 
-                <FormSelect label="Válvula" value={form.hasValve} onChange={(value) => updateField("hasValve", value)} options={YES_NO_OPTIONS} />
-                {form.hasValve === "Sí" && (
-                  <FormInput label="Tipo de Válvula" value={form.valveType} onChange={(value) => updateField("valveType", value)} />
-                )}
+                  const toggleAccessory = (field: keyof ProjectFormData) => {
+                    const isCurrentlySelected = form[field] === "Sí";
+                    if (isCurrentlySelected) {
+                      updateField(field, "No");
+                    } else if (canSelectMore) {
+                      updateField(field, "Sí");
+                    }
+                  };
 
-                <FormSelect label="Asa Troquelada" value={form.hasDieCutHandle} onChange={(value) => updateField("hasDieCutHandle", value)} options={YES_NO_OPTIONS} />
-                <FormSelect label="Refuerzo" value={form.hasReinforcement} onChange={(value) => updateField("hasReinforcement", value)} options={YES_NO_OPTIONS} />
+                  const AccessoryCheckbox = ({ field, label }: { field: keyof ProjectFormData; label: string }) => (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form[field] === "Sí"}
+                        onChange={() => toggleAccessory(field)}
+                        disabled={form[field] !== "Sí" && !canSelectMore}
+                        className="w-4 h-4 rounded border-slate-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <span className={`text-sm ${form[field] !== "Sí" && !canSelectMore ? "text-slate-400" : "text-slate-700"}`}>
+                        {label}
+                      </span>
+                    </label>
+                  );
 
-                {form.hasReinforcement === "Sí" && (
-                  <>
-                    <FormInput label="Espesor Refuerzo" value={form.reinforcementThickness} onChange={(value) => updateField("reinforcementThickness", value)} />
-                    <FormInput label="Ancho Refuerzo" value={form.reinforcementWidth} onChange={(value) => updateField("reinforcementWidth", value)} />
-                  </>
-                )}
+                  return (
+                    <>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Consumibles</p>
+                        <div className="space-y-3">
+                          <AccessoryCheckbox field="hasZipper" label="Zipper" />
+                          {form.hasZipper === "Sí" && (
+                            <FormSelect label="Tipo de Zipper" value={form.zipperType} onChange={(value) => updateField("zipperType", value)} placeholder="-- Seleccione --" options={ZIPPER_TYPE_OPTIONS} />
+                          )}
+                          <AccessoryCheckbox field="hasTinTie" label="Tin-Tie" />
+                          <AccessoryCheckbox field="hasValve" label="Válvula" />
+                          {form.hasValve === "Sí" && (
+                            <FormSelect label="Tipo de Válvula" value={form.valveType} onChange={(value) => updateField("valveType", value)} placeholder="-- Seleccione --" options={VALVE_TYPE_OPTIONS} />
+                          )}
+                        </div>
+                      </div>
 
-                <FormSelect label="Corte Angular" value={form.hasAngularCut} onChange={(value) => updateField("hasAngularCut", value)} options={YES_NO_OPTIONS} />
-                <FormSelect label="Esquinas Redondas" value={form.hasRoundedCorners} onChange={(value) => updateField("hasRoundedCorners", value)} options={YES_NO_OPTIONS} />
+                      {(() => {
+                        const wrappingForAccesorios = inheritedWrapping?.toLowerCase() || "";
+                        const isBolsa = wrappingForAccesorios.includes("bolsa");
+                        return isBolsa ? (
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                            <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Producto</p>
+                            <div className="space-y-3">
+                              <AccessoryCheckbox field="hasDieCutHandle" label="Asa Troquelada" />
+                              <AccessoryCheckbox field="hasReinforcement" label="Refuerzo" />
+                              {form.hasReinforcement === "Sí" && (
+                                <div className="grid grid-cols-2 gap-3">
+                                  <FormInput label="Espesor Refuerzo (g/m2)" value={form.reinforcementThickness} onChange={(value) => updateField("reinforcementThickness", value)} placeholder="Ej. 100" />
+                                  <FormInput label="Ancho Refuerzo (mm)" value={form.reinforcementWidth} onChange={(value) => updateField("reinforcementWidth", value)} placeholder="Ej. 50" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
 
-                {form.hasRoundedCorners === "Sí" && (
-                  <FormInput label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} />
-                )}
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
+                        <div className="space-y-3">
+                          <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
+                          <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
+                          {form.hasRoundedCorners === "Sí" && (
+                            <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={ROUNDED_CORNERS_TYPE_OPTIONS} />
+                          )}
+                          <AccessoryCheckbox field="hasNotch" label="Muesca" />
+                          <AccessoryCheckbox field="hasPerforation" label="Perforación" />
+                          {form.hasPerforation === "Sí" && (
+                            <div className="space-y-3">
+                              <FormSelect label="Tipo Perforación Pouch" value={form.pouchPerforationType} onChange={(value) => updateField("pouchPerforationType", value)} placeholder="-- Seleccione --" options={POUCH_PERFORATION_TYPE_OPTIONS} />
+                              <FormSelect label="Tipo Perforación Bolsa" value={form.bagPerforationType} onChange={(value) => updateField("bagPerforationType", value)} placeholder="-- Seleccione --" options={BAG_PERFORATION_TYPE_OPTIONS} />
+                              <FormSelect label="Ubicación Perforaciones" value={form.perforationLocation} onChange={(value) => updateField("perforationLocation", value)} placeholder="-- Seleccione --" options={PERFORATION_LOCATION_OPTIONS} />
+                            </div>
+                          )}
+                          <AccessoryCheckbox field="hasPreCut" label="Pre-Corte" />
+                          {form.hasPreCut === "Sí" && (
+                            <FormSelect label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} placeholder="-- Seleccione --" options={PRECUT_TYPE_OPTIONS} />
+                          )}
+                        </div>
+                      </div>
 
-                <FormSelect label="Muesca" value={form.hasNotch} onChange={(value) => updateField("hasNotch", value)} options={YES_NO_OPTIONS} />
-                <FormSelect label="Perforación" value={form.hasPerforation} onChange={(value) => updateField("hasPerforation", value)} options={YES_NO_OPTIONS} />
+                      <FormSelect
+                        label="Otros accesorios"
+                        value={form.otherAccessories}
+                        onChange={(value) => updateField("otherAccessories", value)}
+                        placeholder="-- Seleccione --"
+                        options={OTHER_ACCESSORIES_OPTIONS}
+                      />
 
-                {form.hasPerforation === "Sí" && (
-                  <>
-                    <FormInput label="Tipo Perforación Pouch" value={form.pouchPerforationType} onChange={(value) => updateField("pouchPerforationType", value)} />
-                    <FormInput label="Tipo Perforación Bolsa" value={form.bagPerforationType} onChange={(value) => updateField("bagPerforationType", value)} />
-                    <FormInput label="Ubicación Perforaciones" value={form.perforationLocation} onChange={(value) => updateField("perforationLocation", value)} />
-                  </>
-                )}
-
-                <FormSelect label="Pre-Corte" value={form.hasPreCut} onChange={(value) => updateField("hasPreCut", value)} options={YES_NO_OPTIONS} />
-
-                {form.hasPreCut === "Sí" && (
-                  <FormInput label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} />
-                )}
-
-                <div className="md:col-span-4">
-                  <FormTextarea
-                    label="Otros accesorios"
-                    value={form.otherAccessories}
-                    onChange={(value) => updateField("otherAccessories", value)}
-                    placeholder="Otros accesorios, restricciones o detalles especiales..."
-                  />
-                </div>
+                      <div className="text-xs text-slate-500 text-center">
+                        Accesorios seleccionados: {selectedCount}/3 {!canSelectMore && "(máximo alcanzado)"}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </FormCard>
 
@@ -1251,20 +1487,7 @@ export default function ProjectCreatePage() {
                 <FormSelect label="País Destino" value={form.destinationCountry} onChange={(value) => updateField("destinationCountry", value)} options={DESTINATION_COUNTRY_OPTIONS} />
 
                 <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(value) => updateField("targetPrice", value)} placeholder="Ej. 45" />
-                <FormInput label="Precio Venta" value={form.salePrice} onChange={(value) => updateField("salePrice", value)} placeholder="Ej. 46" />
                 <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={CURRENCY_OPTIONS} />
-
-                <FormSelect label="Condiciones de Pago" value={form.paymentTerms} onChange={(value) => updateField("paymentTerms", value)} options={PAYMENT_TERMS_OPTIONS} />
-                <FormInput label="Material de Tuco / Core" value={form.coreMaterial} onChange={(value) => updateField("coreMaterial", value)} />
-                <FormInput label="Tuco / Core (mm)" value={form.coreDiameter} onChange={(value) => updateField("coreDiameter", value)} />
-
-                <FormInput label="Externo (mm)" value={form.externalDiameter} onChange={(value) => updateField("externalDiameter", value)} />
-                <FormInput label="Variación Externo (+)" value={form.externalVariationPlus} onChange={(value) => updateField("externalVariationPlus", value)} />
-                <FormInput label="Variación Externo (-)" value={form.externalVariationMinus} onChange={(value) => updateField("externalVariationMinus", value)} />
-
-                <FormInput label="Peso máximo de bobina" value={form.maxRollWeight} onChange={(value) => updateField("maxRollWeight", value)} />
-                <FormSelect label="Logo Producto Peruano" value={form.peruvianProductLogo} onChange={(value) => updateField("peruvianProductLogo", value)} options={YES_NO_OPTIONS} />
-                <FormSelect label="Pie de Imprenta" value={form.printingFooter} onChange={(value) => updateField("printingFooter", value)} options={YES_NO_OPTIONS} />
 
                 <div className="md:col-span-3">
                   <FormTextarea

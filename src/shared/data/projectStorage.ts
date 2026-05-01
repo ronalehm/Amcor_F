@@ -159,6 +159,8 @@ export type ProjectRecord = {
 
   specialDesignSpecs?: string;
   specialDesignComments?: string;
+  edagCode?: string;
+  edagVersion?: string;
 
   hasDigitalFiles?: BooleanLike;
   artworkFileType?: string;
