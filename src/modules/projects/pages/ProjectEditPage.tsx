@@ -67,6 +67,73 @@ function getBlueprintFormatOptions(wrapping: string | undefined): Array<{ value:
   return [];
 }
 
+const SPECIAL_DESIGN_SPECS_OPTIONS = [
+  { value: "Tintas Holográficas", label: "Tintas Holográficas" },
+  { value: "Efectos/texturas/características especiales", label: "Efectos/texturas/características especiales" },
+  { value: "Acabados Especiales o Barnices nuevos", label: "Acabados Especiales o Barnices nuevos" },
+  { value: "Otros (comentar cuáles)", label: "Otros (comentar cuáles)" },
+  { value: "No aplica", label: "No aplica" },
+];
+
+const DOY_PACK_BASE_OPTIONS = [
+  { value: "Redonda", label: "Redonda" },
+  { value: "Cuadrada", label: "Cuadrada" },
+  { value: "No aplica", label: "No aplica" },
+];
+
+const CORE_MATERIAL_OPTIONS = [
+  { value: "Cartón", label: "Cartón" },
+  { value: "Plástico", label: "Plástico" },
+  { value: "Metal", label: "Metal" },
+  { value: "Otros", label: "Otros" },
+];
+
+const GUSSET_TYPE_OPTIONS = [
+  { value: "Lateral", label: "Lateral" },
+  { value: "Fondo", label: "Fondo" },
+];
+
+const ZIPPER_TYPE_OPTIONS = [
+  { value: "Convencional", label: "Convencional" },
+  { value: "String Zipper", label: "String Zipper" },
+];
+
+const VALVE_TYPE_OPTIONS = [
+  { value: "Degasificadora", label: "Degasificadora" },
+  { value: "Dosificadora", label: "Dosificadora" },
+];
+
+const ROUNDED_CORNERS_TYPE_OPTIONS = [
+  { value: "Redondeo esquinas del Fondo", label: "Redondeo esquinas del Fondo" },
+  { value: "Redondeo todas las esquinas", label: "Redondeo todas las esquinas" },
+];
+
+const POUCH_PERFORATION_TYPE_OPTIONS = [
+  { value: "Ojal", label: "Ojal" },
+  { value: "Circular", label: "Circular" },
+  { value: "Europunch", label: "Europunch" },
+];
+
+const BAG_PERFORATION_TYPE_OPTIONS = [
+  { value: "Cruz", label: "Cruz" },
+  { value: "Media luna", label: "Media luna" },
+];
+
+const PERFORATION_LOCATION_OPTIONS = [
+  { value: "Delantero", label: "Delantero" },
+  { value: "Posterior", label: "Posterior" },
+];
+
+const PRECUT_TYPE_OPTIONS = [
+  { value: "Pre-corte mecánico abre fácil sectorizado", label: "Pre-corte mecánico abre fácil sectorizado" },
+  { value: "Pre-corte mecánico abre fácil", label: "Pre-corte mecánico abre fácil" },
+];
+
+const OTHER_ACCESSORIES_OPTIONS = [
+  { value: "Pega-pega", label: "Pega-pega" },
+  { value: "No aplica", label: "No aplica" },
+];
+
 export default function ProjectEditPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
@@ -94,14 +161,8 @@ export default function ProjectEditPage() {
     // 4. Especificaciones de Diseño
     printClass: "",
     printType: "",
-    isPreviousDesign: "No",
-    previousEdagCode: "",
-    previousEdagVersion: "",
     specialDesignSpecs: "",
     specialDesignComments: "",
-    hasDigitalFiles: "No",
-    artworkFileType: "",
-    artworkAttachments: "",
     requiresDesignWork: "No",
     designRoute: "Sin diseño",
 
@@ -135,6 +196,7 @@ export default function ProjectEditPage() {
     repetition: "",
     doyPackBase: "",
     gussetWidth: "",
+    gussetType: "",
     hasZipper: "No",
     zipperType: "",
     hasTinTie: "No",
@@ -163,7 +225,6 @@ export default function ProjectEditPage() {
     targetPrice: "",
     salePrice: "",
     currencyType: "Soles",
-    paymentTerms: "Por definir",
     coreMaterial: "",
     coreDiameter: "",
     externalDiameter: "",
@@ -230,9 +291,7 @@ export default function ProjectEditPage() {
     setForm({
       ...project,
       // Convertir campos booleanos a strings "Sí"/"No"
-      isPreviousDesign: toYesNo(project.isPreviousDesign),
       hasReferenceStructure: toYesNo(project.hasReferenceStructure),
-      hasDigitalFiles: toYesNo(project.hasDigitalFiles),
       requiresDesignWork: toYesNo(project.requiresDesignWork),
       hasCustomerTechnicalSpec: toYesNo(project.hasCustomerTechnicalSpec),
       sampleRequest: toYesNo(project.sampleRequest),
@@ -259,7 +318,6 @@ export default function ProjectEditPage() {
       incoterm: project.incoterm || "No aplica",
       destinationCountry: project.destinationCountry || "Perú",
       currencyType: project.currencyType || "Soles",
-      paymentTerms: project.paymentTerms || "Por definir",
     });
 
     setLoading(false);
@@ -595,66 +653,8 @@ export default function ProjectEditPage() {
                   options={[
                     { value: "Nuevo", label: "Nuevo" },
                     { value: "Repetitivo", label: "Repetitivo" },
-                    { value: "Cambio menor", label: "Cambio menor" },
                   ]}
                 />
-                <FormSelect
-                  label="¿Diseño ya trabajado?"
-                  value={form.isPreviousDesign as string}
-                  onChange={(v) => updateField("isPreviousDesign", v)}
-                  options={[
-                    { value: "Sí", label: "Sí" },
-                    { value: "No", label: "No" },
-                  ]}
-                />
-                {form.isPreviousDesign === "Sí" && (
-                  <>
-                    <FormInput
-                      label="Cód. EDAG del Diseño"
-                      value={form.previousEdagCode}
-                      onChange={(v) => updateField("previousEdagCode", v)}
-                      placeholder="Ej. 40267"
-                    />
-                    <FormInput
-                      label="Versión EDAG"
-                      value={form.previousEdagVersion}
-                      onChange={(v) => updateField("previousEdagVersion", v)}
-                      placeholder="Ej. 05"
-                    />
-                  </>
-                )}
-                <FormSelect
-                  label="¿Tiene archivos digitales?"
-                  value={form.hasDigitalFiles as string}
-                  onChange={(v) => updateField("hasDigitalFiles", v)}
-                  options={[
-                    { value: "Sí", label: "Sí" },
-                    { value: "No", label: "No" },
-                  ]}
-                />
-                {form.hasDigitalFiles === "Sí" && (
-                  <>
-                    <FormSelect
-                      label="Tipo Archivo Arte"
-                      value={form.artworkFileType}
-                      onChange={(v) => updateField("artworkFileType", v)}
-                      placeholder="-- Seleccione --"
-                      options={[
-                        { value: "AI", label: "AI" },
-                        { value: "PDF", label: "PDF" },
-                        { value: "ZIP", label: "ZIP" },
-                        { value: "PSD", label: "PSD" },
-                        { value: "Otro", label: "Otro" },
-                      ]}
-                    />
-                    <FormInput
-                      label="Archivos adjuntos"
-                      value={form.artworkAttachments}
-                      onChange={(v) => updateField("artworkAttachments", v)}
-                      placeholder="Nombre/link del archivo"
-                    />
-                  </>
-                )}
                 <FormSelect
                   label="¿Requiere trabajo de diseño?"
                   value={form.requiresDesignWork as string}
@@ -664,14 +664,13 @@ export default function ProjectEditPage() {
                     { value: "No", label: "No" },
                   ]}
                 />
-                <div className="md:col-span-3">
-                  <FormTextarea
-                    label="Especificaciones de Diseño Especiales"
-                    value={form.specialDesignSpecs}
-                    onChange={(v) => updateField("specialDesignSpecs", v)}
-                    placeholder="Efectos, texturas, acabados, restricciones de impresión..."
-                  />
-                </div>
+                <FormSelect
+                  label="Especificaciones de Diseño Especiales"
+                  value={form.specialDesignSpecs}
+                  onChange={(v) => updateField("specialDesignSpecs", v)}
+                  placeholder="-- Seleccione --"
+                  options={SPECIAL_DESIGN_SPECS_OPTIONS}
+                />
                 <div className="md:col-span-3">
                   <FormTextarea
                     label="Comentarios de Diseño"
@@ -819,57 +818,138 @@ export default function ProjectEditPage() {
 
             <FormCard title="6. Dimensiones y accesorios" icon="⌗" color="#16a085">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-                <FormInput label="Ancho" value={form.width} onChange={(v) => updateField("width", v)} placeholder="mm" />
-                <FormInput label="Largo" value={form.length} onChange={(v) => updateField("length", v)} placeholder="mm" />
-                <FormInput label="Repetición" value={form.repetition} onChange={(v) => updateField("repetition", v)} placeholder="mm" />
-                <FormInput label="Base Doy Pack" value={form.doyPackBase} onChange={(v) => updateField("doyPackBase", v)} placeholder="Ej. Cuadrada" />
-                <FormInput label="Ancho Fuelle" value={form.gussetWidth} onChange={(v) => updateField("gussetWidth", v)} placeholder="mm" />
+                {(() => {
+                  const wrapping = inheritedWrapping?.toLowerCase() || "";
+                  const isLamina = wrapping.includes("lamina") || wrapping.includes("lámina");
+                  const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
+                  return (
+                    <>
+                      {isPouchOrBolsa && (
+                        <FormInput label="Ancho" value={form.width} onChange={(v) => updateField("width", v)} placeholder="mm" />
+                      )}
+                      <FormInput label="Largo" value={form.length} onChange={(v) => updateField("length", v)} placeholder="mm" />
+                      {isLamina && (
+                        <FormInput label="Repetición" value={form.repetition} onChange={(v) => updateField("repetition", v)} placeholder="mm" />
+                      )}
+                      <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(v) => updateField("doyPackBase", v)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
+                      <FormInput label="Ancho Fuelle" value={form.gussetWidth} onChange={(v) => updateField("gussetWidth", v)} placeholder="mm" />
+                      <FormSelect label="Tipo de Fuelle" value={form.gussetType} onChange={(v) => updateField("gussetType", v)} placeholder="-- Seleccione --" options={GUSSET_TYPE_OPTIONS} />
+                    </>
+                  );
+                })()}
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-                <FormSelect label="Zipper" value={form.hasZipper as string} onChange={(v) => updateField("hasZipper", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                {form.hasZipper === "Sí" && (
-                  <FormInput label="Tipo de Zipper" value={form.zipperType} onChange={(v) => updateField("zipperType", v)} />
-                )}
-                <FormSelect label="Tin-Tie" value={form.hasTinTie as string} onChange={(v) => updateField("hasTinTie", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                <FormSelect label="Válvula" value={form.hasValve as string} onChange={(v) => updateField("hasValve", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                {form.hasValve === "Sí" && (
-                  <FormInput label="Tipo de Válvula" value={form.valveType} onChange={(v) => updateField("valveType", v)} />
-                )}
-                <FormSelect label="Asa Troquelada" value={form.hasDieCutHandle as string} onChange={(v) => updateField("hasDieCutHandle", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                <FormSelect label="Refuerzo" value={form.hasReinforcement as string} onChange={(v) => updateField("hasReinforcement", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                {form.hasReinforcement === "Sí" && (
-                  <>
-                    <FormInput label="Espesor Refuerzo" value={form.reinforcementThickness} onChange={(v) => updateField("reinforcementThickness", v)} />
-                    <FormInput label="Ancho Refuerzo" value={form.reinforcementWidth} onChange={(v) => updateField("reinforcementWidth", v)} />
-                  </>
-                )}
-                <FormSelect label="Corte Angular" value={form.hasAngularCut as string} onChange={(v) => updateField("hasAngularCut", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                <FormSelect label="Esquinas Redondas" value={form.hasRoundedCorners as string} onChange={(v) => updateField("hasRoundedCorners", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                {form.hasRoundedCorners === "Sí" && (
-                  <FormInput label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(v) => updateField("roundedCornersType", v)} />
-                )}
-                <FormSelect label="Muesca" value={form.hasNotch as string} onChange={(v) => updateField("hasNotch", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                <FormSelect label="Perforación" value={form.hasPerforation as string} onChange={(v) => updateField("hasPerforation", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                {form.hasPerforation === "Sí" && (
-                  <>
-                    <FormInput label="Tipo Perforación Pouch" value={form.pouchPerforationType} onChange={(v) => updateField("pouchPerforationType", v)} />
-                    <FormInput label="Tipo Perforación Bolsa" value={form.bagPerforationType} onChange={(v) => updateField("bagPerforationType", v)} />
-                    <FormInput label="Ubicación Perforaciones" value={form.perforationLocation} onChange={(v) => updateField("perforationLocation", v)} />
-                  </>
-                )}
-                <FormSelect label="Pre-Corte" value={form.hasPreCut as string} onChange={(v) => updateField("hasPreCut", v)} options={[{ value: "Sí", label: "Sí" }, { value: "No", label: "No" }]} />
-                {form.hasPreCut === "Sí" && (
-                  <FormInput label="Tipo de Pre-Corte" value={form.preCutType} onChange={(v) => updateField("preCutType", v)} />
-                )}
-                <div className="md:col-span-4">
-                  <FormTextarea
-                    label="Otros accesorios"
-                    value={form.otherAccessories}
-                    onChange={(v) => updateField("otherAccessories", v)}
-                    placeholder="Otros accesorios, restricciones o detalles especiales..."
-                  />
-                </div>
+              <div className="mt-4 space-y-5">
+                {(() => {
+                  const selectedAccessories = [
+                    (form.hasZipper as string) === "Sí" ? "hasZipper" : null,
+                    (form.hasTinTie as string) === "Sí" ? "hasTinTie" : null,
+                    (form.hasValve as string) === "Sí" ? "hasValve" : null,
+                    (form.hasDieCutHandle as string) === "Sí" ? "hasDieCutHandle" : null,
+                    (form.hasReinforcement as string) === "Sí" ? "hasReinforcement" : null,
+                    (form.hasAngularCut as string) === "Sí" ? "hasAngularCut" : null,
+                    (form.hasRoundedCorners as string) === "Sí" ? "hasRoundedCorners" : null,
+                    (form.hasNotch as string) === "Sí" ? "hasNotch" : null,
+                    (form.hasPerforation as string) === "Sí" ? "hasPerforation" : null,
+                    (form.hasPreCut as string) === "Sí" ? "hasPreCut" : null,
+                  ].filter(Boolean) as string[];
+
+                  const selectedCount = selectedAccessories.length;
+                  const canSelectMore = selectedCount < 3;
+
+                  const toggleAccessory = (field: string) => {
+                    const isCurrentlySelected = (form[field as keyof typeof form] as string) === "Sí";
+                    if (isCurrentlySelected) {
+                      updateField(field, "No");
+                    } else if (canSelectMore) {
+                      updateField(field, "Sí");
+                    }
+                  };
+
+                  const AccessoryCheckbox = ({ field, label }: { field: string; label: string }) => (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={(form[field as keyof typeof form] as string) === "Sí"}
+                        onChange={() => toggleAccessory(field)}
+                        disabled={(form[field as keyof typeof form] as string) !== "Sí" && !canSelectMore}
+                        className="w-4 h-4 rounded border-slate-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <span className={`text-sm ${(form[field as keyof typeof form] as string) !== "Sí" && !canSelectMore ? "text-slate-400" : "text-slate-700"}`}>
+                        {label}
+                      </span>
+                    </label>
+                  );
+
+                  return (
+                    <>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Consumibles</p>
+                        <div className="space-y-3">
+                          <AccessoryCheckbox field="hasZipper" label="Zipper" />
+                          {(form.hasZipper as string) === "Sí" && (
+                            <FormSelect label="Tipo de Zipper" value={form.zipperType as string} onChange={(v) => updateField("zipperType", v)} placeholder="-- Seleccione --" options={ZIPPER_TYPE_OPTIONS} />
+                          )}
+                          <AccessoryCheckbox field="hasTinTie" label="Tin-Tie" />
+                          <AccessoryCheckbox field="hasValve" label="Válvula" />
+                          {(form.hasValve as string) === "Sí" && (
+                            <FormSelect label="Tipo de Válvula" value={form.valveType as string} onChange={(v) => updateField("valveType", v)} placeholder="-- Seleccione --" options={VALVE_TYPE_OPTIONS} />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Producto</p>
+                        <div className="space-y-3">
+                          <AccessoryCheckbox field="hasDieCutHandle" label="Asa Troquelada" />
+                          <AccessoryCheckbox field="hasReinforcement" label="Refuerzo" />
+                          {(form.hasReinforcement as string) === "Sí" && (
+                            <div className="grid grid-cols-2 gap-3">
+                              <FormInput label="Espesor Refuerzo (g/m2)" value={form.reinforcementThickness as string} onChange={(v) => updateField("reinforcementThickness", v)} placeholder="Ej. 100" />
+                              <FormInput label="Ancho Refuerzo (mm)" value={form.reinforcementWidth as string} onChange={(v) => updateField("reinforcementWidth", v)} placeholder="Ej. 50" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
+                        <div className="space-y-3">
+                          <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
+                          <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
+                          {(form.hasRoundedCorners as string) === "Sí" && (
+                            <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType as string} onChange={(v) => updateField("roundedCornersType", v)} placeholder="-- Seleccione --" options={ROUNDED_CORNERS_TYPE_OPTIONS} />
+                          )}
+                          <AccessoryCheckbox field="hasNotch" label="Muesca" />
+                          <AccessoryCheckbox field="hasPerforation" label="Perforación" />
+                          {(form.hasPerforation as string) === "Sí" && (
+                            <div className="space-y-3">
+                              <FormSelect label="Tipo Perforación Pouch" value={form.pouchPerforationType as string} onChange={(v) => updateField("pouchPerforationType", v)} placeholder="-- Seleccione --" options={POUCH_PERFORATION_TYPE_OPTIONS} />
+                              <FormSelect label="Tipo Perforación Bolsa" value={form.bagPerforationType as string} onChange={(v) => updateField("bagPerforationType", v)} placeholder="-- Seleccione --" options={BAG_PERFORATION_TYPE_OPTIONS} />
+                              <FormSelect label="Ubicación Perforaciones" value={form.perforationLocation as string} onChange={(v) => updateField("perforationLocation", v)} placeholder="-- Seleccione --" options={PERFORATION_LOCATION_OPTIONS} />
+                            </div>
+                          )}
+                          <AccessoryCheckbox field="hasPreCut" label="Pre-Corte" />
+                          {(form.hasPreCut as string) === "Sí" && (
+                            <FormSelect label="Tipo de Pre-Corte" value={form.preCutType as string} onChange={(v) => updateField("preCutType", v)} placeholder="-- Seleccione --" options={PRECUT_TYPE_OPTIONS} />
+                          )}
+                        </div>
+                      </div>
+
+                      <FormSelect
+                        label="Otros accesorios"
+                        value={form.otherAccessories as string}
+                        onChange={(v) => updateField("otherAccessories", v)}
+                        placeholder="-- Seleccione --"
+                        options={OTHER_ACCESSORIES_OPTIONS}
+                      />
+
+                      <div className="text-xs text-slate-500 text-center">
+                        Accesorios seleccionados: {selectedCount}/3 {!canSelectMore && "(máximo alcanzado)"}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </FormCard>
 
@@ -881,8 +961,7 @@ export default function ProjectEditPage() {
                 <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(v) => updateField("targetPrice", v)} placeholder="Ej. 45" />
                 <FormInput label="Precio Venta" value={form.salePrice} onChange={(v) => updateField("salePrice", v)} placeholder="Ej. 46" />
                 <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(v) => updateField("currencyType", v)} options={[{ value: "Soles", label: "Soles" }, { value: "Dólares", label: "Dólares" }]} />
-                <FormSelect label="Condiciones de Pago" value={form.paymentTerms} onChange={(v) => updateField("paymentTerms", v)} options={[{ value: "Por definir", label: "Por definir" }, { value: "Al contado", label: "Al contado" }, { value: "Crédito 30 días", label: "Crédito 30 días" }, { value: "Crédito 60 días", label: "Crédito 60 días" }, { value: "Crédito 90 días", label: "Crédito 90 días" }]} />
-                <FormInput label="Material de Tuco / Core" value={form.coreMaterial} onChange={(v) => updateField("coreMaterial", v)} />
+                <FormSelect label="Material de Tuco / Core" value={form.coreMaterial} onChange={(v) => updateField("coreMaterial", v)} placeholder="-- Seleccione --" options={CORE_MATERIAL_OPTIONS} />
                 <FormInput label="Tuco / Core (mm)" value={form.coreDiameter} onChange={(v) => updateField("coreDiameter", v)} />
                 <FormInput label="Externo (mm)" value={form.externalDiameter} onChange={(v) => updateField("externalDiameter", v)} />
                 <FormInput label="Variación Externo (+)" value={form.externalVariationPlus} onChange={(v) => updateField("externalVariationPlus", v)} />
