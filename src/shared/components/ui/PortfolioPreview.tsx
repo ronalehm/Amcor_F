@@ -30,41 +30,24 @@ export default function PortfolioPreview({
   completionPercentage,
   items,
   title = "Vista rápida",
-  subtitle = "Resumen del portafolio en creación",
+  subtitle = "Resumen del portafolio.",
   emptyStateText = "Complete identificación para previsualizar",
   emptyStateIcon = "◧",
   className = "",
 }: PortfolioPreviewProps) {
-  const hasPreview = items.some((item) => item.value);
-
-  if (!hasPreview) {
-    return (
-      <div
-        className={`flex min-h-[155px] items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white p-5 text-center shadow-sm ${className}`}
-      >
-        <div>
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-2xl text-slate-400">
-            {emptyStateIcon}
-          </div>
-          <p className="text-sm font-bold text-slate-500">{emptyStateText}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
-      className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}
+      className={`rounded-lg border border-slate-200 bg-white p-4 shadow-sm ${className}`}
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
+          <h3 className="text-sm font-semibold text-slate-900">
             {title}
           </h3>
-          <p className="text-xs text-slate-500">{subtitle}</p>
+          <p className="text-xs text-slate-600">{subtitle}</p>
         </div>
 
-        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+        <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
           {completionPercentage}%
         </span>
       </div>

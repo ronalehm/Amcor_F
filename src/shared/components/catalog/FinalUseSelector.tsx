@@ -55,7 +55,7 @@ export default function FinalUseSelector({
       </div>
 
       {error && (
-        <span className="mt-1 block text-[11px] font-semibold text-red-600">
+        <span className="mt-1 block text-xs font-normal text-red-600">
           {error}
         </span>
       )}

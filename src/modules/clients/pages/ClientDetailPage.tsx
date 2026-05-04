@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
   getClientByCode,
@@ -16,11 +17,11 @@ import FormCard from "../../../shared/components/forms/FormCard";
 import ActionButton from "../../../shared/components/buttons/ActionButton";
 
 const STATUS_DESCRIPTIONS: Record<ClientStatus, string> = {
-  active: "El cliente está activo y puede crear portafolios y proyectos.",
-  inactive: "El cliente está inactivo. Puede ser reactivado en cualquier momento.",
-  pending_validation: "El cliente está en validación por tesorería. Es posible crear portafolios y proyectos mientras se completa la evaluación.",
-  pending_activation: "Estado de transición (no debería verse).",
-  blocked: "El cliente está bloqueado. Solo un administrador puede desbloquearlo.",
+  active: "El cliente estï¿½ activo y puede crear portafolios y proyectos.",
+  inactive: "El cliente estï¿½ inactivo. Puede ser reactivado en cualquier momento.",
+  pending_validation: "El cliente estï¿½ en validaciï¿½n por tesorerï¿½a. Es posible crear portafolios y proyectos mientras se completa la evaluaciï¿½n.",
+  pending_activation: "Estado de transiciï¿½n (no deberï¿½a verse).",
+  blocked: "El cliente estï¿½ bloqueado. Solo un administrador puede desbloquearlo.",
 };
 
 export default function ClientDetailPage() {
@@ -39,14 +40,14 @@ export default function ClientDetailPage() {
 
   useEffect(() => {
     if (!clientCode) {
-      setError("Código de cliente no válido");
+      setError("Cï¿½digo de cliente no vï¿½lido");
       setLoading(false);
       return;
     }
 
     const clientData = getClientByCode(clientCode);
     if (!clientData) {
-      setError(`Cliente con código ${clientCode} no encontrado`);
+      setError(`Cliente con cï¿½digo ${clientCode} no encontrado`);
       setLoading(false);
       return;
     }
@@ -131,17 +132,26 @@ export default function ClientDetailPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
+      <button
+        type="button"
+        onClick={() => navigate("/clients")}
+        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        AtrÃ¡s
+      </button>
+
       <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(380px,0.5fr)] p-5">
         <div className="space-y-5">
           <FormCard title="Datos del Cliente" icon="??" color="#00395A">
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Código</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Cï¿½digo</p>
                   <p className="text-sm font-medium text-slate-900">{client.code}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Razón Social</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Razï¿½n Social</p>
                   <p className="text-sm font-medium text-slate-900">{client.businessName}</p>
                 </div>
               </div>
@@ -160,7 +170,7 @@ export default function ClientDetailPage() {
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase">Rubro</p>
-                  <p className="text-sm font-medium text-slate-900">{client.industry || "—"}</p>
+                  <p className="text-sm font-medium text-slate-900">{client.industry || "ï¿½"}</p>
                 </div>
               </div>
             </div>
@@ -170,8 +180,8 @@ export default function ClientDetailPage() {
             <FormCard title="Sistema Integral" icon="??" color="#0D9488">
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Cód. SI</p>
-                  <p className="text-sm font-medium text-slate-900">{client.siClientCode || "—"}</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Cï¿½d. SI</p>
+                  <p className="text-sm font-medium text-slate-900">{client.siClientCode || "ï¿½"}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase">ID SI</p>
@@ -286,7 +296,7 @@ export default function ClientDetailPage() {
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-auto">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Desactivar Cliente</h3>
             <p className="text-sm text-slate-600 mb-6">
-              ¿Desea desactivar a <strong>{client.businessName}</strong>?
+              ï¿½Desea desactivar a <strong>{client.businessName}</strong>?
             </p>
             <div className="flex gap-3">
               <button
@@ -314,7 +324,7 @@ export default function ClientDetailPage() {
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-auto">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Bloquear Cliente</h3>
             <p className="text-sm text-slate-600 mb-6">
-              ¿Desea bloquear a <strong>{client.businessName}</strong>?
+              ï¿½Desea bloquear a <strong>{client.businessName}</strong>?
             </p>
             <div className="flex gap-3">
               <button
@@ -342,7 +352,7 @@ export default function ClientDetailPage() {
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-auto">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Desbloquear Cliente</h3>
             <p className="text-sm text-slate-600 mb-6">
-              ¿Desea desbloquear a <strong>{client.businessName}</strong>?
+              ï¿½Desea desbloquear a <strong>{client.businessName}</strong>?
             </p>
             <div className="flex gap-3">
               <button
@@ -370,7 +380,7 @@ export default function ClientDetailPage() {
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-auto">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Eliminar Cliente</h3>
             <p className="text-sm text-slate-600 mb-6">
-              ¿Está seguro de que desea eliminar a <strong>{client.businessName}</strong>? Esta acción no se puede deshacer.
+              ï¿½Estï¿½ seguro de que desea eliminar a <strong>{client.businessName}</strong>? Esta acciï¿½n no se puede deshacer.
             </p>
             <div className="flex gap-3">
               <button

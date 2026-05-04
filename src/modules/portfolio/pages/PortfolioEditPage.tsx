@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 import {
   STATUS_CATALOG,
@@ -25,17 +26,19 @@ import { getCurrentUser, getCommercialExecutives } from "../../../shared/data/us
 import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
 
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
-import FinalUseSelector from "../../../shared/components/catalog/FinalUseSelector";
 import FinalUseCatalogModal from "../../../shared/components/catalog/FinalUseCatalogModal";
-import PortfolioPreview from "../../../shared/components/ui/PortfolioPreview.tsx";import { useLayout } from "../../../components/layout/LayoutContext";
-// PageModuleHeader removed as we use useLayout().setHeader()
+import PortfolioPreview from "../../../shared/components/ui/PortfolioPreview";
+import SectionCard from "../../../shared/components/ui/SectionCard";
+import EnvolturaSelector from "../../../shared/components/forms/EnvolturaSelector";
+import PlantSelector from "../../../shared/components/forms/PlantSelector";
+import { useLayout } from "../../../components/layout/LayoutContext";
+
 import {
   FormInput,
   FormSelect,
   FormTextarea,
-  FormCard,
   FormActionButtons,
-} from "../../../shared/components/forms/index.tsx";
+} from "../../../shared/components/forms";
 
 type PortfolioFormData = {
   codigo: string;
@@ -90,6 +93,7 @@ export default function PortfolioEditPage() {
   const [form, setForm] = useState<PortfolioFormData | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [showFinalUseCatalog, setShowFinalUseCatalog] = useState(false);
+  const [showTaxonomyDetail, setShowTaxonomyDetail] = useState(false);
   const [touchedFields, setTouchedFields] = useState<
     Partial<Record<keyof PortfolioFormData, boolean>>
   >({});
@@ -171,6 +175,83 @@ export default function PortfolioEditPage() {
       : 0;
   }, [requiredChecks]);
 
+  const getSectionStatus = (sectionFields: string[]): "pending" | "completed" | "error" => {
+    if (!form) return "pending";
+    const allCompleted = sectionFields.every((field) => {
+      if (field === "codigoRFQ" && form.licitacion === "No") return true;
+      if (field === "clienteId") return Boolean(form.clienteId);
+      if (field === "ejecutivoId") return Boolean(form.ejecutivoId);
+      if (field === "plantaId") return Boolean(form.plantaId);
+      if (field === "nombrePortafolio") return Boolean(form.nombrePortafolio.trim());
+      if (field === "descripcionPortafolio") return true; // optional
+      if (field === "licitacion") return true;
+      if (field === "codigoRFQ") return Boolean(form.codigoRFQ.trim());
+      if (field === "envolturaId") return Boolean(form.envolturaId);
+      if (field === "usoFinalId") return Boolean(form.usoFinalId);
+      if (field === "envasadoId") return Boolean(form.envasadoId);
+      return false;
+    });
+
+    if (submitAttempted && !allCompleted) {
+      const hasError = sectionFields.some(
+        (field) =>
+          validationErrors[field as keyof PortfolioFormData] &&
+          !(field === "codigoRFQ" && form.licitacion === "No")
+      );
+      return hasError ? "error" : "pending";
+    }
+
+    return allCompleted ? "completed" : "pending";
+  };
+
+  const getEnvolturaOption = (id: string): "LAMINA" | "BOLSA" | "POUCH" | "" => {
+    if (!id) return "";
+    const wrapping = getWrappingById(Number(id));
+    if (!wrapping) return "";
+
+    const name = wrapping.name.toLowerCase();
+    if (name.includes("lámina") || name.includes("lǭmina")) return "LAMINA";
+    if (name.includes("bolsa")) return "BOLSA";
+    if (name.includes("pouch")) return "POUCH";
+    return "";
+  };
+
+  const getIdFromEnvolturaOption = (option: "LAMINA" | "BOLSA" | "POUCH"): string => {
+    const wrapping = WRAPPINGS_CATALOG.find((w) => {
+      const name = w.name.toLowerCase();
+      if (option === "LAMINA" && (name.includes("lámina") || name.includes("lǭmina"))) return true;
+      if (option === "BOLSA" && name.includes("bolsa")) return true;
+      if (option === "POUCH" && name.includes("pouch")) return true;
+      return false;
+    });
+    return wrapping ? String(wrapping.id) : "";
+  };
+
+  const getPlantOption = (id: string): "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS" | "" => {
+    if (!id) return "";
+    const plant = getPlantById(Number(id));
+    if (!plant) return "";
+
+    const code = plant.code.toLowerCase();
+    if (code.includes("lim")) return "AF_LIMA";
+    if (code.includes("cal")) return "AF_CALI";
+    if (code.includes("stn")) return "AF_SANTIAGO";
+    if (code.includes("sl")) return "AF_SAN_LUIS";
+    return "";
+  };
+
+  const getIdFromPlantOption = (option: "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS"): string => {
+    const plant = PLANTS_CATALOG.find((p) => {
+      const code = p.code.toLowerCase();
+      if (option === "AF_LIMA" && code.includes("lim")) return true;
+      if (option === "AF_CALI" && code.includes("cal")) return true;
+      if (option === "AF_SANTIAGO" && code.includes("stn")) return true;
+      if (option === "AF_SAN_LUIS" && code.includes("sl")) return true;
+      return false;
+    });
+    return plant ? String(plant.id) : "";
+  };
+
   // Update header dynamically
   useEffect(() => {
     if (portfolioCodeStr && form) {
@@ -218,7 +299,7 @@ export default function PortfolioEditPage() {
 
     if (!form.envolturaId) errors.envolturaId = "Selecciona la envoltura.";
     if (!form.usoFinalId) errors.usoFinalId = "Selecciona el uso final.";
-    if (!form.envasadoId) errors.envasadoId = "Selecciona el envasado / máquina de cliente.";
+    if (!form.envasadoId) errors.envasadoId = "Ingresa la máquina del cliente.";
 
     return errors;
   }, [form]);
@@ -283,16 +364,19 @@ export default function PortfolioEditPage() {
     if (!form || !portfolioCodeStr) return;
 
     if (Object.keys(validationErrors).length > 0) {
-      setTouchedFields({
-        clienteId: true,
-        ejecutivoId: true,
-        plantaId: true,
-        codigoRFQ: true,
-        nombrePortafolio: true,
-        envolturaId: true,
-        usoFinalId: true,
-        envasadoId: true,
-      });
+      const fieldsWithErrors = Object.keys(validationErrors).reduce(
+        (acc, field) => {
+          acc[field as keyof PortfolioFormData] = true;
+          return acc;
+        },
+        {} as Partial<Record<keyof PortfolioFormData, boolean>>
+      );
+
+      setTouchedFields((prev) => ({
+        ...prev,
+        ...fieldsWithErrors,
+      }));
+
       return;
     }
 
@@ -393,17 +477,28 @@ export default function PortfolioEditPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
+      <button
+        type="button"
+        onClick={() => navigate("/portfolio")}
+        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        Atrás
+      </button>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
-          <div className="space-y-5">
-            <FormCard
-              title="Identificación y responsable"
-              icon="▦"
-              color={AMCOR.navy}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[65%_1fr]">
+          {/* ═══════════ COLUMNA IZQUIERDA (65%) ═══════════ */}
+          <div className="space-y-4">
+            {/* SECCIÓN 1: Cliente y responsable */}
+            <SectionCard
+              number={1}
+              title="Cliente y responsable"
+              subtitle="Define quién solicita y quién gestiona el portafolio."
+              status={getSectionStatus(form.licitacion === "Sí" ? ["clienteId", "ejecutivoId", "licitacion", "codigoRFQ"] : ["clienteId", "ejecutivoId", "licitacion"])}
               required
             >
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <SmartCatalogSearch
                   label="Nombre del Cliente *"
                   value={form.clienteId}
@@ -421,6 +516,7 @@ export default function PortfolioEditPage() {
                     meta: item.ruc,
                   }))}
                   placeholder="Escribe para buscar cliente..."
+                  emptyMessage="Cliente no encontrado. Regístrelo en el módulo Clientes."
                 />
 
                 <SmartCatalogSearch
@@ -440,23 +536,7 @@ export default function PortfolioEditPage() {
                     meta: item.email,
                   }))}
                   placeholder="Escribe para buscar ejecutivo..."
-                />
-
-                <FormSelect
-                  label="Planta de Origen *"
-                  value={form.plantaId}
-                  onChange={(value) => updateField("plantaId", value)}
-                  onBlur={() => markFieldAsTouched("plantaId")}
-                  error={
-                    shouldShowFieldError("plantaId")
-                      ? validationErrors.plantaId
-                      : ""
-                  }
-                  options={PLANTS_CATALOG.map((item) => ({
-                    value: String(item.id),
-                    label: item.name,
-                  }))}
-                  placeholder="-- Seleccione --"
+                  emptyMessage="Usuario no encontrado. Regístrelo en el módulo Usuarios."
                 />
 
                 <FormSelect
@@ -470,28 +550,31 @@ export default function PortfolioEditPage() {
                 />
 
                 <FormInput
-                  label="Código RFQ"
-                  value={form.codigoRFQ}
+                  label={form.licitacion === "Sí" ? "Código RFQ *" : "Código RFQ"}
+                  value={form.licitacion === "No" ? "" : form.codigoRFQ}
                   onChange={(value) => updateField("codigoRFQ", value)}
                   onBlur={() => markFieldAsTouched("codigoRFQ")}
                   error={
-                    shouldShowFieldError("codigoRFQ")
+                    form.licitacion === "Sí" && shouldShowFieldError("codigoRFQ")
                       ? validationErrors.codigoRFQ
                       : ""
                   }
+                  placeholder={form.licitacion === "No" ? "No aplica" : "Ej. RFQ-093456"}
                   disabled={form.licitacion === "No"}
-                  placeholder="Ej. RFQ-093456"
-                  helper={
-                    form.licitacion === "Sí"
-                      ? "Obligatorio si existe licitación"
-                      : "No aplica"
-                  }
+                  helper={form.licitacion === "Sí" ? "Obligatorio si existe licitación" : undefined}
                 />
               </div>
-            </FormCard>
+            </SectionCard>
 
-            <FormCard title="Información comercial" icon="▤" color={AMCOR.blue}>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {/* SECCIÓN 2: Información del portafolio */}
+            <SectionCard
+              number={2}
+              title="Información del portafolio"
+              subtitle="Identifica la familia de productos."
+              status={getSectionStatus(["nombrePortafolio"])}
+              required
+            >
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <FormInput
                   label="Nombre de Portafolio *"
                   value={form.nombrePortafolio}
@@ -508,101 +591,122 @@ export default function PortfolioEditPage() {
                 <FormTextarea
                   label="Descripción del Portafolio"
                   value={form.descripcionPortafolio}
-                  onChange={(value) => updateField("descripcionPortafolio", value)}
+                  onChange={(value) =>
+                    updateField("descripcionPortafolio", value)
+                  }
                   placeholder="Descripción breve de la familia de productos"
-                  helper="Opcional"
+                  rows={2}
                 />
               </div>
-            </FormCard>
-          </div>
+            </SectionCard>
 
-          <div className="space-y-5">
-            <PortfolioPreview
-              codigo={form.codigo}
-              estado={selectedStatus?.name || "Registrado"}
-              completionPercentage={completionPercentage}
-              items={[
-                { label: "Cliente", value: selectedClient?.businessName },
-                { label: "Ejecutivo", value: selectedExecutive?.fullName },
-                { label: "Planta", value: selectedPlant?.name },
-                { label: "Portafolio", value: form.nombrePortafolio },
-              ]}
-            />
-
-            <FormCard
-              title="Datos de producto"
-              icon="◈"
-              color={AMCOR.green}
+            {/* SECCIÓN 3: Producto y uso final */}
+            <SectionCard
+              number={3}
+              title="Producto y uso final"
+              subtitle="Selecciona la envoltura y la taxonomía comercial."
+              status={getSectionStatus(["envolturaId", "usoFinalId"])}
               required
             >
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                <FormSelect
-                  label="Envoltura *"
-                  value={form.envolturaId}
-                  onChange={handleEnvolturaChange}
-                  onBlur={() => markFieldAsTouched("envolturaId")}
-                  error={
-                    shouldShowFieldError("envolturaId")
-                      ? validationErrors.envolturaId
-                      : ""
-                  }
-                  options={WRAPPINGS_CATALOG.map((item) => ({
-                    value: String(item.id),
-                    label: item.name,
-                  }))}
-                  placeholder="-- Seleccione --"
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5">
+                    Envoltura <span className="text-red-600">*</span>
+                  </label>
+                  <EnvolturaSelector
+                    value={getEnvolturaOption(form.envolturaId)}
+                    onChange={(value) => {
+                      const id = getIdFromEnvolturaOption(value);
+                      handleEnvolturaChange(id);
+                      markFieldAsTouched("envolturaId");
+                    }}
+                    error={
+                      shouldShowFieldError("envolturaId")
+                        ? validationErrors.envolturaId
+                        : ""
+                    }
+                  />
+                </div>
 
-                <FinalUseSelector
-                  label="Uso Final *"
-                  value={form.usoFinalId}
-                  onChange={(value) => updateField("usoFinalId", value)}
-                  onBlur={() => markFieldAsTouched("usoFinalId")}
-                  error={
-                    shouldShowFieldError("usoFinalId")
-                      ? validationErrors.usoFinalId
-                      : ""
-                  }
-                  onOpenTable={() => setShowFinalUseCatalog(true)}
-                  options={FINAL_USE_CATALOG.map((item) => ({
-                    value: String(item.id),
-                    label: item.useFinal,
-                  }))}
-                  placeholder="-- Seleccione --"
-                />
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(280px,0.8fr)] lg:items-end">
+                  <FormSelect
+                    label="Uso Final *"
+                    value={form.usoFinalId}
+                    onChange={(value) => updateField("usoFinalId", value)}
+                    onBlur={() => markFieldAsTouched("usoFinalId")}
+                    error={
+                      shouldShowFieldError("usoFinalId")
+                        ? validationErrors.usoFinalId
+                        : ""
+                    }
+                    options={FINAL_USE_CATALOG.map((item) => ({
+                      value: String(item.id),
+                      label: item.useFinal,
+                    }))}
+                    placeholder="-- Seleccione --"
+                  />
 
-                <FormInput
-                  label="Sector"
-                  value={selectedFinalUse?.sector || ""}
-                  disabled
-                  helper="Autocompletado"
-                />
+                  <button
+                    type="button"
+                    onClick={() => setShowFinalUseCatalog(true)}
+                    className="h-[38px] rounded-lg border border-[#00395A] px-4 text-sm font-semibold text-[#00395A] hover:bg-[#00395A] hover:text-white transition-colors"
+                  >
+                    Ver tabla
+                  </button>
 
-                <FormInput
-                  label="Segmento"
-                  value={selectedFinalUse?.segment || ""}
-                  disabled
-                  helper="Autocompletado"
-                />
+                  <button
+                    type="button"
+                    onClick={() => setShowTaxonomyDetail((prev) => !prev)}
+                    className="flex h-[38px] w-full items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    <span className="truncate">
+                      {selectedFinalUse 
+                        ? `${selectedFinalUse.sector} / ${selectedFinalUse.segment} / ${selectedFinalUse.subSegment}`
+                        : "No definido"}
+                    </span>
+                    <span className="ml-2 flex-none text-xs text-slate-400">
+                      {showTaxonomyDetail ? "▲" : "▼"}
+                    </span>
+                  </button>
+                </div>
 
-                <FormInput
-                  label="Sub-segmento"
-                  value={selectedFinalUse?.subSegment || ""}
-                  disabled
-                  helper="Autocompletado"
-                />
-
-                <FormInput
-                  label="AFMarketID"
-                  value={selectedFinalUse?.afMarketId || ""}
-                  disabled
-                  helper="Autocompletado"
-                />
+                {/* Detalle de taxonomía desplegable */}
+                {showTaxonomyDetail && (
+                  <div className="mt-3 border border-slate-100 p-3 bg-slate-50/50 rounded-lg grid grid-cols-2 gap-2 md:grid-cols-4">
+                    <FormInput
+                      label="Sector"
+                      value={selectedFinalUse?.sector || ""}
+                      disabled
+                    />
+                    <FormInput
+                      label="Segmento"
+                      value={selectedFinalUse?.segment || ""}
+                      disabled
+                    />
+                    <FormInput
+                      label="Sub-segmento"
+                      value={selectedFinalUse?.subSegment || ""}
+                      disabled
+                    />
+                    <FormInput
+                      label="AFMarketID"
+                      value={selectedFinalUse?.afMarketId || ""}
+                      disabled
+                    />
+                  </div>
+                )}
               </div>
-            </FormCard>
+            </SectionCard>
 
-            <FormCard title="Técnico" icon="⚙" color={AMCOR.purple} required>
-              <div className="grid grid-cols-1 gap-4">
+            {/* SECCIÓN 4: Configuración técnica */}
+            <SectionCard
+              number={4}
+              title="Configuración técnica"
+              subtitle="Asocia la máquina según la envoltura seleccionada."
+              status={getSectionStatus(["envasadoId"])}
+              required
+            >
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <FormSelect
                   label="Envasado / Máquina de Cliente *"
                   value={form.envasadoId}
@@ -622,6 +726,7 @@ export default function PortfolioEditPage() {
                       ? "-- Seleccione --"
                       : "Primero seleccione una envoltura"
                   }
+                  disabled={!form.envolturaId}
                 />
 
                 <FormInput
@@ -629,14 +734,55 @@ export default function PortfolioEditPage() {
                   value={form.portafolioEstandar}
                   onChange={(value) => updateField("portafolioEstandar", value)}
                   placeholder="Ej. 564356"
-                  helper="Opcional / condicional"
                 />
               </div>
-            </FormCard>
+            </SectionCard>
+          </div>
+
+          {/* ═══════════ COLUMNA DERECHA (35%) ═══════════ */}
+          <div className="space-y-4 h-fit lg:sticky lg:top-20">
+            {/* Vista rápida */}
+            <PortfolioPreview
+              codigo={form.codigo}
+              estado={selectedStatus?.name || "Registrado"}
+              completionPercentage={completionPercentage}
+              items={[
+                { label: "Cliente", value: selectedClient?.businessName || "—" },
+                { label: "Ejecutivo", value: selectedExecutive?.fullName || "—" },
+                { label: "Planta", value: selectedPlant?.name || "—" },
+                { label: "Portafolio", value: form.nombrePortafolio || "—" },
+                { label: "Envoltura", value: selectedWrapping?.name || "—" },
+                { label: "Uso final", value: selectedFinalUse?.useFinal || "—" },
+                { label: "Máquina", value: selectedPackingMachine?.name || "—" },
+              ]}
+            />
+
+            {/* SECCIÓN 5: Planta de Origen */}
+            <SectionCard
+              number={5}
+              title="Planta de Origen"
+              subtitle="Selecciona la planta asociada al diseño."
+              status={getSectionStatus(["plantaId"])}
+              required
+            >
+              <PlantSelector
+                value={getPlantOption(form.plantaId)}
+                onChange={(value) => {
+                  const id = getIdFromPlantOption(value);
+                  updateField("plantaId", id);
+                  markFieldAsTouched("plantaId");
+                }}
+                error={
+                  shouldShowFieldError("plantaId")
+                    ? validationErrors.plantaId
+                    : ""
+                }
+              />
+            </SectionCard>
           </div>
         </div>
 
-        <div className="sticky bottom-0 z-40 mt-6 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
+        <div className="sticky bottom-0 z-40 mt-4 border-t border-slate-200 bg-[#f6f8fb]/95 py-3 backdrop-blur">
           <FormActionButtons
             onCancel={() => navigate("/portfolio")}
             validationErrorList={validationErrorList}

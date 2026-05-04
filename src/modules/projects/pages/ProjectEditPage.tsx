@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords, TECHNICAL_APPLICATION_OPTIONS } from "../../../shared/data/portfolioStorage";
 import { getProjectByCode, updateProjectRecord, type ProjectRecord } from "../../../shared/data/projectStorage";
@@ -238,6 +239,9 @@ export default function ProjectEditPage() {
   });
   
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [touchedFields, setTouchedFields] = useState<
+    Partial<Record<keyof FormData, boolean>>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentStage, setCurrentStage] = useState<ProjectStage>("P1");
@@ -357,6 +361,13 @@ export default function ProjectEditPage() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const markFieldAsTouched = (field: string) => {
+    setTouchedFields((prev) => ({
+      ...prev,
+      [field]: true,
+    }));
+  };
+
   const validationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
     if (!form.portfolioCode) errors.portfolioCode = "Seleccione un portafolio base.";
@@ -370,15 +381,36 @@ export default function ProjectEditPage() {
     return errors;
   }, [form]);
 
+  const shouldShowFieldError = (field: string) => {
+    return Boolean(
+      validationErrors[field] && (submitAttempted || touchedFields[field])
+    );
+  };
+
   const getError = (field: string) => {
-    return submitAttempted ? validationErrors[field] || "" : "";
+    return shouldShowFieldError(field) ? validationErrors[field] || "" : "";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitAttempted(true);
 
-    if (Object.keys(validationErrors).length > 0 || !projectCode) return;
+    if (Object.keys(validationErrors).length > 0 || !projectCode) {
+      if (Object.keys(validationErrors).length > 0) {
+        const fieldsWithErrors = Object.keys(validationErrors).reduce(
+          (acc, field) => {
+            acc[field] = true;
+            return acc;
+          },
+          {} as Partial<Record<string, boolean>>
+        );
+        setTouchedFields((prev) => ({
+          ...prev,
+          ...fieldsWithErrors,
+        }));
+      }
+      return;
+    }
 
     const selectedExecutive = executives.find(ex => ex.id === Number(form.ejecutivoId));
     const selectedSiUser = siUsers.find(user => user.id === form.siUserId);
@@ -435,6 +467,15 @@ export default function ProjectEditPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
+      <button
+        type="button"
+        onClick={() => navigate("/projects")}
+        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        Atrás
+      </button>
+
       <form onSubmit={handleSubmit}>
         {/* Phase Information Panel */}
         <div className="m-5 rounded-xl border-2 border-blue-200 bg-blue-50 p-4">
@@ -1075,10 +1116,13 @@ export default function ProjectEditPage() {
         <div className="sticky bottom-0 z-40 mt-6 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
           <FormActionButtons
             onCancel={() => navigate(`/projects/${projectCode}`)}
-            validationErrorList={Object.values(validationErrors)}
+            validationErrorList={Object.values(validationErrors).filter(
+              (error): error is string => Boolean(error)
+            )}
             submitAttempted={submitAttempted}
             submitLabel="Guardar Borrador"
             cancelLabel="Cancelar"
+            validationTitle="Faltan campos obligatorios."
           />
         </div>
       </form>

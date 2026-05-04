@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Download, Upload } from "lucide-react";
+import { AlertCircle, ArrowLeft, Download, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
@@ -55,6 +55,7 @@ export default function UserCreatePage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const [duplicateUser, setDuplicateUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -85,8 +86,18 @@ export default function UserCreatePage() {
     return () => resetHeader();
   }, [setHeader, resetHeader, userCode]);
 
-  const updateField = <K extends keyof FormState>(field: K, value: any) => {
+  const updateField = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const markFieldAsTouched = (field: keyof FormState) => {
+    setTouchedFields((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const shouldShowFieldError = (field: keyof FormState) => {
+    return Boolean(
+      validationErrors[field] && (submitAttempted || touchedFields[field])
+    );
   };
 
   const handleSiUserSelect = (vendor: VendorMirror) => {
@@ -245,37 +256,37 @@ export default function UserCreatePage() {
     const errors: Record<string, string> = {};
 
     if (!form.workerCode.trim()) {
-      errors.workerCode = "El código de trabajador es obligatorio";
+      errors.workerCode = "Ingresa el código de trabajador.";
     }
 
     if (!form.email.trim()) {
-      errors.email = "El correo electrónico es obligatorio";
+      errors.email = "Ingresa el correo electrónico.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "El formato del correo no es válido";
+      errors.email = "El formato del correo no es válido.";
     }
 
     if (!form.firstName.trim()) {
-      errors.firstName = "El nombre es obligatorio";
+      errors.firstName = "Ingresa el nombre.";
     }
 
     if (!form.lastName.trim()) {
-      errors.lastName = "El apellido es obligatorio";
+      errors.lastName = "Ingresa el apellido.";
     }
 
     if (!form.position.trim()) {
-      errors.position = "El puesto es obligatorio";
+      errors.position = "Selecciona el puesto.";
     }
 
     if (!form.company.trim()) {
-      errors.company = "La empresa es obligatoria";
+      errors.company = "Ingresa la empresa.";
     }
 
     if (!form.area) {
-      errors.area = "El área es obligatoria";
+      errors.area = "Selecciona el área.";
     }
 
     if (isAdmin && !form.role) {
-      errors.role = "El rol es obligatorio";
+      errors.role = "Selecciona el rol.";
     }
 
     return errors;
@@ -294,6 +305,10 @@ export default function UserCreatePage() {
     const completed = requiredChecks.filter(Boolean).length;
     return Math.round((completed / requiredChecks.length) * 100);
   }, [form]);
+
+  const validationErrorList = Object.values(validationErrors).filter(
+    (error): error is string => Boolean(error)
+  );
 
   const handleResendActivation = async () => {
     if (!duplicateUser) return;
@@ -382,7 +397,20 @@ export default function UserCreatePage() {
     setSubmitAttempted(true);
     setSuccessMessage(null);
 
-    if (Object.keys(validationErrors).length > 0 || excelError) return;
+    if (Object.keys(validationErrors).length > 0 || excelError) {
+      const fieldsWithErrors = Object.keys(validationErrors).reduce(
+        (acc, field) => {
+          acc[field as keyof FormState] = true;
+          return acc;
+        },
+        {} as Partial<Record<keyof FormState, boolean>>
+      );
+      setTouchedFields((prev) => ({
+        ...prev,
+        ...fieldsWithErrors,
+      }));
+      return;
+    }
 
     setLoading(true);
     try {
@@ -498,6 +526,15 @@ export default function UserCreatePage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
+      <button
+        type="button"
+        onClick={() => navigate("/users")}
+        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        Atrás
+      </button>
+
       <form onSubmit={handleSubmit}>
         <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
@@ -630,8 +667,8 @@ export default function UserCreatePage() {
                   label="Código de Trabajador *"
                   value={form.workerCode}
                   onChange={(v) => updateField("workerCode", v)}
-                  onBlur={() => {}}
-                  error={submitAttempted ? validationErrors.workerCode : ""}
+                  onBlur={() => markFieldAsTouched("workerCode")}
+                  error={shouldShowFieldError("workerCode") ? validationErrors.workerCode : ""}
                   placeholder="Ej. EJC-000001"
                   disabled={isSiUserSelected}
                 />
@@ -640,8 +677,8 @@ export default function UserCreatePage() {
                   label="Correo Corporativo *"
                   value={form.email}
                   onChange={(v) => updateField("email", v)}
-                  onBlur={() => {}}
-                  error={submitAttempted ? validationErrors.email : ""}
+                  onBlur={() => markFieldAsTouched("email")}
+                  error={shouldShowFieldError("email") ? validationErrors.email : ""}
                   placeholder="usuario@amcor.com"
                   type="email"
                   disabled={isSiUserSelected}
@@ -651,8 +688,8 @@ export default function UserCreatePage() {
                   label="Nombre *"
                   value={form.firstName}
                   onChange={(v) => updateField("firstName", v)}
-                  onBlur={() => {}}
-                  error={submitAttempted ? validationErrors.firstName : ""}
+                  onBlur={() => markFieldAsTouched("firstName")}
+                  error={shouldShowFieldError("firstName") ? validationErrors.firstName : ""}
                   placeholder="Ej. Juan"
                   disabled={isSiUserSelected}
                 />
@@ -661,8 +698,8 @@ export default function UserCreatePage() {
                   label="Apellido *"
                   value={form.lastName}
                   onChange={(v) => updateField("lastName", v)}
-                  onBlur={() => {}}
-                  error={submitAttempted ? validationErrors.lastName : ""}
+                  onBlur={() => markFieldAsTouched("lastName")}
+                  error={shouldShowFieldError("lastName") ? validationErrors.lastName : ""}
                   placeholder="Ej. Pérez"
                   disabled={isSiUserSelected}
                 />
@@ -671,7 +708,8 @@ export default function UserCreatePage() {
                   label="Puesto *"
                   value={form.position}
                   onChange={(v) => updateField("position", v)}
-                  error={submitAttempted ? validationErrors.position : ""}
+                  onBlur={() => markFieldAsTouched("position")}
+                  error={shouldShowFieldError("position") ? validationErrors.position : ""}
                   options={positionOptions}
                   placeholder="-- Seleccione Puesto --"
                   disabled={isSiUserSelected || !form.area}
@@ -681,8 +719,8 @@ export default function UserCreatePage() {
                   label="Empresa *"
                   value={form.company}
                   onChange={(v) => updateField("company", v)}
-                  onBlur={() => {}}
-                  error={submitAttempted ? validationErrors.company : ""}
+                  onBlur={() => markFieldAsTouched("company")}
+                  error={shouldShowFieldError("company") ? validationErrors.company : ""}
                   placeholder="Ej. Amcor"
                   disabled={isSiUserSelected}
                 />
@@ -694,7 +732,8 @@ export default function UserCreatePage() {
                     updateField("area", v);
                     updateField("position", "");
                   }}
-                  error={submitAttempted ? validationErrors.area : ""}
+                  onBlur={() => markFieldAsTouched("area")}
+                  error={shouldShowFieldError("area") ? validationErrors.area : ""}
                   options={areaOptions}
                   placeholder="-- Seleccione Área --"
                   disabled={isSiUserSelected}
@@ -727,7 +766,8 @@ export default function UserCreatePage() {
                     label="Rol Portal ODISEO *"
                     value={form.role || ""}
                     onChange={(value) => updateField("role", value)}
-                    error={submitAttempted ? validationErrors.role : ""}
+                    onBlur={() => markFieldAsTouched("role")}
+                    error={shouldShowFieldError("role") ? validationErrors.role : ""}
                     options={[
                       { value: "operador", label: PORTAL_ROLE_LABELS["operador"] },
                       { value: "validador", label: PORTAL_ROLE_LABELS["validador"] },
@@ -863,13 +903,14 @@ export default function UserCreatePage() {
           <FormActionButtons
             onCancel={() => navigate("/users")}
             validationErrorList={[
-              ...Object.values(validationErrors),
+              ...validationErrorList,
               ...(excelError ? [excelError] : []),
             ]}
             submitAttempted={submitAttempted}
             submitLabel="Crear Usuario"
             cancelLabel="Cancelar"
             isLoading={loading}
+            validationTitle="Faltan campos obligatorios."
           />
         </div>
       </form>
