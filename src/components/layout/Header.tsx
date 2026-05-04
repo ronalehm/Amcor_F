@@ -82,6 +82,16 @@ const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
       content: <SettingsDrawerContent onClose={closeDrawer} />,
     })
   }
+  const handleLogout = () => {
+  setUserMenuOpen(false);
+  setNotifOpen(false);
+  closeDrawer();
+
+  logoutUser();
+  setCurrentUser(null);
+
+  navigate("/login", { replace: true });
+};
 
   const handleOpenNotifDetail = (n: Notif) => {
     markAsRead(n.id)
@@ -230,16 +240,13 @@ const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
                 </button>
                 <hr className="my-2 border-gray-200" />
                 <button
-                  onClick={() => {
-                    logoutUser()
-                    setCurrentUser(null)
-                    navigate("/login")
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  <LogOut size={16} />
-                  Cerrar sesión
-                </button>
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+              >
+                <LogOut size={16} />
+                Cerrar sesión
+              </button>
               </div>
             </div>
           )}

@@ -1,26 +1,39 @@
 import seedUsers from "./seeds/users.json";
-import { type PortalRole, getRoleByPosition } from "./areaDepartmentConfig";
+import { type PortalRole } from "./areaDepartmentConfig";
+import { canTransitionUserStatus, registerUserStatusChange } from "./userStatusStorage";
 
 const USERS_STORAGE_KEY = "odiseo_users";
 const CURRENT_USER_KEY = "odiseo_current_user";
+const DEFAULT_DEMO_PASSWORD = "123456";
 
-export type UserRole = "admin" | "comercial" | "artes" | "rd" | "finance" | "viewer";
+export type UserRole =
+  | "admin"
+  | "comercial"
+  | "artes"
+  | "rd"
+  | "finance"
+  | "viewer";
 
-export type UserStatus = "active" | "inactive" | "pending_activation" | "pending_validation" | "blocked";
+export type UserStatus =
+  | "active"
+  | "inactive"
+  | "pending_activation"
+  | "pending_validation"
+  | "blocked";
 
 export type User = {
   id: string;
   code: string;
   email: string;
-  password: string; // En producción esto debe estar hasheado
+  password: string;
   firstName: string;
   lastName: string;
   fullName: string;
   role: PortalRole;
   status: UserStatus;
-  workerCode: string; // Cod Trabajador (PK desde Sistema Integral)
-  position: string; // Puesto
-  company: string; // Empresa
+  workerCode: string;
+  position: string;
+  company: string;
   area?: string;
   phone?: string;
   siUserId?: string;
@@ -32,7 +45,225 @@ export type User = {
 
 export type UserPublic = Omit<User, "password">;
 
-const INITIAL_USERS: User[] = seedUsers as User[];
+const SEED_DATE = "2026-01-01T00:00:00.000Z";
+
+const AREA_USERS: User[] = [
+  {
+    id: "USR-000001",
+    code: "US-000001",
+    email: "admin@amcor.com",
+    password: DEFAULT_DEMO_PASSWORD,
+    firstName: "Administrador",
+    lastName: "Sistema",
+    fullName: "Administrador Sistema",
+    role: "admin" as PortalRole,
+    status: "active",
+    workerCode: "GEN-ADMIN",
+    position: "Administrador del Portal",
+    company: "Amcor",
+    area: "Sistema",
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
+  },
+  {
+    id: "USR-000002",
+    code: "US-000002",
+    email: "comercial@amcor.com",
+    password: DEFAULT_DEMO_PASSWORD,
+    firstName: "Usuario",
+    lastName: "Comercial",
+    fullName: "Usuario Comercial",
+    role: "comercial" as PortalRole,
+    status: "active",
+    workerCode: "GEN-COMERCIAL",
+    position: "Ejecutivo Comercial",
+    company: "Amcor",
+    area: "Comercial",
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
+  },
+  {
+    id: "USR-000003",
+    code: "US-000003",
+    email: "artes@amcor.com",
+    password: DEFAULT_DEMO_PASSWORD,
+    firstName: "Usuario",
+    lastName: "Artes Gráficas",
+    fullName: "Usuario Artes Gráficas",
+    role: "artes" as PortalRole,
+    status: "active",
+    workerCode: "GEN-ARTES",
+    position: "Validador Artes Gráficas",
+    company: "Amcor",
+    area: "Artes Gráficas",
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
+  },
+  {
+    id: "USR-000004",
+    code: "US-000004",
+    email: "rnd@amcor.com",
+    password: DEFAULT_DEMO_PASSWORD,
+    firstName: "Usuario",
+    lastName: "R&D",
+    fullName: "Usuario R&D",
+    role: "rd" as PortalRole,
+    status: "active",
+    workerCode: "GEN-RD",
+    position: "Validador R&D",
+    company: "Amcor",
+    area: "R&D",
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
+  },
+  {
+    id: "USR-000005",
+    code: "US-000005",
+    email: "finance@amcor.com",
+    password: DEFAULT_DEMO_PASSWORD,
+    firstName: "Usuario",
+    lastName: "Commercial Finance",
+    fullName: "Usuario Commercial Finance",
+    role: "finance" as PortalRole,
+    status: "active",
+    workerCode: "GEN-FINANCE",
+    position: "Commercial Finance",
+    company: "Amcor",
+    area: "Commercial Finance",
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
+  },
+  {
+    id: "USR-000006",
+    code: "US-000006",
+    email: "supply@amcor.com",
+    password: DEFAULT_DEMO_PASSWORD,
+    firstName: "Usuario",
+    lastName: "Supply",
+    fullName: "Usuario Supply",
+    role: "viewer" as PortalRole,
+    status: "active",
+    workerCode: "GEN-SUPPLY",
+    position: "Supply",
+    company: "Amcor",
+    area: "Supply",
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
+  },
+  {
+    id: "USR-000007",
+    code: "US-000007",
+    email: "produccion@amcor.com",
+    password: DEFAULT_DEMO_PASSWORD,
+    firstName: "Usuario",
+    lastName: "Producción",
+    fullName: "Usuario Producción",
+    role: "viewer" as PortalRole,
+    status: "active",
+    workerCode: "GEN-PRODUCCION",
+    position: "Producción",
+    company: "Amcor",
+    area: "Producción",
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
+  },
+  {
+    id: "USR-000008",
+    code: "US-000008",
+    email: "planificacion@amcor.com",
+    password: DEFAULT_DEMO_PASSWORD,
+    firstName: "Usuario",
+    lastName: "Planificación",
+    fullName: "Usuario Planificación",
+    role: "viewer" as PortalRole,
+    status: "active",
+    workerCode: "GEN-PLANIFICACION",
+    position: "Planificación",
+    company: "Amcor",
+    area: "Planificación",
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
+  },
+  {
+    id: "USR-000009",
+    code: "US-000009",
+    email: "customerservice@amcor.com",
+    password: DEFAULT_DEMO_PASSWORD,
+    firstName: "Usuario",
+    lastName: "Customer Service",
+    fullName: "Usuario Customer Service",
+    role: "viewer" as PortalRole,
+    status: "active",
+    workerCode: "GEN-CS",
+    position: "Customer Service",
+    company: "Amcor",
+    area: "Customer Service",
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
+  },
+  {
+    id: "USR-000010",
+    code: "US-000010",
+    email: "masterdata@amcor.com",
+    password: DEFAULT_DEMO_PASSWORD,
+    firstName: "Usuario",
+    lastName: "Master Data",
+    fullName: "Usuario Master Data",
+    role: "viewer" as PortalRole,
+    status: "active",
+    workerCode: "GEN-MD",
+    position: "Master Data",
+    company: "Amcor",
+    area: "Master Data",
+    createdAt: SEED_DATE,
+    updatedAt: SEED_DATE,
+  },
+];
+
+const JSON_SEED_USERS: User[] = seedUsers as User[];
+
+const INITIAL_USERS: User[] = mergeUsersByIdAndEmail([
+  ...AREA_USERS,
+  ...JSON_SEED_USERS,
+]);
+
+function normalizeEmail(email: string): string {
+  return email.toLowerCase().trim();
+}
+
+function normalizeUser(user: User): User {
+  return {
+    ...user,
+    email: normalizeEmail(user.email),
+    fullName: user.fullName || `${user.firstName} ${user.lastName}`.trim(),
+  };
+}
+
+function getUserNumberFromCode(code: string): number {
+  const match = code.match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function mergeUsersByIdAndEmail(users: User[]): User[] {
+  const ids = new Set<string>();
+  const emails = new Set<string>();
+  const result: User[] = [];
+
+  users.forEach((user) => {
+    const normalized = normalizeUser(user);
+    const email = normalizeEmail(normalized.email);
+
+    if (ids.has(normalized.id) || emails.has(email)) {
+      return;
+    }
+
+    ids.add(normalized.id);
+    emails.add(email);
+    result.push(normalized);
+  });
+
+  return result;
+}
 
 function safeParseArray<T>(value: string | null): T[] {
   try {
@@ -49,11 +280,15 @@ function persistUsers(records: User[]) {
 
 export function getAllUsers(): User[] {
   const saved = safeParseArray<User>(localStorage.getItem(USERS_STORAGE_KEY));
+
   const savedIds = new Set(saved.map((u) => u.id));
-  const initialWithoutDuplicates = INITIAL_USERS.filter(
-    (user) => !savedIds.has(user.id)
-  );
-  return [...saved, ...initialWithoutDuplicates];
+  const savedEmails = new Set(saved.map((u) => normalizeEmail(u.email)));
+
+  const initialWithoutDuplicates = INITIAL_USERS.filter((user) => {
+    return !savedIds.has(user.id) && !savedEmails.has(normalizeEmail(user.email));
+  });
+
+  return mergeUsersByIdAndEmail([...saved, ...initialWithoutDuplicates]);
 }
 
 export function getUserById(id: string): User | undefined {
@@ -61,8 +296,9 @@ export function getUserById(id: string): User | undefined {
 }
 
 export function getUserByEmail(email: string): User | undefined {
+  const normalizedEmail = normalizeEmail(email);
   return getAllUsers().find(
-    (user) => user.email.toLowerCase() === email.toLowerCase()
+    (user) => normalizeEmail(user.email) === normalizedEmail
   );
 }
 
@@ -75,18 +311,18 @@ export function authenticateUser(
   password: string
 ): UserPublic | null {
   const user = getUserByEmail(email);
+
   if (!user || user.password !== password) {
     return null;
   }
+
   if (user.status !== "active") {
     return null;
   }
 
-  // Actualizar último login
   const updatedUser = { ...user, lastLoginAt: new Date().toISOString() };
   saveUserRecord(updatedUser);
 
-  // Guardar sesión actual
   const { password: _, ...publicUser } = updatedUser;
   localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(publicUser));
 
@@ -95,7 +331,9 @@ export function authenticateUser(
 
 export function getCurrentUser(): UserPublic | null {
   const stored = localStorage.getItem(CURRENT_USER_KEY);
+
   if (!stored) return null;
+
   try {
     return JSON.parse(stored);
   } catch {
@@ -104,30 +342,59 @@ export function getCurrentUser(): UserPublic | null {
 }
 
 export function logoutUser(): void {
-  localStorage.removeItem(CURRENT_USER_KEY);
+  localStorage.removeItem("odiseo_current_user");
 }
 
 export function saveUserRecord(record: User): void {
   const saved = safeParseArray<User>(localStorage.getItem(USERS_STORAGE_KEY));
-  const filtered = saved.filter((user) => user.id !== record.id);
-  persistUsers([record, ...filtered]);
-  saveSeedUsers([record, ...filtered]);
+
+  const normalizedRecord: User = normalizeUser({
+    ...record,
+    updatedAt: record.updatedAt || new Date().toISOString(),
+  });
+
+  const filtered = saved.filter((user) => {
+    const sameId = user.id === normalizedRecord.id;
+    const sameEmail = normalizeEmail(user.email) === normalizeEmail(normalizedRecord.email);
+    return !sameId && !sameEmail;
+  });
+
+  const nextRecords = mergeUsersByIdAndEmail([normalizedRecord, ...filtered]);
+
+  persistUsers(nextRecords);
+  saveSeedUsers(nextRecords);
 }
 
-export function createUser(newUser: Partial<Pick<User, "workerCode" | "position" | "company">> & Omit<User, "id" | "code" | "createdAt" | "updatedAt" | "fullName" | "workerCode" | "position" | "company">): User {
+export function createUser(
+  newUser: Partial<Pick<User, "workerCode" | "position" | "company">> &
+    Omit<
+      User,
+      | "id"
+      | "code"
+      | "createdAt"
+      | "updatedAt"
+      | "fullName"
+      | "workerCode"
+      | "position"
+      | "company"
+    >
+): User {
   const now = new Date().toISOString();
   const allUsers = getAllUsers();
+
   const maxNumber = Math.max(
     0,
-    ...allUsers.map((u) => Number(u.code.replace("US-", "")))
+    ...allUsers.map((u) => getUserNumberFromCode(u.code))
   );
+
   const nextNumber = maxNumber + 1;
 
   const user: User = {
     ...newUser,
     id: `USR-${String(nextNumber).padStart(6, "0")}`,
     code: `US-${String(nextNumber).padStart(6, "0")}`,
-    fullName: `${newUser.firstName} ${newUser.lastName}`,
+    email: normalizeEmail(newUser.email),
+    fullName: `${newUser.firstName} ${newUser.lastName}`.trim(),
     workerCode: newUser.workerCode || "",
     position: newUser.position || "",
     company: newUser.company || "",
@@ -137,6 +404,15 @@ export function createUser(newUser: Partial<Pick<User, "workerCode" | "position"
   };
 
   saveUserRecord(user);
+
+  registerUserStatusChange(
+    user.id,
+    null,
+    user.status,
+    "system",
+    "Usuario creado"
+  );
+
   return user;
 }
 
@@ -147,80 +423,129 @@ export function updateUser(
   const user = getUserById(id);
   if (!user) return null;
 
+  const nextStatus = updates.status || user.status;
+
+  if (
+    updates.status &&
+    updates.status !== user.status &&
+    !canTransitionUserStatus(user.status, updates.status)
+  ) {
+    throw new Error(
+      `Transición de estado no permitida: ${user.status} → ${updates.status}`
+    );
+  }
+
   const updated: User = {
     ...user,
     ...updates,
-    fullName: updates.firstName || updates.lastName
-      ? `${updates.firstName || user.firstName} ${updates.lastName || user.lastName}`
-      : user.fullName,
+    email: updates.email ? normalizeEmail(updates.email) : user.email,
+    fullName:
+      updates.firstName || updates.lastName
+        ? `${updates.firstName || user.firstName} ${updates.lastName || user.lastName}`.trim()
+        : user.fullName,
+    status: nextStatus,
     updatedAt: new Date().toISOString(),
   };
 
   saveUserRecord(updated);
+
+  if (updates.status && updates.status !== user.status) {
+    registerUserStatusChange(
+      user.id,
+      user.status,
+      updates.status,
+      "system",
+      "Cambio de estado desde edición de usuario"
+    );
+  }
+
   return updated;
 }
 
-export function deactivateUser(id: string): boolean {
+function changeUserStatus(
+  id: string,
+  toStatus: UserStatus,
+  comment: string,
+  changedBy: string = "system"
+): boolean {
   const user = getUserById(id);
   if (!user) return false;
 
-  saveUserRecord({ ...user, status: "inactive", updatedAt: new Date().toISOString() });
+  if (user.status === toStatus) {
+    return true;
+  }
+
+  if (!canTransitionUserStatus(user.status, toStatus)) {
+    return false;
+  }
+
+  saveUserRecord({
+    ...user,
+    status: toStatus,
+    updatedAt: new Date().toISOString(),
+  });
+
+  registerUserStatusChange(
+    user.id,
+    user.status,
+    toStatus,
+    changedBy,
+    comment
+  );
+
   return true;
+}
+
+export function deactivateUser(id: string): boolean {
+  return changeUserStatus(id, "inactive", "Usuario desactivado");
 }
 
 export function activateUser(id: string): boolean {
-  const user = getUserById(id);
-  if (!user) return false;
-
-  saveUserRecord({ ...user, status: "active", updatedAt: new Date().toISOString() });
-  return true;
+  return changeUserStatus(id, "active", "Usuario activado");
 }
 
 export function blockUser(id: string): boolean {
-  const user = getUserById(id);
-  if (!user) return false;
-
-  saveUserRecord({ ...user, status: "blocked", updatedAt: new Date().toISOString() });
-  return true;
+  return changeUserStatus(id, "blocked", "Usuario bloqueado");
 }
 
 export function unblockUser(id: string): boolean {
-  const user = getUserById(id);
-  if (!user) return false;
-
-  saveUserRecord({ ...user, status: "active", updatedAt: new Date().toISOString() });
-  return true;
+  return changeUserStatus(id, "active", "Usuario desbloqueado");
 }
 
 export function setPendingActivation(id: string): boolean {
-  const user = getUserById(id);
-  if (!user) return false;
-
-  saveUserRecord({ ...user, status: "pending_activation", updatedAt: new Date().toISOString() });
-  return true;
+  return changeUserStatus(
+    id,
+    "pending_activation",
+    "Usuario enviado a pendiente de activación"
+  );
 }
 
 export function setPendingValidation(id: string): boolean {
-  const user = getUserById(id);
-  if (!user) return false;
-
-  saveUserRecord({ ...user, status: "pending_validation", updatedAt: new Date().toISOString() });
-  return true;
+  return changeUserStatus(
+    id,
+    "pending_validation",
+    "Usuario enviado a pendiente de validación"
+  );
 }
 
 export function deleteUser(id: string): boolean {
   const saved = safeParseArray<User>(localStorage.getItem(USERS_STORAGE_KEY));
   const filtered = saved.filter((user) => user.id !== id);
+
   persistUsers(filtered);
+  saveSeedUsers(filtered);
+
   return true;
 }
 
 export function getNextUserCode(): string {
   const allUsers = getAllUsers();
+
   const maxNumber = Math.max(
     0,
-    ...allUsers.map((u) => Number(u.code.replace("US-", "")))
+    ...allUsers.map((u) => getUserNumberFromCode(u.code))
   );
+
   return `US-${String(maxNumber + 1).padStart(6, "0")}`;
 }
 
@@ -229,9 +554,8 @@ export function getUsersByRole(role: PortalRole): User[] {
 }
 
 export function getCommercialExecutives(): User[] {
-  return getAllUsers().filter((user) =>
-    user.status === "active" &&
-    user.area === "Comercial"
+  return getAllUsers().filter(
+    (user) => user.status === "active" && user.area === "Comercial"
   );
 }
 
@@ -243,12 +567,15 @@ export function getUserByWorkerCode(workerCode: string): User | undefined {
   return getAllUsers().find((user) => user.workerCode === workerCode);
 }
 
-export function findDuplicateUser(email: string, workerCode?: string): User | undefined {
+export function findDuplicateUser(
+  email: string,
+  workerCode?: string
+): User | undefined {
   const allUsers = getAllUsers();
-  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedEmail = normalizeEmail(email);
 
   return allUsers.find((user) => {
-    const emailMatch = user.email.toLowerCase().trim() === normalizedEmail;
+    const emailMatch = normalizeEmail(user.email) === normalizedEmail;
     const workerCodeMatch = workerCode ? user.workerCode === workerCode : false;
     return emailMatch || workerCodeMatch;
   });
@@ -295,7 +622,10 @@ export async function saveSeedUsers(users: User[]): Promise<void> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "users", data: users }),
     });
-    if (!response.ok) console.error("Failed to save seed users");
+
+    if (!response.ok) {
+      console.error("Failed to save seed users");
+    }
   } catch (error) {
     console.error("Error saving seed users:", error);
   }

@@ -184,7 +184,7 @@ export default function ClientEditPage() {
               />
 
               <FormInput
-                label="Correo Electr�nico *"
+                label="Correo Electrónico *"
                 value={form.email}
                 onChange={(value) => updateField("email", value)}
                 onBlur={() => markFieldAsTouched("email")}
@@ -193,7 +193,7 @@ export default function ClientEditPage() {
               />
 
               <FormInput
-                label="N�mero de RUC *"
+                label="Numero de RUC *"
                 value={form.ruc}
                 onChange={(value) => updateField("ruc", value)}
                 onBlur={() => markFieldAsTouched("ruc")}

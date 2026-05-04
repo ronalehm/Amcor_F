@@ -180,7 +180,7 @@ export default function ClientDetailPage() {
             <FormCard title="Sistema Integral" icon="??" color="#0D9488">
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">C�d. SI</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Cód. SI</p>
                   <p className="text-sm font-medium text-slate-900">{client.siClientCode || "�"}</p>
                 </div>
                 <div>
@@ -296,7 +296,7 @@ export default function ClientDetailPage() {
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-auto">
             <h3 className="text-lg font-semibold text-slate-900 mb-2">Desactivar Cliente</h3>
             <p className="text-sm text-slate-600 mb-6">
-              �Desea desactivar a <strong>{client.businessName}</strong>?
+              Desea desactivar a <strong>{client.businessName}</strong>?
             </p>
             <div className="flex gap-3">
               <button
