@@ -83,6 +83,10 @@ export type ProjectRecord = {
   // Ejecutivo comercial
   ejecutivoId?: number;
   ejecutivoName?: string;
+  ejecutivoIds?: Array<string | number>;
+  ejecutivoNames?: string;
+  executiveIds?: Array<string | number>;
+  commercialExecutiveIds?: Array<string | number>;
 
   // Usuario Sistema Integral
   siUserId?: string;

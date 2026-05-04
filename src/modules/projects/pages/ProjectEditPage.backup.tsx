@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
@@ -454,129 +454,12 @@ const STEPS = [
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
-  0: [
-    "portfolioCode",
-    "executiveId",
-    "salesforceAction",
-    "projectName",
-    "projectDescription",
-  ],
-  1: [
-    "blueprintFormat",
-    "technicalApplication",
-  ],
-  2: [
-    "printClass",
-    "printType",
-  ],
-  3: [
-    "width",
-    "length",
-    "repetition",
-  ],
-  4: [
-    "estimatedVolume",
-    "unitOfMeasure",
-    "saleType",
-    "targetPrice",
-    "currencyType",
-    "coreMaterial",
-    "coreDiameter",
-    "externalDiameter",
-    "maxRollWeight",
-    "peruvianProductLogo",
-    "printingFooter",
-  ],
-  5: [],
+  0: ["salesforceAction", "projectName", "projectDescription", "executiveId", "portfolioCode"],
+  1: ["blueprintFormat", "technicalApplication", "estimatedVolume", "unitOfMeasure"],
+  2: ["length", "repetition", "gussetWidth"],
+  3: [],
+  4: [],
 };
-const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
-  portfolioCode: "Portafolio base",
-  executiveId: "Ejecutivo Comercial",
-  salesforceAction: "Acción Salesforce",
-  projectName: "Nombre del proyecto",
-  projectDescription: "Descripción del proyecto",
-
-  blueprintFormat: "Formato de plano",
-  technicalApplication: "Aplicación técnica",
-
-  printClass: "Clase de impresión",
-  printType: "Tipo de impresión",
-
-  width: "Ancho",
-  length: "Largo",
-  repetition: "Repetición",
-
-  estimatedVolume: "Cantidad / Volumen estimado",
-  unitOfMeasure: "Unidad de medida",
-  saleType: "Venta nacional / internacional",
-  targetPrice: "Precio objetivo",
-  currencyType: "Tipo de moneda",
-  coreMaterial: "Material del core",
-  coreDiameter: "Diámetro core",
-  externalDiameter: "Diámetro externo",
-  maxRollWeight: "Peso máximo rollo",
-  peruvianProductLogo: "Logo producto peruano",
-  printingFooter: "Pie de imprenta",
-};
-const REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
-  "portfolioCode",
-  "executiveId",
-  "salesforceAction",
-  "projectName",
-  "projectDescription",
-  "blueprintFormat",
-  "technicalApplication",
-  "estimatedVolume",
-  "unitOfMeasure",
-  "printClass",
-  "printType",
-  "width",
-  "length",
-  "saleType",
-];
-
-const isFieldEmpty = (value: unknown) => {
-  if (Array.isArray(value)) return value.length === 0;
-  return value === undefined || value === null || String(value).trim() === "";
-};
-function shouldShowRepetitionField(wrapping: string, blueprintFormat: string): boolean {
-  const normalizedWrapping = normalizeWrappingName(wrapping);
-  const normalizedFormat = normalizeOptionValue(blueprintFormat);
-
-  const isBolsa = normalizedWrapping.includes("bolsa");
-
-  const isRepetitionFormat =
-    normalizedFormat.includes("tissue") ||
-    normalizedFormat.includes("generica") ||
-    normalizedFormat.includes("food");
-
-  return isBolsa && isRepetitionFormat;
-}
-type ProjectRecordWithExecutives = ProjectRecord & {
-  ejecutivoIds?: Array<string | number>;
-  ejecutivoNames?: string;
-  executiveIds?: Array<string | number>;
-  commercialExecutiveIds?: Array<string | number>;
-};
-
-function getProjectExecutiveIds(project: ProjectRecord): string[] {
-  const projectWithExecutives = project as ProjectRecordWithExecutives;
-
-  const multiIds =
-    projectWithExecutives.ejecutivoIds ||
-    projectWithExecutives.executiveIds ||
-    projectWithExecutives.commercialExecutiveIds;
-
-  if (Array.isArray(multiIds) && multiIds.length > 0) {
-    return multiIds.map(String);
-  }
-
-  if (project.ejecutivoId !== undefined && project.ejecutivoId !== null) {
-    return [String(project.ejecutivoId)];
-  }
-
-  return [];
-}
 
 export default function ProjectEditPage() {
   const navigate = useNavigate();
@@ -682,7 +565,7 @@ export default function ProjectEditPage() {
   const [showValidationSuccessModal, setShowValidationSuccessModal] = useState(false);
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
   const [showInheritedDataModal, setShowInheritedDataModal] = useState(false);
-  const allowIncompleteSaveRef = useRef(false);
+
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
   const siUsers = useMemo(() => getActiveUsers(), []);
@@ -709,7 +592,7 @@ export default function ProjectEditPage() {
 
     const convertedForm: ProjectEditFormData = {
       portfolioCode: project.portfolioCode || "",
-      executiveId: getProjectExecutiveIds(project),
+      executiveId: project.ejecutivoId ? [String(project.ejecutivoId)] : [],
       siUserId: project.siUserId || "",
       projectName: project.projectName || "",
       projectDescription: project.projectDescription || "",
@@ -803,40 +686,24 @@ export default function ProjectEditPage() {
   }, [projectCode]);
 
   useEffect(() => {
-  if (projectCode && !loading) {
-    const projectTitle = form.projectName?.trim()
-      ? `Editar Proyecto: ${form.projectName}`
-      : "Editar Proyecto";
-
-    const projectSubtitle = form.projectDescription?.trim()
-      ? form.projectDescription
-      : "Completa y gestiona todos los detalles de tu proyecto";
-
-    setHeader({
-      title: projectTitle,
-      subtitle: projectSubtitle,
-      breadcrumbs: [
-        { label: "Proyectos", href: "/projects" },
-        { label: projectCode },
-        { label: "Editar" },
-      ],
-      badges: (
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-          ID: {projectCode}
-        </span>
-      ),
-    });
-  }
-
-  return () => resetHeader();
-}, [
-  setHeader,
-  resetHeader,
-  projectCode,
-  loading,
-  form.projectName,
-  form.projectDescription,
-]);
+    if (projectCode && !loading) {
+      setHeader({
+        title: form.projectName ? `Editar Proyecto: ${form.projectName}` : "Editar Proyecto",
+        subtitle: `Completa y gestiona todos los detalles de tu proyecto`,
+        breadcrumbs: [
+          { label: "Proyectos", href: "/projects" },
+          { label: projectCode },
+          { label: "Editar" },
+        ],
+        badges: (
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+            ID: {projectCode}
+          </span>
+        ),
+      });
+    }
+    return () => resetHeader();
+  }, [setHeader, resetHeader, projectCode, loading, form.projectName]);
 
   const selectedPortfolio = useMemo(() => {
     return (
@@ -850,9 +717,8 @@ export default function ProjectEditPage() {
   }, [form.portfolioCode, portfolios]);
 
   const selectedExecutives = useMemo(() => {
-  const selectedIds = new Set(form.executiveId.map(String));
-  return executives.filter((executive) => selectedIds.has(String(executive.id)));
-}, [executives, form.executiveId]);
+    return executives.filter((executive) => form.executiveId.includes(String(executive.id)));
+  }, [executives, form.executiveId]);
 
   const inheritedPortfolioCode = selectedPortfolio?.id || selectedPortfolio?.codigo || selectedPortfolio?.code || "";
   const inheritedPortfolioName = selectedPortfolio?.nom || selectedPortfolio?.name || selectedPortfolio?.portfolioName || "";
@@ -869,15 +735,7 @@ export default function ProjectEditPage() {
   const inheritedSubSegment = selectedPortfolio?.subseg || selectedPortfolio?.subSegmento || selectedPortfolio?.subSegment || "";
   const inheritedAfMarketId = selectedPortfolio?.af || selectedPortfolio?.afMarketId || "";
   const inheritedMachine = selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || selectedPortfolio?.packingMachineName || "";
-  const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
-    const fields = [...REQUIRED_FIELDS];
 
-    if (shouldShowRepetitionField(inheritedWrapping, form.blueprintFormat)) {
-      fields.push("repetition");
-    }
-
-    return fields;
-  }, [inheritedWrapping, form.blueprintFormat]);
   const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -919,15 +777,15 @@ export default function ProjectEditPage() {
 
   const validationErrors = useMemo(() => {
     const errors: Partial<Record<keyof ProjectEditFormData, string>> = {};
-        requiredFields.forEach((field) => {
-          if (isFieldEmpty(form[field])) {
-            const label = FIELD_LABELS[field] || String(field);
-            errors[field] = `${label} es obligatorio.`;
-          }
-        });
 
-        return errors;
-    }, [form, requiredFields]);
+    if (!form.portfolioCode?.trim()) errors.portfolioCode = "Seleccione un portafolio base.";
+    if (form.executiveId.length === 0) errors.executiveId = "Seleccione al menos un ejecutivo comercial.";
+    if (!form.projectName?.trim()) errors.projectName = "Ingrese el nombre del proyecto.";
+    if (!form.projectDescription?.trim()) errors.projectDescription = "Ingrese la descripción del proyecto.";
+    if (!form.salesforceAction?.trim()) errors.salesforceAction = "Ingrese la acción Salesforce.";
+
+    return errors;
+  }, [form]);
 
   const shouldShowFieldError = (field: keyof ProjectEditFormData) => {
     return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
@@ -951,13 +809,40 @@ export default function ProjectEditPage() {
   }, [validationErrors]);
 
   // Calculate completion percentage
-      const completionPercentage = useMemo(() => {
-        const completedCount = requiredFields.filter(
-          (field) => !isFieldEmpty(form[field])
-        ).length;
+  const completionPercentage = useMemo(() => {
+    const requiredFields: Array<keyof ProjectEditFormData> = [
+      "portfolioCode",
+      "executiveId",
+      "salesforceAction",
+      "projectName",
+      "projectDescription",
+      "blueprintFormat",
+      "technicalApplication",
+      "estimatedVolume",
+      "unitOfMeasure",
+      "printClass",
+      "printType",
+      "width",
+      "length",
+      "repetition",
+      "saleType",
+      "targetPrice",
+      "currencyType",
+      "coreMaterial",
+      "coreDiameter",
+      "externalDiameter",
+      "maxRollWeight",
+      "peruvianProductLogo",
+      "printingFooter",
+    ];
 
-        return Math.round((completedCount / requiredFields.length) * 100);
-      }, [form, requiredFields]);
+    const completedCount = requiredFields.filter((field) => {
+      const v = form[field];
+      return v && String(v).trim() !== "" && (!Array.isArray(v) || v.length > 0);
+    }).length;
+
+    return Math.round((completedCount / requiredFields.length) * 100);
+  }, [form]);
 
   const isProjectCompleteForValidation = completionPercentage === 100;
 
@@ -966,17 +851,38 @@ export default function ProjectEditPage() {
     : "Actualizar proyecto";
 
   const missingFieldsByStep = useMemo(() => {
-    const missing = requiredFields.filter((field) => isFieldEmpty(form[field]));
+    const requiredFields: Array<keyof ProjectEditFormData> = [
+      "portfolioCode",
+      "executiveId",
+      "salesforceAction",
+      "projectName",
+      "projectDescription",
+      "blueprintFormat",
+      "technicalApplication",
+      "estimatedVolume",
+      "unitOfMeasure",
+      "printClass",
+      "printType",
+      "width",
+      "length",
+      "repetition",
+      "saleType",
+      "targetPrice",
+      "currencyType",
+      "coreMaterial",
+      "coreDiameter",
+      "externalDiameter",
+      "maxRollWeight",
+      "peruvianProductLogo",
+      "printingFooter",
+    ];
 
-    const result: Record<number, string[]> = {
-      0: [],
-      1: [],
-      2: [],
-      3: [],
-      4: [],
-      5: [],
-    };
+    const missing = requiredFields.filter((field) => {
+      const v = form[field];
+      return !v || String(v).trim() === "" || (Array.isArray(v) && v.length === 0);
+    });
 
+    const result: Record<number, string[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [] };
     missing.forEach((field) => {
       for (const [step, fields] of Object.entries(STEP_FIELDS)) {
         if (fields.includes(field)) {
@@ -987,86 +893,26 @@ export default function ProjectEditPage() {
     });
 
     return result;
-  }, [form, requiredFields]);
-
-  const missingFieldCount = useMemo(() => {
-  return Object.values(missingFieldsByStep).flat().length;
-}, [missingFieldsByStep]);
-
-const firstMissingStep = useMemo(() => {
-  const entry = Object.entries(missingFieldsByStep).find(
-    ([, fields]) => fields.length > 0
-  );
-
-  return entry ? Number(entry[0]) : 0;
-}, [missingFieldsByStep]);
-
-const handleReviewMissingFields = () => {
-  setShowMissingFieldsModal(false);
-  setSubmitAttempted(true);
-
-  const fieldsWithErrors = Object.values(missingFieldsByStep)
-    .flat()
-    .reduce((acc, field) => {
-      acc[field as keyof ProjectEditFormData] = true;
-      return acc;
-    }, {} as Partial<Record<keyof ProjectEditFormData, boolean>>);
-
-  setTouchedFields((prev) => ({
-    ...prev,
-    ...fieldsWithErrors,
-  }));
-
-  setActiveStep(firstMissingStep);
-
-  window.setTimeout(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, 100);
-};
-
-const handleSaveProgressAnyway = () => {
-  allowIncompleteSaveRef.current = true;
-  setShowMissingFieldsModal(false);
-
-  window.setTimeout(() => {
-    document.getElementById("project-edit-form")?.requestSubmit();
-  }, 0);
-};
+  }, [form]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitAttempted(true);
 
-    if (!projectCode) {
+    if (Object.keys(validationErrors).length > 0 || !projectCode) {
       return;
     }
-
-    const shouldForceSaveAsDraft = allowIncompleteSaveRef.current;
-
-    if (!shouldForceSaveAsDraft && !isProjectCompleteForValidation) {
-      setShowMissingFieldsModal(true);
-      return;
-    }
-
-    allowIncompleteSaveRef.current = false;
-
-    const shouldSubmitForValidation =
-      isProjectCompleteForValidation && !shouldForceSaveAsDraft;
 
     const now = new Date().toISOString();
 
-    // Ensure commercial executives are properly resolved and persisted
-    const finalExecutiveIds = form.executiveId.map(String);
+    // Ensure executiveId is properly resolved
+    const finalExecutiveId = form.executiveId && form.executiveId.length > 0
+      ? Number(form.executiveId[0])
+      : (originalProject?.ejecutivoId || undefined);
 
-    const finalExecutiveId =
-      finalExecutiveIds.length > 0
-        ? Number(finalExecutiveIds[0])
-        : originalProject?.ejecutivoId || undefined;
-
-    const finalExecutiveName =
-      selectedExecutives.length > 0
-        ? selectedExecutives.map((executive) => executive.name).join(", ")
-        : originalProject?.ejecutivoName || "";
+    const finalExecutiveName = form.executiveId && form.executiveId.length > 0
+      ? selectedExecutives.map(e => e.name).join(", ")
+      : (originalProject?.ejecutivoName || "");
 
     updateProjectRecord(projectCode, {
       id: projectCode,
@@ -1083,13 +929,6 @@ const handleSaveProgressAnyway = () => {
 
       ejecutivoId: finalExecutiveId,
       ejecutivoName: finalExecutiveName,
-
-      // Campos múltiples para persistir todos los ejecutivos comerciales seleccionados
-      ejecutivoIds: finalExecutiveIds,
-      ejecutivoNames: finalExecutiveName,
-      executiveIds: finalExecutiveIds,
-      commercialExecutiveIds: finalExecutiveIds,
-      
 
       siUserId: form.siUserId,
       siUserCode: siUsers.find(u => u.id === form.siUserId)?.code,
@@ -1204,12 +1043,12 @@ const handleSaveProgressAnyway = () => {
       peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
       printingFooter: form.printingFooter,
 
-      status: shouldSubmitForValidation ? "Ficha completa" : "Ficha en curso",
+      status: isProjectCompleteForValidation ? "Ficha completa" : "Ficha en proceso",
       updatedAt: now,
 
-      ...(shouldSubmitForValidation && {
+      ...(isProjectCompleteForValidation && {
         validacionSolicitada: true,
-        estadoValidacionGeneral: "En validación",
+        estadoValidacionGeneral: "Pendiente de validación",
         fechaSolicitudValidacion: now,
         validaciones: [
           { area: "Artes Gráficas", estado: "Pendiente", comentarios: [] },
@@ -1219,14 +1058,14 @@ const handleSaveProgressAnyway = () => {
       }),
     } as ProjectRecord);
 
-    if (shouldSubmitForValidation) {
-  setShowValidationSuccessModal(true);
-} else {
-  navigate("/projects");
-}
-}; // <-- cierra handleSubmit
+    if (isProjectCompleteForValidation) {
+      setShowValidationSuccessModal(true);
+    } else {
+      navigate("/projects");
+    }
+  };
 
-if (loading) {
+  if (loading) {
     return <div className="p-8 text-center text-slate-500">Cargando proyecto...</div>;
   }
 
@@ -1245,7 +1084,7 @@ if (loading) {
   }
 
   return (
-    <div className="w-full max-w-none bg-[#f6f8fb] pb-32">
+    <div className="w-full max-w-none bg-[#f6f8fb] pb-20">
       {/* ========== HEADER REFORMADO ========== */}
       <div className="mb-6 bg-white rounded-lg border border-slate-200 shadow-sm">
         {/* Nivel 1: Botón Volver con texto */}
@@ -1323,7 +1162,7 @@ if (loading) {
         </div>
       </div>
 
-      <form id="project-edit-form" onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit}>
 
         {/* ========== GRID DE 2 COLUMNAS ========== */}
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -1440,8 +1279,6 @@ if (loading) {
                       label="Formato de Plano"
                       value={form.blueprintFormat}
                       onChange={(value) => updateField("blueprintFormat", value)}
-                      onBlur={() => markFieldAsTouched("blueprintFormat")}
-                      error={getError("blueprintFormat")}
                       placeholder={!inheritedWrapping ? "Seleccione un portafolio primero" : "-- Seleccione --"}
                       options={getBlueprintFormatOptions(inheritedWrapping)}
                       disabled={!inheritedWrapping}
@@ -1451,8 +1288,6 @@ if (loading) {
                       label="Aplicación Técnica"
                       value={form.technicalApplication}
                       onChange={(value) => updateField("technicalApplication", value)}
-                      onBlur={() => markFieldAsTouched("technicalApplication")}
-                      error={getError("technicalApplication")}
                       placeholder="-- Seleccione --"
                       options={TECHNICAL_APPLICATION_OPTIONS}
                     />
@@ -1481,8 +1316,6 @@ if (loading) {
                             label="Clase de Impresión"
                             value={form.printClass}
                             onChange={(value) => updateField("printClass", value)}
-                            onBlur={() => markFieldAsTouched("printClass")}
-                            error={getError("printClass")}
                             placeholder="-- Seleccione --"
                             options={PRINT_CLASS_OPTIONS}
                           />
@@ -1490,8 +1323,6 @@ if (loading) {
                             label="Tipo de Impresión"
                             value={form.printType}
                             onChange={(value) => updateField("printType", value)}
-                            onBlur={() => markFieldAsTouched("printType")}
-                            error={getError("printType")}
                             placeholder="-- Seleccione --"
                             options={PRINT_TYPE_OPTIONS}
                             disabled={isPrintingDisabled}
@@ -1742,35 +1573,24 @@ if (loading) {
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
                     {(() => {
                       const wrapping = inheritedWrapping?.toLowerCase() || "";
-                      const showRepetition = shouldShowRepetitionField(inheritedWrapping, form.blueprintFormat);
-const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
+                      const isLamina = wrapping.includes("lamina") || wrapping.includes("lámina");
+                      const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       return (
                         <>
                           {isPouchOrBolsa && (
-                            <FormInput
-                              label="Ancho"
-                              value={form.width}
-                              onChange={(value) => updateField("width", value)}
-                              onBlur={() => markFieldAsTouched("width")}
-                              error={getError("width")}
-                              placeholder="mm"
-                            />
+                            <FormInput label="Ancho" value={form.width} onChange={(value) => updateField("width", value)} placeholder="mm" />
                           )}
                           <FormInput
                             label="Largo"
                             value={form.length}
                             onChange={(value) => updateField("length", value)}
-                            onBlur={() => markFieldAsTouched("length")}
-                            error={getError("length")}
                             placeholder="mm"
                           />
-                          {showRepetition && (
+                          {isLamina && (
                             <FormInput
                               label="Repetición"
                               value={form.repetition}
                               onChange={(value) => updateField("repetition", value)}
-                              onBlur={() => markFieldAsTouched("repetition")}
-                              error={getError("repetition")}
                               placeholder="mm"
                             />
                           )}
@@ -1920,8 +1740,6 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       label="Cantidad / Volumen estimado"
                       value={form.estimatedVolume}
                       onChange={(value) => updateField("estimatedVolume", value)}
-                      onBlur={() => markFieldAsTouched("estimatedVolume")}
-                      error={getError("estimatedVolume")}
                       placeholder="Ej. 500"
                     />
 
@@ -1929,8 +1747,6 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       label="Unidad de Medida"
                       value={form.unitOfMeasure}
                       onChange={(value) => updateField("unitOfMeasure", value)}
-                      onBlur={() => markFieldAsTouched("unitOfMeasure")}
-                      error={getError("unitOfMeasure")}
                       options={UNIT_OPTIONS}
                       placeholder="-- Seleccione --"
                     />
@@ -1977,6 +1793,36 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
             {activeStep === 5 && (
               <div className="space-y-5">
                 <ProjectDocumentsSection projectCode={projectCode} />
+              </div>
+            )}
+
+            {/* BOTONES DE NAVEGACIÓN ENTRE PASOS */}
+            {activeStep < STEPS.length && (
+              <div className="flex justify-between items-center pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
+                  disabled={activeStep === 0}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Anterior
+                </button>
+
+                <div className="text-xs text-slate-500">
+                  Paso {activeStep + 1} de {STEPS.length}
+                </div>
+
+                {activeStep < STEPS.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveStep((s) => Math.min(STEPS.length - 1, s + 1))}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                  >
+                    Siguiente →
+                  </button>
+                ) : (
+                  <div className="w-[80px]" />
+                )}
               </div>
             )}
           </div>
@@ -2041,37 +1887,9 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
             )}
           </div>
         </div>
-            {/* BOTONES DE NAVEGACIÓN ENTRE PASOS */}
-            {activeStep < STEPS.length && (
-              <div className="flex justify-between items-center pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
-                  disabled={activeStep === 0}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  ← Anterior
-                </button>
 
-                <div className="text-xs text-slate-500">
-                  Paso {activeStep + 1} de {STEPS.length}
-                </div>
-
-                {activeStep < STEPS.length - 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => setActiveStep((s) => Math.min(STEPS.length - 1, s + 1))}
-                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
-                  >
-                    Siguiente →
-                  </button>
-                ) : (
-                  <div className="w-[80px]" />
-                )}
-              </div>
-            )}
         {/* ========== FOOTER STICKY: BOTONES DE ACCIÓN ========== */}
-<div className="sticky bottom-0 z-40 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
+        <div className="sticky bottom-0 z-40 mt-6 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
           <FormActionButtons
             onCancel={() => navigate("/projects")}
             validationErrorList={Object.values(validationErrors).filter(
@@ -2085,74 +1903,40 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
         </div>
       </form>
 
-      {/* ========== MISSING FIELDS DECISION MODAL ========== */}
+      {/* ========== MISSING FIELDS MODAL ========== */}
       {showMissingFieldsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-xl overflow-hidden rounded-xl bg-white shadow-2xl">
-            <div className="border-b border-amber-200 bg-amber-50 px-6 py-4">
-              <h3 className="text-lg font-bold text-amber-900">
-                Campos obligatorios pendientes
-              </h3>
-              <p className="mt-1 text-sm text-amber-800">
-                Este proyecto tiene campos obligatorios sin completar. Puedes revisar
-                los campos pendientes antes de actualizar o guardar el avance actual.
-              </p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md mx-4 max-h-96 overflow-y-auto">
+            <div className="bg-amber-50 border-b border-amber-200 px-6 py-4 sticky top-0">
+              <h3 className="text-lg font-bold text-amber-900">Campos obligatorios faltantes</h3>
+              <p className="text-xs text-amber-700 mt-1">{Object.values(missingFieldsByStep).flat().length} campos por completar</p>
             </div>
-
-            <div className="max-h-[420px] overflow-y-auto px-6 py-4">
-              <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-sm font-semibold text-slate-800">
-                  Completitud actual: {completionPercentage}%
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Faltan {missingFieldCount} campo(s) obligatorio(s) para completar el proyecto.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {Object.entries(missingFieldsByStep).map(([stepNum, fields]) => {
-                  if (fields.length === 0) return null;
-
-                  const step = STEPS[Number(stepNum)];
-
-                  return (
-                    <div
-                      key={stepNum}
-                      className="rounded-lg border border-amber-200 bg-amber-50/60 p-3"
-                    >
-                      <p className="mb-2 text-sm font-bold text-amber-900">
-                        {step.label}
-                      </p>
-
-                      <ul className="space-y-1 pl-4 text-sm text-amber-800">
-                        {fields.map((field) => (
-                          <li key={field} className="list-disc">
-                            {FIELD_LABELS[field as keyof ProjectEditFormData] ||
-                              field.replace(/([A-Z])/g, " $1").trim()}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="px-6 py-4 space-y-4">
+              {Object.entries(missingFieldsByStep).map(([stepNum, fields]) => {
+                if (fields.length === 0) return null;
+                const step = STEPS[Number(stepNum)];
+                return (
+                  <div key={stepNum} className="border-l-4 border-amber-300 bg-amber-50 rounded p-3">
+                    <p className="font-semibold text-sm text-amber-900 mb-2">
+                      Sección {Number(stepNum) + 1}: {step.label}
+                    </p>
+                    <ul className="text-sm text-amber-800 space-y-1 ml-4">
+                      {fields.map((field) => (
+                        <li key={field} className="list-disc">
+                          {field.replace(/([A-Z])/g, " $1").trim()}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
             </div>
-
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:justify-end">
+            <div className="border-t border-slate-200 px-6 py-4 flex gap-3 bg-slate-50 sticky bottom-0">
               <button
-                type="button"
-                onClick={handleReviewMissingFields}
-                className="rounded-lg border border-brand-primary bg-white px-4 py-2 text-sm font-semibold text-brand-primary transition-colors hover:bg-slate-50"
+                onClick={() => setShowMissingFieldsModal(false)}
+                className="flex-1 px-4 py-2 bg-brand-primary text-white rounded font-medium hover:bg-brand-primary/90 transition-colors text-sm"
               >
-                Revisar campos faltantes
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveProgressAnyway}
-                className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-primary/90"
-              >
-                Guardar avance
+                Entendido
               </button>
             </div>
           </div>
