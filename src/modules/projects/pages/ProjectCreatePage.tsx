@@ -112,7 +112,6 @@ type ProjectFormData = {
   incoterm: string;
   destinationCountry: string;
   targetPrice: string;
-  salePrice: string;
   currencyType: string;
   coreMaterial: string;
   coreDiameter: string;
@@ -542,7 +541,6 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   incoterm: "",
   destinationCountry: "",
   targetPrice: "",
-  salePrice: "",
   currencyType: "",
   coreMaterial: "",
   coreDiameter: "",
@@ -697,7 +695,6 @@ export default function ProjectCreatePage() {
           incoterm: original.incoterm || "No aplica",
           destinationCountry: original.destinationCountry || "Perú",
           targetPrice: original.targetPrice || "",
-          salePrice: original.salePrice || "",
           currencyType: original.currencyType || "Soles",
           coreMaterial: original.coreMaterial || "",
           coreDiameter: original.coreDiameter || "",
@@ -1030,7 +1027,6 @@ export default function ProjectCreatePage() {
       incoterm: form.incoterm,
       destinationCountry: form.destinationCountry,
       targetPrice: form.targetPrice,
-      salePrice: form.salePrice,
       currencyType: form.currencyType,
       coreMaterial: form.coreMaterial,
       coreDiameter: form.coreDiameter,
@@ -1259,25 +1255,6 @@ export default function ProjectCreatePage() {
                   value={form.customerPackingCode}
                   onChange={(value) => updateField("customerPackingCode", value)}
                   placeholder="Ej. COD-CLI-001"
-                />
-
-                <FormInput
-                  label="Cantidad / Volumen estimado"
-                  value={form.estimatedVolume}
-                  onChange={(value) => updateField("estimatedVolume", value)}
-                  onBlur={() => markFieldAsTouched("estimatedVolume")}
-                  error={getError("estimatedVolume")}
-                  placeholder="Ej. 500"
-                />
-
-                <FormSelect
-                  label="Unidad de Medida"
-                  value={form.unitOfMeasure}
-                  onChange={(value) => updateField("unitOfMeasure", value)}
-                  onBlur={() => markFieldAsTouched("unitOfMeasure")}
-                  error={getError("unitOfMeasure")}
-                  options={UNIT_OPTIONS}
-                  placeholder="-- Seleccione --"
                 />
               </div>
             </FormCard>
@@ -1740,13 +1717,31 @@ export default function ProjectCreatePage() {
           <div className="space-y-5">
             <FormCard title="Condiciones comerciales" icon="💰" color="#0d4c5c">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <FormInput
+                  label="Cantidad / Volumen estimado"
+                  value={form.estimatedVolume}
+                  onChange={(value) => updateField("estimatedVolume", value)}
+                  onBlur={() => markFieldAsTouched("estimatedVolume")}
+                  error={getError("estimatedVolume")}
+                  placeholder="Ej. 500"
+                />
+
+                <FormSelect
+                  label="Unidad de Medida"
+                  value={form.unitOfMeasure}
+                  onChange={(value) => updateField("unitOfMeasure", value)}
+                  onBlur={() => markFieldAsTouched("unitOfMeasure")}
+                  error={getError("unitOfMeasure")}
+                  options={UNIT_OPTIONS}
+                  placeholder="-- Seleccione --"
+                />
+
                 <FormSelect label="Venta Nacional / Internacional" value={form.saleType} onChange={(value) => updateField("saleType", value)} options={SALE_TYPE_OPTIONS} />
                 <FormSelect label="Incoterm" value={form.incoterm} onChange={(value) => updateField("incoterm", value)} options={INCOTERM_OPTIONS} />
                 <FormSelect label="País Destino" value={form.destinationCountry} onChange={(value) => updateField("destinationCountry", value)} options={DESTINATION_COUNTRY_OPTIONS} />
 
                 <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(value) => updateField("targetPrice", value)} placeholder="Ej. 45" />
                 <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={CURRENCY_OPTIONS} />
-                <FormInput label="Precio de Venta" value={form.salePrice} onChange={(value) => updateField("salePrice", value)} placeholder="Ej. 50" />
 
                 <div className="md:col-span-3">
                   <FormTextarea

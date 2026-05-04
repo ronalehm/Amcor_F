@@ -225,7 +225,6 @@ export default function ProjectEditPage() {
     incoterm: "No aplica",
     destinationCountry: "Perú",
     targetPrice: "",
-    salePrice: "",
     currencyType: "Soles",
     coreMaterial: "",
     coreDiameter: "",
@@ -647,27 +646,6 @@ export default function ProjectEditPage() {
                   onChange={(v) => updateField("customerPackingCode", v)}
                   placeholder="Ej. COD-CLI-001"
                 />
-                <FormInput
-                  label="Cantidad / Volumen estimado *"
-                  value={form.estimatedVolume}
-                  onChange={(v) => updateField("estimatedVolume", v)}
-                  error={getError("estimatedVolume")}
-                  placeholder="Ej. 500"
-                />
-                <FormSelect
-                  label="Unidad de Medida *"
-                  value={form.unitOfMeasure}
-                  onChange={(v) => updateField("unitOfMeasure", v)}
-                  error={getError("unitOfMeasure")}
-                  options={[
-                    { value: "KGS", label: "KGS" },
-                    { value: "MLL", label: "MLL" },
-                    { value: "MTS", label: "MTS" },
-                    { value: "MT2", label: "MT2" },
-                    { value: "LBS", label: "LBS" },
-                    { value: "UNI", label: "UNI" },
-                  ]}
-                />
               </div>
             </FormCard>
 
@@ -1069,6 +1047,27 @@ export default function ProjectEditPage() {
 
             <FormCard title="7. Especificaciones financieras / comerciales" icon="💰" color="#0d4c5c">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <FormInput
+                  label="Cantidad / Volumen estimado *"
+                  value={form.estimatedVolume}
+                  onChange={(v) => updateField("estimatedVolume", v)}
+                  error={getError("estimatedVolume")}
+                  placeholder="Ej. 500"
+                />
+                <FormSelect
+                  label="Unidad de Medida *"
+                  value={form.unitOfMeasure}
+                  onChange={(v) => updateField("unitOfMeasure", v)}
+                  error={getError("unitOfMeasure")}
+                  options={[
+                    { value: "KGS", label: "KGS" },
+                    { value: "MLL", label: "MLL" },
+                    { value: "MTS", label: "MTS" },
+                    { value: "MT2", label: "MT2" },
+                    { value: "LBS", label: "LBS" },
+                    { value: "UNI", label: "UNI" },
+                  ]}
+                />
                 <FormSelect label="Venta Nacional / Internacional" value={form.saleType} onChange={(v) => updateField("saleType", v)} options={[{ value: "Nacional", label: "Nacional" }, { value: "Internacional", label: "Internacional" }]} />
                 <FormSelect label="Incoterm" value={form.incoterm} onChange={(v) => updateField("incoterm", v)} options={[{ value: "No aplica", label: "No aplica" }, { value: "EXW", label: "EXW" }, { value: "FOB", label: "FOB" }, { value: "CIF", label: "CIF" }, { value: "DAP", label: "DAP" }]} />
                 <FormSelect label="País Destino" value={form.destinationCountry} onChange={(v) => updateField("destinationCountry", v)} options={[{ value: "Perú", label: "Perú" }, { value: "Chile", label: "Chile" }, { value: "Colombia", label: "Colombia" }, { value: "Ecuador", label: "Ecuador" }, { value: "Portugal", label: "Portugal" }, { value: "Otro", label: "Otro" }]} />
