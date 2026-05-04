@@ -462,6 +462,9 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "projectDescription",
   ],
   1: [
+    "classification",
+    "subClassification",
+    "projectType",
     "blueprintFormat",
     "technicalApplication",
   ],
@@ -498,6 +501,10 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
 
   blueprintFormat: "Formato de plano",
   technicalApplication: "Aplicación técnica",
+  classification: "Clasificación",
+  subClassification: "Subsección clasificación",
+  projectType: "Tipo de proyecto",
+  customerPackingCode: "Código de empaque del cliente",
 
   printClass: "Clase de impresión",
   printType: "Tipo de impresión",
@@ -524,8 +531,11 @@ const REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   "salesforceAction",
   "projectName",
   "projectDescription",
+
+  "classification",
   "blueprintFormat",
   "technicalApplication",
+
   "estimatedVolume",
   "unitOfMeasure",
   "printClass",
@@ -869,27 +879,7 @@ export default function ProjectEditPage() {
   const inheritedSubSegment = selectedPortfolio?.subseg || selectedPortfolio?.subSegmento || selectedPortfolio?.subSegment || "";
   const inheritedAfMarketId = selectedPortfolio?.af || selectedPortfolio?.afMarketId || "";
   const inheritedMachine = selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || selectedPortfolio?.packingMachineName || "";
-  const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
-    const fields = [...REQUIRED_FIELDS];
-
-    if (shouldShowRepetitionField(inheritedWrapping, form.blueprintFormat)) {
-      fields.push("repetition");
-    }
-
-    return fields;
-  }, [inheritedWrapping, form.blueprintFormat]);
-  const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const markFieldAsTouched = (field: keyof ProjectEditFormData) => {
-    setTouchedFields((prev) => ({
-      ...prev,
-      [field]: true,
-    }));
-  };
-
-  const projectTypeOptions = useMemo(() => {
+    const projectTypeOptions = useMemo(() => {
     if (form.classification === "Modificado") {
       return [];
     }
@@ -916,6 +906,47 @@ export default function ProjectEditPage() {
 
     return [];
   }, [form.classification, form.subClassification]);
+
+  const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
+    const fields = [...REQUIRED_FIELDS];
+
+    const isSubClassificationEnabled = Boolean(form.classification);
+
+    const isProjectTypeEnabled =
+      Boolean(form.subClassification) &&
+      form.classification !== "Modificado" &&
+      projectTypeOptions.length > 0;
+
+    if (isSubClassificationEnabled) {
+      fields.push("subClassification");
+    }
+
+    if (isProjectTypeEnabled) {
+      fields.push("projectType");
+    }
+
+    if (shouldShowRepetitionField(inheritedWrapping, form.blueprintFormat)) {
+      fields.push("repetition");
+    }
+
+    return fields;
+  }, [
+    inheritedWrapping,
+    form.blueprintFormat,
+    form.classification,
+    form.subClassification,
+    projectTypeOptions,
+  ]);
+  const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const markFieldAsTouched = (field: keyof ProjectEditFormData) => {
+    setTouchedFields((prev) => ({
+      ...prev,
+      [field]: true,
+    }));
+  };
 
   const validationErrors = useMemo(() => {
     const errors: Partial<Record<keyof ProjectEditFormData, string>> = {};
@@ -1029,7 +1060,8 @@ const handleSaveProgressAnyway = () => {
   setShowMissingFieldsModal(false);
 
   window.setTimeout(() => {
-    document.getElementById("project-edit-form")?.requestSubmit();
+    const formElement = document.getElementById("project-edit-form") as HTMLFormElement | null;
+formElement?.requestSubmit();
   }, 0);
 };
 
@@ -1392,24 +1424,28 @@ if (loading) {
                     </div>
 
                     <FormSelect
-                      label="Clasificación"
+                      label="Clasificación *"
                       value={form.classification}
                       onChange={(value) => {
                         updateField("classification", value);
                         updateField("subClassification", "");
                         updateField("projectType", "");
                       }}
+                      onBlur={() => markFieldAsTouched("classification")}
+                      error={getError("classification")}
                       options={CLASSIFICATION_OPTIONS}
                       placeholder="-- Seleccione --"
                     />
 
                     <FormSelect
-                      label="Subsección Clasificación"
+                      label={form.classification ? "Subsección Clasificación *" : "Subsección Clasificación"}
                       value={form.subClassification}
                       onChange={(value) => {
                         updateField("subClassification", value);
                         updateField("projectType", "");
                       }}
+                      onBlur={() => markFieldAsTouched("subClassification")}
+                      error={getError("subClassification")}
                       options={
                         form.classification === "Nuevo"
                           ? SUBCLASSIFICATION_NUEVO_OPTIONS
@@ -1422,9 +1458,17 @@ if (loading) {
                     />
 
                     <FormSelect
-                      label="Tipo de Proyecto"
+                      label={
+                        form.subClassification &&
+                        form.classification !== "Modificado" &&
+                        projectTypeOptions.length > 0
+                          ? "Tipo de Proyecto *"
+                          : "Tipo de Proyecto"
+                      }
                       value={form.projectType}
                       onChange={(value) => updateField("projectType", value)}
+                      onBlur={() => markFieldAsTouched("projectType")}
+                      error={getError("projectType")}
                       options={projectTypeOptions}
                       placeholder={
                         form.classification === "Modificado"
@@ -1433,7 +1477,11 @@ if (loading) {
                             ? "-- Seleccione subsección primero --"
                             : "-- Seleccione --"
                       }
-                      disabled={form.classification === "Modificado" || !form.subClassification}
+                      disabled={
+                        form.classification === "Modificado" ||
+                        !form.subClassification ||
+                        projectTypeOptions.length === 0
+                      }
                     />
 
                     <FormSelect
@@ -1568,6 +1616,7 @@ if (loading) {
                       label="¿Tiene estructura de referencia?"
                       value={form.hasReferenceStructure}
                       onChange={(value) => updateField("hasReferenceStructure", value)}
+                      placeholder="-- Seleccione --"
                       options={YES_NO_OPTIONS}
                     />
                     {form.hasReferenceStructure === "Sí" && (
@@ -1591,6 +1640,7 @@ if (loading) {
                         label="Tipo de Estructura"
                         value={form.structureType}
                         onChange={(value) => updateField("structureType", value)}
+                        placeholder="-- Seleccione --"
                         options={STRUCTURE_TYPE_OPTIONS}
                       />
                     )}
