@@ -1,3 +1,4 @@
+import { getActiveExecutiveRecords } from "./executiveStorage";
 import seedUsers from "./seeds/users.json";
 import { type PortalRole } from "./areaDepartmentConfig";
 import { canTransitionUserStatus, registerUserStatusChange } from "./userStatusStorage";
@@ -222,8 +223,43 @@ const AREA_USERS: User[] = [
 
 const JSON_SEED_USERS: User[] = seedUsers as User[];
 
+function buildPortalUsersFromExecutives(): User[] {
+  return getActiveExecutiveRecords().map((executive, index) => {
+    const email = executive.email.toLowerCase().trim();
+    const localPart = email.split("@")[0];
+
+    const nameParts = executive.name
+      ? executive.name.split(" ").filter(Boolean)
+      : localPart.split(".").filter(Boolean);
+
+    const firstName = nameParts[0] || "Ejecutivo";
+    const lastName = nameParts.slice(1).join(" ") || "Comercial";
+
+    const number = index + 1001;
+
+    return {
+      id: `USR-EJC-${String(number).padStart(6, "0")}`,
+      code: `US-EJC-${String(number).padStart(6, "0")}`,
+      email,
+      password: "123456",
+      firstName,
+      lastName,
+      fullName: executive.name || `${firstName} ${lastName}`,
+      role: "comercial" as PortalRole,
+      status: "active",
+      workerCode: executive.code,
+      position: executive.position || "Ejecutivo Comercial",
+      company: email.includes("peruplast") ? "Peruplast" : "Amcor",
+      area: "Comercial",
+      createdAt: executive.createdAt || SEED_DATE,
+      updatedAt: executive.updatedAt || SEED_DATE,
+    };
+  });
+}
+
 const INITIAL_USERS: User[] = mergeUsersByIdAndEmail([
   ...AREA_USERS,
+  ...buildPortalUsersFromExecutives(),
   ...JSON_SEED_USERS,
 ]);
 
