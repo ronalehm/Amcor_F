@@ -21,7 +21,7 @@ export default function PortfolioDetailPage() {
   const [projects, setProjects] = useState<any[]>([]);
 
   const currentUser = getCurrentUser();
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = currentUser?.role === "administrador";
 
   useEffect(() => {
     if (portfolioCode) {

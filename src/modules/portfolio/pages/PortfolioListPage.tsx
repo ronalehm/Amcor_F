@@ -408,7 +408,7 @@ export default function PortfolioListPage() {
                 <SortableHeader label="Cliente" sortKey="clientName" />
                 <SortableHeader label="Envoltura" sortKey="envoltura" />
                 <SortableHeader label="Envasado / Máquina de Cliente" sortKey="maquinaCliente" />
-                <SortableHeader label="Proyectos" sortKey="proyectos" align="center" />
+                <SortableHeader label="Proyectos" sortKey="proyectos" align="right" />
                 <SortableHeader label="Estado" sortKey="createdAt" />
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wide">
                   Creado

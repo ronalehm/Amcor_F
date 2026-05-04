@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getProjectByCode, updateProjectRecord, type AreaValidation, type ValidationState } from "../../../shared/data/projectStorage";
+import { getProjectByCode, updateProjectRecord, type AreaValidation, type ValidationState, type ValidationStatus } from "../../../shared/data/projectStorage";
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";

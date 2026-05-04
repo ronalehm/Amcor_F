@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords, TECHNICAL_APPLICATION_OPTIONS } from "../../../shared/data/portfolioStorage";
-import { getProjectByCode, updateProjectRecord, type ProjectRecord } from "../../../shared/data/projectStorage";
+import { getProjectByCode, updateProjectRecord, type ProjectRecord, type BooleanLike } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers, getCurrentUser } from "../../../shared/data/userStorage";
 import { getCatalogOptions } from "../../../shared/data/projectCatalogStorage";
