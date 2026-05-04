@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 
 export type SmartCatalogOption = {
@@ -16,6 +16,7 @@ type SmartCatalogSearchProps = {
   options: SmartCatalogOption[];
   placeholder?: string;
   error?: string;
+  emptyMessage?: string;
 };
 
 export default function SmartCatalogSearch({
@@ -26,12 +27,14 @@ export default function SmartCatalogSearch({
   options,
   placeholder,
   error,
+  emptyMessage,
 }: SmartCatalogSearchProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const justTypedRef = useRef(false);
   const selectedOption = options.find((option) => String(option.id) === value);
 
   const [query, setQuery] = useState(selectedOption?.name || "");
   const [isOpen, setIsOpen] = useState(false);
-  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     if (selectedOption) {
@@ -39,14 +42,30 @@ export default function SmartCatalogSearch({
     }
 
     if (!value) {
-      setQuery("");
+      if (!justTypedRef.current) {
+        setQuery("");
+      }
+      setIsOpen(false);
     }
+    justTypedRef.current = false;
   }, [value, selectedOption?.name]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const filteredOptions = useMemo(() => {
     const search = query.trim().toLowerCase();
-
-    if (showAll || !search) return options;
+    if (!search) return [];
 
     return options.filter((option) =>
       [option.name, option.code, option.meta]
@@ -55,17 +74,18 @@ export default function SmartCatalogSearch({
         .toLowerCase()
         .includes(search)
     );
-  }, [options, query, showAll]);
+  }, [options, query]);
 
   const selectOption = (option: SmartCatalogOption) => {
     onChange(String(option.id));
     setQuery(option.name);
     setIsOpen(false);
-    setShowAll(false);
   };
 
+  const showDropdown = isOpen && query.trim().length >= 1;
+
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapperRef}>
       <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
         {label}
       </span>
@@ -80,10 +100,18 @@ export default function SmartCatalogSearch({
           onFocus={() => setIsOpen(true)}
           onBlur={onBlur}
           onChange={(event) => {
-            setQuery(event.target.value);
+            const newValue = event.target.value;
+            justTypedRef.current = true;
+            setQuery(newValue);
             onChange("");
-            setIsOpen(true);
-            setShowAll(false);
+            if (newValue.trim().length >= 1) {
+              setIsOpen(true);
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setIsOpen(false);
+            }
           }}
           placeholder={placeholder}
           className={`w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm shadow-sm outline-none transition-colors ${
@@ -94,7 +122,7 @@ export default function SmartCatalogSearch({
         />
       </div>
 
-      {isOpen && (
+      {showDropdown && (
         <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((option) => (
@@ -116,8 +144,8 @@ export default function SmartCatalogSearch({
               </button>
             ))
           ) : (
-            <div className="px-3 py-3 text-sm text-slate-500">
-              No se encontraron resultados.
+            <div className="px-3 py-3 text-sm text-amber-700 bg-amber-50">
+              {emptyMessage || "No se encontraron resultados."}
             </div>
           )}
         </div>

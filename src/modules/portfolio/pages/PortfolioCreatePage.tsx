@@ -366,6 +366,7 @@ export default function PortfolioCreatePage() {
                     meta: item.ruc,
                   }))}
                   placeholder="Escribe para buscar cliente..."
+                  emptyMessage="Cliente no encontrado. Regístrelo en el módulo Clientes."
                 />
 
                 <SmartCatalogSearch
@@ -385,6 +386,7 @@ export default function PortfolioCreatePage() {
                     meta: item.email,
                   }))}
                   placeholder="Escribe para buscar ejecutivo..."
+                  emptyMessage="Usuario no encontrado. Regístrelo en el módulo Usuarios."
                 />
 
                 <FormSelect

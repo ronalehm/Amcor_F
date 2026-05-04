@@ -723,8 +723,16 @@ export default function ProjectCreatePage() {
     if (!form.estimatedVolume.trim()) errors.estimatedVolume = "Ingrese el volumen estimado.";
     if (!form.unitOfMeasure) errors.unitOfMeasure = "Seleccione la unidad de medida.";
 
+    if (form.blueprintFormat && inheritedWrapping) {
+      const validOptions = getBlueprintFormatOptions(inheritedWrapping);
+      const isValid = validOptions.some((opt) => opt.value === form.blueprintFormat);
+      if (!isValid) {
+        errors.blueprintFormat = "El formato de plano no corresponde a la envoltura heredada.";
+      }
+    }
+
     return errors;
-  }, [form]);
+  }, [form, inheritedWrapping]);
 
   const getError = (field: keyof ProjectFormData) => {
     return submitAttempted ? validationErrors[field] || "" : "";
