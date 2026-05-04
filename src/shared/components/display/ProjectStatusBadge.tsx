@@ -8,6 +8,8 @@ export default function ProjectStatusBadge({ status }: ProjectStatusBadgeProps) 
   const styles: Record<ProjectStatus, string> = {
     "Borrador": "bg-gray-100 text-gray-700",
     "Registrado": "bg-blue-100 text-blue-700",
+    "Ficha en proceso": "bg-blue-100 text-blue-700",
+    "Ficha completa": "bg-green-100 text-green-700",
     "Pendiente de validación": "bg-yellow-100 text-yellow-700",
     "En validación": "bg-amber-100 text-amber-700",
     "Observada": "bg-orange-100 text-orange-700",

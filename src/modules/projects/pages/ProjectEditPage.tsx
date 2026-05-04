@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords, TECHNICAL_APPLICATION_OPTIONS } from "../../../shared/data/portfolioStorage";
-import { getProjectByCode, updateProjectRecord, type ProjectRecord, type BooleanLike } from "../../../shared/data/projectStorage";
+import {
+  getProjectByCode,
+  updateProjectRecord,
+  type ProjectRecord,
+  type BooleanLike,
+  type YesNoPending,
+} from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
-import { getActiveUsers, getCurrentUser } from "../../../shared/data/userStorage";
-import { getCatalogOptions } from "../../../shared/data/projectCatalogStorage";
-import { getProjectTrackingState } from "../../../shared/data/projectTrackingStorage";
-import { PHASE_CONFIGS, type PhaseRole } from "../../../shared/data/projectPhaseConfig";
-import { useProjectPhase } from "../../../shared/hooks/useProjectPhase";
-import type { ProjectStage } from "../../../shared/data/projectStageConfig";
+import { getActiveUsers } from "../../../shared/data/userStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -19,7 +22,147 @@ import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import PortfolioSearch from "../../../shared/components/forms/PortfolioSearch";
-import CommercialExecutiveSearch from "../../../shared/components/forms/CommercialExecutiveSearch";
+import CommercialExecutiveMultiSearch from "../../../shared/components/forms/CommercialExecutiveMultiSearch";
+import ProjectDocumentsSection from "../components/ProjectDocumentsSection";
+
+type ProjectEditFormData = {
+  portfolioCode: string;
+  executiveId: string[];
+  siUserId: string;
+
+  projectName: string;
+  projectDescription: string;
+  classification: string;
+  subClassification: string;
+  projectType: string;
+  salesforceAction: string;
+
+  blueprintFormat: string;
+  technicalApplication: string;
+  estimatedVolume: string;
+  unitOfMeasure: string;
+  customerPackingCode: string;
+
+  printClass: string;
+  printType: string;
+  requiresDesignWork: string;
+  hasEdagReference: string;
+  referenceEdagCode: string;
+  referenceEdagVersion: string;
+  specialDesignSpecs: string;
+  specialDesignComments: string;
+  edagCode: string;
+  edagVersion: string;
+
+  hasReferenceStructure: string;
+  referenceEmCode: string;
+  referenceEmVersion: string;
+  structureType: string;
+
+  layer1MaterialGroup: string;
+  layer1Material: string;
+  layer1Micron: string;
+  layer1Grammage: string;
+  layer2MaterialGroup: string;
+  layer2Material: string;
+  layer2Micron: string;
+  layer2Grammage: string;
+  layer3MaterialGroup: string;
+  layer3Material: string;
+  layer3Micron: string;
+  layer3Grammage: string;
+  layer4MaterialGroup: string;
+  layer4Material: string;
+  layer4Micron: string;
+  layer4Grammage: string;
+
+  specialStructureSpecs: string;
+  grammage: string;
+  grammageTolerance: string;
+  sampleRequest: string;
+
+  width: string;
+  length: string;
+  repetition: string;
+  doyPackBase: string;
+  gussetWidth: string;
+  gussetType: string;
+
+  hasZipper: string;
+  zipperType: string;
+  hasTinTie: string;
+  hasValve: string;
+  valveType: string;
+  hasDieCutHandle: string;
+  hasReinforcement: string;
+  reinforcementThickness: string;
+  reinforcementWidth: string;
+  hasAngularCut: string;
+  hasRoundedCorners: string;
+  roundedCornersType: string;
+  hasNotch: string;
+  hasPerforation: string;
+  pouchPerforationType: string;
+  bagPerforationType: string;
+  perforationLocation: string;
+  hasPreCut: string;
+  preCutType: string;
+  otherAccessories: string;
+
+  saleType: string;
+  incoterm: string;
+  destinationCountry: string;
+  targetPrice: string;
+  currencyType: string;
+  coreMaterial: string;
+  coreDiameter: string;
+  externalDiameter: string;
+  externalVariationPlus: string;
+  externalVariationMinus: string;
+  maxRollWeight: string;
+  customerAdditionalInfo: string;
+  peruvianProductLogo: string;
+  printingFooter: string;
+};
+
+const YES_NO_OPTIONS = [
+  { value: "Sí", label: "Sí" },
+  { value: "No", label: "No" },
+];
+
+const CLASSIFICATION_OPTIONS = [
+  { value: "Nuevo", label: "Nuevo" },
+  { value: "Modificado", label: "Modificado" },
+];
+
+const SUBCLASSIFICATION_NUEVO_OPTIONS = [
+  { value: "Desarrollo_RD", label: "Desarrollo_RD" },
+  { value: "Área_Técnica", label: "Área_Técnica" },
+];
+
+const SUBCLASSIFICATION_MODIFICADO_OPTIONS = [
+  { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
+  { value: "Estructura", label: "Estructura" },
+];
+
+const PROJECT_TYPE_RD_OPTIONS = [
+  { value: "Producto nuevo", label: "Producto nuevo" },
+  { value: "Nuevo equipamiento de envasado", label: "Nuevo equipamiento de envasado" },
+  { value: "Nuevos insumos", label: "Nuevos insumos" },
+  { value: "Nueva estructura", label: "Nueva estructura" },
+  { value: "Nuevo formato de envasado", label: "Nuevo formato de envasado" },
+  { value: "Nuevos accesorios", label: "Nuevos accesorios" },
+  { value: "Nuevos procesos por el lado del cliente", label: "Nuevos procesos por el lado del cliente" },
+  { value: "Nuevas temperaturas de envasado y almacenaje", label: "Nuevas temperaturas de envasado y almacenaje" },
+];
+
+const PROJECT_TYPE_TECNICA_OPTIONS = [
+  { value: "Extensión de línea por familia (EM de referencia)", label: "Extensión de línea por familia (EM de referencia)" },
+  { value: "Modifica Dimensiones", label: "Modifica Dimensiones" },
+  { value: "Modifica Propiedades", label: "Modifica Propiedades" },
+  { value: "Portafolio Estándar", label: "Portafolio Estándar" },
+  { value: "ICO (Intercompany), BCP (Business Continous Production)", label: "ICO (Intercompany), BCP (Business Continous Production)" },
+];
 
 const POUCH_FORMAT_OPTIONS = [
   { value: "POUCH C/SELLO EN FUELLE\\TIPO 4-1\\FUELLE PROPIO", label: "POUCH C/SELLO EN FUELLE\\TIPO 4-1\\FUELLE PROPIO" },
@@ -56,7 +199,29 @@ const LAMINA_FORMAT_OPTIONS = [
 ];
 
 function normalizeWrapping(value: string): string {
-  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  return value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+}
+
+function normalizeWrappingName(value: string): string {
+  return value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+}
+
+function getWrappingImage(name: string): string {
+  const normalized = normalizeWrappingName(name);
+  if (normalized.includes("lamina")) return "/assets/envolturas/lamina.png";
+  if (normalized.includes("bolsa")) return "/assets/envolturas/bolsa.png";
+  if (normalized.includes("pouch")) return "/assets/envolturas/pouch.png";
+  return "/assets/envolturas/default.png";
+}
+
+function normalizeOptionValue(value: string): string {
+  if (!value) return "";
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, "_")
+    .trim();
 }
 
 function getBlueprintFormatOptions(wrapping: string | undefined): Array<{ value: string; label: string }> {
@@ -67,6 +232,141 @@ function getBlueprintFormatOptions(wrapping: string | undefined): Array<{ value:
   if (normalized === "lamina") return LAMINA_FORMAT_OPTIONS;
   return [];
 }
+
+function extractMaterialGroupFromValue(materialValue: string): string {
+  if (!materialValue) return "";
+  const group = materialValue.split(" - ")[0];
+  return Object.keys(MATERIAL_CATALOG).includes(group) ? group : "";
+}
+
+const UNIT_OPTIONS = [
+  { value: "KGS", label: "KGS" },
+  { value: "MLL", label: "MLL" },
+  { value: "MTS", label: "MTS" },
+  { value: "MT2", label: "MT2" },
+  { value: "LBS", label: "LBS" },
+  { value: "UNI", label: "UNI" },
+];
+
+const PRINT_CLASS_OPTIONS = [
+  { value: "Flexo", label: "Flexo" },
+  { value: "Huecograbado", label: "Huecograbado" },
+  { value: "Sin impresión", label: "Sin impresión" },
+];
+
+const PRINT_TYPE_OPTIONS = [
+  { value: "Nuevo", label: "Nuevo" },
+  { value: "Repetitivo", label: "Repetitivo" },
+];
+
+const STRUCTURE_TYPE_OPTIONS = [
+  { value: "Monocapa", label: "Monocapa" },
+  { value: "Bilaminado", label: "Bilaminado" },
+  { value: "Trilaminado", label: "Trilaminado" },
+  { value: "Tetralaminado", label: "Tetralaminado" },
+];
+
+type MaterialEntry = { value: string; label: string; micron: string; isFree: boolean };
+type MaterialCatalog = Record<string, MaterialEntry[]>;
+
+const MATERIAL_CATALOG: MaterialCatalog = {
+  "BOPP": [
+    { value: "BOPP - BOPP CRISTAL - 15",         label: "BOPP CRISTAL - 15",         micron: "15",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL - 17",         label: "BOPP CRISTAL - 17",         micron: "17",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL - 20",         label: "BOPP CRISTAL - 20",         micron: "20",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL - 25",         label: "BOPP CRISTAL - 25",         micron: "25",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL - 30",         label: "BOPP CRISTAL - 30",         micron: "30",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL - 35",         label: "BOPP CRISTAL - 35",         micron: "35",  isFree: false },
+    { value: "BOPP - BOPP CRISTAL ETIQUETA - 13.5", label: "BOPP CRISTAL ETIQUETA - 13.5", micron: "13.5", isFree: false },
+    { value: "BOPP - BOPP BLANCO/MATE - 17",     label: "BOPP BLANCO/MATE - 17",     micron: "17",  isFree: false },
+    { value: "BOPP - BOPP BLANCO/MATE - 20",     label: "BOPP BLANCO/MATE - 20",     micron: "20",  isFree: false },
+    { value: "BOPP - BOPP BLANCO/MATE - 27",     label: "BOPP BLANCO/MATE - 27",     micron: "27",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 15",            label: "BOPP ALOX - 15",            micron: "15",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 17",            label: "BOPP ALOX - 17",            micron: "17",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 20",            label: "BOPP ALOX - 20",            micron: "20",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 25",            label: "BOPP ALOX - 25",            micron: "25",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 30",            label: "BOPP ALOX - 30",            micron: "30",  isFree: false },
+    { value: "BOPP - BOPP ALOX - 35",            label: "BOPP ALOX - 35",            micron: "35",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 15",      label: "BOPP METALIZADO - 15",      micron: "15",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 17",      label: "BOPP METALIZADO - 17",      micron: "17",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 20",      label: "BOPP METALIZADO - 20",      micron: "20",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 25",      label: "BOPP METALIZADO - 25",      micron: "25",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 30",      label: "BOPP METALIZADO - 30",      micron: "30",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO - 35",      label: "BOPP METALIZADO - 35",      micron: "35",  isFree: false },
+    { value: "BOPP - BOPP METALIZADO UHB - 18",  label: "BOPP METALIZADO UHB - 18",  micron: "18",  isFree: false },
+  ],
+  "POLIESTER": [
+    { value: "POLIESTER - PET CRISTAL - 10",         label: "PET CRISTAL - 10",         micron: "10", isFree: false },
+    { value: "POLIESTER - PET CRISTAL - 12",         label: "PET CRISTAL - 12",         micron: "12", isFree: false },
+    { value: "POLIESTER - PET METALIZADO - 12",      label: "PET METALIZADO - 12",      micron: "12", isFree: false },
+    { value: "POLIESTER - PET METALIZADO UHB - 12",  label: "PET METALIZADO UHB - 12",  micron: "12", isFree: false },
+  ],
+  "PAPEL": [
+    { value: "PAPEL - PAPEL ANTIGRASA - 40",    label: "PAPEL ANTIGRASA - 40",    micron: "40", isFree: false },
+    { value: "PAPEL - PAPEL ANTIGRASA - 60",    label: "PAPEL ANTIGRASA - 60",    micron: "60", isFree: false },
+    { value: "PAPEL - PAPEL ESTUCADO - 40",     label: "PAPEL ESTUCADO - 40",     micron: "40", isFree: false },
+    { value: "PAPEL - PAPEL ESTUCADO - 60",     label: "PAPEL ESTUCADO - 60",     micron: "60", isFree: false },
+    { value: "PAPEL - PAPEL ESTUCADO - 70",     label: "PAPEL ESTUCADO - 70",     micron: "70", isFree: false },
+    { value: "PAPEL - PAPEL ESPECIAL - Libre",  label: "PAPEL ESPECIAL - Libre",  micron: "",   isFree: true  },
+  ],
+  "COEX": [
+    { value: "COEX - PE - Libre",     label: "PE - Libre",     micron: "", isFree: true },
+    { value: "COEX - BARVAL - Libre", label: "BARVAL - Libre", micron: "", isFree: true },
+    { value: "COEX - BARLON - Libre", label: "BARLON - Libre", micron: "", isFree: true },
+  ],
+  "ALUMINIO": [
+    { value: "ALUMINIO - ALUMINIO - 7", label: "ALUMINIO - 7", micron: "7", isFree: false },
+    { value: "ALUMINIO - ALUMINIO - 8", label: "ALUMINIO - 8", micron: "8", isFree: false },
+    { value: "ALUMINIO - ALUMINIO - 9", label: "ALUMINIO - 9", micron: "9", isFree: false },
+  ],
+  "AMPRIMA": [
+    { value: "AMPRIMA - AMPRIMA - 25", label: "AMPRIMA - 25", micron: "25", isFree: false },
+  ],
+  "PPCAST": [
+    { value: "PPCAST - CAST CRISTAL - 20", label: "CAST CRISTAL - 20", micron: "20", isFree: false },
+    { value: "PPCAST - CAST CRISTAL - 25", label: "CAST CRISTAL - 25", micron: "25", isFree: false },
+    { value: "PPCAST - CAST CRISTAL - 30", label: "CAST CRISTAL - 30", micron: "30", isFree: false },
+    { value: "PPCAST - CAST CRISTAL - 60", label: "CAST CRISTAL - 60", micron: "60", isFree: false },
+  ],
+  "BOPA": [
+    { value: "BOPA - BOPA CRISTAL - 15", label: "BOPA CRISTAL - 15", micron: "15", isFree: false },
+  ],
+  "TERMOFORMADOS": [
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 75",  label: "TERMOFORMADO ALTA - 75",  micron: "75",  isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 90",  label: "TERMOFORMADO ALTA - 90",  micron: "90",  isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 100", label: "TERMOFORMADO ALTA - 100", micron: "100", isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 110", label: "TERMOFORMADO ALTA - 110", micron: "110", isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 150", label: "TERMOFORMADO ALTA - 150", micron: "150", isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 178", label: "TERMOFORMADO ALTA - 178", micron: "178", isFree: false },
+    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 200", label: "TERMOFORMADO ALTA - 200", micron: "200", isFree: false },
+  ],
+};
+
+const MATERIAL_GROUP_OPTIONS = Object.keys(MATERIAL_CATALOG).map(g => ({ value: g, label: g }));
+
+const SALE_TYPE_OPTIONS = [
+  { value: "Nacional", label: "Nacional" },
+  { value: "Internacional", label: "Internacional" },
+];
+
+const INCOTERM_OPTIONS = [
+  { value: "EXW", label: "EXW" },
+  { value: "FCA", label: "FCA" },
+  { value: "FAS", label: "FAS" },
+  { value: "FOB", label: "FOB" },
+  { value: "CPT", label: "CPT" },
+  { value: "CIP", label: "CIP" },
+  { value: "CFR", label: "CFR" },
+  { value: "CIF", label: "CIF" },
+  { value: "DAP", label: "DAP" },
+  { value: "DPU", label: "DPU" },
+  { value: "DDP", label: "DDP" },
+];
+
+const CURRENCY_OPTIONS = [
+  { value: "Soles", label: "Soles" },
+  { value: "Dólares", label: "Dólares" },
+];
 
 const SPECIAL_DESIGN_SPECS_OPTIONS = [
   { value: "Tintas Holográficas", label: "Tintas Holográficas" },
@@ -135,97 +435,117 @@ const OTHER_ACCESSORIES_OPTIONS = [
   { value: "No aplica", label: "No aplica" },
 ];
 
+const DESTINATION_COUNTRY_OPTIONS = [
+  { value: "Perú", label: "Perú" },
+  { value: "Chile", label: "Chile" },
+  { value: "Colombia", label: "Colombia" },
+  { value: "Ecuador", label: "Ecuador" },
+  { value: "Portugal", label: "Portugal" },
+  { value: "Otro", label: "Otro" },
+];
+
+const STEPS = [
+  { label: "Información General" },
+  { label: "Producto Comercial" },
+  { label: "Diseño" },
+  { label: "Estructura" },
+  { label: "Condiciones comerciales" },
+  { label: "Documentos" },
+];
+
+const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
+  0: ["salesforceAction", "projectName", "projectDescription", "executiveId", "portfolioCode"],
+  1: ["blueprintFormat", "technicalApplication", "estimatedVolume", "unitOfMeasure"],
+  2: ["length", "repetition", "gussetWidth"],
+  3: [],
+  4: [],
+};
+
 export default function ProjectEditPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
   const { projectCode } = useParams<{ projectCode: string }>();
 
-  const [form, setForm] = useState<Partial<ProjectRecord>>({
-    // 1. Información General
+  const [form, setForm] = useState<ProjectEditFormData>({
     portfolioCode: "",
+    executiveId: [],
+    siUserId: "",
     projectName: "",
     projectDescription: "",
-    ejecutivoId: undefined,
-    siUserId: "",
-    classification: "Nuevo",
-    subClassification: "SFDC - R&D",
-    projectType: "ICO",
+    classification: "",
+    subClassification: "",
+    projectType: "",
     salesforceAction: "",
-
-    // 3. Datos de Producto Comercial
     blueprintFormat: "",
     technicalApplication: "",
     estimatedVolume: "",
-    unitOfMeasure: "KGS",
+    unitOfMeasure: "",
     customerPackingCode: "",
-
-    // 4. Especificaciones de Diseño
     printClass: "",
     printType: "",
+    requiresDesignWork: "",
+    hasEdagReference: "",
+    referenceEdagCode: "",
+    referenceEdagVersion: "",
     specialDesignSpecs: "",
     specialDesignComments: "",
     edagCode: "",
     edagVersion: "",
-    isPreviousDesign: "No",
-    previousEdagCode: "",
-    previousEdagVersion: "",
-
-    // 5. Especificaciones de Estructura
-    hasReferenceStructure: "No",
+    hasReferenceStructure: "",
     referenceEmCode: "",
     referenceEmVersion: "",
-    structureType: "Monocapa",
+    structureType: "",
+    layer1MaterialGroup: "",
     layer1Material: "",
     layer1Micron: "",
     layer1Grammage: "",
+    layer2MaterialGroup: "",
     layer2Material: "",
     layer2Micron: "",
     layer2Grammage: "",
+    layer3MaterialGroup: "",
     layer3Material: "",
     layer3Micron: "",
     layer3Grammage: "",
+    layer4MaterialGroup: "",
     layer4Material: "",
     layer4Micron: "",
     layer4Grammage: "",
     specialStructureSpecs: "",
     grammage: "",
     grammageTolerance: "",
-    sampleRequest: "No",
-
-    // 6. Dimensiones y Accesorios
+    sampleRequest: "",
     width: "",
     length: "",
     repetition: "",
     doyPackBase: "",
     gussetWidth: "",
     gussetType: "",
-    hasZipper: "No",
+    hasZipper: "",
     zipperType: "",
-    hasTinTie: "No",
-    hasValve: "No",
+    hasTinTie: "",
+    hasValve: "",
     valveType: "",
-    hasDieCutHandle: "No",
-    hasReinforcement: "No",
+    hasDieCutHandle: "",
+    hasReinforcement: "",
     reinforcementThickness: "",
     reinforcementWidth: "",
-    hasAngularCut: "No",
-    hasRoundedCorners: "No",
+    hasAngularCut: "",
+    hasRoundedCorners: "",
     roundedCornersType: "",
-    hasNotch: "No",
-    hasPerforation: "No",
+    hasNotch: "",
+    hasPerforation: "",
     pouchPerforationType: "",
     bagPerforationType: "",
     perforationLocation: "",
-    hasPreCut: "No",
+    hasPreCut: "",
     preCutType: "",
     otherAccessories: "",
-
-    // 7. Especificaciones Financieras
-    saleType: "Nacional",
-    incoterm: "No aplica",
-    destinationCountry: "Perú",
+    saleType: "",
+    incoterm: "",
+    destinationCountry: "",
     targetPrice: "",
-    currencyType: "Soles",
+    currencyType: "",
     coreMaterial: "",
     coreDiameter: "",
     externalDiameter: "",
@@ -233,239 +553,475 @@ export default function ProjectEditPage() {
     externalVariationMinus: "",
     maxRollWeight: "",
     customerAdditionalInfo: "",
-    peruvianProductLogo: "No",
-    printingFooter: "No",
+    peruvianProductLogo: "",
+    printingFooter: "",
   });
-  
+
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [touchedFields, setTouchedFields] = useState<
-    Partial<Record<keyof FormData, boolean>>
-  >({});
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof ProjectEditFormData, boolean>>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentStage, setCurrentStage] = useState<ProjectStage>("P1");
-  const [userRole, setUserRole] = useState<PhaseRole>("Comercial");
+  const [activeStep, setActiveStep] = useState(0);
+  const [originalProject, setOriginalProject] = useState<ProjectRecord | null>(null);
+  const [showValidationSuccessModal, setShowValidationSuccessModal] = useState(false);
 
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
   const siUsers = useMemo(() => getActiveUsers(), []);
 
-  const { getFieldStatus } = useProjectPhase({ currentStage, userRole });
-
   useEffect(() => {
     if (!projectCode) {
-      setError("Código de proyecto no válido");
       setLoading(false);
       return;
     }
 
     const project = getProjectByCode(projectCode);
     if (!project) {
-      setError(`Proyecto ${projectCode} no encontrado`);
       setLoading(false);
       return;
     }
 
-    // Get current project stage and user role
-    const trackingState = getProjectTrackingState(projectCode);
-    if (trackingState) {
-      setCurrentStage(trackingState.currentStage as ProjectStage);
-    }
+    setOriginalProject(project);
 
-    // Determine user role based on current user (simplified - could come from auth system)
-    const currentUser = getCurrentUser();
-    if (currentUser?.role) {
-      const roleMap: Record<string, PhaseRole> = {
-        "Comercial": "Comercial",
-        "ArteGraficas": "ArteGraficas",
-        "RyD": "RyD",
-        "CF": "CF",
-        "Credito": "Credito",
-      };
-      setUserRole(roleMap[currentUser.role] || "Comercial");
-    }
-
-    // Helper to convert boolean/string to "Sí"/"No"
     const toYesNo = (val: any) => {
       if (val === true || val === "Sí" || val === "Si") return "Sí";
       if (val === false || val === "No" || val === null || val === undefined) return "No";
       return val;
     };
 
-    setForm({
-      ...project,
-      // Convertir campos booleanos a strings "Sí"/"No"
+    const convertedForm: ProjectEditFormData = {
+      portfolioCode: project.portfolioCode || "",
+      executiveId: project.ejecutivoId ? [String(project.ejecutivoId)] : [],
+      siUserId: project.siUserId || "",
+      projectName: project.projectName || "",
+      projectDescription: project.projectDescription || "",
+      classification: project.classification || "",
+      subClassification: project.subClassification || "",
+      projectType: project.projectType || "",
+      salesforceAction: project.salesforceAction || "",
+      blueprintFormat: project.blueprintFormat || "",
+      technicalApplication: project.technicalApplication || "",
+      estimatedVolume: project.estimatedVolume || "",
+      unitOfMeasure: project.unitOfMeasure || "KGS",
+      customerPackingCode: project.customerPackingCode || "",
+      printClass: project.printClass || "",
+      printType: project.printType || "",
+      requiresDesignWork: toYesNo(project.requiresDesignWork),
+      hasEdagReference: toYesNo(project.isPreviousDesign),
+      referenceEdagCode: project.previousEdagCode || "",
+      referenceEdagVersion: project.previousEdagVersion || "",
+      specialDesignSpecs: project.specialDesignSpecs || "",
+      specialDesignComments: project.specialDesignComments || "",
+      edagCode: project.edagCode || "",
+      edagVersion: project.edagVersion || "",
       hasReferenceStructure: toYesNo(project.hasReferenceStructure),
+      referenceEmCode: project.referenceEmCode || "",
+      referenceEmVersion: project.referenceEmVersion || "",
+      structureType: project.structureType || "Monocapa",
+      layer1MaterialGroup: extractMaterialGroupFromValue(project.layer1Material || ""),
+      layer1Material: project.layer1Material || "",
+      layer1Micron: project.layer1Micron || "",
+      layer1Grammage: project.layer1Grammage || "",
+      layer2MaterialGroup: extractMaterialGroupFromValue(project.layer2Material || ""),
+      layer2Material: project.layer2Material || "",
+      layer2Micron: project.layer2Micron || "",
+      layer2Grammage: project.layer2Grammage || "",
+      layer3MaterialGroup: extractMaterialGroupFromValue(project.layer3Material || ""),
+      layer3Material: project.layer3Material || "",
+      layer3Micron: project.layer3Micron || "",
+      layer3Grammage: project.layer3Grammage || "",
+      layer4MaterialGroup: extractMaterialGroupFromValue(project.layer4Material || ""),
+      layer4Material: project.layer4Material || "",
+      layer4Micron: project.layer4Micron || "",
+      layer4Grammage: project.layer4Grammage || "",
+      specialStructureSpecs: project.specialStructureSpecs || "",
+      grammage: project.grammage || "",
+      grammageTolerance: project.grammageTolerance || "",
       sampleRequest: toYesNo(project.sampleRequest),
+      width: project.width || "",
+      length: project.length || "",
+      repetition: project.repetition || "",
+      doyPackBase: project.doyPackBase || "",
+      gussetWidth: project.gussetWidth || "",
+      gussetType: project.gussetType || "",
       hasZipper: toYesNo(project.hasZipper),
+      zipperType: project.zipperType || "",
       hasTinTie: toYesNo(project.hasTinTie),
       hasValve: toYesNo(project.hasValve),
+      valveType: project.valveType || "",
       hasDieCutHandle: toYesNo(project.hasDieCutHandle),
       hasReinforcement: toYesNo(project.hasReinforcement),
+      reinforcementThickness: project.reinforcementThickness || "",
+      reinforcementWidth: project.reinforcementWidth || "",
       hasAngularCut: toYesNo(project.hasAngularCut),
       hasRoundedCorners: toYesNo(project.hasRoundedCorners),
+      roundedCornersType: project.roundedCornersType || "",
       hasNotch: toYesNo(project.hasNotch),
       hasPerforation: toYesNo(project.hasPerforation),
+      pouchPerforationType: project.pouchPerforationType || "",
+      bagPerforationType: project.bagPerforationType || "",
+      perforationLocation: project.perforationLocation || "",
       hasPreCut: toYesNo(project.hasPreCut),
-      peruvianProductLogo: toYesNo(project.peruvianProductLogo),
-      printingFooter: toYesNo(project.printingFooter),
-      // Valores por defecto para campos nuevos si no existen
-      classification: project.classification || "Nuevo",
-      subClassification: project.subClassification || "SFDC - R&D",
-      projectType: project.projectType || "ICO",
-      unitOfMeasure: project.unitOfMeasure || "KG",
-      structureType: project.structureType || "Monocapa",
-      designRoute: project.designRoute || "Sin diseño",
+      preCutType: project.preCutType || "",
+      otherAccessories: project.otherAccessories || "",
       saleType: project.saleType || "Nacional",
       incoterm: project.incoterm || "No aplica",
       destinationCountry: project.destinationCountry || "Perú",
+      targetPrice: project.targetPrice || "",
       currencyType: project.currencyType || "Soles",
-      isPreviousDesign: toYesNo(project.isPreviousDesign),
-      previousEdagCode: project.previousEdagCode || "",
-      previousEdagVersion: project.previousEdagVersion || "",
-    });
+      coreMaterial: project.coreMaterial || "",
+      coreDiameter: project.coreDiameter || "",
+      externalDiameter: project.externalDiameter || "",
+      externalVariationPlus: project.externalVariationPlus || "",
+      externalVariationMinus: project.externalVariationMinus || "",
+      maxRollWeight: project.maxRollWeight || "",
+      customerAdditionalInfo: project.customerAdditionalInfo || "",
+      peruvianProductLogo: toYesNo(project.peruvianProductLogo),
+      printingFooter: toYesNo(project.printingFooter),
+    };
 
+    setForm(convertedForm);
     setLoading(false);
   }, [projectCode]);
 
-  const selectedPortfolio = useMemo(() => {
-    return portfolios.find(p => p.id === form.portfolioCode || p.codigo === form.portfolioCode) || null;
-  }, [form.portfolioCode, portfolios]);
-
-  const inheritedWrapping = selectedPortfolio?.env || selectedPortfolio?.envoltura || selectedPortfolio?.wrappingName || "";
-
   useEffect(() => {
     if (projectCode && !loading) {
-      const phaseConfig = PHASE_CONFIGS[currentStage];
       setHeader({
         title: "Editar Proyecto",
-        subtitle: `${phaseConfig.name} - ${phaseConfig.description}`,
-        breadcrumbs: [{ label: "Proyectos", href: "/projects" }, { label: projectCode }, { label: "Editar" }],
+        subtitle: `Completa y gestiona todos los detalles de tu proyecto`,
+        breadcrumbs: [
+          { label: "Proyectos", href: "/projects" },
+          { label: projectCode },
+          { label: "Editar" },
+        ],
         badges: (
-          <div className="flex gap-2">
-            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
-              {phaseConfig.name}
-            </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-              ID: {projectCode}
-            </span>
-          </div>
-        )
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+            ID: {projectCode}
+          </span>
+        ),
       });
     }
     return () => resetHeader();
-  }, [setHeader, resetHeader, projectCode, loading, currentStage]);
+  }, [setHeader, resetHeader, projectCode, loading]);
 
-  const updateField = (field: string, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+  const selectedPortfolio = useMemo(() => {
+    return (
+      portfolios.find(
+        (portfolio) =>
+          portfolio.id === form.portfolioCode ||
+          portfolio.codigo === form.portfolioCode ||
+          portfolio.code === form.portfolioCode
+      ) || null
+    );
+  }, [form.portfolioCode, portfolios]);
+
+  const selectedExecutives = useMemo(() => {
+    return executives.filter((executive) => form.executiveId.includes(String(executive.id)));
+  }, [executives, form.executiveId]);
+
+  const inheritedClient = selectedPortfolio?.cli || selectedPortfolio?.clientName || "";
+  const inheritedPlant = selectedPortfolio?.pl || selectedPortfolio?.plantaName || selectedPortfolio?.plantaCode || "";
+  const inheritedWrapping = selectedPortfolio?.env || selectedPortfolio?.envoltura || selectedPortfolio?.wrappingName || "";
+  const inheritedFinalUse = selectedPortfolio?.uf || selectedPortfolio?.usoFinal || selectedPortfolio?.useFinalName || "";
+  const inheritedSector = selectedPortfolio?.sector || "";
+  const inheritedSegment = selectedPortfolio?.seg || selectedPortfolio?.segmento || selectedPortfolio?.segment || "";
+  const inheritedSubSegment = selectedPortfolio?.subseg || selectedPortfolio?.subSegmento || selectedPortfolio?.subSegment || "";
+  const inheritedAfMarketId = selectedPortfolio?.af || selectedPortfolio?.afMarketId || "";
+  const inheritedMachine = selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || selectedPortfolio?.packingMachineName || "";
+
+  const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const markFieldAsTouched = (field: string) => {
+  const markFieldAsTouched = (field: keyof ProjectEditFormData) => {
     setTouchedFields((prev) => ({
       ...prev,
       [field]: true,
     }));
   };
 
+  const projectTypeOptions = useMemo(() => {
+    if (form.classification === "Modificado") {
+      return [];
+    }
+
+    if (!form.subClassification) return [];
+
+    if (form.subClassification === "Desarrollo_RD") {
+      return PROJECT_TYPE_RD_OPTIONS;
+    }
+
+    if (form.subClassification === "Área_Técnica") {
+      return PROJECT_TYPE_TECNICA_OPTIONS;
+    }
+
+    const normalized = normalizeOptionValue(form.subClassification);
+
+    if (normalized.includes("desarrollo") || normalized.includes("rd")) {
+      return PROJECT_TYPE_RD_OPTIONS;
+    }
+
+    if (normalized.includes("area") || normalized.includes("tecnica")) {
+      return PROJECT_TYPE_TECNICA_OPTIONS;
+    }
+
+    return [];
+  }, [form.classification, form.subClassification]);
+
   const validationErrors = useMemo(() => {
-    const errors: Record<string, string> = {};
-    if (!form.portfolioCode) errors.portfolioCode = "Seleccione un portafolio base.";
+    const errors: Partial<Record<keyof ProjectEditFormData, string>> = {};
+
+    if (!form.portfolioCode?.trim()) errors.portfolioCode = "Seleccione un portafolio base.";
     if (!form.projectName?.trim()) errors.projectName = "Ingrese el nombre del proyecto.";
+    if (!form.projectDescription?.trim()) errors.projectDescription = "Ingrese la descripción del proyecto.";
     if (!form.salesforceAction?.trim()) errors.salesforceAction = "Ingrese la acción Salesforce.";
-    if (!form.blueprintFormat) errors.blueprintFormat = "Seleccione el formato de plano.";
-    if (!form.technicalApplication) errors.technicalApplication = "Seleccione la aplicación técnica.";
-    if (!form.estimatedVolume?.trim()) errors.estimatedVolume = "Ingrese el volumen estimado.";
-    if (!form.unitOfMeasure) errors.unitOfMeasure = "Seleccione la unidad de medida.";
-    if (!form.designRoute) errors.designRoute = "Seleccione la ruta de diseño.";
+
     return errors;
   }, [form]);
 
-  const shouldShowFieldError = (field: string) => {
-    return Boolean(
-      validationErrors[field] && (submitAttempted || touchedFields[field])
-    );
+  const shouldShowFieldError = (field: keyof ProjectEditFormData) => {
+    return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
   };
 
-  const getError = (field: string) => {
+  const getError = (field: keyof ProjectEditFormData) => {
     return shouldShowFieldError(field) ? validationErrors[field] || "" : "";
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const stepsWithErrors = useMemo(() => {
+    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+    Object.keys(validationErrors).forEach((field) => {
+      for (const [step, fields] of Object.entries(STEP_FIELDS)) {
+        if (fields.includes(field as keyof ProjectEditFormData)) {
+          result[Number(step)]++;
+          break;
+        }
+      }
+    });
+    return result;
+  }, [validationErrors]);
+
+  // Calculate completion percentage
+  const completionPercentage = useMemo(() => {
+    const requiredFields: Array<keyof ProjectEditFormData> = [
+      "portfolioCode",
+      "executiveId",
+      "salesforceAction",
+      "projectName",
+      "projectDescription",
+      "blueprintFormat",
+      "technicalApplication",
+      "estimatedVolume",
+      "unitOfMeasure",
+      "printClass",
+      "printType",
+      "width",
+      "length",
+      "repetition",
+      "saleType",
+      "targetPrice",
+      "currencyType",
+      "coreMaterial",
+      "coreDiameter",
+      "externalDiameter",
+      "maxRollWeight",
+      "peruvianProductLogo",
+      "printingFooter",
+    ];
+
+    const completedCount = requiredFields.filter((field) => {
+      const v = form[field];
+      return v && String(v).trim() !== "" && (!Array.isArray(v) || v.length > 0);
+    }).length;
+
+    return Math.round((completedCount / requiredFields.length) * 100);
+  }, [form]);
+
+  const isProjectCompleteForValidation = completionPercentage === 100;
+
+  const primaryButtonLabel = isProjectCompleteForValidation
+    ? "Solicitar validación"
+    : "Actualizar proyecto";
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setSubmitAttempted(true);
 
     if (Object.keys(validationErrors).length > 0 || !projectCode) {
-      if (Object.keys(validationErrors).length > 0) {
-        const fieldsWithErrors = Object.keys(validationErrors).reduce(
-          (acc, field) => {
-            acc[field] = true;
-            return acc;
-          },
-          {} as Partial<Record<string, boolean>>
-        );
-        setTouchedFields((prev) => ({
-          ...prev,
-          ...fieldsWithErrors,
-        }));
-      }
       return;
     }
 
-    const selectedExecutive = executives.find(ex => ex.id === Number(form.ejecutivoId));
-    const selectedSiUser = siUsers.find(user => user.id === form.siUserId);
+    const now = new Date().toISOString();
 
     updateProjectRecord(projectCode, {
-      ...form,
+      id: projectCode,
       code: projectCode,
-      portfolioCode: form.portfolioCode || "",
-      projectName: form.projectName || "",
-      ejecutivoId: form.ejecutivoId,
-      ejecutivoName: selectedExecutive?.name || form.ejecutivoName,
+
+      portfolioCode: form.portfolioCode,
+      portfolioName: selectedPortfolio?.nom || selectedPortfolio?.portfolioName || "",
+
+      clientCode: selectedPortfolio?.clientCode,
+      clientName: inheritedClient,
+
+      projectName: form.projectName,
+      projectDescription: form.projectDescription,
+
+      ejecutivoId: form.executiveId.length > 0 ? Number(form.executiveId[0]) : (originalProject?.ejecutivoId || undefined),
+      ejecutivoName: form.executiveId.length > 0 ? selectedExecutives.map(e => e.name).join(", ") : (originalProject?.ejecutivoName || ""),
+
       siUserId: form.siUserId,
-      siUserCode: selectedSiUser?.code || form.siUserCode,
-      // Inherited from portfolio
-      clientName: selectedPortfolio?.cli || selectedPortfolio?.clientName || form.clientName || "",
-      wrappingName: selectedPortfolio?.env || selectedPortfolio?.envoltura || form.wrappingName,
-      useFinalName: selectedPortfolio?.uf || selectedPortfolio?.usoFinal || form.useFinalName,
-      sector: selectedPortfolio?.sector || form.sector,
-      segment: selectedPortfolio?.seg || selectedPortfolio?.segmento || form.segment,
-      subSegment: selectedPortfolio?.subseg || selectedPortfolio?.subSegmento || form.subSegment,
-      afMarketId: selectedPortfolio?.af || selectedPortfolio?.afMarketId || form.afMarketId,
-      requiresDesignWork: (form.printClass as string) === "Sin impresión" ? "No" : "Sí",
-      isPreviousDesign: form.isPreviousDesign as BooleanLike,
-      previousEdagCode: form.previousEdagCode,
-      previousEdagVersion: form.previousEdagVersion,
-      status: form.status || "Registrado",
-      updatedAt: new Date().toISOString(),
+      siUserCode: siUsers.find(u => u.id === form.siUserId)?.code,
+
+      plantaName: inheritedPlant,
+      wrappingName: inheritedWrapping,
+      useFinalName: inheritedFinalUse,
+      subSegment: inheritedSubSegment,
+      segment: inheritedSegment,
+      sector: inheritedSector,
+      afMarketId: inheritedAfMarketId,
+      maquinaCliente: inheritedMachine,
+      packingMachineName: inheritedMachine,
+
+      classification: form.classification,
+      subClassification: form.subClassification,
+      projectType: form.projectType,
+      salesforceAction: form.salesforceAction,
+
+      blueprintFormat: form.blueprintFormat,
+      technicalApplication: form.technicalApplication,
+      estimatedVolume: form.estimatedVolume,
+      unitOfMeasure: form.unitOfMeasure,
+      customerPackingCode: form.customerPackingCode,
+
+      format: form.blueprintFormat,
+      volume: form.estimatedVolume,
+      unit: form.unitOfMeasure,
+
+      printClass: form.printClass,
+      printType: form.printType,
+      specialDesignSpecs: form.specialDesignSpecs,
+      specialDesignComments: form.specialDesignComments,
+      edagCode: form.edagCode,
+      edagVersion: form.edagVersion,
+      isPreviousDesign: form.hasEdagReference as BooleanLike,
+      previousEdagCode: form.referenceEdagCode,
+      previousEdagVersion: form.referenceEdagVersion,
+      requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
+
+      hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
+      referenceEmCode: form.referenceEmCode,
+      referenceEmVersion: form.referenceEmVersion,
+      structureType: form.structureType,
+
+      layer1Material: form.layer1Material,
+      layer1Micron: form.layer1Micron,
+      layer1Grammage: form.layer1Grammage,
+      layer2Material: form.layer2Material,
+      layer2Micron: form.layer2Micron,
+      layer2Grammage: form.layer2Grammage,
+      layer3Material: form.layer3Material,
+      layer3Micron: form.layer3Micron,
+      layer3Grammage: form.layer3Grammage,
+      layer4Material: form.layer4Material,
+      layer4Micron: form.layer4Micron,
+      layer4Grammage: form.layer4Grammage,
+
+      layers: form.structureType,
+      microns: [form.layer1Micron, form.layer2Micron, form.layer3Micron, form.layer4Micron]
+        .filter(Boolean)
+        .join(" / "),
+
+      specialStructureSpecs: form.specialStructureSpecs,
+      grammage: form.grammage,
+      grammageTolerance: form.grammageTolerance,
+      sampleRequest: form.sampleRequest === "Sí",
+
+      width: form.width,
+      length: form.length,
+      repetition: form.repetition,
+      doyPackBase: form.doyPackBase,
+      gussetWidth: form.gussetWidth,
+      gussetType: form.gussetType,
+      dimensions: [form.width, form.length, form.gussetWidth]
+        .filter(Boolean)
+        .join(" x "),
+
+      hasZipper: form.hasZipper as BooleanLike,
+      zipperType: form.zipperType,
+      hasTinTie: form.hasTinTie as BooleanLike,
+      hasValve: form.hasValve as BooleanLike,
+      valveType: form.valveType,
+      hasDieCutHandle: form.hasDieCutHandle as BooleanLike,
+      hasReinforcement: form.hasReinforcement as BooleanLike,
+      reinforcementThickness: form.reinforcementThickness,
+      reinforcementWidth: form.reinforcementWidth,
+      hasAngularCut: form.hasAngularCut as BooleanLike,
+      hasRoundedCorners: form.hasRoundedCorners as BooleanLike,
+      roundedCornersType: form.roundedCornersType,
+      hasNotch: form.hasNotch as BooleanLike,
+      hasPerforation: form.hasPerforation as BooleanLike,
+      pouchPerforationType: form.pouchPerforationType,
+      bagPerforationType: form.bagPerforationType,
+      perforationLocation: form.perforationLocation,
+      hasPreCut: form.hasPreCut as BooleanLike,
+      preCutType: form.preCutType,
+      otherAccessories: form.otherAccessories,
+
+      saleType: form.saleType,
+      incoterm: form.incoterm,
+      destinationCountry: form.destinationCountry,
+      targetPrice: form.targetPrice,
+      currencyType: form.currencyType,
+      coreMaterial: form.coreMaterial,
+      coreDiameter: form.coreDiameter,
+      externalDiameter: form.externalDiameter,
+      externalVariationPlus: form.externalVariationPlus,
+      externalVariationMinus: form.externalVariationMinus,
+      maxRollWeight: form.maxRollWeight,
+      customerAdditionalInfo: form.customerAdditionalInfo,
+      peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
+      printingFooter: form.printingFooter,
+
+      status: isProjectCompleteForValidation ? "Ficha completa" : "Ficha en proceso",
+      updatedAt: now,
+
+      ...(isProjectCompleteForValidation && {
+        validacionSolicitada: true,
+        estadoValidacionGeneral: "Pendiente de validación",
+        fechaSolicitudValidacion: now,
+        validaciones: [
+          { area: "Artes Gráficas", estado: "Pendiente", comentarios: [] },
+          { area: "R&D Técnica", estado: "Pendiente", comentarios: [] },
+          { area: "R&D Desarrollo", estado: "Pendiente", comentarios: [] },
+        ],
+      }),
     } as ProjectRecord);
 
-    navigate(`/projects/${projectCode}`);
+    if (isProjectCompleteForValidation) {
+      setShowValidationSuccessModal(true);
+    } else {
+      navigate("/projects");
+    }
   };
 
   if (loading) {
     return <div className="p-8 text-center text-slate-500">Cargando proyecto...</div>;
   }
 
-  if (error) {
+  if (!originalProject || !projectCode) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <div className="text-red-600 font-semibold">{error}</div>
-        <button onClick={() => navigate("/projects")} className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium">Volver a Proyectos</button>
+        <div className="text-red-600 font-semibold">Proyecto no encontrado</div>
+        <button
+          onClick={() => navigate("/projects")}
+          className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium"
+        >
+          Volver a Proyectos
+        </button>
       </div>
     );
   }
 
-  const phaseConfig = PHASE_CONFIGS[currentStage];
-  const canEditField = (fieldName: string) => getFieldStatus(fieldName).editable;
-
-  const isBaseInfoComplete = Boolean(
-    form.salesforceAction?.trim() &&
-    form.projectName?.trim() &&
-    form.projectDescription?.trim()
-  );
-
   return (
-    <div className="w-full max-w-none bg-[#f6f8fb]">
+    <div className="w-full max-w-none bg-[#f6f8fb] pb-12">
       <button
         type="button"
         onClick={() => navigate("/projects")}
@@ -476,642 +1032,784 @@ export default function ProjectEditPage() {
       </button>
 
       <form onSubmit={handleSubmit}>
-        {/* Phase Information Panel */}
-        <div className="m-5 rounded-xl border-2 border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-sm font-bold uppercase text-blue-700 tracking-wide mb-1">Fase Actual de Edición</div>
-              <h3 className="text-lg font-bold text-blue-900">{phaseConfig.name}</h3>
-              <p className="text-sm text-blue-800 mt-1">{phaseConfig.description}</p>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-blue-700 font-semibold mb-2">ROL REQUERIDO</div>
-              <div className="inline-block bg-blue-200 text-blue-900 px-3 py-1 rounded-full text-sm font-bold">
-                {phaseConfig.primaryRole}
-              </div>
-            </div>
+        {/* ========== STEPPER HORIZONTAL ========== */}
+        <div className="mb-6 flex items-center gap-0 overflow-x-auto pb-2 px-1">
+          {STEPS.map((step, index) => {
+            const isActive = activeStep === index;
+            const hasError = submitAttempted && stepsWithErrors[index] > 0;
+            return (
+              <Fragment key={index}>
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(index)}
+                  className="flex min-w-0 shrink-0 items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <span
+                    className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0 ${
+                      hasError
+                        ? "border-2 border-red-400 text-red-600 bg-red-50"
+                        : isActive
+                          ? "bg-[#00395A] text-white"
+                          : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {hasError ? stepsWithErrors[index] : index + 1}
+                  </span>
+                  <span
+                    className={`text-xs font-medium whitespace-nowrap ${
+                      hasError
+                        ? "text-red-600"
+                        : isActive
+                          ? "text-[#00395A]"
+                          : "text-slate-500"
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                </button>
+                {index < STEPS.length - 1 && (
+                  <div className="h-px flex-1 min-w-4 bg-slate-200" />
+                )}
+              </Fragment>
+            );
+          })}
+        </div>
+
+        {/* ========== COMPLETION PERCENTAGE ========== */}
+        <div className="mb-6 bg-white rounded-lg p-4 border border-slate-200">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold text-slate-700">Completitud del proyecto</p>
+            <p className="text-lg font-bold text-brand-primary">{completionPercentage}%</p>
           </div>
-          <div className="mt-3 pt-3 border-t border-blue-200">
-            <p className="text-xs text-blue-700">
-              <span className="font-semibold">ℹ️ Nota:</span> En esta fase, solo puedes editar campos específicos. Los campos de fases anteriores se muestran como referencia (solo lectura).
-            </p>
+          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-brand-primary transition-all duration-300"
+              style={{ width: `${completionPercentage}%` }}
+            />
           </div>
         </div>
 
-        <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
+        {/* ========== GRID DE 2 COLUMNAS ========== */}
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          {/* ========== COLUMNA IZQUIERDA: PASOS DEL FORMULARIO ========== */}
           <div className="space-y-5">
-            <FormCard title="Datos Iniciales Requeridos" icon="⚡" color="#E98300" required>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormInput
-                  label="Acción Salesforce *"
-                  value={form.salesforceAction || ""}
-                  onChange={(v) => updateField("salesforceAction", v)}
-                  error={getError("salesforceAction")}
-                  placeholder="Ej. Nueva oportunidad / RFQ / Muestra"
-                />
-                <div className="md:col-span-3">
-                  <FormInput
-                    label="Nombre del Proyecto *"
-                    value={form.projectName || ""}
-                    onChange={(v) => updateField("projectName", v)}
-                    error={getError("projectName")}
-                    placeholder="Ej. Mayonesa Light 100ml Doypack"
-                  />
-                </div>
-                <div className="md:col-span-3">
-                  <FormTextarea
-                    label="Descripción del Proyecto *"
-                    value={form.projectDescription || ""}
-                    onChange={(v) => updateField("projectDescription", v)}
-                    placeholder="Descripción comercial y técnica del proyecto..."
-                  />
-                </div>
-              </div>
-            </FormCard>
-
-            <fieldset disabled={!isBaseInfoComplete} className={`space-y-5 transition-all duration-300 ${!isBaseInfoComplete ? "opacity-50 pointer-events-none grayscale-[0.2]" : ""}`}>
-              <FormCard title="1. Información general" icon="▦" color="#00395A" required>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <PortfolioSearch
-                  label="Portafolio base *"
-                  value={form.portfolioCode || ""}
-                  onChange={(v) => {
-                    updateField("portfolioCode", v);
-                    updateField("blueprintFormat", "");
-                  }}
-                  error={getError("portfolioCode")}
-                />
-                <CommercialExecutiveSearch
-                  label="Ejecutivo Comercial *"
-                  value={form.ejecutivoId ? String(form.ejecutivoId) : ""}
-                  onChange={(v) => updateField("ejecutivoId", v)}
-                  error={getError("ejecutivoId")}
-                />
-                <FormSelect
-                  label="Clasificación"
-                  value={form.classification}
-                  onChange={(v) => {
-                    updateField("classification", v);
-                    updateField("subClassification", "");
-                    updateField("projectType", "");
-                  }}
-                  options={[
-                    { value: "Nuevo", label: "Nuevo" },
-                    { value: "Modificado", label: "Modificado" },
-                  ]}
-                />
-                <FormSelect
-                  label="Subsección Clasificación"
-                  value={form.subClassification}
-                  onChange={(v) => {
-                    updateField("subClassification", v);
-                    updateField("projectType", "");
-                  }}
-                  options={
-                    form.classification === "Nuevo"
-                      ? [
-                          { value: "Desarrollo_RD", label: "Desarrollo_RD" },
-                          { value: "Área_Técnica", label: "Área_Técnica" },
-                        ]
-                      : form.classification === "Modificado"
-                        ? [
-                            { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
-                            { value: "Estructura", label: "Estructura" },
-                          ]
-                        : []
-                  }
-                  disabled={!form.classification}
-                />
-                <FormSelect
-                  label="Tipo de Proyecto"
-                  value={form.projectType}
-                  onChange={(v) => updateField("projectType", v)}
-                  options={
-                    form.subClassification === "Desarrollo_RD" || form.subClassification?.includes("R&D")
-                      ? [
-                          { value: "Producto nuevo", label: "Producto nuevo" },
-                          { value: "Nuevo equipamiento de envasado", label: "Nuevo equipamiento de envasado" },
-                          { value: "Nuevos insumos", label: "Nuevos insumos" },
-                          { value: "Nueva estructura", label: "Nueva estructura" },
-                          { value: "Nuevo formato de envasado", label: "Nuevo formato de envasado" },
-                          { value: "Nuevos accesorios", label: "Nuevos accesorios" },
-                          { value: "Nuevos procesos por el lado del cliente", label: "Nuevos procesos por el lado del cliente" },
-                          { value: "Nuevas temperaturas de envasado y almacenaje", label: "Nuevas temperaturas de envasado y almacenaje" },
-                        ]
-                      : form.subClassification === "Área_Técnica" || form.subClassification?.includes("T\u00E9cnica")
-                        ? [
-                            { value: "Extensión de línea por familia (EM de referencia)", label: "Extensión de línea por familia (EM de referencia)" },
-                            { value: "Modifica Dimensiones", label: "Modifica Dimensiones" },
-                            { value: "Modifica Propiedades", label: "Modifica Propiedades" },
-                            { value: "Portafolio Estándar", label: "Portafolio Estándar" },
-                            { value: "ICO (Intercompany), BCP (Business Continous Production)", label: "ICO (Intercompany), BCP (Business Continous Production)" },
-                          ]
-                        : []
-                  }
-                  disabled={!form.subClassification || (form.classification === "Modificado" && (form.subClassification === "Estructura" || form.subClassification === "Diseño y dimensiones"))}
-                />
-              </div>
-            </FormCard>
-
-
-
-            <FormCard title="2. Datos de producto comercial" icon="◈" color="#27ae60" required>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormInput
-                  label="Envoltura (heredado del Portafolio)"
-                  value={inheritedWrapping || "— Sin portafolio seleccionado —"}
-                  onChange={() => {}}
-                  disabled={true}
-                />
-                <FormSelect
-                  label="Formato de Plano *"
-                  value={form.blueprintFormat}
-                  onChange={(v) => updateField("blueprintFormat", v)}
-                  error={getError("blueprintFormat")}
-                  placeholder={!inheritedWrapping ? "Seleccione un portafolio primero" : "-- Seleccione --"}
-                  options={getBlueprintFormatOptions(inheritedWrapping)}
-                  disabled={!inheritedWrapping}
-                />
-                <FormSelect
-                  label="Aplicación Técnica *"
-                  value={form.technicalApplication}
-                  onChange={(v) => updateField("technicalApplication", v)}
-                  error={getError("technicalApplication")}
-                  placeholder="-- Seleccione --"
-                  options={TECHNICAL_APPLICATION_OPTIONS}
-                />
-                <FormInput
-                  label="Código de Empaque del Cliente"
-                  value={form.customerPackingCode}
-                  onChange={(v) => updateField("customerPackingCode", v)}
-                  placeholder="Ej. COD-CLI-001"
-                />
-              </div>
-            </FormCard>
-
-            <FormCard title="4. Especificaciones de diseño" icon="🎨" color="#8e44ad">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                {(() => {
-                  const isPrintingDisabled = (form.printClass as string) === "Sin impresión";
-                  return (
-                    <>
-                      <FormSelect
-                        label="Clase de Impresión"
-                        value={form.printClass}
-                        onChange={(v) => updateField("printClass", v)}
-                        placeholder="-- Seleccione --"
-                        options={[
-                          { value: "Flexo", label: "Flexo" },
-                          { value: "Huecograbado", label: "Huecograbado" },
-                          { value: "Sin impresión", label: "Sin impresión" },
-                        ]}
-                      />
-                      <FormSelect
-                        label="Tipo de Impresión"
-                        value={form.printType}
-                        onChange={(v) => updateField("printType", v)}
-                        placeholder="-- Seleccione --"
-                        options={[
-                          { value: "Nuevo", label: "Nuevo" },
-                          { value: "Repetitivo", label: "Repetitivo" },
-                        ]}
-                        disabled={isPrintingDisabled}
-                      />
-                      <FormSelect
-                        label="Especificaciones de Diseño Especiales"
-                        value={form.specialDesignSpecs}
-                        onChange={(v) => updateField("specialDesignSpecs", v)}
-                        placeholder="-- Seleccione --"
-                        options={SPECIAL_DESIGN_SPECS_OPTIONS}
-                        disabled={isPrintingDisabled}
-                      />
-                      <FormSelect
-                        label="¿Tiene Diseño de referencia?"
-                        value={form.isPreviousDesign as string}
-                        onChange={(v) => updateField("isPreviousDesign", v)}
-                        placeholder="-- Seleccione --"
-                        options={[
-                          { value: "Sí", label: "Sí" },
-                          { value: "No", label: "No" },
-                        ]}
-                      />
-                    </>
-                  );
-                })()}
-                {form.specialDesignSpecs === "Otros (comentar cuáles)" && (
-                  <div className="md:col-span-3">
-                    <FormTextarea
-                      label="Comentarios de diseños especiales"
-                      value={form.specialDesignComments}
-                      onChange={(v) => updateField("specialDesignComments", v)}
-                      placeholder="Comentarios adicionales de Artes Gráficas..."
+            {/* PASO 0: INFORMACIÓN DEL PROYECTO */}
+            {activeStep === 0 && (
+              <div className="space-y-5">
+                <FormCard title="Información del Proyecto" icon="▦" color="#00395A" required>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormInput
+                      label="Acción Salesforce *"
+                      value={form.salesforceAction}
+                      onChange={(value) => updateField("salesforceAction", value)}
+                      onBlur={() => markFieldAsTouched("salesforceAction")}
+                      error={getError("salesforceAction")}
+                      placeholder="Ej. Nueva oportunidad / RFQ / Muestra"
                     />
+
+                    <div className="md:col-span-3">
+                      <FormInput
+                        label="Nombre del Proyecto *"
+                        value={form.projectName}
+                        onChange={(value) => updateField("projectName", value)}
+                        onBlur={() => markFieldAsTouched("projectName")}
+                        error={getError("projectName")}
+                        placeholder="Ej. Mayonesa Light 100ml Doypack"
+                      />
+                    </div>
+
+                    <div className="md:col-span-3">
+                      <FormTextarea
+                        label="Descripción del Proyecto *"
+                        value={form.projectDescription}
+                        onChange={(value) => updateField("projectDescription", value)}
+                        onBlur={() => markFieldAsTouched("projectDescription")}
+                        error={getError("projectDescription")}
+                        placeholder="Descripción comercial y técnica del proyecto..."
+                      />
+                    </div>
+
+                    <div className="md:col-span-3">
+                      <CommercialExecutiveMultiSearch
+                        label="Ejecutivo Comercial *"
+                        value={form.executiveId}
+                        onChange={(value) => {
+                          updateField("executiveId", value);
+                          markFieldAsTouched("executiveId");
+                        }}
+                        error={getError("executiveId")}
+                      />
+                    </div>
                   </div>
-                )}
+                </FormCard>
+              </div>
+            )}
 
-                {form.isPreviousDesign === "Sí" && (
-                  <>
-                    <FormInput
-                      label="Código EDAG"
-                      value={form.edagCode as string}
-                      onChange={(v) => updateField("edagCode", v)}
-                      placeholder="Ej. EDAG-000001"
-                      disabled={(form.printClass as string) === "Sin impresión"}
-                    />
-                    <FormInput
-                      label="Versión EDAG"
-                      value={form.edagVersion as string}
-                      onChange={(v) => updateField("edagVersion", v)}
-                      placeholder="Ej. 01"
-                      disabled={(form.printClass as string) === "Sin impresión"}
-                    />
-                  </>
-                )}
-                {form.printClass && (
-                  <div className="md:col-span-3">
+            {/* PASO 1: PRODUCTO COMERCIAL */}
+            {activeStep === 1 && (
+              <div className="space-y-5">
+                <FormCard title="Datos de Producto Comercial" icon="◈" color="#27ae60" required>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 md:col-span-3">
+                      <p className="text-xs text-slate-500 font-medium">Envoltura</p>
+                      <p className="text-sm font-semibold text-slate-800 mt-1">{inheritedWrapping || "—"}</p>
+                    </div>
+
                     <FormSelect
-                      label="¿Requiere trabajo de diseño?"
-                      value={(form.printClass as string) === "Sin impresión" ? "No" : "Sí"}
-                      onChange={() => {}}
-                      options={[
-                        { value: "Sí", label: "Sí" },
-                        { value: "No", label: "No" },
-                      ]}
-                      disabled={true}
+                      label="Clasificación"
+                      value={form.classification}
+                      onChange={(value) => {
+                        updateField("classification", value);
+                        updateField("subClassification", "");
+                        updateField("projectType", "");
+                      }}
+                      options={CLASSIFICATION_OPTIONS}
+                      placeholder="-- Seleccione --"
+                    />
+
+                    <FormSelect
+                      label="Subsección Clasificación"
+                      value={form.subClassification}
+                      onChange={(value) => {
+                        updateField("subClassification", value);
+                        updateField("projectType", "");
+                      }}
+                      options={
+                        form.classification === "Nuevo"
+                          ? SUBCLASSIFICATION_NUEVO_OPTIONS
+                          : form.classification === "Modificado"
+                            ? SUBCLASSIFICATION_MODIFICADO_OPTIONS
+                            : []
+                      }
+                      placeholder="-- Seleccione --"
+                      disabled={!form.classification}
+                    />
+
+                    <FormSelect
+                      label="Tipo de Proyecto"
+                      value={form.projectType}
+                      onChange={(value) => updateField("projectType", value)}
+                      options={projectTypeOptions}
+                      placeholder={
+                        form.classification === "Modificado"
+                          ? "No aplica para modificado"
+                          : !form.subClassification
+                            ? "-- Seleccione subsección primero --"
+                            : "-- Seleccione --"
+                      }
+                      disabled={form.classification === "Modificado" || !form.subClassification}
+                    />
+
+                    <FormSelect
+                      label="Formato de Plano"
+                      value={form.blueprintFormat}
+                      onChange={(value) => updateField("blueprintFormat", value)}
+                      placeholder={!inheritedWrapping ? "Seleccione un portafolio primero" : "-- Seleccione --"}
+                      options={getBlueprintFormatOptions(inheritedWrapping)}
+                      disabled={!inheritedWrapping}
+                    />
+
+                    <FormSelect
+                      label="Aplicación Técnica"
+                      value={form.technicalApplication}
+                      onChange={(value) => updateField("technicalApplication", value)}
+                      placeholder="-- Seleccione --"
+                      options={TECHNICAL_APPLICATION_OPTIONS}
+                    />
+
+                    <FormInput
+                      label="Código de Empaque del Cliente"
+                      value={form.customerPackingCode}
+                      onChange={(value) => updateField("customerPackingCode", value)}
+                      placeholder="Ej. COD-CLI-001"
                     />
                   </div>
-                )}
+                </FormCard>
               </div>
-            </FormCard>
+            )}
 
-            <FormCard title="5. Especificaciones de estructura" icon="🔩" color="#f39c12">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormSelect
-                  label="¿Tiene estructura de referencia?"
-                  value={form.hasReferenceStructure as string}
-                  onChange={(v) => updateField("hasReferenceStructure", v)}
-                  options={[
-                    { value: "Sí", label: "Sí" },
-                    { value: "No", label: "No" },
-                  ]}
-                />
-                {form.hasReferenceStructure === "Sí" && (
-                  <>
-                    <FormInput
-                      label="Código E/M Referencia"
-                      value={form.referenceEmCode}
-                      onChange={(v) => updateField("referenceEmCode", v)}
-                      placeholder="Ej. EM-000001"
-                    />
-                    <FormInput
-                      label="Versión E/M"
-                      value={form.referenceEmVersion}
-                      onChange={(v) => updateField("referenceEmVersion", v)}
-                      placeholder="Ej. 01"
-                    />
-                  </>
-                )}
-                {form.hasReferenceStructure !== "Sí" && (
-                  <FormSelect
-                    label="Tipo de Estructura"
-                    value={form.structureType}
-                    onChange={(v) => updateField("structureType", v)}
-                    options={[
-                      { value: "Monocapa", label: "Monocapa" },
-                      { value: "Bilaminado", label: "Bilaminado" },
-                      { value: "Trilaminado", label: "Trilaminado" },
-                      { value: "Multicapa", label: "Multicapa" },
-                    ]}
-                  />
-                )}
-              </div>
+            {/* PASO 2: DISEÑO */}
+            {activeStep === 2 && (
+              <div className="space-y-5">
+                <FormCard title="Especificaciones de diseño" icon="🎨" color="#8e44ad">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    {(() => {
+                      const isPrintingDisabled = form.printClass === "Sin impresión";
+                      return (
+                        <>
+                          <FormSelect
+                            label="Clase de Impresión"
+                            value={form.printClass}
+                            onChange={(value) => updateField("printClass", value)}
+                            placeholder="-- Seleccione --"
+                            options={PRINT_CLASS_OPTIONS}
+                          />
+                          <FormSelect
+                            label="Tipo de Impresión"
+                            value={form.printType}
+                            onChange={(value) => updateField("printType", value)}
+                            placeholder="-- Seleccione --"
+                            options={PRINT_TYPE_OPTIONS}
+                            disabled={isPrintingDisabled}
+                          />
+                          <FormSelect
+                            label="Especificaciones de Diseño Especiales"
+                            value={form.specialDesignSpecs}
+                            onChange={(value) => updateField("specialDesignSpecs", value)}
+                            placeholder="-- Seleccione --"
+                            options={SPECIAL_DESIGN_SPECS_OPTIONS}
+                            disabled={isPrintingDisabled}
+                          />
+                          <FormSelect
+                            label="¿Tiene Diseño de referencia?"
+                            value={form.hasEdagReference}
+                            onChange={(value) => updateField("hasEdagReference", value)}
+                            placeholder="-- Seleccione --"
+                            options={YES_NO_OPTIONS}
+                          />
+                        </>
+                      );
+                    })()}
+                    {form.specialDesignSpecs === "Otros (comentar cuáles)" && (
+                      <div className="md:col-span-3">
+                        <FormTextarea
+                          label="Comentarios de diseños especiales"
+                          value={form.specialDesignComments}
+                          onChange={(value) => updateField("specialDesignComments", value)}
+                          placeholder="Comentarios adicionales de Artes Gráficas..."
+                        />
+                      </div>
+                    )}
 
-              {form.hasReferenceStructure !== "Sí" && (
-              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600">
-                  Capas de estructura
-                </p>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {(() => {
-                    const maxLayers = (() => {
-                      switch (form.structureType as string) {
-                        case "Monocapa":
-                          return 1;
-                        case "Bilaminado":
-                          return 2;
-                        case "Trilaminado":
-                          return 3;
-                        case "Tetralaminado":
-                          return 4;
-                        default:
-                          return 0;
-                      }
-                    })();
-                    return [1, 2, 3, 4].filter(layer => layer <= maxLayers).map((layer) => (
-                    <div key={layer} className="rounded-lg border border-slate-200 bg-white p-4">
-                      <p className="mb-3 text-xs font-bold uppercase text-brand-primary">Capa {layer}</p>
-                      <div className="space-y-3">
+                    {form.hasEdagReference === "Sí" && (
+                      <>
+                        <FormInput
+                          label="Código EDAG"
+                          value={form.edagCode}
+                          onChange={(value) => updateField("edagCode", value)}
+                          placeholder="Ej. EDAG-000001"
+                          disabled={form.printClass === "Sin impresión"}
+                        />
+                        <FormInput
+                          label="Versión EDAG"
+                          value={form.edagVersion}
+                          onChange={(value) => updateField("edagVersion", value)}
+                          placeholder="Ej. 01"
+                          disabled={form.printClass === "Sin impresión"}
+                        />
+                      </>
+                    )}
+                    {form.printClass && (
+                      <div className="md:col-span-3">
                         <FormSelect
-                          label="Material"
-                          value={(form as any)[`layer${layer}Material`] || ""}
-                          onChange={(v) => updateField(`layer${layer}Material`, v)}
-                          placeholder="-- Seleccione --"
-                          options={[
-                            { value: "BOPP - Cristal", label: "BOPP - Cristal" },
-                            { value: "BOPP - Metalizado", label: "BOPP - Metalizado" },
-                            { value: "PET - Cristal", label: "PET - Cristal" },
-                            { value: "PET - Mate", label: "PET - Mate" },
-                            { value: "NYLON", label: "NYLON" },
-                            { value: "ALU", label: "ALU" },
-                            { value: "PE - PEBD", label: "PE - PEBD" },
-                            { value: "COEX", label: "COEX" },
-                            { value: "ADHESIVO", label: "ADHESIVO" },
-                          ]}
-                        />
-                        <FormInput
-                          label="Micraje"
-                          value={(form as any)[`layer${layer}Micron`] || ""}
-                          onChange={(v) => updateField(`layer${layer}Micron`, v)}
-                          placeholder="Ej. 80"
-                        />
-                        <FormInput
-                          label="Gramaje"
-                          value={(form as any)[`layer${layer}Grammage`] || ""}
-                          onChange={(v) => updateField(`layer${layer}Grammage`, v)}
-                          placeholder="Ej. 35"
+                          label="¿Requiere trabajo de diseño?"
+                          value={form.printClass === "Sin impresión" ? "No" : "Sí"}
+                          onChange={() => {}}
+                          options={YES_NO_OPTIONS}
+                          disabled={true}
                         />
                       </div>
-                    </div>
-                  ));
-                  })()}
-                </div>
-
-                {(() => {
-                  const completedLayers = [];
-                  for (let i = 1; i <= 4; i++) {
-                    const material = (form as any)[`layer${i}Material`];
-                    const micron = (form as any)[`layer${i}Micron`];
-                    if (material && micron) {
-                      completedLayers.push(`${material} / ${micron}`);
-                    }
-                  }
-                  return completedLayers.length > 0 ? (
-                    <div className="mt-4 rounded-lg bg-white border border-slate-200 p-3">
-                      <p className="text-xs font-semibold text-slate-600 mb-2">Resumen de Capas:</p>
-                      <p className="text-sm text-slate-700 font-medium break-words">
-                        {completedLayers.join(" | ")}
-                      </p>
-                    </div>
-                  ) : null;
-                })()}
+                    )}
+                  </div>
+                </FormCard>
               </div>
-              )}
+            )}
 
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormInput
-                  label="Gramaje general"
-                  value={form.grammage}
-                  onChange={(v) => updateField("grammage", v)}
-                  placeholder="Ej. 40"
-                />
-                <FormInput
-                  label="Tolerancia de Gramaje"
-                  value={form.grammageTolerance}
-                  onChange={(v) => updateField("grammageTolerance", v)}
-                  placeholder="Ej. ±5%"
-                />
-                <FormSelect
-                  label="¿Solicitud de muestra?"
-                  value={form.sampleRequest as string}
-                  onChange={(v) => updateField("sampleRequest", v)}
-                  options={[
-                    { value: "Sí", label: "Sí" },
-                    { value: "No", label: "No" },
-                  ]}
-                />
-                <div className="md:col-span-3">
-                  <FormTextarea
-                    label="Especificaciones Especiales de Estructura"
-                    value={form.specialStructureSpecs}
-                    onChange={(v) => updateField("specialStructureSpecs", v)}
-                    placeholder="Restricciones, barreras, sellabilidad, resistencia, OTR/WVTR..."
-                  />
-                </div>
-              </div>
-            </FormCard>
-
-            <FormCard title="6. Dimensiones y accesorios" icon="⌗" color="#16a085">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-                {(() => {
-                  const wrapping = inheritedWrapping?.toLowerCase() || "";
-                  const isLamina = wrapping.includes("lamina") || wrapping.includes("lámina");
-                  const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
-                  return (
-                    <>
-                      {isPouchOrBolsa && (
-                        <FormInput label="Ancho" value={form.width} onChange={(v) => updateField("width", v)} placeholder="mm" />
-                      )}
-                      <FormInput label="Largo" value={form.length} onChange={(v) => updateField("length", v)} placeholder="mm" />
-                      {isLamina && (
-                        <FormInput label="Repetición" value={form.repetition} onChange={(v) => updateField("repetition", v)} placeholder="mm" />
-                      )}
-                      {wrapping.includes("pouch") && (
-                        <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(v) => updateField("doyPackBase", v)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
-                      )}
-                      <FormInput label="Ancho Fuelle" value={form.gussetWidth} onChange={(v) => updateField("gussetWidth", v)} placeholder="mm" />
-                      <FormSelect label="Tipo de Fuelle" value={form.gussetType} onChange={(v) => updateField("gussetType", v)} placeholder="-- Seleccione --" options={GUSSET_TYPE_OPTIONS} />
-                    </>
-                  );
-                })()}
-              </div>
-
-              <div className="mt-4 space-y-5">
-                {(() => {
-                  const selectedAccessories = [
-                    (form.hasZipper as string) === "Sí" ? "hasZipper" : null,
-                    (form.hasTinTie as string) === "Sí" ? "hasTinTie" : null,
-                    (form.hasValve as string) === "Sí" ? "hasValve" : null,
-                    (form.hasDieCutHandle as string) === "Sí" ? "hasDieCutHandle" : null,
-                    (form.hasReinforcement as string) === "Sí" ? "hasReinforcement" : null,
-                    (form.hasAngularCut as string) === "Sí" ? "hasAngularCut" : null,
-                    (form.hasRoundedCorners as string) === "Sí" ? "hasRoundedCorners" : null,
-                    (form.hasNotch as string) === "Sí" ? "hasNotch" : null,
-                    (form.hasPerforation as string) === "Sí" ? "hasPerforation" : null,
-                    (form.hasPreCut as string) === "Sí" ? "hasPreCut" : null,
-                  ].filter(Boolean) as string[];
-
-                  const selectedCount = selectedAccessories.length;
-                  const canSelectMore = selectedCount < 3;
-
-                  const toggleAccessory = (field: string) => {
-                    const isCurrentlySelected = (form[field as keyof typeof form] as string) === "Sí";
-                    if (isCurrentlySelected) {
-                      updateField(field, "No");
-                    } else if (canSelectMore) {
-                      updateField(field, "Sí");
-                    }
-                  };
-
-                  const AccessoryCheckbox = ({ field, label }: { field: string; label: string }) => (
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={(form[field as keyof typeof form] as string) === "Sí"}
-                        onChange={() => toggleAccessory(field)}
-                        disabled={(form[field as keyof typeof form] as string) !== "Sí" && !canSelectMore}
-                        className="w-4 h-4 rounded border-slate-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            {/* PASO 3: ESTRUCTURA - Mostrar el paso 3 con más contenido */}
+            {activeStep === 3 && (
+              <div className="space-y-5">
+                <FormCard title="Especificaciones de estructura" icon="🔩" color="#f39c12">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormSelect
+                      label="¿Tiene estructura de referencia?"
+                      value={form.hasReferenceStructure}
+                      onChange={(value) => updateField("hasReferenceStructure", value)}
+                      options={YES_NO_OPTIONS}
+                    />
+                    {form.hasReferenceStructure === "Sí" && (
+                      <>
+                        <FormInput
+                          label="Código E/M Referencia"
+                          value={form.referenceEmCode}
+                          onChange={(value) => updateField("referenceEmCode", value)}
+                          placeholder="Ej. EM-000001"
+                        />
+                        <FormInput
+                          label="Versión E/M"
+                          value={form.referenceEmVersion}
+                          onChange={(value) => updateField("referenceEmVersion", value)}
+                          placeholder="Ej. 01"
+                        />
+                      </>
+                    )}
+                    {form.hasReferenceStructure !== "Sí" && (
+                      <FormSelect
+                        label="Tipo de Estructura"
+                        value={form.structureType}
+                        onChange={(value) => updateField("structureType", value)}
+                        options={STRUCTURE_TYPE_OPTIONS}
                       />
-                      <span className={`text-sm ${(form[field as keyof typeof form] as string) !== "Sí" && !canSelectMore ? "text-slate-400" : "text-slate-700"}`}>
-                        {label}
-                      </span>
-                    </label>
-                  );
+                    )}
+                  </div>
 
-                  return (
-                    <>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Consumibles</p>
-                        <div className="space-y-3">
-                          <AccessoryCheckbox field="hasZipper" label="Zipper" />
-                          {(form.hasZipper as string) === "Sí" && (
-                            <FormSelect label="Tipo de Zipper" value={form.zipperType as string} onChange={(v) => updateField("zipperType", v)} placeholder="-- Seleccione --" options={ZIPPER_TYPE_OPTIONS} />
-                          )}
-                          <AccessoryCheckbox field="hasTinTie" label="Tin-Tie" />
-                          <AccessoryCheckbox field="hasValve" label="Válvula" />
-                          {(form.hasValve as string) === "Sí" && (
-                            <FormSelect label="Tipo de Válvula" value={form.valveType as string} onChange={(v) => updateField("valveType", v)} placeholder="-- Seleccione --" options={VALVE_TYPE_OPTIONS} />
-                          )}
-                        </div>
-                      </div>
+                  {form.hasReferenceStructure !== "Sí" && (
+                  <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600">
+                      Capas de estructura
+                    </p>
 
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                       {(() => {
-                        const wrappingForAccesorios = inheritedWrapping?.toLowerCase() || "";
-                        const isBolsa = wrappingForAccesorios.includes("bolsa");
-                        return isBolsa ? (
-                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                            <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Producto</p>
+                        const maxLayers = (() => {
+                          switch (form.structureType) {
+                            case "Monocapa":
+                              return 1;
+                            case "Bilaminado":
+                              return 2;
+                            case "Trilaminado":
+                              return 3;
+                            case "Tetralaminado":
+                              return 4;
+                            default:
+                              return 0;
+                          }
+                        })();
+                        return [1, 2, 3, 4].filter(layer => layer <= maxLayers).map((layer) => {
+                        const groupKey = `layer${layer}MaterialGroup` as keyof ProjectEditFormData;
+                        const materialKey = `layer${layer}Material` as keyof ProjectEditFormData;
+                        const micronKey = `layer${layer}Micron` as keyof ProjectEditFormData;
+                        const grammageKey = `layer${layer}Grammage` as keyof ProjectEditFormData;
+
+                        const group = form[groupKey] as string;
+                        const groupOptions = group ? MATERIAL_CATALOG[group] : [];
+                        const selectedMaterial = group ? MATERIAL_CATALOG[group]?.find(m => m.value === form[materialKey]) : null;
+                        const isMicronFree = selectedMaterial?.isFree ?? false;
+
+                        return (
+                          <div key={layer} className="rounded-lg border border-slate-200 bg-white p-4">
+                            <p className="mb-3 text-xs font-bold uppercase text-brand-primary">
+                              Capa {layer}
+                            </p>
                             <div className="space-y-3">
-                              <AccessoryCheckbox field="hasDieCutHandle" label="Asa Troquelada" />
-                              <AccessoryCheckbox field="hasReinforcement" label="Refuerzo" />
-                              {(form.hasReinforcement as string) === "Sí" && (
-                                <div className="grid grid-cols-2 gap-3">
-                                  <FormInput label="Espesor Refuerzo (g/m2)" value={form.reinforcementThickness as string} onChange={(v) => updateField("reinforcementThickness", v)} placeholder="Ej. 100" />
-                                  <FormInput label="Ancho Refuerzo (mm)" value={form.reinforcementWidth as string} onChange={(v) => updateField("reinforcementWidth", v)} placeholder="Ej. 50" />
-                                </div>
+                              <FormSelect
+                                label="Grupo Material"
+                                value={group}
+                                onChange={(value) => {
+                                  updateField(groupKey, value);
+                                  updateField(materialKey, "");
+                                  updateField(micronKey, "");
+                                }}
+                                placeholder="-- Seleccione grupo --"
+                                options={MATERIAL_GROUP_OPTIONS}
+                              />
+                              <FormSelect
+                                label="Tipo de Material y Micraje"
+                                value={form[materialKey] as string}
+                                onChange={(value) => {
+                                  updateField(materialKey, value);
+                                  const entry = MATERIAL_CATALOG[group]?.find(m => m.value === value);
+                                  if (entry && !entry.isFree) {
+                                    updateField(micronKey, entry.micron);
+                                  } else {
+                                    updateField(micronKey, "");
+                                  }
+                                }}
+                                options={groupOptions}
+                                disabled={!group}
+                                placeholder="-- Seleccione tipo --"
+                              />
+                              <FormInput
+                                label="Micraje"
+                                value={form[micronKey] as string}
+                                onChange={(value) =>
+                                  updateField(micronKey, value)
+                                }
+                                disabled={!isMicronFree}
+                                placeholder={isMicronFree ? "Ingrese micraje" : "Auto"}
+                              />
+                              <FormInput
+                                label="Gramaje"
+                                value={form[grammageKey] as string}
+                                onChange={(value) =>
+                                  updateField(grammageKey, value)
+                                }
+                                placeholder="Ej. 35"
+                              />
+                            </div>
+                          </div>
+                        );
+                      });
+                      })()}
+                    </div>
+
+                    {(() => {
+                      const completedLayers = [];
+                      for (let i = 1; i <= 4; i++) {
+                        const material = form[`layer${i}Material` as keyof ProjectEditFormData] as string;
+                        const micron = form[`layer${i}Micron` as keyof ProjectEditFormData] as string;
+                        if (material && micron) {
+                          const materialDisplay = material.split(" - ").slice(1).join(" - ");
+                          completedLayers.push(`${materialDisplay} / ${micron}`);
+                        }
+                      }
+                      return completedLayers.length > 0 ? (
+                        <div className="mt-4 rounded-lg bg-white border border-slate-200 p-3">
+                          <p className="text-xs font-semibold text-slate-600 mb-2">Resumen de Capas:</p>
+                          <p className="text-sm text-slate-700 font-medium break-words">
+                            {completedLayers.join(" | ")}
+                          </p>
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
+                  )}
+
+                  <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormInput
+                      label="Gramaje general (g/m2)"
+                      value={form.grammage}
+                      onChange={(value) => updateField("grammage", value)}
+                      placeholder="Ej. 40"
+                    />
+                    <FormInput
+                      label="Tolerancia de Gramaje"
+                      value={form.grammageTolerance}
+                      onChange={(value) => updateField("grammageTolerance", value)}
+                      placeholder="Ej. ±5%"
+                    />
+                    <FormSelect
+                      label="¿Solicitud de muestra?"
+                      value={form.sampleRequest}
+                      onChange={(value) => updateField("sampleRequest", value)}
+                      options={YES_NO_OPTIONS}
+                    />
+                    <div className="md:col-span-3">
+                      <FormTextarea
+                        label="Especificaciones Especiales de Estructura"
+                        value={form.specialStructureSpecs}
+                        onChange={(value) => updateField("specialStructureSpecs", value)}
+                        placeholder="Restricciones, barreras, sellabilidad, resistencia, OTR/WVTR..."
+                      />
+                    </div>
+                  </div>
+                </FormCard>
+
+                <FormCard title="6. Dimensiones y accesorios" icon="⌗" color="#16a085">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+                    {(() => {
+                      const wrapping = inheritedWrapping?.toLowerCase() || "";
+                      const isLamina = wrapping.includes("lamina") || wrapping.includes("lámina");
+                      const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
+                      return (
+                        <>
+                          {isPouchOrBolsa && (
+                            <FormInput label="Ancho" value={form.width} onChange={(value) => updateField("width", value)} placeholder="mm" />
+                          )}
+                          <FormInput
+                            label="Largo"
+                            value={form.length}
+                            onChange={(value) => updateField("length", value)}
+                            placeholder="mm"
+                          />
+                          {isLamina && (
+                            <FormInput
+                              label="Repetición"
+                              value={form.repetition}
+                              onChange={(value) => updateField("repetition", value)}
+                              placeholder="mm"
+                            />
+                          )}
+                          {wrapping.includes("pouch") && (
+                            <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(value) => updateField("doyPackBase", value)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
+                          )}
+                          <FormInput
+                            label="Ancho Fuelle"
+                            value={form.gussetWidth}
+                            onChange={(value) => updateField("gussetWidth", value)}
+                            placeholder="mm"
+                          />
+                          <FormSelect label="Tipo de Fuelle" value={form.gussetType} onChange={(value) => updateField("gussetType", value)} placeholder="-- Seleccione --" options={GUSSET_TYPE_OPTIONS} />
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="mt-4 space-y-5">
+                    {(() => {
+                      const selectedAccessories = [
+                        form.hasZipper === "Sí" ? "hasZipper" : null,
+                        form.hasTinTie === "Sí" ? "hasTinTie" : null,
+                        form.hasValve === "Sí" ? "hasValve" : null,
+                        form.hasDieCutHandle === "Sí" ? "hasDieCutHandle" : null,
+                        form.hasReinforcement === "Sí" ? "hasReinforcement" : null,
+                        form.hasAngularCut === "Sí" ? "hasAngularCut" : null,
+                        form.hasRoundedCorners === "Sí" ? "hasRoundedCorners" : null,
+                        form.hasNotch === "Sí" ? "hasNotch" : null,
+                        form.hasPerforation === "Sí" ? "hasPerforation" : null,
+                        form.hasPreCut === "Sí" ? "hasPreCut" : null,
+                      ].filter(Boolean) as string[];
+
+                      const selectedCount = selectedAccessories.length;
+                      const canSelectMore = selectedCount < 3;
+
+                      const toggleAccessory = (field: keyof ProjectEditFormData) => {
+                        const isCurrentlySelected = form[field] === "Sí";
+                        if (isCurrentlySelected) {
+                          updateField(field, "No");
+                        } else if (canSelectMore) {
+                          updateField(field, "Sí");
+                        }
+                      };
+
+                      const AccessoryCheckbox = ({ field, label }: { field: keyof ProjectEditFormData; label: string }) => (
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={form[field] === "Sí"}
+                            onChange={() => toggleAccessory(field)}
+                            disabled={form[field] !== "Sí" && !canSelectMore}
+                            className="w-4 h-4 rounded border-slate-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          />
+                          <span className={`text-sm ${form[field] !== "Sí" && !canSelectMore ? "text-slate-400" : "text-slate-700"}`}>
+                            {label}
+                          </span>
+                        </label>
+                      );
+
+                      return (
+                        <>
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                            <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Consumibles</p>
+                            <div className="space-y-3">
+                              <AccessoryCheckbox field="hasZipper" label="Zipper" />
+                              {form.hasZipper === "Sí" && (
+                                <FormSelect label="Tipo de Zipper" value={form.zipperType} onChange={(value) => updateField("zipperType", value)} placeholder="-- Seleccione --" options={ZIPPER_TYPE_OPTIONS} />
+                              )}
+                              <AccessoryCheckbox field="hasTinTie" label="Tin-Tie" />
+                              <AccessoryCheckbox field="hasValve" label="Válvula" />
+                              {form.hasValve === "Sí" && (
+                                <FormSelect label="Tipo de Válvula" value={form.valveType} onChange={(value) => updateField("valveType", value)} placeholder="-- Seleccione --" options={VALVE_TYPE_OPTIONS} />
                               )}
                             </div>
                           </div>
-                        ) : null;
-                      })()}
 
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
-                        <div className="space-y-3">
-                          <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
-                          <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
-                          {(form.hasRoundedCorners as string) === "Sí" && (
-                            <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType as string} onChange={(v) => updateField("roundedCornersType", v)} placeholder="-- Seleccione --" options={ROUNDED_CORNERS_TYPE_OPTIONS} />
-                          )}
-                          <AccessoryCheckbox field="hasNotch" label="Muesca" />
-                          <AccessoryCheckbox field="hasPerforation" label="Perforación" />
-                          {(form.hasPerforation as string) === "Sí" && (
+                          {(() => {
+                            const wrappingForAccesorios = inheritedWrapping?.toLowerCase() || "";
+                            const isBolsa = wrappingForAccesorios.includes("bolsa");
+                            return isBolsa ? (
+                              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Producto</p>
+                                <div className="space-y-3">
+                                  <AccessoryCheckbox field="hasDieCutHandle" label="Asa Troquelada" />
+                                  <AccessoryCheckbox field="hasReinforcement" label="Refuerzo" />
+                                  {form.hasReinforcement === "Sí" && (
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <FormInput label="Espesor Refuerzo (g/m2)" value={form.reinforcementThickness} onChange={(value) => updateField("reinforcementThickness", value)} placeholder="Ej. 100" />
+                                      <FormInput label="Ancho Refuerzo (mm)" value={form.reinforcementWidth} onChange={(value) => updateField("reinforcementWidth", value)} placeholder="Ej. 50" />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : null;
+                          })()}
+
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                            <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
                             <div className="space-y-3">
-                              <FormSelect label="Tipo Perforación Pouch" value={form.pouchPerforationType as string} onChange={(v) => updateField("pouchPerforationType", v)} placeholder="-- Seleccione --" options={POUCH_PERFORATION_TYPE_OPTIONS} />
-                              <FormSelect label="Tipo Perforación Bolsa" value={form.bagPerforationType as string} onChange={(v) => updateField("bagPerforationType", v)} placeholder="-- Seleccione --" options={BAG_PERFORATION_TYPE_OPTIONS} />
-                              <FormSelect label="Ubicación Perforaciones" value={form.perforationLocation as string} onChange={(v) => updateField("perforationLocation", v)} placeholder="-- Seleccione --" options={PERFORATION_LOCATION_OPTIONS} />
+                              <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
+                              <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
+                              {form.hasRoundedCorners === "Sí" && (
+                                <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={ROUNDED_CORNERS_TYPE_OPTIONS} />
+                              )}
+                              <AccessoryCheckbox field="hasNotch" label="Muesca" />
+                              <AccessoryCheckbox field="hasPerforation" label="Perforación" />
+                              {form.hasPerforation === "Sí" && (
+                                <div className="space-y-3">
+                                  <FormSelect label="Tipo Perforación Pouch" value={form.pouchPerforationType} onChange={(value) => updateField("pouchPerforationType", value)} placeholder="-- Seleccione --" options={POUCH_PERFORATION_TYPE_OPTIONS} />
+                                  <FormSelect label="Tipo Perforación Bolsa" value={form.bagPerforationType} onChange={(value) => updateField("bagPerforationType", value)} placeholder="-- Seleccione --" options={BAG_PERFORATION_TYPE_OPTIONS} />
+                                  <FormSelect label="Ubicación Perforaciones" value={form.perforationLocation} onChange={(value) => updateField("perforationLocation", value)} placeholder="-- Seleccione --" options={PERFORATION_LOCATION_OPTIONS} />
+                                </div>
+                              )}
+                              <AccessoryCheckbox field="hasPreCut" label="Pre-Corte" />
+                              {form.hasPreCut === "Sí" && (
+                                <FormSelect label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} placeholder="-- Seleccione --" options={PRECUT_TYPE_OPTIONS} />
+                              )}
                             </div>
-                          )}
-                          <AccessoryCheckbox field="hasPreCut" label="Pre-Corte" />
-                          {(form.hasPreCut as string) === "Sí" && (
-                            <FormSelect label="Tipo de Pre-Corte" value={form.preCutType as string} onChange={(v) => updateField("preCutType", v)} placeholder="-- Seleccione --" options={PRECUT_TYPE_OPTIONS} />
-                          )}
-                        </div>
-                      </div>
+                          </div>
 
-                      <FormSelect
-                        label="Otros accesorios"
-                        value={form.otherAccessories as string}
-                        onChange={(v) => updateField("otherAccessories", v)}
-                        placeholder="-- Seleccione --"
-                        options={OTHER_ACCESSORIES_OPTIONS}
+                          <FormSelect
+                            label="Otros accesorios"
+                            value={form.otherAccessories}
+                            onChange={(value) => updateField("otherAccessories", value)}
+                            placeholder="-- Seleccione --"
+                            options={OTHER_ACCESSORIES_OPTIONS}
+                          />
+
+                          <div className="text-xs text-slate-500 text-center">
+                            Accesorios seleccionados: {selectedCount}/3 {!canSelectMore && "(máximo alcanzado)"}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </FormCard>
+              </div>
+            )}
+
+            {/* PASO 4: CONDICIONES COMERCIALES */}
+            {activeStep === 4 && (
+              <div className="space-y-5">
+                <FormCard title="Condiciones comerciales" icon="💰" color="#0d4c5c">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormInput
+                      label="Cantidad / Volumen estimado"
+                      value={form.estimatedVolume}
+                      onChange={(value) => updateField("estimatedVolume", value)}
+                      placeholder="Ej. 500"
+                    />
+
+                    <FormSelect
+                      label="Unidad de Medida"
+                      value={form.unitOfMeasure}
+                      onChange={(value) => updateField("unitOfMeasure", value)}
+                      options={UNIT_OPTIONS}
+                      placeholder="-- Seleccione --"
+                    />
+
+                    <FormSelect label="Venta Nacional / Internacional" value={form.saleType} onChange={(value) => updateField("saleType", value)} options={SALE_TYPE_OPTIONS} />
+                    <FormSelect label="Incoterm" value={form.incoterm} onChange={(value) => updateField("incoterm", value)} options={INCOTERM_OPTIONS} />
+                    <FormSelect label="País Destino" value={form.destinationCountry} onChange={(value) => updateField("destinationCountry", value)} options={DESTINATION_COUNTRY_OPTIONS} />
+
+                    <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(value) => updateField("targetPrice", value)} placeholder="Ej. 45" />
+                    <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={CURRENCY_OPTIONS} />
+
+                    <div className="md:col-span-3">
+                      <FormTextarea
+                        label="Información adicional del cliente"
+                        value={form.customerAdditionalInfo}
+                        onChange={(value) => updateField("customerAdditionalInfo", value)}
+                        placeholder="Condiciones comerciales, restricciones, requisitos adicionales..."
                       />
+                    </div>
+                  </div>
+                </FormCard>
 
-                      <div className="text-xs text-slate-500 text-center">
-                        Accesorios seleccionados: {selectedCount}/3 {!canSelectMore && "(máximo alcanzado)"}
-                      </div>
-                    </>
-                  );
-                })()}
+                <FormCard title="Especificaciones de Core" icon="💰" color="#0d4c5c">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormSelect
+                      label="Material del Core"
+                      value={form.coreMaterial}
+                      onChange={(value) => updateField("coreMaterial", value)}
+                      options={CORE_MATERIAL_OPTIONS}
+                    />
+                    <FormInput label="Diámetro Core" value={form.coreDiameter} onChange={(value) => updateField("coreDiameter", value)} placeholder="Ej. 76" />
+                    <FormInput label="Diámetro Externo" value={form.externalDiameter} onChange={(value) => updateField("externalDiameter", value)} placeholder="Ej. 600" />
+                    <FormInput label="Variación Externa +" value={form.externalVariationPlus} onChange={(value) => updateField("externalVariationPlus", value)} placeholder="Ej. 5" />
+                    <FormInput label="Variación Externa -" value={form.externalVariationMinus} onChange={(value) => updateField("externalVariationMinus", value)} placeholder="Ej. 5" />
+                    <FormInput label="Peso Máximo Rollo (kg)" value={form.maxRollWeight} onChange={(value) => updateField("maxRollWeight", value)} placeholder="Ej. 500" />
+                    <FormSelect label="Logo Producto Peruano" value={form.peruvianProductLogo} onChange={(value) => updateField("peruvianProductLogo", value)} options={YES_NO_OPTIONS} />
+                    <FormSelect label="Pie de Imprenta" value={form.printingFooter} onChange={(value) => updateField("printingFooter", value)} options={YES_NO_OPTIONS} />
+                  </div>
+                </FormCard>
               </div>
-            </FormCard>
+            )}
 
-            <FormCard title="7. Especificaciones financieras / comerciales" icon="💰" color="#0d4c5c">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <FormInput
-                  label="Cantidad / Volumen estimado *"
-                  value={form.estimatedVolume}
-                  onChange={(v) => updateField("estimatedVolume", v)}
-                  error={getError("estimatedVolume")}
-                  placeholder="Ej. 500"
-                />
-                <FormSelect
-                  label="Unidad de Medida *"
-                  value={form.unitOfMeasure}
-                  onChange={(v) => updateField("unitOfMeasure", v)}
-                  error={getError("unitOfMeasure")}
-                  options={[
-                    { value: "KGS", label: "KGS" },
-                    { value: "MLL", label: "MLL" },
-                    { value: "MTS", label: "MTS" },
-                    { value: "MT2", label: "MT2" },
-                    { value: "LBS", label: "LBS" },
-                    { value: "UNI", label: "UNI" },
-                  ]}
-                />
-                <FormSelect label="Venta Nacional / Internacional" value={form.saleType} onChange={(v) => updateField("saleType", v)} options={[{ value: "Nacional", label: "Nacional" }, { value: "Internacional", label: "Internacional" }]} />
-                <FormSelect label="Incoterm" value={form.incoterm} onChange={(v) => updateField("incoterm", v)} options={[{ value: "No aplica", label: "No aplica" }, { value: "EXW", label: "EXW" }, { value: "FOB", label: "FOB" }, { value: "CIF", label: "CIF" }, { value: "DAP", label: "DAP" }]} />
-                <FormSelect label="País Destino" value={form.destinationCountry} onChange={(v) => updateField("destinationCountry", v)} options={[{ value: "Perú", label: "Perú" }, { value: "Chile", label: "Chile" }, { value: "Colombia", label: "Colombia" }, { value: "Ecuador", label: "Ecuador" }, { value: "Portugal", label: "Portugal" }, { value: "Otro", label: "Otro" }]} />
-                <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(v) => updateField("targetPrice", v)} placeholder="Ej. 45" />
-                <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(v) => updateField("currencyType", v)} options={[{ value: "Soles", label: "Soles" }, { value: "Dólares", label: "Dólares" }]} />
-                <div className="md:col-span-3">
-                  <FormTextarea
-                    label="Información adicional del cliente"
-                    value={form.customerAdditionalInfo}
-                    onChange={(v) => updateField("customerAdditionalInfo", v)}
-                    placeholder="Condiciones comerciales, restricciones, requisitos adicionales..."
-                  />
+            {/* PASO 5: DOCUMENTOS */}
+            {activeStep === 5 && (
+              <div className="space-y-5">
+                <ProjectDocumentsSection projectCode={projectCode} />
+              </div>
+            )}
+
+            {/* BOTONES DE NAVEGACIÓN ENTRE PASOS */}
+            {activeStep < STEPS.length && (
+              <div className="flex justify-between items-center pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
+                  disabled={activeStep === 0}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Anterior
+                </button>
+
+                <div className="text-xs text-slate-500">
+                  Paso {activeStep + 1} de {STEPS.length}
                 </div>
+
+                {activeStep < STEPS.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveStep((s) => Math.min(STEPS.length - 1, s + 1))}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                  >
+                    Siguiente →
+                  </button>
+                ) : (
+                  <div className="w-[80px]" />
+                )}
               </div>
-            </FormCard>
-            </fieldset>
+            )}
           </div>
 
+          {/* ========== COLUMNA DERECHA: PANEL DE CONTEXTO (STICKY) ========== */}
           <div className="space-y-5">
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="px-5 py-4 text-white bg-gradient-to-br from-brand-primary to-brand-secondary">
-                <div className="text-xs font-bold uppercase tracking-wide text-white/75">
-                  Herencia de Portafolio
-                </div>
-                <div className="mt-2 text-lg font-extrabold">
-                  {selectedPortfolio ? selectedPortfolio.nom : "Seleccione Portafolio"}
-                </div>
-              </div>
-              <div className="space-y-2 p-5 text-sm">
-                <PreviewRow label="Código Portafolio" value={selectedPortfolio?.id || selectedPortfolio?.codigo || "—"} />
-                <PreviewRow label="Cliente" value={selectedPortfolio?.cli || selectedPortfolio?.clientName || "—"} />
-                <PreviewRow label="Planta" value={selectedPortfolio?.pl || selectedPortfolio?.plantaName || selectedPortfolio?.plantaCode || "—"} />
-                <PreviewRow label="Envoltura" value={inheritedWrapping || "—"} />
-                <PreviewRow label="Uso Final" value={selectedPortfolio?.uf || selectedPortfolio?.usoFinal || "—"} />
-                <PreviewRow label="Sub-segmento" value={selectedPortfolio?.subseg || selectedPortfolio?.subSegmento || "—"} />
-                <PreviewRow label="Segmento" value={selectedPortfolio?.seg || selectedPortfolio?.segmento || "—"} />
-                <PreviewRow label="Sector" value={selectedPortfolio?.sector || "—"} />
-                <PreviewRow label="AFMarketID" value={selectedPortfolio?.af || selectedPortfolio?.afMarketId || "—"} />
-                <PreviewRow label="Máquina / Envasado de cliente" value={selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || "—"} />
-              </div>
+            {/* TARJETA A: PORTAFOLIO BASE */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h3 className="font-semibold text-sm text-slate-900 mb-3">Portafolio base</h3>
+              <PortfolioSearch
+                label="Portafolio base *"
+                value={form.portfolioCode}
+                onChange={(value) => {
+                  updateField("portfolioCode", value);
+                  updateField("blueprintFormat", "");
+                  markFieldAsTouched("portfolioCode");
+                }}
+                error={getError("portfolioCode")}
+              />
+              {!form.portfolioCode && (
+                <p className="text-xs text-slate-400 mt-3 italic">
+                  Selecciona un portafolio para ver la información heredada.
+                </p>
+              )}
             </div>
+
+            {/* TARJETA B: HERENCIA DEL PORTAFOLIO */}
+            {selectedPortfolio && (
+              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h3 className="font-semibold text-sm text-slate-900 mb-3">Herencia del portafolio</h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2 text-sm">
+                    <PreviewRow label="Cliente" value={inheritedClient || "—"} />
+                    <PreviewRow label="Planta" value={inheritedPlant || "—"} />
+                    <PreviewRow label="Envoltura" value={inheritedWrapping || "—"} />
+                    <PreviewRow label="Uso Final" value={inheritedFinalUse || "—"} />
+                    <PreviewRow label="Sub-segmento" value={inheritedSubSegment || "—"} />
+                    <PreviewRow label="Segmento" value={inheritedSegment || "—"} />
+                    <PreviewRow label="Sector" value={inheritedSector || "—"} />
+                    <PreviewRow label="AFMarketID" value={inheritedAfMarketId || "—"} />
+                    <PreviewRow label="Máquina / Envasado" value={inheritedMachine || "—"} />
+                  </div>
+
+                  {inheritedWrapping && (
+                    <div className="flex flex-col items-center justify-center">
+                      <img
+                        src={getWrappingImage(inheritedWrapping)}
+                        alt={inheritedWrapping}
+                        className="max-w-full max-h-48 object-contain rounded-lg bg-slate-50 p-2 border border-slate-200"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/assets/envolturas/default.png";
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* ========== FOOTER STICKY: BOTONES DE ACCIÓN ========== */}
         <div className="sticky bottom-0 z-40 mt-6 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
           <FormActionButtons
             onCancel={() => navigate(`/projects/${projectCode}`)}
@@ -1119,12 +1817,49 @@ export default function ProjectEditPage() {
               (error): error is string => Boolean(error)
             )}
             submitAttempted={submitAttempted}
-            submitLabel="Guardar Borrador"
+            submitLabel={primaryButtonLabel}
             cancelLabel="Cancelar"
             validationTitle="Faltan campos obligatorios."
           />
         </div>
       </form>
+
+      {/* ========== COMPLETION SUCCESS MODAL ========== */}
+      {showValidationSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md mx-4">
+            <div className="bg-green-50 border-b border-green-200 px-6 py-4">
+              <h3 className="text-lg font-bold text-green-900">Solicitud de validación enviada</h3>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <p className="text-sm text-slate-700">
+                La ficha ha sido enviada para validación a los equipos de R&D y Artes Gráficas.
+              </p>
+              <div className="bg-slate-50 rounded p-3 space-y-1 text-sm">
+                <p><span className="font-semibold">Proyecto:</span> {projectCode}</p>
+                <p><span className="font-semibold">Estado:</span> Pendiente de validación</p>
+              </div>
+            </div>
+            <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex gap-3">
+              <button
+                onClick={() => navigate(`/validaciones?projectCode=${projectCode}`)}
+                className="flex-1 px-4 py-2 bg-brand-primary text-white rounded font-medium hover:bg-brand-primary/90 transition-colors text-sm"
+              >
+                Ir a validaciones
+              </button>
+              <button
+                onClick={() => {
+                  setShowValidationSuccessModal(false);
+                  navigate(`/projects/${projectCode}`);
+                }}
+                className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded font-medium hover:bg-slate-300 transition-colors text-sm"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

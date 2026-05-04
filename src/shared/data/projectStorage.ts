@@ -11,6 +11,8 @@ export type SiProjectStage = "P6" | "P7" | "P8" | "P9";
 export type ProjectStatus =
   | "Borrador"
   | "Registrado"
+  | "Ficha en proceso"
+  | "Ficha completa"
   | "Pendiente de validación"
   | "En validación"
   | "Observada"

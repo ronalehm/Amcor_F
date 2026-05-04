@@ -874,12 +874,72 @@ export default function ProjectCreatePage() {
     return shouldShowFieldError(field) ? validationErrors[field] || "" : "";
   };
 
+  // CREATE phase only requires Section 1 fields
+  const CREATE_REQUIRED_FIELDS: Array<keyof ProjectFormData> = [
+    "portfolioCode",
+    "executiveId",
+    "salesforceAction",
+    "projectName",
+    "projectDescription",
+  ];
+
+  const createRequiredErrors = useMemo(() => {
+    const errors: Partial<Record<keyof ProjectFormData, string>> = {};
+    CREATE_REQUIRED_FIELDS.forEach((field) => {
+      if (validationErrors[field]) {
+        errors[field] = validationErrors[field];
+      }
+    });
+    return errors;
+  }, [validationErrors]);
+
+  // Helper: check if all form sections are complete (for "Ficha completa" status)
+  const isFormCompleteForValidation = useMemo(() => {
+    const requiredFieldsForFull: Array<keyof ProjectFormData> = [
+      "portfolioCode",
+      "executiveId",
+      "salesforceAction",
+      "projectName",
+      "projectDescription",
+      "blueprintFormat",
+      "technicalApplication",
+      "estimatedVolume",
+      "unitOfMeasure",
+      "printClass",
+      "printType",
+      "width",
+      "length",
+      "repetition",
+      "saleType",
+      "targetPrice",
+      "currencyType",
+      "coreMaterial",
+      "coreDiameter",
+      "externalDiameter",
+      "maxRollWeight",
+      "peruvianProductLogo",
+      "printingFooter",
+    ];
+
+    return (
+      requiredFieldsForFull.every(
+        (field) =>
+          form[field] &&
+          String(form[field]).trim() !== "" &&
+          (!Array.isArray(form[field]) || (form[field] as unknown[]).length > 0)
+      ) &&
+      !form.estimatedVolume?.includes("NaN") &&
+      !form.unitOfMeasure?.includes("NaN")
+    );
+  }, [form]);
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitAttempted(true);
 
-    if (Object.keys(validationErrors).length > 0) {
-      const fieldsWithErrors = Object.keys(validationErrors).reduce(
+    // Only validate CREATE_REQUIRED fields - other sections are optional
+    if (Object.keys(createRequiredErrors).length > 0) {
+      const fieldsWithErrors = Object.keys(createRequiredErrors).reduce(
         (acc, field) => {
           acc[field as keyof ProjectFormData] = true;
           return acc;
@@ -891,9 +951,9 @@ export default function ProjectCreatePage() {
         ...fieldsWithErrors,
       }));
 
-      // Navigate to first step with errors
+      // Navigate to first step with Section 1 errors (should be step 0)
       for (let i = 0; i < STEPS.length; i++) {
-        if (STEP_FIELDS[i]?.some((f) => validationErrors[f])) {
+        if (STEP_FIELDS[i]?.some((f) => createRequiredErrors[f])) {
           setActiveStep(i);
           break;
         }
@@ -1038,7 +1098,7 @@ export default function ProjectCreatePage() {
       peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
       printingFooter: form.printingFooter,
 
-      status: "Registrado",
+      status: isFormCompleteForValidation ? "Ficha completa" : "Registrado",
       createdAt: now,
       updatedAt: now,
 
@@ -1048,7 +1108,12 @@ export default function ProjectCreatePage() {
       validaciones: [],
     });
 
-    navigate("/projects");
+    // Redirect to Edit page with optional completion prompt
+    if (isFormCompleteForValidation) {
+      navigate(`/projects/${projectCode}/edit?showCompletionPrompt=true`);
+    } else {
+      navigate(`/projects/${projectCode}/edit`);
+    }
   };
 
   return (
@@ -1180,7 +1245,7 @@ export default function ProjectCreatePage() {
             <FormCard title="Datos de Producto Comercial" icon="◈" color="#27ae60" required>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 md:col-span-3">
-                  <p className="text-xs text-slate-500 font-medium">Envoltura heredada del portafolio</p>
+                  <p className="text-xs text-slate-500 font-medium">Envoltura</p>
                   <p className="text-sm font-semibold text-slate-800 mt-1">{inheritedWrapping || "—"}</p>
                 </div>
 
@@ -1266,7 +1331,7 @@ export default function ProjectCreatePage() {
           <div className="space-y-5">
             {/* FormCard 5: Especificaciones de estructura */}
             <FormCard
-              title="5. Especificaciones de estructura"
+              title="Especificaciones de estructura"
               icon="🔩"
               color="#f39c12"
               className={isDuplicateMode ? "relative" : ""}
@@ -1628,7 +1693,7 @@ export default function ProjectCreatePage() {
         {activeStep === 2 && (
           <div className="space-y-5">
             {/* FormCard 4: Especificaciones de diseño */}
-            <FormCard title="4. Especificaciones de diseño" icon="🎨" color="#8e44ad">
+            <FormCard title="Especificaciones de diseño" icon="🎨" color="#8e44ad">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 {(() => {
                   const isPrintingDisabled = form.printClass === "Sin impresión";
