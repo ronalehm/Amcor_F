@@ -155,9 +155,9 @@ export default function ValidationDetailPage() {
             <div>
               <div className="text-xs font-bold uppercase text-slate-400 mb-1">Estado General</div>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                project.estadoValidacionGeneral === "Validada por �reas"
+                project.estadoValidacionGeneral === "Validada por áreas"
                   ? "bg-green-100 text-green-700"
-                  : project.estadoValidacionGeneral === "En validaci�n"
+                  : project.estadoValidacionGeneral === "En validación"
                     ? "bg-amber-100 text-amber-700"
                     : project.estadoValidacionGeneral === "Observada"
                       ? "bg-orange-100 text-orange-700"
