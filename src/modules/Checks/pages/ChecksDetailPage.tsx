@@ -31,8 +31,8 @@ export default function ValidationDetailPage() {
     setLoading(false);
     if (projectCode && project) {
       setHeader({
-        title: "Detalle de Validaci�n",
-        subtitle: `Validaci�n del proyecto ${projectCode}`,
+        title: "Detalle de Validación",
+        subtitle: `Validación del proyecto ${projectCode}`,
         breadcrumbs: [
           { label: "Validaciones", href: "/validaciones" },
           { label: projectCode },
@@ -147,9 +147,9 @@ export default function ValidationDetailPage() {
       </button>
       <div className="space-y-5 p-5">
         {/* Informaci�n del Proyecto */}
-        <FormCard title="Informaci�n del Proyecto" icon="?" color="#00395A">
+        <FormCard title="Información del Proyecto" icon="?" color="#00395A">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <PreviewRow label="C�digo" value={project.code} />
+            <PreviewRow label="Código" value={project.code} />
             <PreviewRow label="Proyecto" value={project.projectName} />
             <PreviewRow label="Cliente" value={project.clientName} />
             <div>
@@ -173,7 +173,7 @@ export default function ValidationDetailPage() {
           {hasObservations && (
             <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
               <div className="text-sm font-medium text-orange-800">
-                ?? Este proyecto tiene observaciones que requieren correcci�n del Ejecutivo
+                ?? Este proyecto tiene observaciones que requieren corrección del Ejecutivo
               </div>
             </div>
           )}
@@ -237,7 +237,7 @@ export default function ValidationDetailPage() {
                       value={activeValidation.validador || currentUser?.fullName || "Sin asignar"}
                     />
                     <PreviewRow
-                      label="Fecha validaci�n"
+                      label="Fecha validación"
                       value={activeValidation.fechaValidacion ? new Date(activeValidation.fechaValidacion).toLocaleDateString() : "�"}
                     />
                   </div>
@@ -253,7 +253,7 @@ export default function ValidationDetailPage() {
                   {/* Mostrar acci�n requerida si existe */}
                   {activeValidation.accionRequerida && (
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="text-xs font-bold text-blue-800 mb-1">ACCI�N REQUERIDA</div>
+                      <div className="text-xs font-bold text-blue-800 mb-1">ACCIÓN REQUERIDA</div>
                       <div className="text-sm text-blue-900">{activeValidation.accionRequerida}</div>
                     </div>
                   )}

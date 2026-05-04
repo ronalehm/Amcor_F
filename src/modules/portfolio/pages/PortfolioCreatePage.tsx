@@ -182,7 +182,6 @@ export default function PortfolioCreatePage() {
   useEffect(() => {
     setHeader({
       title: "Crear Portafolio",
-      subtitle: "Registra primero el cliente, responsable comercial y planta. Luego completa la información comercial, taxonomía del producto y datos técnicos.",
       breadcrumbs: [{ label: "Portafolio", href: "/portfolio" }, { label: "Crear Portafolio" }],
       badges: <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">ID: {form.codigo}</span>,
       progress: {
@@ -437,7 +436,6 @@ export default function PortfolioCreatePage() {
             <SectionCard
               number={1}
               title="Cliente y responsable"
-              subtitle="Define quién solicita y quién gestiona el portafolio."
               status={getSectionStatus(form.licitacion === "Sí" ? ["clienteId", "ejecutivoId", "licitacion", "codigoRFQ"] : ["clienteId", "ejecutivoId", "licitacion"])}
               required
             >
@@ -513,7 +511,6 @@ export default function PortfolioCreatePage() {
             <SectionCard
               number={2}
               title="Información del portafolio"
-              subtitle="Identifica la familia de productos."
               status={getSectionStatus(["nombrePortafolio"])}
               required
             >
@@ -547,7 +544,6 @@ export default function PortfolioCreatePage() {
             <SectionCard
               number={3}
               title="Producto y uso final"
-              subtitle="Selecciona la envoltura y la taxonomía comercial."
               status={getSectionStatus(["envolturaId", "usoFinalId"])}
               required
             >
@@ -645,7 +641,6 @@ export default function PortfolioCreatePage() {
             <SectionCard
               number={4}
               title="Configuración técnica"
-              subtitle="Asocia la máquina según la envoltura seleccionada."
               status={getSectionStatus(["envasadoId"])}
               required
             >
@@ -704,7 +699,6 @@ export default function PortfolioCreatePage() {
             <SectionCard
               number={5}
               title="Planta de Origen"
-              subtitle="Selecciona la planta asociada al diseño."
               status={getSectionStatus(["plantaId"])}
               required
             >

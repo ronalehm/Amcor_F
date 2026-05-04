@@ -82,7 +82,6 @@ const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
       content: <SettingsDrawerContent onClose={closeDrawer} />,
     })
   }
-
   const handleOpenNotifDetail = (n: Notif) => {
     markAsRead(n.id)
     setNotifOpen(false)
@@ -100,7 +99,16 @@ const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
       ),
     })
   }
+const handleLogout = () => {
+  setUserMenuOpen(false)
+  setNotifOpen(false)
+  closeDrawer()
 
+  logoutUser()
+  setCurrentUser(null)
+
+  window.location.replace("/login")
+}
   return (
     <header className="h-16 bg-white border-b border-gray-200 px-4 flex items-center justify-between shadow-sm relative z-[120]">
       <div className="flex items-center gap-4">
@@ -230,11 +238,8 @@ const Header = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
                 </button>
                 <hr className="my-2 border-gray-200" />
                 <button
-                  onClick={() => {
-                    logoutUser()
-                    setCurrentUser(null)
-                    navigate("/login")
-                  }}
+                  type="button"
+                  onClick={handleLogout}
                   className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                 >
                   <LogOut size={16} />
