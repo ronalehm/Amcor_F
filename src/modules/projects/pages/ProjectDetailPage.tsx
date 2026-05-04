@@ -175,7 +175,7 @@ export default function ProjectDetailPage() {
           </div>
 
           {/* 1. INFORMACIÓN GENERAL */}
-          <FormCard title="1. Información General" icon="▦" color="#00395A">
+          <FormCard title="Información General" icon="▦" color="#00395A">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               <PreviewRow label="Código" value={project.code} />
               <PreviewRow label="Portafolio" value={project.portfolioCode} />

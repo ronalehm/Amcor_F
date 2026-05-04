@@ -112,7 +112,6 @@ type ProjectFormData = {
   incoterm: string;
   destinationCountry: string;
   targetPrice: string;
-  salePrice: string;
   currencyType: string;
   coreMaterial: string;
   coreDiameter: string;
@@ -542,7 +541,6 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   incoterm: "",
   destinationCountry: "",
   targetPrice: "",
-  salePrice: "",
   currencyType: "",
   coreMaterial: "",
   coreDiameter: "",
@@ -563,7 +561,7 @@ const STEPS = [
   { label: "Estructura" },
   { label: "Condiciones comerciales" },
   { label: "Documentos" },
-];
+];const CREATE_ENABLED_STEP = 0;
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectFormData>> = {
   0: ["salesforceAction", "projectName", "projectDescription", "executiveId", "portfolioCode"],
@@ -697,7 +695,6 @@ export default function ProjectCreatePage() {
           incoterm: original.incoterm || "No aplica",
           destinationCountry: original.destinationCountry || "Perú",
           targetPrice: original.targetPrice || "",
-          salePrice: original.salePrice || "",
           currencyType: original.currencyType || "Soles",
           coreMaterial: original.coreMaterial || "",
           coreDiameter: original.coreDiameter || "",
@@ -732,31 +729,54 @@ export default function ProjectCreatePage() {
     selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || selectedPortfolio?.packingMachineName || "";
 
   useEffect(() => {
-    setHeader({
-      title: isDuplicateMode ? "Proyectos >> Duplicar Proyecto" : "Proyectos >> Crear Proyecto",
-      subtitle: isDuplicateMode
-        ? `Duplicando proyecto ${duplicateFromParam}. La estructura está bloqueada y debe mantenerse igual. Modifica solo los datos de diseño y comercial.`
-        : "Selecciona un portafolio base, hereda su información común y completa la ficha única del proyecto.",
-      breadcrumbs: [
-        { label: "Proyectos", href: "/projects" },
-        { label: isDuplicateMode ? "Duplicar Proyecto" : "Crear Proyecto" },
-      ],
-      badges: (
-        <div className="flex items-center gap-2">
-          {isDuplicateMode && (
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700 border border-amber-200">
-              Modo: Duplicar
-            </span>
-          )}
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-            ID: {projectCode}
-          </span>
-        </div>
-      ),
-    });
+  const projectName = form.projectName?.trim();
+  const projectDescription = form.projectDescription?.trim();
 
-    return () => resetHeader();
-  }, [setHeader, resetHeader, projectCode, isDuplicateMode, duplicateFromParam]);
+  const defaultTitle = isDuplicateMode
+    ? "Proyectos >> Duplicar Proyecto"
+    : "Proyectos >> Crear Proyecto";
+
+  const dynamicTitle = projectName
+    ? `${isDuplicateMode ? "Duplicar Proyecto" : "Crear Proyecto"}: ${projectName}`
+    : defaultTitle;
+
+  const defaultSubtitle = isDuplicateMode
+    ? `Duplicando proyecto ${duplicateFromParam}. La estructura está bloqueada y debe mantenerse igual. Modifica solo los datos de diseño y comercial.`
+    : "Selecciona un portafolio base, hereda su información común y completa la ficha única del proyecto.";
+
+  const dynamicSubtitle = projectDescription || defaultSubtitle;
+
+        setHeader({
+          title: dynamicTitle,
+          subtitle: dynamicSubtitle,
+          breadcrumbs: [
+            { label: "Proyectos", href: "/projects" },
+            { label: isDuplicateMode ? "Duplicar Proyecto" : "Crear Proyecto" },
+          ],
+          badges: (
+            <div className="flex items-center gap-2">
+              {isDuplicateMode && (
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700 border border-amber-200">
+                  Modo: Duplicar
+                </span>
+              )}
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                ID: {projectCode}
+              </span>
+            </div>
+          ),
+        });
+
+        return () => resetHeader();
+      }, [
+        setHeader,
+        resetHeader,
+        projectCode,
+        isDuplicateMode,
+        duplicateFromParam,
+        form.projectName,
+        form.projectDescription,
+      ]);
 
   const updateField = (field: keyof ProjectFormData, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -877,12 +897,72 @@ export default function ProjectCreatePage() {
     return shouldShowFieldError(field) ? validationErrors[field] || "" : "";
   };
 
+  // CREATE phase only requires Section 1 fields
+  const CREATE_REQUIRED_FIELDS: Array<keyof ProjectFormData> = [
+    "portfolioCode",
+    "executiveId",
+    "salesforceAction",
+    "projectName",
+    "projectDescription",
+  ];
+
+  const createRequiredErrors = useMemo(() => {
+    const errors: Partial<Record<keyof ProjectFormData, string>> = {};
+    CREATE_REQUIRED_FIELDS.forEach((field) => {
+      if (validationErrors[field]) {
+        errors[field] = validationErrors[field];
+      }
+    });
+    return errors;
+  }, [validationErrors]);
+
+  // Helper: check if all form sections are complete (for "Ficha completa" status)
+  const isFormCompleteForValidation = useMemo(() => {
+    const requiredFieldsForFull: Array<keyof ProjectFormData> = [
+      "portfolioCode",
+      "executiveId",
+      "salesforceAction",
+      "projectName",
+      "projectDescription",
+      "blueprintFormat",
+      "technicalApplication",
+      "estimatedVolume",
+      "unitOfMeasure",
+      "printClass",
+      "printType",
+      "width",
+      "length",
+      "repetition",
+      "saleType",
+      "targetPrice",
+      "currencyType",
+      "coreMaterial",
+      "coreDiameter",
+      "externalDiameter",
+      "maxRollWeight",
+      "peruvianProductLogo",
+      "printingFooter",
+    ];
+
+    return (
+      requiredFieldsForFull.every(
+        (field) =>
+          form[field] &&
+          String(form[field]).trim() !== "" &&
+          (!Array.isArray(form[field]) || (form[field] as unknown[]).length > 0)
+      ) &&
+      !form.estimatedVolume?.includes("NaN") &&
+      !form.unitOfMeasure?.includes("NaN")
+    );
+  }, [form]);
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitAttempted(true);
 
-    if (Object.keys(validationErrors).length > 0) {
-      const fieldsWithErrors = Object.keys(validationErrors).reduce(
+    // Only validate CREATE_REQUIRED fields - other sections are optional
+    if (Object.keys(createRequiredErrors).length > 0) {
+      const fieldsWithErrors = Object.keys(createRequiredErrors).reduce(
         (acc, field) => {
           acc[field as keyof ProjectFormData] = true;
           return acc;
@@ -894,9 +974,9 @@ export default function ProjectCreatePage() {
         ...fieldsWithErrors,
       }));
 
-      // Navigate to first step with errors
+      // Navigate to first step with Section 1 errors (should be step 0)
       for (let i = 0; i < STEPS.length; i++) {
-        if (STEP_FIELDS[i]?.some((f) => validationErrors[f])) {
+        if (STEP_FIELDS[i]?.some((f) => createRequiredErrors[f])) {
           setActiveStep(i);
           break;
         }
@@ -906,6 +986,8 @@ export default function ProjectCreatePage() {
     }
 
     const now = new Date().toISOString();
+    const finalExecutiveIds = form.executiveId.map(String);
+    const finalExecutiveName = selectedExecutives.map((executive) => executive.name).join(", ");
 
     saveProjectRecord({
       id: projectCode,
@@ -920,8 +1002,15 @@ export default function ProjectCreatePage() {
       projectName: form.projectName,
       projectDescription: form.projectDescription,
 
-      ejecutivoId: form.executiveId.length > 0 ? Number(form.executiveId[0]) : undefined,
-      ejecutivoName: selectedExecutives.map(e => e.name).join(", "),
+      ejecutivoId: finalExecutiveIds.length > 0 ? Number(finalExecutiveIds[0]) : undefined,
+      ejecutivoName: finalExecutiveName,
+
+      ...({
+        ejecutivoIds: finalExecutiveIds,
+        ejecutivoNames: finalExecutiveName,
+        executiveIds: finalExecutiveIds,
+        commercialExecutiveIds: finalExecutiveIds,
+      } as any),
 
       siUserId: form.siUserId,
       siUserCode: siUsers.find(u => u.id === form.siUserId)?.code,
@@ -1030,7 +1119,6 @@ export default function ProjectCreatePage() {
       incoterm: form.incoterm,
       destinationCountry: form.destinationCountry,
       targetPrice: form.targetPrice,
-      salePrice: form.salePrice,
       currencyType: form.currencyType,
       coreMaterial: form.coreMaterial,
       coreDiameter: form.coreDiameter,
@@ -1042,7 +1130,7 @@ export default function ProjectCreatePage() {
       peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
       printingFooter: form.printingFooter,
 
-      status: "Registrado",
+      status: isFormCompleteForValidation ? "Ficha completa" : "Registrado",
       createdAt: now,
       updatedAt: now,
 
@@ -1052,7 +1140,8 @@ export default function ProjectCreatePage() {
       validaciones: [],
     });
 
-    navigate("/projects");
+    // Redirect to Edit page with optional completion prompt
+    navigate(`/projects/${projectCode}/edit`, { replace: true });
   };
 
   return (
@@ -1076,8 +1165,22 @@ export default function ProjectCreatePage() {
           <Fragment key={index}>
             <button
               type="button"
-              onClick={() => setActiveStep(index)}
-              className="flex min-w-0 shrink-0 items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors"
+              onClick={() => {
+                if (index === CREATE_ENABLED_STEP) {
+                  setActiveStep(index);
+                }
+              }}
+              disabled={index !== CREATE_ENABLED_STEP}
+              title={
+                index === CREATE_ENABLED_STEP
+                  ? "Información inicial del proyecto"
+                  : "Esta sección se completará luego de crear el proyecto"
+              }
+              className={`flex min-w-0 shrink-0 items-center gap-2 px-2 py-1 rounded-lg transition-colors ${
+                index === CREATE_ENABLED_STEP
+                  ? "hover:bg-slate-100 cursor-pointer"
+                  : "cursor-not-allowed opacity-45"
+              }`}
             >
               <span
                 className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0 ${
@@ -1088,7 +1191,7 @@ export default function ProjectCreatePage() {
                       : "bg-slate-100 text-slate-500"
                 }`}
               >
-                {hasError ? stepsWithErrors[index] : index + 1}
+                {index + 1}
               </span>
               <span
                 className={`text-xs font-medium whitespace-nowrap ${
@@ -1184,7 +1287,7 @@ export default function ProjectCreatePage() {
             <FormCard title="Datos de Producto Comercial" icon="◈" color="#27ae60" required>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 md:col-span-3">
-                  <p className="text-xs text-slate-500 font-medium">Envoltura heredada del portafolio</p>
+                  <p className="text-xs text-slate-500 font-medium">Envoltura</p>
                   <p className="text-sm font-semibold text-slate-800 mt-1">{inheritedWrapping || "—"}</p>
                 </div>
 
@@ -1260,25 +1363,6 @@ export default function ProjectCreatePage() {
                   onChange={(value) => updateField("customerPackingCode", value)}
                   placeholder="Ej. COD-CLI-001"
                 />
-
-                <FormInput
-                  label="Cantidad / Volumen estimado"
-                  value={form.estimatedVolume}
-                  onChange={(value) => updateField("estimatedVolume", value)}
-                  onBlur={() => markFieldAsTouched("estimatedVolume")}
-                  error={getError("estimatedVolume")}
-                  placeholder="Ej. 500"
-                />
-
-                <FormSelect
-                  label="Unidad de Medida"
-                  value={form.unitOfMeasure}
-                  onChange={(value) => updateField("unitOfMeasure", value)}
-                  onBlur={() => markFieldAsTouched("unitOfMeasure")}
-                  error={getError("unitOfMeasure")}
-                  options={UNIT_OPTIONS}
-                  placeholder="-- Seleccione --"
-                />
               </div>
             </FormCard>
           </div>
@@ -1289,7 +1373,7 @@ export default function ProjectCreatePage() {
           <div className="space-y-5">
             {/* FormCard 5: Especificaciones de estructura */}
             <FormCard
-              title="5. Especificaciones de estructura"
+              title="Especificaciones de estructura"
               icon="🔩"
               color="#f39c12"
               className={isDuplicateMode ? "relative" : ""}
@@ -1651,7 +1735,7 @@ export default function ProjectCreatePage() {
         {activeStep === 2 && (
           <div className="space-y-5">
             {/* FormCard 4: Especificaciones de diseño */}
-            <FormCard title="4. Especificaciones de diseño" icon="🎨" color="#8e44ad">
+            <FormCard title="Especificaciones de diseño" icon="🎨" color="#8e44ad">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 {(() => {
                   const isPrintingDisabled = form.printClass === "Sin impresión";
@@ -1740,13 +1824,31 @@ export default function ProjectCreatePage() {
           <div className="space-y-5">
             <FormCard title="Condiciones comerciales" icon="💰" color="#0d4c5c">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <FormInput
+                  label="Cantidad / Volumen estimado"
+                  value={form.estimatedVolume}
+                  onChange={(value) => updateField("estimatedVolume", value)}
+                  onBlur={() => markFieldAsTouched("estimatedVolume")}
+                  error={getError("estimatedVolume")}
+                  placeholder="Ej. 500"
+                />
+
+                <FormSelect
+                  label="Unidad de Medida"
+                  value={form.unitOfMeasure}
+                  onChange={(value) => updateField("unitOfMeasure", value)}
+                  onBlur={() => markFieldAsTouched("unitOfMeasure")}
+                  error={getError("unitOfMeasure")}
+                  options={UNIT_OPTIONS}
+                  placeholder="-- Seleccione --"
+                />
+
                 <FormSelect label="Venta Nacional / Internacional" value={form.saleType} onChange={(value) => updateField("saleType", value)} options={SALE_TYPE_OPTIONS} />
                 <FormSelect label="Incoterm" value={form.incoterm} onChange={(value) => updateField("incoterm", value)} options={INCOTERM_OPTIONS} />
                 <FormSelect label="País Destino" value={form.destinationCountry} onChange={(value) => updateField("destinationCountry", value)} options={DESTINATION_COUNTRY_OPTIONS} />
 
                 <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(value) => updateField("targetPrice", value)} placeholder="Ej. 45" />
                 <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={CURRENCY_OPTIONS} />
-                <FormInput label="Precio de Venta" value={form.salePrice} onChange={(value) => updateField("salePrice", value)} placeholder="Ej. 50" />
 
                 <div className="md:col-span-3">
                   <FormTextarea
@@ -1765,36 +1867,6 @@ export default function ProjectCreatePage() {
         {activeStep === 5 && (
           <div className="space-y-5">
             <ProjectDocumentsSection projectCode={projectCode} />
-          </div>
-        )}
-
-        {/* BOTONES DE NAVEGACIÓN ENTRE PASOS */}
-        {activeStep < STEPS.length && (
-          <div className="flex justify-between items-center pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
-              disabled={activeStep === 0}
-              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              ← Anterior
-            </button>
-
-            <div className="text-xs text-slate-500">
-              Paso {activeStep + 1} de {STEPS.length}
-            </div>
-
-            {activeStep < STEPS.length - 1 ? (
-              <button
-                type="button"
-                onClick={() => setActiveStep((s) => Math.min(STEPS.length - 1, s + 1))}
-                className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
-              >
-                Siguiente →
-              </button>
-            ) : (
-              <div className="w-[80px]" />
-            )}
           </div>
         )}
       </div>
@@ -1857,6 +1929,30 @@ export default function ProjectCreatePage() {
       </div>
     </div>
 
+        {/* ========== MENSAJE DE CONTINUIDAD DEL FLUJO ========== */}
+        <div className="mt-5 border-t border-slate-200 bg-[#f6f8fb] px-3 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              disabled
+              className="px-4 py-2 text-sm font-medium text-slate-400 cursor-not-allowed"
+            >
+              ← Anterior
+            </button>
+
+            <div className="text-center text-xs text-slate-500">
+              Paso 1 de 6 · Completa la información general para crear el proyecto
+            </div>
+
+            <button
+              type="button"
+              disabled
+              className="px-4 py-2 text-sm font-medium text-slate-400 cursor-not-allowed"
+            >
+              Siguiente →
+            </button>
+          </div>
+        </div>
     {/* ========== FOOTER STICKY: BOTONES DE ACCIÓN ========== */}
     <div className="sticky bottom-0 z-40 mt-6 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
       <FormActionButtons
