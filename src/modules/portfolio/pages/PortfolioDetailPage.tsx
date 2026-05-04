@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioByCode, deletePortfolioRecord, type PortfolioRecord } from "../../../shared/data/portfolioStorage";
 import { getProjectsByPortfolioCode } from "../../../shared/data/projectStorage";
@@ -78,6 +79,15 @@ export default function PortfolioDetailPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] space-y-6">
+      <button
+        type="button"
+        onClick={() => navigate("/portfolio")}
+        className="flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        Atrás
+      </button>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-6 bg-gradient-to-br from-brand-primary to-brand-secondary text-white">
           <div className="flex justify-between items-start">

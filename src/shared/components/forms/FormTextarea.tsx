@@ -77,7 +77,7 @@ export default function FormTextarea({
 
       <div className="mt-1 flex items-center justify-between">
         {error ? (
-          <span className="text-[11px] font-semibold text-red-600">
+          <span className="text-xs font-normal text-red-600">
             {error}
           </span>
         ) : helper ? (

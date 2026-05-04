@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 
 import FormCard from "../../../shared/components/forms/FormCard";
@@ -110,22 +111,22 @@ export default function UserEditPage() {
     if (!form.email.trim()) {
       errors.email = "Ingresa el correo electrónico.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "Ingresa un correo válido.";
+      errors.email = "El formato del correo no es válido.";
     } else {
       const existingUser = getUserByEmail(form.email);
       const currentUser = getUserById(userId || "");
       if (existingUser && existingUser.id !== currentUser?.id) {
-        errors.email = "Este correo ya está registrado en el sistema.";
+        errors.email = "Este correo ya está registrado.";
       }
     }
     if (!form.workerCode.trim()) errors.workerCode = "Ingresa el código de trabajador.";
-    if (!form.position.trim()) errors.position = "Ingresa el puesto.";
+    if (!form.position.trim()) errors.position = "Selecciona el puesto.";
     if (!form.company.trim()) errors.company = "Ingresa la empresa.";
     if (isAdmin && !form.role) {
-      errors.role = "Selecciona un rol.";
+      errors.role = "Selecciona el rol.";
     }
     if (form.position === "Ejecutivo Comercial" && !form.siUserId) {
-      errors.siUserId = "El vendedor es obligatorio para ejecutivos comerciales.";
+      errors.siUserId = "Selecciona el vendedor.";
     }
 
     return errors;
@@ -152,11 +153,17 @@ export default function UserEditPage() {
     setSubmitAttempted(true);
 
     if (Object.keys(validationErrors).length > 0 || !form || !userId) {
-      setTouchedFields({
-        firstName: true,
-        lastName: true,
-        email: true,
-      });
+      const fieldsWithErrors = Object.keys(validationErrors).reduce(
+        (acc, field) => {
+          acc[field as keyof UserFormData] = true;
+          return acc;
+        },
+        {} as Partial<Record<keyof UserFormData, boolean>>
+      );
+      setTouchedFields((prev) => ({
+        ...prev,
+        ...fieldsWithErrors,
+      }));
       return;
     }
 
@@ -222,6 +229,15 @@ export default function UserEditPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
+      <button
+        type="button"
+        onClick={() => navigate("/users")}
+        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        Atrás
+      </button>
+
       <form onSubmit={handleSubmit}>
         <div className="max-w-3xl mx-auto">
           <FormCard title="Datos del Trabajador" icon="👤" color="#00395A" required>
@@ -404,7 +420,7 @@ export default function UserEditPage() {
             submitAttempted={submitAttempted}
             submitLabel="Guardar Cambios"
             cancelLabel="Cancelar"
-            validationTitle="Faltan campos obligatorios para actualizar el usuario."
+            validationTitle="Faltan campos obligatorios."
           />
         </div>
       </form>

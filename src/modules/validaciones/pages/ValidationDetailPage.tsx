@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getProjectByCode, updateProjectRecord, type AreaValidation, type ValidationState } from "../../../shared/data/projectStorage";
+import { getProjectByCode, updateProjectRecord, type AreaValidation, type ValidationState, type ValidationStatus } from "../../../shared/data/projectStorage";
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
@@ -136,6 +137,14 @@ export default function ValidationDetailPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] pb-12">
+      <button
+        type="button"
+        onClick={() => navigate("/validaciones")}
+        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        Atrás
+      </button>
       <div className="space-y-5 p-5">
         {/* Informaci�n del Proyecto */}
         <FormCard title="Informaci�n del Proyecto" icon="?" color="#00395A">
@@ -145,16 +154,17 @@ export default function ValidationDetailPage() {
             <PreviewRow label="Cliente" value={project.clientName} />
             <div>
               <div className="text-xs font-bold uppercase text-slate-400 mb-1">Estado General</div>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${project.estadoValidacionGeneral === "Validada por áreas"
-                ? "bg-green-100 text-green-700"
-                : project.estadoValidacionGeneral === "En validación"
-                  ? "bg-amber-100 text-amber-700"
-                  : project.estadoValidacionGeneral === "Observada"
-                    ? "bg-orange-100 text-orange-700"
-                    : project.estadoValidacionGeneral === "Rechazada"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-gray-100 text-gray-700"
-                }`}>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                project.estadoValidacionGeneral === "Validada por áreas"
+                  ? "bg-green-100 text-green-700"
+                  : project.estadoValidacionGeneral === "En validación"
+                    ? "bg-amber-100 text-amber-700"
+                    : project.estadoValidacionGeneral === "Observada"
+                      ? "bg-orange-100 text-orange-700"
+                      : project.estadoValidacionGeneral === "Rechazada"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-gray-100 text-gray-700"
+              }`}>
                 {project.estadoValidacionGeneral}
               </span>
             </div>

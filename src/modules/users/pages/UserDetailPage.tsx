@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
   getUserById,
@@ -252,6 +253,15 @@ export default function UserDetailPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
+      <button
+        type="button"
+        onClick={() => navigate("/users")}
+        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        Atrás
+      </button>
+
       <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(380px,0.5fr)] p-5">
         {/* Columna izquierda - Ficha */}
         <div className="space-y-5">

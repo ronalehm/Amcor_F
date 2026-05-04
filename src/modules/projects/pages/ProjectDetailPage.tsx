@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getProjectByCode, type ProjectRecord } from "../../../shared/data/projectStorage";
 import { getProjectSlaSummary, getProjectStatusHistory } from "../../../shared/data/slaStorage";
@@ -126,6 +127,14 @@ export default function ProjectDetailPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] space-y-6 pb-12">
+      <button
+        type="button"
+        onClick={() => navigate("/projects")}
+        className="flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        Atrás
+      </button>
 
       {/* 1. Stepper Global */}
       <ProjectStageStepper currentStage={currentStage} />

@@ -207,6 +207,7 @@ export type ProjectRecord = {
   repetition?: string;
   doyPackBase?: string;
   gussetWidth?: string;
+  gussetType?: string;
 
   hasZipper?: BooleanLike;
   zipperType?: string;

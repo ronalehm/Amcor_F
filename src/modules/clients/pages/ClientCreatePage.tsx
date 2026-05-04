@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Download, Upload } from "lucide-react";
+import { AlertCircle, ArrowLeft, Download, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
@@ -14,11 +14,12 @@ import { type ClientMirror } from "../../../shared/data/clientMirrorStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
+import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import SystemIntegrationClientSearch from "../../../shared/components/forms/SystemIntegrationClientSearch";
 import ClientDuplicateHandler from "../../../shared/components/forms/ClientDuplicateHandler";
 
-const INDUSTRIES = ["DistribuciÛn", "Manufactura", "Consumo masivo", "Cuidado personal", "Alimentos y bebidas", "Retail"];
+const INDUSTRIES = ["Distribuci√≥n", "Manufactura", "Consumo masivo", "Cuidado personal", "Alimentos y bebidas", "Retail"];
 
 interface FormState {
   siClient: ClientMirror | null;
@@ -43,6 +44,7 @@ export default function ClientCreatePage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const [duplicateClient, setDuplicateClient] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -70,8 +72,16 @@ export default function ClientCreatePage() {
     return () => resetHeader();
   }, [setHeader, resetHeader, clientCode]);
 
-  const updateField = <K extends keyof FormState>(field: K, value: any) => {
+  const updateField = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const markFieldAsTouched = (field: keyof FormState) => {
+    setTouchedFields((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const shouldShowFieldError = (field: keyof FormState) => {
+    return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
   };
 
   const handleSiClientSelect = (client: ClientMirror) => {
@@ -114,13 +124,13 @@ export default function ClientCreatePage() {
     const validExtensions = [".xlsx", ".xls"];
     const fileExtension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
     if (!validExtensions.includes(fileExtension)) {
-      setExcelError("Formato de archivo no v·lido. Solo se permiten archivos .xlsx o .xls.");
+      setExcelError("Formato de archivo no v√°lido. Solo se permiten archivos .xlsx o .xls.");
       return;
     }
 
     const reader = new FileReader();
     reader.onerror = () => {
-      setExcelError("Error al leer el archivo. Intente con otro archivo o verifique que no estÈ corrupto.");
+      setExcelError("Error al leer el archivo. Intente con otro archivo o verifique que no est√© corrupto.");
     };
     reader.onload = (evt) => {
       try {
@@ -140,9 +150,7 @@ export default function ClientCreatePage() {
         }
 
         if (rows.length > 1) {
-          setExcelError(
-            "La plantilla contiene m·s de un cliente. Para este flujo solo se permite registrar un cliente por vez."
-          );
+          setExcelError("Faltan campos obligatorios. Para este flujo solo se permite registrar un cliente por vez.");
           return;
         }
 
@@ -168,11 +176,11 @@ export default function ClientCreatePage() {
         const ruc = (row.numerodeRUC || "").toString().trim();
 
         if (!businessName) {
-          setExcelError("La razÛn social es obligatoria.");
+          setExcelError("La raz√≥n social es obligatoria.");
         }
 
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          setExcelWarning("El correo importado no tiene un formato v·lido.");
+          setExcelWarning("El correo importado no tiene un formato v√°lido.");
         }
 
         let importedIndustry = (row.rubro || "").toString().trim();
@@ -182,7 +190,7 @@ export default function ClientCreatePage() {
           if (industryMatch) {
             finalIndustry = industryMatch;
           } else {
-            setExcelWarning("El rubro importado no existe en el cat·logo. Seleccione un rubro v·lido.");
+            setExcelWarning("El rubro importado no existe en el cat√°logo. Seleccione un rubro v√°lido.");
           }
         }
 
@@ -198,11 +206,11 @@ export default function ClientCreatePage() {
         setIsExcelImported(true);
 
       } catch (error) {
-        setExcelError("Error al procesar el archivo Excel. Aseg˙rese de que el formato sea correcto.");
+        setExcelError("Error al procesar el archivo Excel. Aseg√∫rese de que el formato sea correcto.");
       }
     };
     reader.readAsArrayBuffer(file);
-    
+
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -214,21 +222,21 @@ export default function ClientCreatePage() {
     const errors: Record<string, string> = {};
 
     if (!form.ruc.trim()) {
-      errors.ruc = "El RUC es obligatorio";
+      errors.ruc = "Ingresa el RUC.";
     }
 
     if (!form.email.trim()) {
-      errors.email = "El correo electrÛnico es obligatorio";
+      errors.email = "Ingresa el correo electr√≥nico.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "El formato del correo no es v·lido";
+      errors.email = "El formato del correo no es v√°lido.";
     }
 
     if (!form.businessName.trim()) {
-      errors.businessName = "La razÛn social es obligatoria";
+      errors.businessName = "Ingresa la raz√≥n social.";
     }
 
     if (!form.industry.trim()) {
-      errors.industry = "El rubro es obligatorio";
+      errors.industry = "Selecciona el rubro.";
     }
 
     return errors;
@@ -245,12 +253,29 @@ export default function ClientCreatePage() {
     return Math.round((completed / requiredChecks.length) * 100);
   }, [form]);
 
+  const validationErrorList = Object.values(validationErrors).filter(
+    (error): error is string => Boolean(error)
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitAttempted(true);
     setSuccessMessage(null);
 
-    if (Object.keys(validationErrors).length > 0 || excelError) return;
+    if (Object.keys(validationErrors).length > 0 || excelError) {
+      const fieldsWithErrors = Object.keys(validationErrors).reduce(
+        (acc, field) => {
+          acc[field as keyof FormState] = true;
+          return acc;
+        },
+        {} as Partial<Record<keyof FormState, boolean>>
+      );
+      setTouchedFields((prev) => ({
+        ...prev,
+        ...fieldsWithErrors,
+      }));
+      return;
+    }
 
     setLoading(true);
     try {
@@ -275,12 +300,12 @@ export default function ClientCreatePage() {
         null,
         "pending_validation",
         "system",
-        `Cliente creado - ${form.siClient ? "InformaciÛn autocompleta de SI" : "Ingreso manual - pendiente validaciÛn en SI"}`
+        `Cliente creado - ${form.siClient ? "Informaci√≥n autocompleta de SI" : "Ingreso manual - pendiente validaci√≥n en SI"}`
       );
 
       const successMsg = form.siClient
         ? "Cliente enlazado con el sistema integral"
-        : "Cliente creado exitosamente y se solicitÛ la validaciÛn de TesorerÌa";
+        : "Cliente creado exitosamente y se solicit√≥ la validaci√≥n de Tesorer√≠a";
       setSuccessMessage(successMsg);
       setTimeout(() => navigate("/clients"), 2000);
     } catch (error) {
@@ -301,7 +326,7 @@ export default function ClientCreatePage() {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="rounded-lg border-2 border-green-300 bg-green-50 p-8 text-center max-w-md">
-          <div className="text-4xl mb-4">?</div>
+          <div className="text-4xl mb-4">‚úì</div>
           <p className="text-lg font-bold text-green-900">{successMessage}</p>
           <p className="text-sm text-green-700 mt-2">Redirigiendo...</p>
         </div>
@@ -318,7 +343,7 @@ export default function ClientCreatePage() {
             onClick={() => setDuplicateClient(null)}
             className="mb-4 text-sm text-brand-primary hover:underline"
           >
-            ? Volver al formulario
+            ‚Üê Volver al formulario
           </button>
 
           <ClientDuplicateHandler
@@ -333,17 +358,26 @@ export default function ClientCreatePage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
+      <button
+        type="button"
+        onClick={() => navigate("/clients")}
+        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        Atr√°s
+      </button>
+
       <form onSubmit={handleSubmit}>
         <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
-            <FormCard title="Buscar en Sistema Integral" icon="??" color="#0D9488" required>
+            <FormCard title="Buscar en Sistema Integral" icon="üîç" color="#0D9488" required>
               <div className="space-y-3">
                 <SystemIntegrationClientSearch
                   value={searchQuery}
                   onChange={setSearchQuery}
                   onSelect={handleSiClientSelect}
                   onNoResults={setHasNoSiResults}
-                  placeholder="Buscar por cÛdigo, razÛn social, RUC..."
+                  placeholder="Buscar por c√≥digo, raz√≥n social, RUC..."
                 />
 
                 {!isSiClientSelected && (
@@ -363,10 +397,10 @@ export default function ClientCreatePage() {
                 {isSiClientSelected && (
                   <div className="p-4 rounded-lg bg-green-50 border border-green-200">
                     <p className="text-sm font-semibold text-green-900 mb-2">
-                      ? Cliente del Sistema Integral seleccionado
+                      ‚úì Cliente del Sistema Integral seleccionado
                     </p>
                     <p className="text-sm text-green-800">
-                      Los datos b·sicos se completar·n autom·ticamente.
+                      Los datos b√°sicos se completar√°n autom√°ticamente.
                     </p>
                   </div>
                 )}
@@ -378,7 +412,7 @@ export default function ClientCreatePage() {
                     <div>
                       <h4 className="font-semibold text-brand-primary">Importar desde Excel</h4>
                       <p className="text-xs text-slate-600 mt-1">
-                        Descarga la plantilla, completa los datos y s˙bela para autocompletar el formulario.
+                        Descarga la plantilla, completa los datos y s√∫bela para autocompletar el formulario.
                       </p>
                     </div>
                   </div>
@@ -427,7 +461,7 @@ export default function ClientCreatePage() {
                   {isExcelImported && !excelError && (
                     <div className="mt-4 p-3 rounded bg-green-50 border border-green-200">
                       <p className="text-sm font-medium text-green-800">
-                        ? Datos importados desde plantilla Excel. Revise la informaciÛn antes de crear el cliente.
+                        ‚úì Datos importados desde plantilla Excel. Revise la informaci√≥n antes de crear el cliente.
                       </p>
                     </div>
                   )}
@@ -437,17 +471,17 @@ export default function ClientCreatePage() {
 
             <FormCard
               title={isSiClientSelected ? "Datos del Sistema Integral" : "Datos del Cliente"}
-              icon="??"
+              icon="üë§"
               color="#00395A"
               required
             >
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormInput
-                  label="RazÛn Social *"
+                  label="Raz√≥n Social *"
                   value={form.businessName}
                   onChange={(v) => updateField("businessName", v)}
-                  onBlur={() => {}}
-                  error={submitAttempted ? validationErrors.businessName : ""}
+                  onBlur={() => markFieldAsTouched("businessName")}
+                  error={shouldShowFieldError("businessName") ? validationErrors.businessName : ""}
                   placeholder="Ej. Empresa S.A.C."
                   disabled={isSiClientSelected}
                 />
@@ -456,50 +490,39 @@ export default function ClientCreatePage() {
                   label="Correo Corporativo *"
                   value={form.email}
                   onChange={(v) => updateField("email", v)}
-                  onBlur={() => {}}
-                  error={submitAttempted ? validationErrors.email : ""}
+                  onBlur={() => markFieldAsTouched("email")}
+                  error={shouldShowFieldError("email") ? validationErrors.email : ""}
                   placeholder="contacto@empresa.com"
                   type="email"
                   disabled={isSiClientSelected}
                 />
 
                 <FormInput
-                  label="N˙mero de RUC *"
+                  label="N√∫mero de RUC *"
                   value={form.ruc}
                   onChange={(v) => updateField("ruc", v)}
-                  onBlur={() => {}}
-                  error={submitAttempted ? validationErrors.ruc : ""}
+                  onBlur={() => markFieldAsTouched("ruc")}
+                  error={shouldShowFieldError("ruc") ? validationErrors.ruc : ""}
                   placeholder="Ej. 20123456789"
                   disabled={isSiClientSelected}
                 />
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Rubro *
-                  </label>
-                  <select
-                    value={form.industry}
-                    onChange={(e) => updateField("industry", e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
-                  >
-                    <option value="">-- Seleccione Rubro --</option>
-                    {industryOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  {submitAttempted && validationErrors.industry && (
-                    <p className="text-sm text-red-600 mt-1">{validationErrors.industry}</p>
-                  )}
-                </div>
+                <FormSelect
+                  label="Rubro *"
+                  value={form.industry}
+                  onChange={(v) => updateField("industry", v)}
+                  onBlur={() => markFieldAsTouched("industry")}
+                  error={shouldShowFieldError("industry") ? validationErrors.industry : ""}
+                  options={industryOptions}
+                  placeholder="-- Seleccione Rubro --"
+                />
               </div>
 
               {isSiClientSelected && (
                 <div className="mt-4 p-3 rounded-lg bg-blue-50 border border-blue-200 flex gap-2">
                   <AlertCircle size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-blue-800">
-                    Los campos provenientes del Sistema Integral est·n bloqueados y no pueden editarse.
+                    Los campos provenientes del Sistema Integral est√°n bloqueados y no pueden editarse.
                   </p>
                 </div>
               )}
@@ -516,7 +539,7 @@ export default function ClientCreatePage() {
               </div>
               <div className="p-5 space-y-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">CÛdigo</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">C√≥digo</p>
                   <p className="text-lg font-bold text-brand-primary">{clientCode}</p>
                 </div>
 
@@ -548,16 +571,16 @@ export default function ClientCreatePage() {
                   </p>
                   <ul className="text-sm space-y-1">
                     <li className={form.businessName ? "text-green-600" : "text-slate-400"}>
-                      {form.businessName ? "?" : "?"} RazÛn Social
+                      {form.businessName ? "‚úì" : "‚óã"} Raz√≥n Social
                     </li>
                     <li className={form.email ? "text-green-600" : "text-slate-400"}>
-                      {form.email ? "?" : "?"} Correo Corporativo
+                      {form.email ? "‚úì" : "‚óã"} Correo Corporativo
                     </li>
                     <li className={form.ruc ? "text-green-600" : "text-slate-400"}>
-                      {form.ruc ? "?" : "?"} RUC
+                      {form.ruc ? "‚úì" : "‚óã"} RUC
                     </li>
                     <li className={form.industry ? "text-green-600" : "text-slate-400"}>
-                      {form.industry ? "?" : "?"} Rubro
+                      {form.industry ? "‚úì" : "‚óã"} Rubro
                     </li>
                   </ul>
                 </div>
@@ -576,13 +599,14 @@ export default function ClientCreatePage() {
           <FormActionButtons
             onCancel={() => navigate("/clients")}
             validationErrorList={[
-              ...Object.values(validationErrors),
+              ...validationErrorList,
               ...(excelError ? [excelError] : []),
             ]}
             submitAttempted={submitAttempted}
             submitLabel="Crear Cliente"
             cancelLabel="Cancelar"
             isLoading={loading}
+            validationTitle="Faltan campos obligatorios."
           />
         </div>
       </form>

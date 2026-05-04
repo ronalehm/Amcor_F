@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 
 import FormCard from "../../../shared/components/forms/FormCard";
@@ -35,14 +36,14 @@ export default function ClientEditPage() {
 
   useEffect(() => {
     if (!clientCode) {
-      setError("Código de cliente no válido");
+      setError("Cï¿½digo de cliente no vï¿½lido");
       setLoading(false);
       return;
     }
 
     const client = getClientByCode(clientCode);
     if (!client) {
-      setError(`Cliente con código ${clientCode} no encontrado`);
+      setError(`Cliente con cï¿½digo ${clientCode} no encontrado`);
       setLoading(false);
       return;
     }
@@ -75,20 +76,20 @@ export default function ClientEditPage() {
     if (!form) return {};
     const errors: Partial<Record<keyof ClientFormData, string>> = {};
 
-    if (!form.businessName.trim()) errors.businessName = "Ingresa la razón social.";
+    if (!form.businessName.trim()) errors.businessName = "Ingresa la razÃ³n social.";
     if (!form.email.trim()) {
-      errors.email = "Ingresa el correo electrónico.";
+      errors.email = "Ingresa el correo electrÃ³nico.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "Ingresa un correo válido.";
+      errors.email = "El formato del correo no es vÃ¡lido.";
     } else {
       const existingClient = getClientByEmail(form.email);
       const currentClient = getClientByCode(clientCode || "");
       if (existingClient && existingClient.id !== currentClient?.id) {
-        errors.email = "Este correo ya está registrado en el sistema.";
+        errors.email = "Este correo ya estÃ¡ registrado.";
       }
     }
     if (!form.ruc.trim()) errors.ruc = "Ingresa el RUC.";
-    if (!form.industry.trim()) errors.industry = "Ingresa el rubro.";
+    if (!form.industry.trim()) errors.industry = "Selecciona el rubro.";
 
     return errors;
   }, [form, clientCode]);
@@ -112,12 +113,17 @@ export default function ClientEditPage() {
     setSubmitAttempted(true);
 
     if (Object.keys(validationErrors).length > 0 || !form || !clientCode) {
-      setTouchedFields({
-        businessName: true,
-        email: true,
-        ruc: true,
-        industry: true,
-      });
+      const fieldsWithErrors = Object.keys(validationErrors).reduce(
+        (acc, field) => {
+          acc[field as keyof ClientFormData] = true;
+          return acc;
+        },
+        {} as Partial<Record<keyof ClientFormData, boolean>>
+      );
+      setTouchedFields((prev) => ({
+        ...prev,
+        ...fieldsWithErrors,
+      }));
       return;
     }
 
@@ -155,12 +161,21 @@ export default function ClientEditPage() {
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
+      <button
+        type="button"
+        onClick={() => navigate("/clients")}
+        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+      >
+        <ArrowLeft size={16} />
+        AtrÃ¡s
+      </button>
+
       <form onSubmit={handleSubmit}>
         <div className="max-w-3xl mx-auto">
           <FormCard title="Datos del Cliente" icon="??" color="#00395A" required>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormInput
-                label="Razón Social *"
+                label="Razï¿½n Social *"
                 value={form.businessName}
                 onChange={(value) => updateField("businessName", value)}
                 onBlur={() => markFieldAsTouched("businessName")}
@@ -169,7 +184,7 @@ export default function ClientEditPage() {
               />
 
               <FormInput
-                label="Correo Electrónico *"
+                label="Correo Electrï¿½nico *"
                 value={form.email}
                 onChange={(value) => updateField("email", value)}
                 onBlur={() => markFieldAsTouched("email")}
@@ -178,7 +193,7 @@ export default function ClientEditPage() {
               />
 
               <FormInput
-                label="Número de RUC *"
+                label="Nï¿½mero de RUC *"
                 value={form.ruc}
                 onChange={(value) => updateField("ruc", value)}
                 onBlur={() => markFieldAsTouched("ruc")}
@@ -192,7 +207,7 @@ export default function ClientEditPage() {
                 onChange={(value) => updateField("industry", value)}
                 onBlur={() => markFieldAsTouched("industry")}
                 error={shouldShowFieldError("industry") ? validationErrors.industry : ""}
-                placeholder="Ej. Distribución, Manufactura, etc."
+                placeholder="Ej. Distribuciï¿½n, Manufactura, etc."
               />
             </div>
           </FormCard>
@@ -205,7 +220,7 @@ export default function ClientEditPage() {
             submitAttempted={submitAttempted}
             submitLabel="Guardar Cambios"
             cancelLabel="Cancelar"
-            validationTitle="Faltan campos obligatorios para actualizar el cliente."
+            validationTitle="Faltan campos obligatorios."
           />
         </div>
       </form>
