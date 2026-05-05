@@ -8,6 +8,46 @@ export type BooleanLike = boolean | YesNo;
 export type PortalProjectStage = "P1" | "P2" | "P3" | "P4" | "P5";
 export type SiProjectStage = "P6" | "P7" | "P8" | "P9";
 
+// Nuevo modelo de workflow (importar como tipos separados)
+export type WorkflowProjectStage =
+  | "P0_REGISTRO_COMERCIAL"
+  | "P1_PREPARACION_FICHA"
+  | "P2_VALIDACION_INTERNA"
+  | "P3_COTIZACION_APROBACION_CLIENTE"
+  | "P4_VALIDACION_COMERCIAL_TESORERIA"
+  | "P5_PREPARACION_ENVIO_SI";
+
+export type WorkflowProjectStatus =
+  | "Registrado"
+  | "En Curso"
+  | "Ficha Completa"
+  | "En Validación"
+  | "Observado"
+  | "Validado"
+  | "En Cotización"
+  | "Cotización Enviada"
+  | "Aprobado por Cliente"
+  | "En Validación Tesorería"
+  | "Cliente Validado"
+  | "Preparación SI"
+  | "Enviado a SI"
+  | "Desestimado";
+
+export type WorkflowAreaValidationStatus =
+  | "Sin solicitar"
+  | "Pendiente"
+  | "En revisión"
+  | "Observado"
+  | "Aprobado";
+
+export type WorkflowTreasuryValidationStatus =
+  | "No solicitado"
+  | "Pendiente"
+  | "En revisión"
+  | "Observado"
+  | "Aprobado"
+  | "Rechazado";
+
 export type ProjectStatus =
   | "Borrador"
   | "Registrado"
@@ -276,6 +316,30 @@ export type ProjectRecord = {
   estadoValidacionGeneral: ValidationStatus;
   validaciones: AreaValidationRecord[];
 
+  // === NUEVO MODELO DE WORKFLOW (P0-P5) ===
+  stage?: WorkflowProjectStage;
+  rdValidationStatus?: WorkflowAreaValidationStatus;
+  graphicArtsValidationStatus?: WorkflowAreaValidationStatus;
+  treasuryValidationStatus?: WorkflowTreasuryValidationStatus;
+
+  statusUpdatedAt?: string;
+  stageUpdatedAt?: string;
+
+  quotedAt?: string;
+  quoteSentAt?: string;
+  clientApprovedAt?: string;
+  treasuryRequestedAt?: string;
+  treasuryApprovedAt?: string;
+  preparedForSiAt?: string;
+  sentToSiAt?: string;
+
+  desestimatedAt?: string;
+  desestimatedReason?: string;
+  closedFromStage?: WorkflowProjectStage;
+
+  productIds?: string[];
+  productSummaryStatus?: "Sin productos" | "Productos en preparación" | "Productos listos para SI" | "Envío parcial a SI" | "Todos enviados a SI" | "Alta parcial" | "Alta completa" | "Con bloqueos en SI";
+
   // Auditoría
   createdAt: string;
   updatedAt: string;
@@ -340,18 +404,11 @@ function inferRouteType(project: Partial<ProjectRecord>): "Con diseño" | "Sin d
 }
 
 function inferPortalStage(status: ProjectStatus): PortalProjectStage {
+  // Legacy mapeo de estados antiguos a etapas P1-P5
   if (status === "En validación") return "P2";
   if (status === "Aprobado para muestra") return "P3";
-  if (status === "Aprobado para fabricación") {
-    return "P4";
-  }
-  if (
-    status === "Dado de alta" ||
-    status === "Registrado"
-  ) {
-    return "P5";
-  }
-
+  if (status === "Aprobado para fabricación") return "P4";
+  if (status === "Dado de alta" || status === "Registrado") return "P5";
   return "P1";
 }
 
@@ -435,6 +492,26 @@ function normalizeProjectRecord(record: ProjectRecord): ProjectRecord {
     fechaSolicitudValidacion: record.fechaSolicitudValidacion,
     estadoValidacionGeneral: record.estadoValidacionGeneral || "Sin solicitar",
     validaciones: record.validaciones ?? [],
+
+    // Nuevos campos de workflow
+    stage: record.stage,
+    rdValidationStatus: record.rdValidationStatus,
+    graphicArtsValidationStatus: record.graphicArtsValidationStatus,
+    treasuryValidationStatus: record.treasuryValidationStatus,
+    statusUpdatedAt: record.statusUpdatedAt,
+    stageUpdatedAt: record.stageUpdatedAt,
+    quotedAt: record.quotedAt,
+    quoteSentAt: record.quoteSentAt,
+    clientApprovedAt: record.clientApprovedAt,
+    treasuryRequestedAt: record.treasuryRequestedAt,
+    treasuryApprovedAt: record.treasuryApprovedAt,
+    preparedForSiAt: record.preparedForSiAt,
+    sentToSiAt: record.sentToSiAt,
+    desestimatedAt: record.desestimatedAt,
+    desestimatedReason: record.desestimatedReason,
+    closedFromStage: record.closedFromStage,
+    productIds: record.productIds,
+    productSummaryStatus: record.productSummaryStatus,
 
     createdAt: record.createdAt || now,
     updatedAt: record.updatedAt || now,

@@ -23,6 +23,7 @@ import ProjectFieldImpactList from "../components/ProjectFieldImpactList";
 import ProjectObservationPanel from "../../../shared/components/projectTracking/ProjectObservationPanel";
 import ProjectSlaPanel from "../../../shared/components/projectTracking/ProjectSlaPanel";
 import ProjectTrackingTimeline from "../../../shared/components/projectTracking/ProjectTrackingTimeline";
+import ProjectProductsPanel from "../components/ProjectProductsPanel";
 
 export default function ProjectDetailPage() {
   const navigate = useNavigate();
@@ -138,28 +139,6 @@ export default function ProjectDetailPage() {
 
       {/* 1. Stepper Global */}
       <ProjectStageStepper currentStage={currentStage} />
-
-      {/* Phase Information Banner */}
-      <div className="mx-5 rounded-xl border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50 p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="text-xs font-bold uppercase text-purple-700 tracking-wide mb-1">Fase Actual</div>
-            <h2 className="text-2xl font-bold text-purple-900">{phaseConfig?.name || currentStage}</h2>
-            <p className="text-sm text-purple-800 mt-2">{phaseConfig?.description}</p>
-          </div>
-          <div className="text-right space-y-2">
-            <div className="text-xs text-purple-700 font-semibold">ROL RESPONSABLE</div>
-            <div className="inline-block bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm">
-              {phaseConfig?.primaryRole}
-            </div>
-            {phaseConfig?.allowedTransitions && phaseConfig.allowedTransitions.length > 0 && (
-              <div className="text-xs text-purple-700 mt-2">
-                <span className="font-semibold">Siguientes fases:</span> {phaseConfig.allowedTransitions.join(", ")}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lado Izquierdo: Ficha Única del Proyecto */}
@@ -354,13 +333,6 @@ export default function ProjectDetailPage() {
 
           <ProjectSlaPanel sla={slaSummary} isPortalStage={isPortal} />
 
-          <ProjectObservationPanel
-            projectCode={projectCode as string}
-            observations={observations}
-            onUpdate={() => setRefreshTrigger(prev => prev + 1)}
-            isReadOnly={!isPortal}
-          />
-
           {project.validaciones && project.validaciones.length > 0 && (
             <FormCard title="Observaciones y comentarios de validación" icon="✓" color="#00395A">
               <ValidationObservationsTable validaciones={project.validaciones} />
@@ -368,7 +340,16 @@ export default function ProjectDetailPage() {
           )}
 
           <ProjectTrackingTimeline history={history} />
-          
+
+          {/* Productos Asociados */}
+          <ProjectProductsPanel
+            projectCode={projectCode || ""}
+            projectStatus={(project.status as any)}
+            onCreateNew={() => {}}
+            onCreateFromApproved={() => {}}
+            onViewProduct={() => {}}
+          />
+
         </div>
       </div>
     </div>

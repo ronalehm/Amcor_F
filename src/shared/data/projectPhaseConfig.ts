@@ -201,7 +201,7 @@ export const PHASE_CONFIGS: Record<ProjectStage, ProjectPhaseConfig> = {
   P5: {
     stage: "P5",
     name: "P5 - Crédito / Cierre",
-    description: "Finalización de datos adicionales no necesarios para cotización.",
+    description: "Finalización de Otros no necesarios para cotización.",
     primaryRole: "Credito",
     allowedRoles: ["Credito", "CF", "RyD", "ArteGraficas", "Comercial"],
     fields: P5_FIELDS,

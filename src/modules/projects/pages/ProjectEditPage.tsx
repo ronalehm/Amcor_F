@@ -24,6 +24,7 @@ import PreviewRow from "../../../shared/components/display/PreviewRow";
 import PortfolioSearch from "../../../shared/components/forms/PortfolioSearch";
 import CommercialExecutiveMultiSearch from "../../../shared/components/forms/CommercialExecutiveMultiSearch";
 import ProjectDocumentsSection from "../components/ProjectDocumentsSection";
+import ProjectPlansUploadSection from "../components/ProjectPlansUploadSection";
 
 type ProjectEditFormData = {
   portfolioCode: string;
@@ -57,6 +58,8 @@ type ProjectEditFormData = {
   hasReferenceStructure: string;
   referenceEmCode: string;
   referenceEmVersion: string;
+  hasCustomerTechnicalSpec: string;
+  customerTechnicalSpecAttachment: string;
   structureType: string;
 
   layer1MaterialGroup: string;
@@ -123,6 +126,10 @@ type ProjectEditFormData = {
   customerAdditionalInfo: string;
   peruvianProductLogo: string;
   printingFooter: string;
+  deliveryAddress: string;
+  additionalComment: string;
+
+  designPlanFiles: string[];
 };
 
 const YES_NO_OPTIONS = [
@@ -222,6 +229,13 @@ function normalizeOptionValue(value: string): string {
     .replace(/[̀-ͯ]/g, "")
     .replace(/\s+/g, "_")
     .trim();
+}
+
+function parseNumberInput(value: string): number | null {
+  if (!value?.trim()) return null;
+  const normalizedValue = value.replace(",", ".").trim();
+  const parsedValue = Number(normalizedValue);
+  return Number.isFinite(parsedValue) ? parsedValue : null;
 }
 
 function getBlueprintFormatOptions(wrapping: string | undefined): Array<{ value: string; label: string }> {
@@ -444,53 +458,47 @@ const DESTINATION_COUNTRY_OPTIONS = [
   { value: "Otro", label: "Otro" },
 ];
 
+const POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO = "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE PROPIO";
+const POUCH_DOY_PACK_DIMENSION_RESTRICTIONS = {
+  width: { min: 80, max: 230, label: "Ancho" },
+  length: { min: 134, max: 340, label: "Largo" },
+  gussetWidth: { min: 0, max: 3, label: "Ancho fuelle" },
+} as const;
+
 const STEPS = [
   { label: "Información General" },
   { label: "Producto Comercial" },
   { label: "Diseño" },
   { label: "Estructura" },
   { label: "Condiciones comerciales" },
-  { label: "Documentos" },
+  { label: "Información adicional" },
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
-  0: [
-    "portfolioCode",
-    "executiveId",
-    "salesforceAction",
-    "projectName",
-    "projectDescription",
-  ],
-  1: [
-    "classification",
-    "subClassification",
-    "projectType",
-    "blueprintFormat",
-    "technicalApplication",
-  ],
-  2: [
-    "printClass",
-    "printType",
-  ],
+  0: ["salesforceAction", "projectName", "projectDescription", "executiveId", "portfolioCode"],
+  1: ["blueprintFormat", "technicalApplication", "estimatedVolume", "unitOfMeasure"],
+  2: ["printClass", "printType", "specialDesignSpecs", "specialDesignComments", "hasEdagReference", "edagCode", "edagVersion", "designPlanFiles"],
   3: [
+    "hasCustomerTechnicalSpec",
+    "customerTechnicalSpecAttachment",
+    "hasReferenceStructure",
+    "referenceEmCode",
+    "referenceEmVersion",
+    "structureType",
     "width",
     "length",
-    "repetition",
+    "gussetWidth",
+    "doyPackBase",
+    "gussetType",
   ],
-  4: [
-    "estimatedVolume",
-    "unitOfMeasure",
-    "saleType",
-    "targetPrice",
-    "currencyType",
-    "coreMaterial",
-    "coreDiameter",
-    "externalDiameter",
-    "maxRollWeight",
+  4: ["saleType", "targetPrice", "currencyType", "coreMaterial", "coreDiameter", "externalDiameter", "maxRollWeight"],
+  5: [
+    "customerAdditionalInfo",
     "peruvianProductLogo",
     "printingFooter",
+    "deliveryAddress",
+    "additionalComment",
   ],
-  5: [],
 };
 const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   portfolioCode: "Portafolio base",
@@ -506,12 +514,13 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   projectType: "Tipo de proyecto",
   customerPackingCode: "Código de empaque del cliente",
 
-  printClass: "Clase de impresión",
-  printType: "Tipo de impresión",
+  printClass: "Impresión",
+  printType: "Tipo",
 
   width: "Ancho",
   length: "Largo",
   repetition: "Repetición",
+  gussetWidth: "Ancho Fuelle",
 
   estimatedVolume: "Cantidad / Volumen estimado",
   unitOfMeasure: "Unidad de medida",
@@ -522,17 +531,26 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   coreDiameter: "Diámetro core",
   externalDiameter: "Diámetro externo",
   maxRollWeight: "Peso máximo rollo",
-  peruvianProductLogo: "Logo producto peruano",
-  printingFooter: "Pie de imprenta",
+  peruvianProductLogo: "Logo Producto Peruano",
+  printingFooter: "Pie de Imprenta",
+
+  grammage: "Gramaje general (g/m2)",
+  grammageTolerance: "Tolerancia de Gramaje",
+  sampleRequest: "¿Solicitud de muestra?",
+  designPlanFiles: "Planos",
+  hasCustomerTechnicalSpec: "¿Tiene Especificación Técnica del Cliente?",
+  customerTechnicalSpecAttachment: "Especificación Técnica del Cliente Adjunto",
+  customerAdditionalInfo: "Información adicional cliente",
+  deliveryAddress: "Dirección de entrega",
+  additionalComment: "Comentario",
 };
-const REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
+const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   "portfolioCode",
   "executiveId",
   "salesforceAction",
   "projectName",
   "projectDescription",
 
-  "classification",
   "blueprintFormat",
   "technicalApplication",
 
@@ -540,15 +558,22 @@ const REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   "unitOfMeasure",
   "printClass",
   "printType",
-  "width",
-  "length",
   "saleType",
+
+  "grammage",
+  "grammageTolerance",
+  "sampleRequest",
 ];
 
 const isFieldEmpty = (value: unknown) => {
   if (Array.isArray(value)) return value.length === 0;
   return value === undefined || value === null || String(value).trim() === "";
 };
+
+function hasIllustratorFile(files: string[]): boolean {
+  return files.some((file) => file.toLowerCase().endsWith(".ai"));
+}
+
 function shouldShowRepetitionField(wrapping: string, blueprintFormat: string): boolean {
   const normalizedWrapping = normalizeWrappingName(wrapping);
   const normalizedFormat = normalizeOptionValue(blueprintFormat);
@@ -621,6 +646,8 @@ export default function ProjectEditPage() {
     hasReferenceStructure: "",
     referenceEmCode: "",
     referenceEmVersion: "",
+    hasCustomerTechnicalSpec: "",
+    customerTechnicalSpecAttachment: "",
     structureType: "",
     layer1MaterialGroup: "",
     layer1Material: "",
@@ -682,6 +709,9 @@ export default function ProjectEditPage() {
     customerAdditionalInfo: "",
     peruvianProductLogo: "",
     printingFooter: "",
+    deliveryAddress: "",
+    additionalComment: "",
+    designPlanFiles: [],
   });
 
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -692,7 +722,20 @@ export default function ProjectEditPage() {
   const [showValidationSuccessModal, setShowValidationSuccessModal] = useState(false);
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
   const [showInheritedDataModal, setShowInheritedDataModal] = useState(false);
+  const [openStructureSections, setOpenStructureSections] = useState({
+    specs: true,
+    dimensions: true,
+    documents: true,
+  });
   const allowIncompleteSaveRef = useRef(false);
+
+  const toggleStructureSection = (section: "specs" | "dimensions" | "documents") => {
+    setOpenStructureSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
   const siUsers = useMemo(() => getActiveUsers(), []);
@@ -745,6 +788,8 @@ export default function ProjectEditPage() {
       hasReferenceStructure: toYesNo(project.hasReferenceStructure),
       referenceEmCode: project.referenceEmCode || "",
       referenceEmVersion: project.referenceEmVersion || "",
+      hasCustomerTechnicalSpec: toYesNo((project as any).hasCustomerTechnicalSpec),
+      customerTechnicalSpecAttachment: (project as any).customerTechnicalSpecAttachment || "",
       structureType: project.structureType || "Monocapa",
       layer1MaterialGroup: extractMaterialGroupFromValue(project.layer1Material || ""),
       layer1Material: project.layer1Material || "",
@@ -806,6 +851,9 @@ export default function ProjectEditPage() {
       customerAdditionalInfo: project.customerAdditionalInfo || "",
       peruvianProductLogo: toYesNo(project.peruvianProductLogo),
       printingFooter: toYesNo(project.printingFooter),
+      deliveryAddress: (project as any).deliveryAddress || "",
+      additionalComment: (project as any).additionalComment || "",
+      designPlanFiles: (project as any).designPlanFiles || [],
     };
 
     setForm(convertedForm);
@@ -879,7 +927,11 @@ export default function ProjectEditPage() {
   const inheritedSubSegment = selectedPortfolio?.subseg || selectedPortfolio?.subSegmento || selectedPortfolio?.subSegment || "";
   const inheritedAfMarketId = selectedPortfolio?.af || selectedPortfolio?.afMarketId || "";
   const inheritedMachine = selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || selectedPortfolio?.packingMachineName || "";
-    const projectTypeOptions = useMemo(() => {
+
+  const isPouchWrapping = normalizeWrapping(inheritedWrapping).includes("pouch");
+  const shouldApplyPouchDoyPackRestrictions = isPouchWrapping && form.blueprintFormat === POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO;
+
+  const projectTypeOptions = useMemo(() => {
     if (form.classification === "Modificado") {
       return [];
     }
@@ -908,7 +960,7 @@ export default function ProjectEditPage() {
   }, [form.classification, form.subClassification]);
 
   const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
-    const fields = [...REQUIRED_FIELDS];
+    const fields = [...BASE_REQUIRED_FIELDS];
 
     const isSubClassificationEnabled = Boolean(form.classification);
 
@@ -929,6 +981,18 @@ export default function ProjectEditPage() {
       fields.push("repetition");
     }
 
+    if (shouldApplyPouchDoyPackRestrictions) {
+      fields.push("width", "length", "gussetWidth", "doyPackBase", "gussetType");
+    }
+
+    if (form.hasEdagReference === "Sí") {
+      fields.push("designPlanFiles");
+    }
+
+    if (form.hasCustomerTechnicalSpec === "Sí") {
+      fields.push("customerTechnicalSpecAttachment");
+    }
+
     return fields;
   }, [
     inheritedWrapping,
@@ -936,6 +1000,9 @@ export default function ProjectEditPage() {
     form.classification,
     form.subClassification,
     projectTypeOptions,
+    shouldApplyPouchDoyPackRestrictions,
+    form.hasEdagReference,
+    form.hasCustomerTechnicalSpec,
   ]);
   const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -950,15 +1017,43 @@ export default function ProjectEditPage() {
 
   const validationErrors = useMemo(() => {
     const errors: Partial<Record<keyof ProjectEditFormData, string>> = {};
-        requiredFields.forEach((field) => {
-          if (isFieldEmpty(form[field])) {
-            const label = FIELD_LABELS[field] || String(field);
-            errors[field] = `${label} es obligatorio.`;
-          }
-        });
 
-        return errors;
-    }, [form, requiredFields]);
+    requiredFields.forEach((field) => {
+      if (isFieldEmpty(form[field])) {
+        const label = FIELD_LABELS[field] || String(field);
+        errors[field] = `${label} es obligatorio.`;
+      }
+    });
+
+    if (shouldApplyPouchDoyPackRestrictions) {
+      const dimensionFields = ["width", "length", "gussetWidth"] as const;
+
+      dimensionFields.forEach((field) => {
+        const value = form[field];
+        const restriction = POUCH_DOY_PACK_DIMENSION_RESTRICTIONS[field];
+
+        if (value && value.trim()) {
+          const parsedValue = parseNumberInput(value);
+
+          if (parsedValue === null) {
+            errors[field] = `${restriction.label} debe ser un número válido.`;
+          } else if (parsedValue < restriction.min || parsedValue > restriction.max) {
+            errors[field] = `${restriction.label} debe estar entre ${restriction.min} y ${restriction.max} mm.`;
+          }
+        }
+      });
+    }
+
+    if (form.hasEdagReference === "Sí" && !hasIllustratorFile(form.designPlanFiles)) {
+      errors.designPlanFiles = "Debe cargar al menos un archivo de Illustrator (.ai).";
+    }
+
+    if (form.hasCustomerTechnicalSpec === "Sí" && !form.customerTechnicalSpecAttachment?.trim()) {
+      errors.customerTechnicalSpecAttachment = "Debe proporcionar la especificación técnica del cliente.";
+    }
+
+    return errors;
+  }, [form, requiredFields, shouldApplyPouchDoyPackRestrictions]);
 
   const shouldShowFieldError = (field: keyof ProjectEditFormData) => {
     return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
@@ -967,34 +1062,6 @@ export default function ProjectEditPage() {
   const getError = (field: keyof ProjectEditFormData) => {
     return shouldShowFieldError(field) ? validationErrors[field] || "" : "";
   };
-
-  const stepsWithErrors = useMemo(() => {
-    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
-    Object.keys(validationErrors).forEach((field) => {
-      for (const [step, fields] of Object.entries(STEP_FIELDS)) {
-        if (fields.includes(field as keyof ProjectEditFormData)) {
-          result[Number(step)]++;
-          break;
-        }
-      }
-    });
-    return result;
-  }, [validationErrors]);
-
-  // Calculate completion percentage
-      const completionPercentage = useMemo(() => {
-        const completedCount = requiredFields.filter(
-          (field) => !isFieldEmpty(form[field])
-        ).length;
-
-        return Math.round((completedCount / requiredFields.length) * 100);
-      }, [form, requiredFields]);
-
-  const isProjectCompleteForValidation = completionPercentage === 100;
-
-  const primaryButtonLabel = isProjectCompleteForValidation
-    ? "Solicitar validación"
-    : "Actualizar proyecto";
 
   const missingFieldsByStep = useMemo(() => {
     const missing = requiredFields.filter((field) => isFieldEmpty(form[field]));
@@ -1020,6 +1087,42 @@ export default function ProjectEditPage() {
     return result;
   }, [form, requiredFields]);
 
+  const stepsWithErrors = useMemo(() => {
+    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+    Object.keys(validationErrors).forEach((field) => {
+      for (const [step, fields] of Object.entries(STEP_FIELDS)) {
+        if (fields.includes(field as keyof ProjectEditFormData)) {
+          result[Number(step)]++;
+          break;
+        }
+      }
+    });
+
+    if (submitAttempted) {
+      Object.entries(missingFieldsByStep).forEach(([step, fields]) => {
+        result[Number(step)] += fields.length;
+      });
+    }
+
+    return result;
+  }, [validationErrors, missingFieldsByStep, submitAttempted]);
+
+  // Calculate completion percentage
+  const completionPercentage = useMemo(() => {
+    const completedCount = requiredFields.filter(
+      (field) => !isFieldEmpty(form[field])
+    ).length;
+
+    return Math.round((completedCount / requiredFields.length) * 100);
+  }, [form, requiredFields]);
+
+  const isProjectCompleteForValidation = completionPercentage === 100;
+
+  const primaryButtonLabel = isProjectCompleteForValidation
+    ? "Solicitar validación"
+    : "Actualizar proyecto";
+
   const missingFieldCount = useMemo(() => {
   return Object.values(missingFieldsByStep).flat().length;
 }, [missingFieldsByStep]);
@@ -1030,6 +1133,10 @@ const firstMissingStep = useMemo(() => {
   );
 
   return entry ? Number(entry[0]) : 0;
+}, [missingFieldsByStep]);
+
+const hasMissingRequiredFields = useMemo(() => {
+  return Object.values(missingFieldsByStep).some((fields) => fields.length > 0);
 }, [missingFieldsByStep]);
 
 const handleReviewMissingFields = () => {
@@ -1069,16 +1176,14 @@ formElement?.requestSubmit();
     event.preventDefault();
     setSubmitAttempted(true);
 
-    if (!projectCode) {
+    const hasValidationErrors = Object.keys(validationErrors).length > 0;
+
+    if (hasValidationErrors || hasMissingRequiredFields || !projectCode) {
+      setShowMissingFieldsModal(true);
       return;
     }
 
     const shouldForceSaveAsDraft = allowIncompleteSaveRef.current;
-
-    if (!shouldForceSaveAsDraft && !isProjectCompleteForValidation) {
-      setShowMissingFieldsModal(true);
-      return;
-    }
 
     allowIncompleteSaveRef.current = false;
 
@@ -1165,6 +1270,8 @@ formElement?.requestSubmit();
       hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
       referenceEmCode: form.referenceEmCode,
       referenceEmVersion: form.referenceEmVersion,
+      hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec as BooleanLike,
+      customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
       structureType: form.structureType,
 
       layer1Material: form.layer1Material,
@@ -1234,14 +1341,19 @@ formElement?.requestSubmit();
       maxRollWeight: form.maxRollWeight,
       customerAdditionalInfo: form.customerAdditionalInfo,
       peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
-      printingFooter: form.printingFooter,
+      printingFooter: form.printingFooter as BooleanLike,
+      deliveryAddress: form.deliveryAddress,
+      additionalComment: form.additionalComment,
+      designPlanFiles: form.designPlanFiles,
 
       status: shouldSubmitForValidation ? "Ficha completa" : "Ficha en curso",
+      stage: shouldSubmitForValidation ? "P1_PREPARACION_FICHA" : originalProject?.stage || "P0_REGISTRO_COMERCIAL",
       updatedAt: now,
 
       ...(shouldSubmitForValidation && {
         validacionSolicitada: true,
         estadoValidacionGeneral: "En validación",
+        stageUpdatedAt: now,
         fechaSolicitudValidacion: now,
         validaciones: [
           { area: "Artes Gráficas", estado: "Pendiente", comentarios: [] },
@@ -1249,7 +1361,7 @@ formElement?.requestSubmit();
           { area: "R&D Desarrollo", estado: "Pendiente", comentarios: [] },
         ],
       }),
-    } as ProjectRecord);
+    } as unknown as ProjectRecord);
 
     if (shouldSubmitForValidation) {
   setShowValidationSuccessModal(true);
@@ -1257,6 +1369,48 @@ formElement?.requestSubmit();
   navigate("/projects");
 }
 }; // <-- cierra handleSubmit
+
+const CollapsibleSection = ({
+  title,
+  icon,
+  color,
+  isOpen,
+  onToggle,
+  children,
+}: {
+  title: string;
+  icon: string;
+  color: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) => (
+  <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center justify-between border-b border-slate-100 px-5 py-4 text-left transition-colors hover:bg-slate-50"
+    >
+      <div className="flex items-center gap-3">
+        <span
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold"
+          style={{ backgroundColor: `${color}15`, color }}
+        >
+          {icon}
+        </span>
+        <h3 className="text-sm font-bold uppercase tracking-wide text-slate-900">
+          {title}
+        </h3>
+      </div>
+
+      <span className="text-lg font-bold text-slate-500">
+        {isOpen ? "▾" : "▸"}
+      </span>
+    </button>
+
+    {isOpen && <div className="p-5">{children}</div>}
+  </div>
+);
 
 if (loading) {
     return <div className="p-8 text-center text-slate-500">Cargando proyecto...</div>;
@@ -1520,13 +1674,46 @@ if (loading) {
             {activeStep === 2 && (
               <div className="space-y-5">
                 <FormCard title="Especificaciones de diseño" icon="🎨" color="#8e44ad">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {(() => {
-                      const isPrintingDisabled = form.printClass === "Sin impresión";
-                      return (
-                        <>
+                  {(() => {
+                    const isPrintingDisabled = form.printClass === "Sin impresión";
+
+                    return (
+                      <div className="space-y-4">
+                        {/* Línea 1: Diseño de referencia + EDAG */}
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                           <FormSelect
-                            label="Clase de Impresión"
+                            label="¿Tiene Diseño de referencia?"
+                            value={form.hasEdagReference}
+                            onChange={(value) => updateField("hasEdagReference", value)}
+                            placeholder="-- Seleccione --"
+                            options={YES_NO_OPTIONS}
+                          />
+
+                          {form.hasEdagReference === "Sí" && (
+                            <>
+                              <FormInput
+                                label="Código EDAG"
+                                value={form.edagCode}
+                                onChange={(value) => updateField("edagCode", value)}
+                                placeholder="Ej. EDAG-000001"
+                                disabled={form.printClass === "Sin impresión"}
+                              />
+
+                              <FormInput
+                                label="Versión EDAG"
+                                value={form.edagVersion}
+                                onChange={(value) => updateField("edagVersion", value)}
+                                placeholder="Ej. 01"
+                                disabled={form.printClass === "Sin impresión"}
+                              />
+                            </>
+                          )}
+                        </div>
+
+                        {/* Línea 2: Impresión + especificaciones */}
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <FormSelect
+                            label="Impresión"
                             value={form.printClass}
                             onChange={(value) => updateField("printClass", value)}
                             onBlur={() => markFieldAsTouched("printClass")}
@@ -1534,8 +1721,9 @@ if (loading) {
                             placeholder="-- Seleccione --"
                             options={PRINT_CLASS_OPTIONS}
                           />
+
                           <FormSelect
-                            label="Tipo de Impresión"
+                            label="Tipo"
                             value={form.printType}
                             onChange={(value) => updateField("printType", value)}
                             onBlur={() => markFieldAsTouched("printType")}
@@ -1544,74 +1732,97 @@ if (loading) {
                             options={PRINT_TYPE_OPTIONS}
                             disabled={isPrintingDisabled}
                           />
+
                           <FormSelect
-                            label="Especificaciones de Diseño Especiales"
+                            label="Especificaciones Especiales"
                             value={form.specialDesignSpecs}
                             onChange={(value) => updateField("specialDesignSpecs", value)}
                             placeholder="-- Seleccione --"
                             options={SPECIAL_DESIGN_SPECS_OPTIONS}
                             disabled={isPrintingDisabled}
                           />
-                          <FormSelect
-                            label="¿Tiene Diseño de referencia?"
-                            value={form.hasEdagReference}
-                            onChange={(value) => updateField("hasEdagReference", value)}
-                            placeholder="-- Seleccione --"
-                            options={YES_NO_OPTIONS}
-                          />
-                        </>
-                      );
-                    })()}
-                    {form.specialDesignSpecs === "Otros (comentar cuáles)" && (
-                      <div className="md:col-span-3">
-                        <FormTextarea
-                          label="Comentarios de diseños especiales"
-                          value={form.specialDesignComments}
-                          onChange={(value) => updateField("specialDesignComments", value)}
-                          placeholder="Comentarios adicionales de Artes Gráficas..."
-                        />
-                      </div>
-                    )}
+                        </div>
 
-                    {form.hasEdagReference === "Sí" && (
-                      <>
-                        <FormInput
-                          label="Código EDAG"
-                          value={form.edagCode}
-                          onChange={(value) => updateField("edagCode", value)}
-                          placeholder="Ej. EDAG-000001"
-                          disabled={form.printClass === "Sin impresión"}
-                        />
-                        <FormInput
-                          label="Versión EDAG"
-                          value={form.edagVersion}
-                          onChange={(value) => updateField("edagVersion", value)}
-                          placeholder="Ej. 01"
-                          disabled={form.printClass === "Sin impresión"}
-                        />
-                      </>
-                    )}
-                    {form.printClass && (
-                      <div className="md:col-span-3">
-                        <FormSelect
-                          label="¿Requiere trabajo de diseño?"
-                          value={form.printClass === "Sin impresión" ? "No" : "Sí"}
-                          onChange={() => {}}
-                          options={YES_NO_OPTIONS}
-                          disabled={true}
-                        />
+                        {/* Línea 3: Comentarios */}
+                        {form.specialDesignSpecs === "Otros (comentar cuáles)" && (
+                          <FormTextarea
+                            label="Comentarios de diseños especiales"
+                            value={form.specialDesignComments}
+                            onChange={(value) => updateField("specialDesignComments", value)}
+                            placeholder="Comentarios adicionales de Artes Gráficas..."
+                          />
+                        )}
+
+                        {/* Línea final: Requiere trabajo de diseño */}
+                        {form.printClass && (
+                          <FormSelect
+                            label="¿Requiere trabajo de diseño?"
+                            value={form.printClass === "Sin impresión" ? "No" : "Sí"}
+                            onChange={() => {}}
+                            options={YES_NO_OPTIONS}
+                            disabled={true}
+                          />
+                        )}
                       </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </FormCard>
+
+
+                <ProjectPlansUploadSection
+                  projectCode={projectCode}
+                  error={getError("designPlanFiles")}
+                  onFilesChange={(fileNames) => {
+                    updateField("designPlanFiles", fileNames);
+                    markFieldAsTouched("designPlanFiles");
+                  }}
+                />
               </div>
             )}
 
             {/* PASO 3: ESTRUCTURA - Mostrar el paso 3 con más contenido */}
             {activeStep === 3 && (
               <div className="space-y-5">
-                <FormCard title="Especificaciones de estructura" icon="🔩" color="#f39c12">
+                <CollapsibleSection
+                  title="Especificaciones de estructura"
+                  icon="🔩"
+                  color="#f39c12"
+                  isOpen={openStructureSections.specs}
+                  onToggle={() => toggleStructureSection("specs")}
+                >
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormSelect
+                      label="¿Tiene Especificación Técnica del Cliente?"
+                      value={form.hasCustomerTechnicalSpec}
+                      onChange={(value) => {
+                        updateField("hasCustomerTechnicalSpec", value);
+                        if (value !== "Sí") {
+                          updateField("customerTechnicalSpecAttachment", "");
+                        }
+                        markFieldAsTouched("hasCustomerTechnicalSpec");
+                      }}
+                      onBlur={() => markFieldAsTouched("hasCustomerTechnicalSpec")}
+                      error={getError("hasCustomerTechnicalSpec")}
+                      placeholder="-- Seleccione --"
+                      options={YES_NO_OPTIONS}
+                    />
+
+                    {form.hasCustomerTechnicalSpec === "Sí" && (
+                      <div className="md:col-span-2">
+                        <FormInput
+                          label="Especificación Técnica del Cliente Adjunto"
+                          value={form.customerTechnicalSpecAttachment}
+                          onChange={(value) => {
+                            updateField("customerTechnicalSpecAttachment", value);
+                            markFieldAsTouched("customerTechnicalSpecAttachment");
+                          }}
+                          onBlur={() => markFieldAsTouched("customerTechnicalSpecAttachment")}
+                          error={getError("customerTechnicalSpecAttachment")}
+                          placeholder="Ej. Empresa_Especificación_Rev.A.pdf"
+                        />
+                      </div>
+                    )}
+
                     <FormSelect
                       label="¿Tiene estructura de referencia?"
                       value={form.hasReferenceStructure}
@@ -1763,18 +1974,26 @@ if (loading) {
                       label="Gramaje general (g/m2)"
                       value={form.grammage}
                       onChange={(value) => updateField("grammage", value)}
+                      onBlur={() => markFieldAsTouched("grammage")}
+                      error={getError("grammage")}
                       placeholder="Ej. 40"
                     />
                     <FormInput
                       label="Tolerancia de Gramaje"
                       value={form.grammageTolerance}
                       onChange={(value) => updateField("grammageTolerance", value)}
+                      onBlur={() => markFieldAsTouched("grammageTolerance")}
+                      error={getError("grammageTolerance")}
                       placeholder="Ej. ±5%"
                     />
                     <FormSelect
                       label="¿Solicitud de muestra?"
                       value={form.sampleRequest}
-                      onChange={(value) => updateField("sampleRequest", value)}
+                      onChange={(value) => {
+                        updateField("sampleRequest", value);
+                        markFieldAsTouched("sampleRequest");
+                      }}
+                      error={getError("sampleRequest")}
                       options={YES_NO_OPTIONS}
                     />
                     <div className="md:col-span-3">
@@ -1786,9 +2005,15 @@ if (loading) {
                       />
                     </div>
                   </div>
-                </FormCard>
+                </CollapsibleSection>
 
-                <FormCard title="6. Dimensiones y accesorios" icon="⌗" color="#16a085">
+                <CollapsibleSection
+                  title="Dimensiones y accesorios"
+                  icon="⌗"
+                  color="#16a085"
+                  isOpen={openStructureSections.dimensions}
+                  onToggle={() => toggleStructureSection("dimensions")}
+                >
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
                     {(() => {
                       const wrapping = inheritedWrapping?.toLowerCase() || "";
@@ -1803,7 +2028,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                               onChange={(value) => updateField("width", value)}
                               onBlur={() => markFieldAsTouched("width")}
                               error={getError("width")}
-                              placeholder="mm"
+                              placeholder={shouldApplyPouchDoyPackRestrictions ? "80 - 230 mm" : "mm"}
                             />
                           )}
                           <FormInput
@@ -1812,7 +2037,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                             onChange={(value) => updateField("length", value)}
                             onBlur={() => markFieldAsTouched("length")}
                             error={getError("length")}
-                            placeholder="mm"
+                            placeholder={shouldApplyPouchDoyPackRestrictions ? "134 - 340 mm" : "mm"}
                           />
                           {showRepetition && (
                             <FormInput
@@ -1825,15 +2050,37 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                             />
                           )}
                           {wrapping.includes("pouch") && (
-                            <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(value) => updateField("doyPackBase", value)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
+                            <FormSelect
+                              label="Base Doy Pack"
+                              value={form.doyPackBase}
+                              onChange={(value) => {
+                                updateField("doyPackBase", value);
+                                markFieldAsTouched("doyPackBase");
+                              }}
+                              error={getError("doyPackBase")}
+                              placeholder="-- Seleccione --"
+                              options={DOY_PACK_BASE_OPTIONS}
+                            />
                           )}
                           <FormInput
                             label="Ancho Fuelle"
                             value={form.gussetWidth}
                             onChange={(value) => updateField("gussetWidth", value)}
-                            placeholder="mm"
+                            onBlur={() => markFieldAsTouched("gussetWidth")}
+                            error={getError("gussetWidth")}
+                            placeholder={shouldApplyPouchDoyPackRestrictions ? "0 - 3 mm" : "mm"}
                           />
-                          <FormSelect label="Tipo de Fuelle" value={form.gussetType} onChange={(value) => updateField("gussetType", value)} placeholder="-- Seleccione --" options={GUSSET_TYPE_OPTIONS} />
+                          <FormSelect
+                            label="Tipo de Fuelle"
+                            value={form.gussetType}
+                            onChange={(value) => {
+                              updateField("gussetType", value);
+                              markFieldAsTouched("gussetType");
+                            }}
+                            error={getError("gussetType")}
+                            placeholder="-- Seleccione --"
+                            options={GUSSET_TYPE_OPTIONS}
+                          />
                         </>
                       );
                     })()}
@@ -1957,7 +2204,17 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       );
                     })()}
                   </div>
-                </FormCard>
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                  title="Documentos"
+                  icon="📄"
+                  color="#e67e22"
+                  isOpen={openStructureSections.documents}
+                  onToggle={() => toggleStructureSection("documents")}
+                >
+                  <ProjectDocumentsSection projectCode={projectCode} showPlans={false} />
+                </CollapsibleSection>
               </div>
             )}
 
@@ -1991,15 +2248,6 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
 
                     <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(value) => updateField("targetPrice", value)} placeholder="Ej. 45" />
                     <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={CURRENCY_OPTIONS} />
-
-                    <div className="md:col-span-3">
-                      <FormTextarea
-                        label="Información adicional del cliente"
-                        value={form.customerAdditionalInfo}
-                        onChange={(value) => updateField("customerAdditionalInfo", value)}
-                        placeholder="Condiciones comerciales, restricciones, requisitos adicionales..."
-                      />
-                    </div>
                   </div>
                 </FormCard>
 
@@ -2016,17 +2264,76 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                     <FormInput label="Variación Externa +" value={form.externalVariationPlus} onChange={(value) => updateField("externalVariationPlus", value)} placeholder="Ej. 5" />
                     <FormInput label="Variación Externa -" value={form.externalVariationMinus} onChange={(value) => updateField("externalVariationMinus", value)} placeholder="Ej. 5" />
                     <FormInput label="Peso Máximo Rollo (kg)" value={form.maxRollWeight} onChange={(value) => updateField("maxRollWeight", value)} placeholder="Ej. 500" />
-                    <FormSelect label="Logo Producto Peruano" value={form.peruvianProductLogo} onChange={(value) => updateField("peruvianProductLogo", value)} options={YES_NO_OPTIONS} />
-                    <FormSelect label="Pie de Imprenta" value={form.printingFooter} onChange={(value) => updateField("printingFooter", value)} options={YES_NO_OPTIONS} />
                   </div>
                 </FormCard>
               </div>
             )}
 
-            {/* PASO 5: DOCUMENTOS */}
+            {/* PASO 5: Otros */}
             {activeStep === 5 && (
               <div className="space-y-5">
-                <ProjectDocumentsSection projectCode={projectCode} />
+                <FormCard title="Otros" icon="📝" color="#00395A">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="md:col-span-3">
+                      <FormTextarea
+                        label="Información adicional cliente"
+                        value={form.customerAdditionalInfo}
+                        onChange={(value) => updateField("customerAdditionalInfo", value)}
+                        onBlur={() => markFieldAsTouched("customerAdditionalInfo")}
+                        error={getError("customerAdditionalInfo")}
+                        placeholder="Información adicional proporcionada por el cliente..."
+                      />
+                    </div>
+
+                    <FormSelect
+                      label='Logo "Producto Peruano"'
+                      value={form.peruvianProductLogo}
+                      onChange={(value) => {
+                        updateField("peruvianProductLogo", value);
+                        markFieldAsTouched("peruvianProductLogo");
+                      }}
+                      onBlur={() => markFieldAsTouched("peruvianProductLogo")}
+                      error={getError("peruvianProductLogo")}
+                      placeholder="-- Seleccione --"
+                      options={YES_NO_OPTIONS}
+                    />
+
+                    <FormSelect
+                      label="Pie de Imprenta"
+                      value={form.printingFooter}
+                      onChange={(value) => {
+                        updateField("printingFooter", value);
+                        markFieldAsTouched("printingFooter");
+                      }}
+                      onBlur={() => markFieldAsTouched("printingFooter")}
+                      error={getError("printingFooter")}
+                      placeholder="-- Seleccione --"
+                      options={YES_NO_OPTIONS}
+                    />
+
+                    <div className="md:col-span-3">
+                      <FormTextarea
+                        label="Dirección de entrega"
+                        value={form.deliveryAddress}
+                        onChange={(value) => updateField("deliveryAddress", value)}
+                        onBlur={() => markFieldAsTouched("deliveryAddress")}
+                        error={getError("deliveryAddress")}
+                        placeholder="Ingrese la dirección de entrega..."
+                      />
+                    </div>
+
+                    <div className="md:col-span-3">
+                      <FormTextarea
+                        label="Comentario"
+                        value={form.additionalComment}
+                        onChange={(value) => updateField("additionalComment", value)}
+                        onBlur={() => markFieldAsTouched("additionalComment")}
+                        error={getError("additionalComment")}
+                        placeholder="Comentarios adicionales..."
+                      />
+                    </div>
+                  </div>
+                </FormCard>
               </div>
             )}
           </div>

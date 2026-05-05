@@ -15,7 +15,6 @@ import {
   STATUS_LABELS,
   getUserByEmail,
   getCurrentUser,
-  type UserStatus,
 } from "../../../shared/data/userStorage";
 import {
   getActiveVendorsMirror,
@@ -120,6 +119,7 @@ export default function UserEditPage() {
       }
     }
     if (!form.workerCode.trim()) errors.workerCode = "Ingresa el código de trabajador.";
+    if (!form.area.trim()) errors.area = "Selecciona el área/departamento.";
     if (!form.position.trim()) errors.position = "Selecciona el puesto.";
     if (!form.company.trim()) errors.company = "Ingresa la empresa.";
     if (isAdmin && !form.role) {
@@ -187,23 +187,21 @@ export default function UserEditPage() {
     navigate("/users");
   };
 
-  const statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({
-    value,
-    label,
-  }));
-
   const areaOptions = AREAS.map((area) => ({
     value: area,
     label: area,
   }));
 
   const positionOptions = useMemo(() => {
+    if (!form?.area) return [];
+
     const positions = getPositionsByArea(form.area);
+
     return positions.map((pos: string) => ({
       value: pos,
       label: pos,
     }));
-  }, [form.area]);
+  }, [form?.area]);
 
   if (loading) {
     return (

@@ -14,6 +14,7 @@ const PLANOS_EXTENSIONS = ["ai", "zip", "links", "pdf"];
 
 interface ProjectDocumentsSectionProps {
   projectCode: string;
+  showPlans?: boolean;
 }
 
 interface DocumentType {
@@ -30,6 +31,7 @@ const DOCUMENT_TYPES: DocumentType[] = [
 
 export default function ProjectDocumentsSection({
   projectCode,
+  showPlans = true,
 }: ProjectDocumentsSectionProps) {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [isDraggingDocumentos, setIsDraggingDocumentos] = useState(false);
@@ -304,6 +306,9 @@ export default function ProjectDocumentsSection({
     );
   };
 
+  const visibleDocumentTypes = showPlans ? DOCUMENT_TYPES : DOCUMENT_TYPES.filter(dt => dt.type === "documentos");
+  const headerTitle = showPlans ? "Documentos y Planos" : "Documentos";
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       {/* Header */}
@@ -315,7 +320,7 @@ export default function ProjectDocumentsSection({
           📦
         </span>
         <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
-          Documentos y Planos
+          {headerTitle}
         </h2>
       </div>
 
@@ -336,7 +341,7 @@ export default function ProjectDocumentsSection({
 
         {/* Document sections */}
         <div className="space-y-4">
-          {DOCUMENT_TYPES.map((docType) => (
+          {visibleDocumentTypes.map((docType) => (
             <DocumentTypeSection key={docType.type} docType={docType} />
           ))}
         </div>
