@@ -704,7 +704,7 @@ export const PROJECT_FIELD_SCHEMA: ProjectFieldSchema[] = [
   },
   {
     key: "specialStructureSpecs",
-    label: "Especificaciones Especiales de Estructura",
+    label: "Especificaciones Especiales de Estructura / Comentarios",
     section: "Especificaciones de Estructura",
     required: false,
     editable: true,

@@ -560,7 +560,7 @@ const STEPS = [
   { label: "Diseño" },
   { label: "Estructura" },
   { label: "Condiciones comerciales" },
-  { label: "Documentos" },
+  { label: "Información adicional" },
 ];const CREATE_ENABLED_STEP = 0;
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectFormData>> = {
@@ -1555,7 +1555,7 @@ export default function ProjectCreatePage() {
                 />
                 <div className="md:col-span-3">
                   <FormTextarea
-                    label="Especificaciones Especiales de Estructura"
+                    label="Especificaciones Especiales de Estructura / Comentarios"
                     value={form.specialStructureSpecs}
                     onChange={(value) => updateField("specialStructureSpecs", value)}
                     placeholder="Restricciones, barreras, sellabilidad, resistencia, OTR/WVTR..."

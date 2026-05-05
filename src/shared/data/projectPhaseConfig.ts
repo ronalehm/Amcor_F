@@ -100,7 +100,7 @@ const P3_FIELDS: PhaseField[] = [
   { name: "layer4Grammage", label: "Gramaje Capa 4", section: "5", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
   { name: "grammage", label: "Gramaje Total", section: "5", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
   { name: "grammageTolerance", label: "Tolerancia de Gramaje", section: "5", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
-  { name: "specialStructureSpecs", label: "Especificaciones Especiales de Estructura", section: "5", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
+  { name: "specialStructureSpecs", label: "Especificaciones Especiales de Estructura / Comentarios", section: "5", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
   { name: "sampleRequest", label: "Solicitud de Muestra", section: "5", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
 
   // Section 6: Dimensions and Accessories

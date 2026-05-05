@@ -105,7 +105,7 @@ export const PROJECT_FIELD_IMPACT_BY_AREA: Record<WorkArea, AreaImpactConfig> = 
       { fieldKey: "layer4Material", label: "Material Capa 4", impactLevel: "alta", editable: true, required: false },
       { fieldKey: "layer4Micron", label: "Micraje Capa 4", impactLevel: "alta", editable: true, required: false },
       { fieldKey: "layer4Grammage", label: "Gramaje Capa 4", impactLevel: "media", editable: false, required: false },
-      { fieldKey: "specialStructureSpecs", label: "Especificaciones Especiales de Estructura", impactLevel: "media", editable: true, required: false },
+      { fieldKey: "specialStructureSpecs", label: "Especificaciones Especiales de Estructura / Comentarios", impactLevel: "media", editable: true, required: false },
       { fieldKey: "grammage", label: "Gramaje Total", impactLevel: "alta", editable: false, required: false },
       { fieldKey: "grammageTolerance", label: "Tolerancia de Gramaje", impactLevel: "media", editable: true, required: false },
       // Dimensiones
