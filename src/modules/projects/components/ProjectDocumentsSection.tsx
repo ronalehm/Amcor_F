@@ -15,6 +15,7 @@ const PLANOS_EXTENSIONS = ["ai", "zip", "links", "pdf"];
 interface ProjectDocumentsSectionProps {
   projectCode: string;
   showPlans?: boolean;
+  embedded?: boolean;
 }
 
 interface DocumentType {
@@ -25,13 +26,14 @@ interface DocumentType {
 }
 
 const DOCUMENT_TYPES: DocumentType[] = [
-  { type: "documentos", label: "Documentos", extensions: DOCUMENTOS_EXTENSIONS, icon: "📄" },
+  { type: "documentos", label: "Otros archivos", extensions: DOCUMENTOS_EXTENSIONS, icon: "📄" },
   { type: "planos", label: "Planos", extensions: PLANOS_EXTENSIONS, icon: "📐" },
 ];
 
 export default function ProjectDocumentsSection({
   projectCode,
   showPlans = true,
+  embedded = false,
 }: ProjectDocumentsSectionProps) {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [isDraggingDocumentos, setIsDraggingDocumentos] = useState(false);
@@ -309,6 +311,54 @@ export default function ProjectDocumentsSection({
   const visibleDocumentTypes = showPlans ? DOCUMENT_TYPES : DOCUMENT_TYPES.filter(dt => dt.type === "documentos");
   const headerTitle = showPlans ? "Documentos y Planos" : "Documentos";
 
+  const documentsContent = (
+    <>
+      {/* Error messages */}
+      {uploadErrors.length > 0 && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+          <p className="text-xs font-bold text-red-700 mb-2">Errores al cargar:</p>
+          <ul className="space-y-1">
+            {uploadErrors.map((error, idx) => (
+              <li key={idx} className="text-xs text-red-600">
+                • {error}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Document sections */}
+      <div className="space-y-4">
+        {visibleDocumentTypes.map((docType) => (
+          <DocumentTypeSection key={docType.type} docType={docType} />
+        ))}
+      </div>
+
+      {/* Download all button */}
+      {documents.length > 0 && (
+        <div className="flex justify-end pt-2">
+          <ActionButton
+            type="button"
+            label="Descargar Todo"
+            onClick={() => {
+              documents.forEach((doc, idx) => {
+                setTimeout(() => {
+                  handleDownloadDocument(doc);
+                }, idx * 200);
+              });
+            }}
+            variant="primary"
+            size="sm"
+          />
+        </div>
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="space-y-4">{documentsContent}</div>;
+  }
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       {/* Header */}
@@ -325,45 +375,7 @@ export default function ProjectDocumentsSection({
       </div>
 
       <div className="p-5 space-y-4">
-        {/* Error messages */}
-        {uploadErrors.length > 0 && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-            <p className="text-xs font-bold text-red-700 mb-2">Errores al cargar:</p>
-            <ul className="space-y-1">
-              {uploadErrors.map((error, idx) => (
-                <li key={idx} className="text-xs text-red-600">
-                  • {error}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Document sections */}
-        <div className="space-y-4">
-          {visibleDocumentTypes.map((docType) => (
-            <DocumentTypeSection key={docType.type} docType={docType} />
-          ))}
-        </div>
-
-        {/* Download all button */}
-        {documents.length > 0 && (
-          <div className="flex justify-end pt-2">
-            <ActionButton
-              type="button"
-              label="Descargar Todo"
-              onClick={() => {
-                documents.forEach((doc, idx) => {
-                  setTimeout(() => {
-                    handleDownloadDocument(doc);
-                  }, idx * 200);
-                });
-              }}
-              variant="primary"
-              size="sm"
-            />
-          </div>
-        )}
+        {documentsContent}
       </div>
     </div>
   );

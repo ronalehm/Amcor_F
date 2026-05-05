@@ -253,6 +253,34 @@ function extractMaterialGroupFromValue(materialValue: string): string {
   return Object.keys(MATERIAL_CATALOG).includes(group) ? group : "";
 }
 
+const STRUCTURE_FIXED_GRAMMAGE: Record<string, number> = {
+  Monocapa: 2.5,
+  Bilaminado: 5,
+  Trilaminado: 7.5,
+  Tetralaminado: 9.5,
+};
+
+function parseGrammageValue(value: string): number {
+  if (!value?.trim()) return 0;
+
+  const normalizedValue = value.replace(",", ".").trim();
+  const parsedValue = Number(normalizedValue);
+
+  return Number.isFinite(parsedValue) ? parsedValue : 0;
+}
+
+function isPdfFileName(fileName: string): boolean {
+  return fileName.toLowerCase().endsWith(".pdf");
+}
+
+function formatGrammageValue(value: number): string {
+  if (!Number.isFinite(value)) return "";
+
+  return Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(2).replace(/\.?0+$/, "");
+}
+
 const UNIT_OPTIONS = [
   { value: "KGS", label: "KGS" },
   { value: "MLL", label: "MLL" },
@@ -324,9 +352,15 @@ const MATERIAL_CATALOG: MaterialCatalog = {
     { value: "PAPEL - PAPEL ESPECIAL - Libre",  label: "PAPEL ESPECIAL - Libre",  micron: "",   isFree: true  },
   ],
   "COEX": [
-    { value: "COEX - PE - Libre",     label: "PE - Libre",     micron: "", isFree: true },
-    { value: "COEX - BARVAL - Libre", label: "BARVAL - Libre", micron: "", isFree: true },
-    { value: "COEX - BARLON - Libre", label: "BARLON - Libre", micron: "", isFree: true },
+    { value: "COEX - PE CRISTAL - Libre", label: "PE CRISTAL - Libre", micron: "", isFree: true },
+    { value: "COEX - PE BLANCO - Libre", label: "PE BLANCO - Libre", micron: "", isFree: true },
+    { value: "COEX - BARVAL CRISTAL - Libre", label: "BARVAL CRISTAL - Libre", micron: "", isFree: true },
+    { value: "COEX - BARVAL BLANCO - Libre", label: "BARVAL BLANCO - Libre", micron: "", isFree: true },
+    { value: "COEX - BARLON CRISTAL - Libre", label: "BARLON CRISTAL - Libre", micron: "", isFree: true },
+    { value: "COEX - BARLON BLANCO - Libre", label: "BARLON BLANCO - Libre", micron: "", isFree: true },
+    { value: "COEX - PE PELABLE CRISTAL - Libre", label: "PE PELABLE CRISTAL - Libre", micron: "", isFree: true },
+    { value: "COEX - PE PELABLE BLANCO - Libre", label: "PE PELABLE BLANCO - Libre", micron: "", isFree: true },
+    { value: "COEX - UHT - Libre", label: "UHT - Libre", micron: "", isFree: true },
   ],
   "ALUMINIO": [
     { value: "ALUMINIO - ALUMINIO - 7", label: "ALUMINIO - 7", micron: "7", isFree: false },
@@ -475,24 +509,96 @@ const STEPS = [
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
-  0: ["salesforceAction", "projectName", "projectDescription", "executiveId", "portfolioCode"],
-  1: ["blueprintFormat", "technicalApplication", "estimatedVolume", "unitOfMeasure"],
-  2: ["printClass", "printType", "specialDesignSpecs", "specialDesignComments", "hasEdagReference", "edagCode", "edagVersion", "designPlanFiles"],
+  // 1. Información General
+  0: [
+    "salesforceAction",
+    "projectName",
+    "projectDescription",
+    "executiveId",
+    "portfolioCode",
+  ],
+
+  // 2. Producto Comercial
+  1: [
+    "classification",
+    "subClassification",
+    "projectType",
+    "blueprintFormat",
+    "technicalApplication",
+    "customerPackingCode",
+  ],
+
+  // 3. Diseño
+  2: [
+    "hasEdagReference",
+    "edagCode",
+    "edagVersion",
+    "printClass",
+    "printType",
+    "specialDesignSpecs",
+    "specialDesignComments",
+    "designPlanFiles",
+  ],
+
+  // 4. Estructura
   3: [
-    "hasCustomerTechnicalSpec",
-    "customerTechnicalSpecAttachment",
     "hasReferenceStructure",
     "referenceEmCode",
     "referenceEmVersion",
     "structureType",
+
+    "layer1MaterialGroup",
+    "layer1Material",
+    "layer1Micron",
+    "layer1Grammage",
+    "layer2MaterialGroup",
+    "layer2Material",
+    "layer2Micron",
+    "layer2Grammage",
+    "layer3MaterialGroup",
+    "layer3Material",
+    "layer3Micron",
+    "layer3Grammage",
+    "layer4MaterialGroup",
+    "layer4Material",
+    "layer4Micron",
+    "layer4Grammage",
+
+    "grammage",
+    "grammageTolerance",
+    "sampleRequest",
+    "specialStructureSpecs",
+
     "width",
     "length",
-    "gussetWidth",
+    "repetition",
     "doyPackBase",
+    "gussetWidth",
     "gussetType",
+
+    "hasCustomerTechnicalSpec",
+    "customerTechnicalSpecAttachment",
   ],
-  4: ["saleType", "targetPrice", "currencyType", "coreMaterial", "coreDiameter", "externalDiameter", "maxRollWeight"],
+
+  // 5. Condiciones comerciales
+  4: [
+    "estimatedVolume",
+    "unitOfMeasure",
+    "saleType",
+    "incoterm",
+    "destinationCountry",
+    "targetPrice",
+    "currencyType",
+  ],
+
+  // 6. Información adicional
   5: [
+    "coreMaterial",
+    "coreDiameter",
+    "externalDiameter",
+    "externalVariationPlus",
+    "externalVariationMinus",
+    "maxRollWeight",
     "customerAdditionalInfo",
     "peruvianProductLogo",
     "printingFooter",
@@ -509,9 +615,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
 
   blueprintFormat: "Formato de plano",
   technicalApplication: "Aplicación técnica",
-  classification: "Clasificación",
-  subClassification: "Subsección clasificación",
-  projectType: "Tipo de proyecto",
   customerPackingCode: "Código de empaque del cliente",
 
   printClass: "Impresión",
@@ -543,23 +646,53 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   customerAdditionalInfo: "Información adicional cliente",
   deliveryAddress: "Dirección de entrega",
   additionalComment: "Comentario",
+  classification: "Clasificación",
+  subClassification: "Subsección Clasificación",
+  projectType: "Tipo de Proyecto",
+
+  hasEdagReference: "¿Tiene Diseño de referencia?",
+  edagCode: "Código EDAG",
+  edagVersion: "Versión EDAG",
+  specialDesignSpecs: "Especificaciones Especiales",
+  specialDesignComments: "Comentarios de diseños especiales",
+
+  hasReferenceStructure: "¿Tiene estructura de referencia?",
+  referenceEmCode: "Código E/M Referencia",
+  referenceEmVersion: "Versión E/M",
+  structureType: "Tipo de Estructura",
+
+  doyPackBase: "Base Doy Pack",
+  gussetType: "Tipo de Fuelle",
+
+  incoterm: "Incoterm",
+  destinationCountry: "País Destino",
+
+  externalVariationPlus: "Variación Externa +",
+  externalVariationMinus: "Variación Externa -",
 };
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
+  // Información General
   "portfolioCode",
   "executiveId",
   "salesforceAction",
   "projectName",
   "projectDescription",
 
+  // Producto Comercial
+  "classification",
   "blueprintFormat",
   "technicalApplication",
 
+  // Diseño
+  "hasEdagReference",
+  "printClass",
+
+  // Condiciones comerciales
   "estimatedVolume",
   "unitOfMeasure",
-  "printClass",
-  "printType",
   "saleType",
 
+  // Estructura
   "grammage",
   "grammageTolerance",
   "sampleRequest",
@@ -931,6 +1064,61 @@ export default function ProjectEditPage() {
   const isPouchWrapping = normalizeWrapping(inheritedWrapping).includes("pouch");
   const shouldApplyPouchDoyPackRestrictions = isPouchWrapping && form.blueprintFormat === POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO;
 
+  const activeLayerCount = useMemo(() => {
+    switch (form.structureType) {
+      case "Monocapa":
+        return 1;
+      case "Bilaminado":
+        return 2;
+      case "Trilaminado":
+        return 3;
+      case "Tetralaminado":
+        return 4;
+      default:
+        return 0;
+    }
+  }, [form.structureType]);
+
+  const layerGrammageTotal = useMemo(() => {
+    const layerGrammages = [
+      form.layer1Grammage,
+      form.layer2Grammage,
+      form.layer3Grammage,
+      form.layer4Grammage,
+    ];
+
+    return layerGrammages
+      .slice(0, activeLayerCount)
+      .reduce((total, value) => total + parseGrammageValue(value), 0);
+  }, [
+    activeLayerCount,
+    form.layer1Grammage,
+    form.layer2Grammage,
+    form.layer3Grammage,
+    form.layer4Grammage,
+  ]);
+
+  const fixedInkAdhesiveGrammage = useMemo(() => {
+    return STRUCTURE_FIXED_GRAMMAGE[form.structureType] || 0;
+  }, [form.structureType]);
+
+  const calculatedGrammageTotal = useMemo(() => {
+    if (!form.structureType) return "";
+
+    return formatGrammageValue(layerGrammageTotal + fixedInkAdhesiveGrammage);
+  }, [form.structureType, layerGrammageTotal, fixedInkAdhesiveGrammage]);
+
+  useEffect(() => {
+    setForm((prev) => {
+      if (prev.grammage === calculatedGrammageTotal) return prev;
+
+      return {
+        ...prev,
+        grammage: calculatedGrammageTotal,
+      };
+    });
+  }, [calculatedGrammageTotal]);
+
   const projectTypeOptions = useMemo(() => {
     if (form.classification === "Modificado") {
       return [];
@@ -962,16 +1150,18 @@ export default function ProjectEditPage() {
   const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
     const fields = [...BASE_REQUIRED_FIELDS];
 
-    const isSubClassificationEnabled = Boolean(form.classification);
+    if (form.printClass && form.printClass !== "Sin impresión") {
+      fields.push("printType");
+    }
+
+    if (form.classification) {
+      fields.push("subClassification");
+    }
 
     const isProjectTypeEnabled =
       Boolean(form.subClassification) &&
       form.classification !== "Modificado" &&
       projectTypeOptions.length > 0;
-
-    if (isSubClassificationEnabled) {
-      fields.push("subClassification");
-    }
 
     if (isProjectTypeEnabled) {
       fields.push("projectType");
@@ -999,6 +1189,7 @@ export default function ProjectEditPage() {
     form.blueprintFormat,
     form.classification,
     form.subClassification,
+    form.printClass,
     projectTypeOptions,
     shouldApplyPouchDoyPackRestrictions,
     form.hasEdagReference,
@@ -1048,8 +1239,14 @@ export default function ProjectEditPage() {
       errors.designPlanFiles = "Debe cargar al menos un archivo de Illustrator (.ai).";
     }
 
-    if (form.hasCustomerTechnicalSpec === "Sí" && !form.customerTechnicalSpecAttachment?.trim()) {
-      errors.customerTechnicalSpecAttachment = "Debe proporcionar la especificación técnica del cliente.";
+    if (form.hasCustomerTechnicalSpec === "Sí") {
+      if (!form.customerTechnicalSpecAttachment?.trim()) {
+        errors.customerTechnicalSpecAttachment =
+          "Ningún archivo seleccionado. Nombre sugerido: Empresa_Especificación_Rev.A.pdf";
+      } else if (!isPdfFileName(form.customerTechnicalSpecAttachment)) {
+        errors.customerTechnicalSpecAttachment =
+          "La especificación técnica del cliente debe ser un archivo PDF.";
+      }
     }
 
     return errors;
@@ -1792,38 +1989,6 @@ if (loading) {
                 >
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <FormSelect
-                      label="¿Tiene Especificación Técnica del Cliente?"
-                      value={form.hasCustomerTechnicalSpec}
-                      onChange={(value) => {
-                        updateField("hasCustomerTechnicalSpec", value);
-                        if (value !== "Sí") {
-                          updateField("customerTechnicalSpecAttachment", "");
-                        }
-                        markFieldAsTouched("hasCustomerTechnicalSpec");
-                      }}
-                      onBlur={() => markFieldAsTouched("hasCustomerTechnicalSpec")}
-                      error={getError("hasCustomerTechnicalSpec")}
-                      placeholder="-- Seleccione --"
-                      options={YES_NO_OPTIONS}
-                    />
-
-                    {form.hasCustomerTechnicalSpec === "Sí" && (
-                      <div className="md:col-span-2">
-                        <FormInput
-                          label="Especificación Técnica del Cliente Adjunto"
-                          value={form.customerTechnicalSpecAttachment}
-                          onChange={(value) => {
-                            updateField("customerTechnicalSpecAttachment", value);
-                            markFieldAsTouched("customerTechnicalSpecAttachment");
-                          }}
-                          onBlur={() => markFieldAsTouched("customerTechnicalSpecAttachment")}
-                          error={getError("customerTechnicalSpecAttachment")}
-                          placeholder="Ej. Empresa_Especificación_Rev.A.pdf"
-                        />
-                      </div>
-                    )}
-
-                    <FormSelect
                       label="¿Tiene estructura de referencia?"
                       value={form.hasReferenceStructure}
                       onChange={(value) => updateField("hasReferenceStructure", value)}
@@ -1938,7 +2103,7 @@ if (loading) {
                                 onChange={(value) =>
                                   updateField(grammageKey, value)
                                 }
-                                placeholder="Ej. 35"
+                                placeholder="Pendiente completar "
                               />
                             </div>
                           </div>
@@ -1970,14 +2135,23 @@ if (loading) {
                   )}
 
                   <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormInput
-                      label="Gramaje general (g/m2)"
-                      value={form.grammage}
-                      onChange={(value) => updateField("grammage", value)}
-                      onBlur={() => markFieldAsTouched("grammage")}
-                      error={getError("grammage")}
-                      placeholder="Ej. 40"
-                    />
+                    <div>
+                      <FormInput
+                        label="Gramaje general (g/m2)"
+                        value={form.grammage}
+                        onChange={() => {}}
+                        onBlur={() => markFieldAsTouched("grammage")}
+                        error={getError("grammage")}
+                        placeholder="Calculado automáticamente"
+                        disabled={true}
+                      />
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Cálculo: suma de gramajes de capas ({formatGrammageValue(layerGrammageTotal)} g/m2)
+                        + Tintas y Adhesivos {form.structureType ? `(${form.structureType}: ${formatGrammageValue(fixedInkAdhesiveGrammage)} g/m2)` : "(según tipo de estructura)"}
+                        = {form.grammage || "0"} g/m2.
+                      </p>
+                    </div>
                     <FormInput
                       label="Tolerancia de Gramaje"
                       value={form.grammageTolerance}
@@ -1998,7 +2172,7 @@ if (loading) {
                     />
                     <div className="md:col-span-3">
                       <FormTextarea
-                        label="Especificaciones Especiales de Estructura"
+                        label="Especificaciones Especiales de Estructura / Comentarios"
                         value={form.specialStructureSpecs}
                         onChange={(value) => updateField("specialStructureSpecs", value)}
                         placeholder="Restricciones, barreras, sellabilidad, resistencia, OTR/WVTR..."
@@ -2213,7 +2387,79 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                   isOpen={openStructureSections.documents}
                   onToggle={() => toggleStructureSection("documents")}
                 >
-                  <ProjectDocumentsSection projectCode={projectCode} showPlans={false} />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <FormSelect
+                        label="¿Tiene Especificación Técnica del Cliente?"
+                        value={form.hasCustomerTechnicalSpec}
+                        onChange={(value) => {
+                          updateField("hasCustomerTechnicalSpec", value);
+
+                          if (value !== "Sí") {
+                            updateField("customerTechnicalSpecAttachment", "");
+                          }
+
+                          markFieldAsTouched("hasCustomerTechnicalSpec");
+                        }}
+                        onBlur={() => markFieldAsTouched("hasCustomerTechnicalSpec")}
+                        error={getError("hasCustomerTechnicalSpec")}
+                        placeholder="-- Seleccione --"
+                        options={YES_NO_OPTIONS}
+                      />
+
+                      {form.hasCustomerTechnicalSpec === "Sí" && (
+                        <div className="md:col-span-2">
+                          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                            Especificación Técnica del Cliente Adjunto
+                          </label>
+
+                          <input
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+
+                              if (!file) {
+                                updateField("customerTechnicalSpecAttachment", "");
+                                markFieldAsTouched("customerTechnicalSpecAttachment");
+                                return;
+                              }
+
+                              updateField("customerTechnicalSpecAttachment", file.name);
+                              markFieldAsTouched("customerTechnicalSpecAttachment");
+                            }}
+                            onBlur={() => markFieldAsTouched("customerTechnicalSpecAttachment")}
+                            className={`block w-full rounded-lg border px-3 py-2 text-sm text-slate-700 shadow-sm file:mr-4 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200 ${
+                              getError("customerTechnicalSpecAttachment")
+                                ? "border-red-500 bg-red-50"
+                                : "border-slate-300 bg-white"
+                            }`}
+                          />
+
+                          {form.customerTechnicalSpecAttachment && (
+                            <p className="mt-1 text-xs text-slate-500">
+                              Archivo seleccionado:{" "}
+                              <span className="font-semibold">
+                                {form.customerTechnicalSpecAttachment}
+                              </span>
+                            </p>
+                          )}
+
+                          {getError("customerTechnicalSpecAttachment") && (
+                            <p className="mt-1 text-xs font-medium text-red-600">
+                              {getError("customerTechnicalSpecAttachment")}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <ProjectDocumentsSection
+                      projectCode={projectCode}
+                      showPlans={false}
+                      embedded={true}
+                    />
+                  </div>
                 </CollapsibleSection>
               </div>
             )}
@@ -2251,91 +2497,166 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                   </div>
                 </FormCard>
 
-                <FormCard title="Especificaciones de Core" icon="💰" color="#0d4c5c">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormSelect
-                      label="Material del Core"
-                      value={form.coreMaterial}
-                      onChange={(value) => updateField("coreMaterial", value)}
-                      options={CORE_MATERIAL_OPTIONS}
-                    />
-                    <FormInput label="Diámetro Core" value={form.coreDiameter} onChange={(value) => updateField("coreDiameter", value)} placeholder="Ej. 76" />
-                    <FormInput label="Diámetro Externo" value={form.externalDiameter} onChange={(value) => updateField("externalDiameter", value)} placeholder="Ej. 600" />
-                    <FormInput label="Variación Externa +" value={form.externalVariationPlus} onChange={(value) => updateField("externalVariationPlus", value)} placeholder="Ej. 5" />
-                    <FormInput label="Variación Externa -" value={form.externalVariationMinus} onChange={(value) => updateField("externalVariationMinus", value)} placeholder="Ej. 5" />
-                    <FormInput label="Peso Máximo Rollo (kg)" value={form.maxRollWeight} onChange={(value) => updateField("maxRollWeight", value)} placeholder="Ej. 500" />
-                  </div>
-                </FormCard>
               </div>
             )}
 
-            {/* PASO 5: Otros */}
-            {activeStep === 5 && (
-              <div className="space-y-5">
-                <FormCard title="Otros" icon="📝" color="#00395A">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="md:col-span-3">
-                      <FormTextarea
-                        label="Información adicional cliente"
-                        value={form.customerAdditionalInfo}
-                        onChange={(value) => updateField("customerAdditionalInfo", value)}
-                        onBlur={() => markFieldAsTouched("customerAdditionalInfo")}
-                        error={getError("customerAdditionalInfo")}
-                        placeholder="Información adicional proporcionada por el cliente..."
-                      />
+            {/* PASO 5: INFORMACIÓN ADICIONAL */}
+              {activeStep === 5 && (
+                <div className="space-y-5">
+                  <FormCard title="Información adicional" icon="📝" color="#00395A">
+                    <div className="space-y-6">
+                      {/* Sección 1: Especificaciones de Core */}
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="mb-4 flex items-center gap-3">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm">
+                            🧻
+                          </span>
+                          <div>
+                            <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
+                              Especificaciones de Core
+                            </h4>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <FormSelect
+                            label="Material del Core"
+                            value={form.coreMaterial}
+                            onChange={(value) => {
+                              updateField("coreMaterial", value);
+                              markFieldAsTouched("coreMaterial");
+                            }}
+                            onBlur={() => markFieldAsTouched("coreMaterial")}
+                            error={getError("coreMaterial")}
+                            placeholder="-- Seleccione --"
+                            options={CORE_MATERIAL_OPTIONS}
+                          />
+
+                          <FormInput
+                            label="Diámetro Core"
+                            value={form.coreDiameter}
+                            onChange={(value) => updateField("coreDiameter", value)}
+                            onBlur={() => markFieldAsTouched("coreDiameter")}
+                            error={getError("coreDiameter")}
+                            placeholder="Ej. 76"
+                          />
+
+                          <FormInput
+                            label="Diámetro Externo"
+                            value={form.externalDiameter}
+                            onChange={(value) => updateField("externalDiameter", value)}
+                            onBlur={() => markFieldAsTouched("externalDiameter")}
+                            error={getError("externalDiameter")}
+                            placeholder="Ej. 600"
+                          />
+
+                          <FormInput
+                            label="Variación Externa +"
+                            value={form.externalVariationPlus}
+                            onChange={(value) => updateField("externalVariationPlus", value)}
+                            onBlur={() => markFieldAsTouched("externalVariationPlus")}
+                            error={getError("externalVariationPlus")}
+                            placeholder="Ej. 5"
+                          />
+
+                          <FormInput
+                            label="Variación Externa -"
+                            value={form.externalVariationMinus}
+                            onChange={(value) => updateField("externalVariationMinus", value)}
+                            onBlur={() => markFieldAsTouched("externalVariationMinus")}
+                            error={getError("externalVariationMinus")}
+                            placeholder="Ej. 5"
+                          />
+
+                          <FormInput
+                            label="Peso Máximo Rollo (kg)"
+                            value={form.maxRollWeight}
+                            onChange={(value) => updateField("maxRollWeight", value)}
+                            onBlur={() => markFieldAsTouched("maxRollWeight")}
+                            error={getError("maxRollWeight")}
+                            placeholder="Ej. 500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Sección 2: Datos adicionales del cliente */}
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="mb-4 flex items-center gap-3">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm">
+                            📌
+                          </span>
+                          <div>
+                            <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
+                              Datos adicionales del cliente
+                            </h4>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <div className="md:col-span-3">
+                            <FormTextarea
+                              label="Información adicional cliente"
+                              value={form.customerAdditionalInfo}
+                              onChange={(value) => updateField("customerAdditionalInfo", value)}
+                              onBlur={() => markFieldAsTouched("customerAdditionalInfo")}
+                              error={getError("customerAdditionalInfo")}
+                              placeholder="Información adicional proporcionada por el cliente..."
+                            />
+                          </div>
+
+                          <FormSelect
+                            label='Logo "Producto Peruano"'
+                            value={form.peruvianProductLogo}
+                            onChange={(value) => {
+                              updateField("peruvianProductLogo", value);
+                              markFieldAsTouched("peruvianProductLogo");
+                            }}
+                            onBlur={() => markFieldAsTouched("peruvianProductLogo")}
+                            error={getError("peruvianProductLogo")}
+                            placeholder="-- Seleccione --"
+                            options={YES_NO_OPTIONS}
+                          />
+
+                          <FormSelect
+                            label="Pie de Imprenta"
+                            value={form.printingFooter}
+                            onChange={(value) => {
+                              updateField("printingFooter", value);
+                              markFieldAsTouched("printingFooter");
+                            }}
+                            onBlur={() => markFieldAsTouched("printingFooter")}
+                            error={getError("printingFooter")}
+                            placeholder="-- Seleccione --"
+                            options={YES_NO_OPTIONS}
+                          />
+
+                          <div className="md:col-span-3">
+                            <FormTextarea
+                              label="Dirección de entrega"
+                              value={form.deliveryAddress}
+                              onChange={(value) => updateField("deliveryAddress", value)}
+                              onBlur={() => markFieldAsTouched("deliveryAddress")}
+                              error={getError("deliveryAddress")}
+                              placeholder="Ingrese la dirección de entrega..."
+                            />
+                          </div>
+
+                          <div className="md:col-span-3">
+                            <FormTextarea
+                              label="Comentario"
+                              value={form.additionalComment}
+                              onChange={(value) => updateField("additionalComment", value)}
+                              onBlur={() => markFieldAsTouched("additionalComment")}
+                              error={getError("additionalComment")}
+                              placeholder="Comentarios adicionales..."
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-
-                    <FormSelect
-                      label='Logo "Producto Peruano"'
-                      value={form.peruvianProductLogo}
-                      onChange={(value) => {
-                        updateField("peruvianProductLogo", value);
-                        markFieldAsTouched("peruvianProductLogo");
-                      }}
-                      onBlur={() => markFieldAsTouched("peruvianProductLogo")}
-                      error={getError("peruvianProductLogo")}
-                      placeholder="-- Seleccione --"
-                      options={YES_NO_OPTIONS}
-                    />
-
-                    <FormSelect
-                      label="Pie de Imprenta"
-                      value={form.printingFooter}
-                      onChange={(value) => {
-                        updateField("printingFooter", value);
-                        markFieldAsTouched("printingFooter");
-                      }}
-                      onBlur={() => markFieldAsTouched("printingFooter")}
-                      error={getError("printingFooter")}
-                      placeholder="-- Seleccione --"
-                      options={YES_NO_OPTIONS}
-                    />
-
-                    <div className="md:col-span-3">
-                      <FormTextarea
-                        label="Dirección de entrega"
-                        value={form.deliveryAddress}
-                        onChange={(value) => updateField("deliveryAddress", value)}
-                        onBlur={() => markFieldAsTouched("deliveryAddress")}
-                        error={getError("deliveryAddress")}
-                        placeholder="Ingrese la dirección de entrega..."
-                      />
-                    </div>
-
-                    <div className="md:col-span-3">
-                      <FormTextarea
-                        label="Comentario"
-                        value={form.additionalComment}
-                        onChange={(value) => updateField("additionalComment", value)}
-                        onBlur={() => markFieldAsTouched("additionalComment")}
-                        error={getError("additionalComment")}
-                        placeholder="Comentarios adicionales..."
-                      />
-                    </div>
-                  </div>
-                </FormCard>
-              </div>
-            )}
+                  </FormCard>
+                </div>
+              )}
           </div>
 
           {/* ========== COLUMNA DERECHA: PANEL DE CONTEXTO (STICKY) ========== */}
