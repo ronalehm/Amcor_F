@@ -725,10 +725,11 @@ export default function ProjectEditPage() {
   const [openStructureSections, setOpenStructureSections] = useState({
     specs: true,
     dimensions: true,
+    documents: true,
   });
   const allowIncompleteSaveRef = useRef(false);
 
-  const toggleStructureSection = (section: "specs" | "dimensions") => {
+  const toggleStructureSection = (section: "specs" | "dimensions" | "documents") => {
     setOpenStructureSections((prev) => ({
       ...prev,
       [section]: !prev[section],
@@ -1856,25 +1857,6 @@ if (loading) {
                     )}
                   </div>
 
-                  <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="mb-4 flex items-center gap-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm">
-                        📄
-                      </span>
-
-                      <div>
-                        <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
-                          Documentos
-                        </h4>
-                        <p className="text-xs text-slate-500">
-                          Carga la especificación técnica del cliente y documentos de soporte.
-                        </p>
-                      </div>
-                    </div>
-
-                    <ProjectDocumentsSection projectCode={projectCode} />
-                  </div>
-
                   {form.hasReferenceStructure !== "Sí" && (
                   <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <p className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600">
@@ -2222,6 +2204,16 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       );
                     })()}
                   </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection
+                  title="Documentos"
+                  icon="📄"
+                  color="#e67e22"
+                  isOpen={openStructureSections.documents}
+                  onToggle={() => toggleStructureSection("documents")}
+                >
+                  <ProjectDocumentsSection projectCode={projectCode} showPlans={false} />
                 </CollapsibleSection>
               </div>
             )}
