@@ -224,6 +224,13 @@ function normalizeOptionValue(value: string): string {
     .trim();
 }
 
+function parseNumberInput(value: string): number | null {
+  if (!value?.trim()) return null;
+  const normalizedValue = value.replace(",", ".").trim();
+  const parsedValue = Number(normalizedValue);
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
 function getBlueprintFormatOptions(wrapping: string | undefined): Array<{ value: string; label: string }> {
   if (!wrapping) return [];
   const normalized = normalizeWrapping(wrapping);
@@ -444,6 +451,13 @@ const DESTINATION_COUNTRY_OPTIONS = [
   { value: "Otro", label: "Otro" },
 ];
 
+const POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO = "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE PROPIO";
+const POUCH_DOY_PACK_DIMENSION_RESTRICTIONS = {
+  width: { min: 80, max: 230, label: "Ancho" },
+  length: { min: 134, max: 340, label: "Largo" },
+  gussetWidth: { min: 0, max: 3, label: "Ancho fuelle" },
+} as const;
+
 const STEPS = [
   { label: "Información General" },
   { label: "Producto Comercial" },
@@ -454,42 +468,21 @@ const STEPS = [
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
-  0: [
-    "portfolioCode",
-    "executiveId",
-    "salesforceAction",
-    "projectName",
-    "projectDescription",
-  ],
-  1: [
-    "classification",
-    "subClassification",
-    "projectType",
-    "blueprintFormat",
-    "technicalApplication",
-  ],
-  2: [
-    "printClass",
-    "printType",
-  ],
+  0: ["salesforceAction", "projectName", "projectDescription", "executiveId", "portfolioCode"],
+  1: ["blueprintFormat", "technicalApplication", "estimatedVolume", "unitOfMeasure"],
+  2: ["printClass", "printType", "specialDesignSpecs", "specialDesignComments", "hasEdagReference", "edagCode", "edagVersion"],
   3: [
+    "hasReferenceStructure",
+    "referenceEmCode",
+    "referenceEmVersion",
+    "structureType",
     "width",
     "length",
-    "repetition",
+    "gussetWidth",
+    "doyPackBase",
+    "gussetType",
   ],
-  4: [
-    "estimatedVolume",
-    "unitOfMeasure",
-    "saleType",
-    "targetPrice",
-    "currencyType",
-    "coreMaterial",
-    "coreDiameter",
-    "externalDiameter",
-    "maxRollWeight",
-    "peruvianProductLogo",
-    "printingFooter",
-  ],
+  4: ["saleType", "targetPrice", "currencyType", "coreMaterial", "coreDiameter", "externalDiameter", "maxRollWeight", "peruvianProductLogo", "printingFooter"],
   5: [],
 };
 const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
@@ -512,6 +505,7 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   width: "Ancho",
   length: "Largo",
   repetition: "Repetición",
+  gussetWidth: "Ancho Fuelle",
 
   estimatedVolume: "Cantidad / Volumen estimado",
   unitOfMeasure: "Unidad de medida",
@@ -524,15 +518,18 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   maxRollWeight: "Peso máximo rollo",
   peruvianProductLogo: "Logo producto peruano",
   printingFooter: "Pie de imprenta",
+
+  grammage: "Gramaje general (g/m2)",
+  grammageTolerance: "Tolerancia de Gramaje",
+  sampleRequest: "¿Solicitud de muestra?",
 };
-const REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
+const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   "portfolioCode",
   "executiveId",
   "salesforceAction",
   "projectName",
   "projectDescription",
 
-  "classification",
   "blueprintFormat",
   "technicalApplication",
 
@@ -540,9 +537,11 @@ const REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   "unitOfMeasure",
   "printClass",
   "printType",
-  "width",
-  "length",
   "saleType",
+
+  "grammage",
+  "grammageTolerance",
+  "sampleRequest",
 ];
 
 const isFieldEmpty = (value: unknown) => {
@@ -879,7 +878,11 @@ export default function ProjectEditPage() {
   const inheritedSubSegment = selectedPortfolio?.subseg || selectedPortfolio?.subSegmento || selectedPortfolio?.subSegment || "";
   const inheritedAfMarketId = selectedPortfolio?.af || selectedPortfolio?.afMarketId || "";
   const inheritedMachine = selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || selectedPortfolio?.packingMachineName || "";
-    const projectTypeOptions = useMemo(() => {
+
+  const isPouchWrapping = normalizeWrapping(inheritedWrapping).includes("pouch");
+  const shouldApplyPouchDoyPackRestrictions = isPouchWrapping && form.blueprintFormat === POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO;
+
+  const projectTypeOptions = useMemo(() => {
     if (form.classification === "Modificado") {
       return [];
     }
@@ -908,7 +911,7 @@ export default function ProjectEditPage() {
   }, [form.classification, form.subClassification]);
 
   const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
-    const fields = [...REQUIRED_FIELDS];
+    const fields = [...BASE_REQUIRED_FIELDS];
 
     const isSubClassificationEnabled = Boolean(form.classification);
 
@@ -929,6 +932,10 @@ export default function ProjectEditPage() {
       fields.push("repetition");
     }
 
+    if (shouldApplyPouchDoyPackRestrictions) {
+      fields.push("width", "length", "gussetWidth", "doyPackBase", "gussetType");
+    }
+
     return fields;
   }, [
     inheritedWrapping,
@@ -936,6 +943,7 @@ export default function ProjectEditPage() {
     form.classification,
     form.subClassification,
     projectTypeOptions,
+    shouldApplyPouchDoyPackRestrictions,
   ]);
   const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -950,15 +958,35 @@ export default function ProjectEditPage() {
 
   const validationErrors = useMemo(() => {
     const errors: Partial<Record<keyof ProjectEditFormData, string>> = {};
-        requiredFields.forEach((field) => {
-          if (isFieldEmpty(form[field])) {
-            const label = FIELD_LABELS[field] || String(field);
-            errors[field] = `${label} es obligatorio.`;
-          }
-        });
 
-        return errors;
-    }, [form, requiredFields]);
+    requiredFields.forEach((field) => {
+      if (isFieldEmpty(form[field])) {
+        const label = FIELD_LABELS[field] || String(field);
+        errors[field] = `${label} es obligatorio.`;
+      }
+    });
+
+    if (shouldApplyPouchDoyPackRestrictions) {
+      const dimensionFields = ["width", "length", "gussetWidth"] as const;
+
+      dimensionFields.forEach((field) => {
+        const value = form[field];
+        const restriction = POUCH_DOY_PACK_DIMENSION_RESTRICTIONS[field];
+
+        if (value && value.trim()) {
+          const parsedValue = parseNumberInput(value);
+
+          if (parsedValue === null) {
+            errors[field] = `${restriction.label} debe ser un número válido.`;
+          } else if (parsedValue < restriction.min || parsedValue > restriction.max) {
+            errors[field] = `${restriction.label} debe estar entre ${restriction.min} y ${restriction.max} mm.`;
+          }
+        }
+      });
+    }
+
+    return errors;
+  }, [form, requiredFields, shouldApplyPouchDoyPackRestrictions]);
 
   const shouldShowFieldError = (field: keyof ProjectEditFormData) => {
     return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
@@ -967,34 +995,6 @@ export default function ProjectEditPage() {
   const getError = (field: keyof ProjectEditFormData) => {
     return shouldShowFieldError(field) ? validationErrors[field] || "" : "";
   };
-
-  const stepsWithErrors = useMemo(() => {
-    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
-    Object.keys(validationErrors).forEach((field) => {
-      for (const [step, fields] of Object.entries(STEP_FIELDS)) {
-        if (fields.includes(field as keyof ProjectEditFormData)) {
-          result[Number(step)]++;
-          break;
-        }
-      }
-    });
-    return result;
-  }, [validationErrors]);
-
-  // Calculate completion percentage
-      const completionPercentage = useMemo(() => {
-        const completedCount = requiredFields.filter(
-          (field) => !isFieldEmpty(form[field])
-        ).length;
-
-        return Math.round((completedCount / requiredFields.length) * 100);
-      }, [form, requiredFields]);
-
-  const isProjectCompleteForValidation = completionPercentage === 100;
-
-  const primaryButtonLabel = isProjectCompleteForValidation
-    ? "Solicitar validación"
-    : "Actualizar proyecto";
 
   const missingFieldsByStep = useMemo(() => {
     const missing = requiredFields.filter((field) => isFieldEmpty(form[field]));
@@ -1020,6 +1020,42 @@ export default function ProjectEditPage() {
     return result;
   }, [form, requiredFields]);
 
+  const stepsWithErrors = useMemo(() => {
+    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+    Object.keys(validationErrors).forEach((field) => {
+      for (const [step, fields] of Object.entries(STEP_FIELDS)) {
+        if (fields.includes(field as keyof ProjectEditFormData)) {
+          result[Number(step)]++;
+          break;
+        }
+      }
+    });
+
+    if (submitAttempted) {
+      Object.entries(missingFieldsByStep).forEach(([step, fields]) => {
+        result[Number(step)] += fields.length;
+      });
+    }
+
+    return result;
+  }, [validationErrors, missingFieldsByStep, submitAttempted]);
+
+  // Calculate completion percentage
+  const completionPercentage = useMemo(() => {
+    const completedCount = requiredFields.filter(
+      (field) => !isFieldEmpty(form[field])
+    ).length;
+
+    return Math.round((completedCount / requiredFields.length) * 100);
+  }, [form, requiredFields]);
+
+  const isProjectCompleteForValidation = completionPercentage === 100;
+
+  const primaryButtonLabel = isProjectCompleteForValidation
+    ? "Solicitar validación"
+    : "Actualizar proyecto";
+
   const missingFieldCount = useMemo(() => {
   return Object.values(missingFieldsByStep).flat().length;
 }, [missingFieldsByStep]);
@@ -1030,6 +1066,10 @@ const firstMissingStep = useMemo(() => {
   );
 
   return entry ? Number(entry[0]) : 0;
+}, [missingFieldsByStep]);
+
+const hasMissingRequiredFields = useMemo(() => {
+  return Object.values(missingFieldsByStep).some((fields) => fields.length > 0);
 }, [missingFieldsByStep]);
 
 const handleReviewMissingFields = () => {
@@ -1069,16 +1109,14 @@ formElement?.requestSubmit();
     event.preventDefault();
     setSubmitAttempted(true);
 
-    if (!projectCode) {
+    const hasValidationErrors = Object.keys(validationErrors).length > 0;
+
+    if (hasValidationErrors || hasMissingRequiredFields || !projectCode) {
+      setShowMissingFieldsModal(true);
       return;
     }
 
     const shouldForceSaveAsDraft = allowIncompleteSaveRef.current;
-
-    if (!shouldForceSaveAsDraft && !isProjectCompleteForValidation) {
-      setShowMissingFieldsModal(true);
-      return;
-    }
 
     allowIncompleteSaveRef.current = false;
 
@@ -1237,11 +1275,13 @@ formElement?.requestSubmit();
       printingFooter: form.printingFooter,
 
       status: shouldSubmitForValidation ? "Ficha completa" : "Ficha en curso",
+      stage: shouldSubmitForValidation ? "P1_PREPARACION_FICHA" : originalProject?.stage || "P0_REGISTRO_COMERCIAL",
       updatedAt: now,
 
       ...(shouldSubmitForValidation && {
         validacionSolicitada: true,
         estadoValidacionGeneral: "En validación",
+        stageUpdatedAt: now,
         fechaSolicitudValidacion: now,
         validaciones: [
           { area: "Artes Gráficas", estado: "Pendiente", comentarios: [] },
@@ -1520,11 +1560,44 @@ if (loading) {
             {activeStep === 2 && (
               <div className="space-y-5">
                 <FormCard title="Especificaciones de diseño" icon="🎨" color="#8e44ad">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {(() => {
-                      const isPrintingDisabled = form.printClass === "Sin impresión";
-                      return (
-                        <>
+                  {(() => {
+                    const isPrintingDisabled = form.printClass === "Sin impresión";
+
+                    return (
+                      <div className="space-y-4">
+                        {/* Línea 1: Diseño de referencia + EDAG */}
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <FormSelect
+                            label="¿Tiene Diseño de referencia?"
+                            value={form.hasEdagReference}
+                            onChange={(value) => updateField("hasEdagReference", value)}
+                            placeholder="-- Seleccione --"
+                            options={YES_NO_OPTIONS}
+                          />
+
+                          {form.hasEdagReference === "Sí" && (
+                            <>
+                              <FormInput
+                                label="Código EDAG"
+                                value={form.edagCode}
+                                onChange={(value) => updateField("edagCode", value)}
+                                placeholder="Ej. EDAG-000001"
+                                disabled={form.printClass === "Sin impresión"}
+                              />
+
+                              <FormInput
+                                label="Versión EDAG"
+                                value={form.edagVersion}
+                                onChange={(value) => updateField("edagVersion", value)}
+                                placeholder="Ej. 01"
+                                disabled={form.printClass === "Sin impresión"}
+                              />
+                            </>
+                          )}
+                        </div>
+
+                        {/* Línea 2: Impresión + especificaciones */}
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                           <FormSelect
                             label="Clase de Impresión"
                             value={form.printClass}
@@ -1534,6 +1607,7 @@ if (loading) {
                             placeholder="-- Seleccione --"
                             options={PRINT_CLASS_OPTIONS}
                           />
+
                           <FormSelect
                             label="Tipo de Impresión"
                             value={form.printType}
@@ -1544,6 +1618,7 @@ if (loading) {
                             options={PRINT_TYPE_OPTIONS}
                             disabled={isPrintingDisabled}
                           />
+
                           <FormSelect
                             label="Especificaciones de Diseño Especiales"
                             value={form.specialDesignSpecs}
@@ -1552,57 +1627,31 @@ if (loading) {
                             options={SPECIAL_DESIGN_SPECS_OPTIONS}
                             disabled={isPrintingDisabled}
                           />
-                          <FormSelect
-                            label="¿Tiene Diseño de referencia?"
-                            value={form.hasEdagReference}
-                            onChange={(value) => updateField("hasEdagReference", value)}
-                            placeholder="-- Seleccione --"
-                            options={YES_NO_OPTIONS}
-                          />
-                        </>
-                      );
-                    })()}
-                    {form.specialDesignSpecs === "Otros (comentar cuáles)" && (
-                      <div className="md:col-span-3">
-                        <FormTextarea
-                          label="Comentarios de diseños especiales"
-                          value={form.specialDesignComments}
-                          onChange={(value) => updateField("specialDesignComments", value)}
-                          placeholder="Comentarios adicionales de Artes Gráficas..."
-                        />
-                      </div>
-                    )}
+                        </div>
 
-                    {form.hasEdagReference === "Sí" && (
-                      <>
-                        <FormInput
-                          label="Código EDAG"
-                          value={form.edagCode}
-                          onChange={(value) => updateField("edagCode", value)}
-                          placeholder="Ej. EDAG-000001"
-                          disabled={form.printClass === "Sin impresión"}
-                        />
-                        <FormInput
-                          label="Versión EDAG"
-                          value={form.edagVersion}
-                          onChange={(value) => updateField("edagVersion", value)}
-                          placeholder="Ej. 01"
-                          disabled={form.printClass === "Sin impresión"}
-                        />
-                      </>
-                    )}
-                    {form.printClass && (
-                      <div className="md:col-span-3">
-                        <FormSelect
-                          label="¿Requiere trabajo de diseño?"
-                          value={form.printClass === "Sin impresión" ? "No" : "Sí"}
-                          onChange={() => {}}
-                          options={YES_NO_OPTIONS}
-                          disabled={true}
-                        />
+                        {/* Línea 3: Comentarios */}
+                        {form.specialDesignSpecs === "Otros (comentar cuáles)" && (
+                          <FormTextarea
+                            label="Comentarios de diseños especiales"
+                            value={form.specialDesignComments}
+                            onChange={(value) => updateField("specialDesignComments", value)}
+                            placeholder="Comentarios adicionales de Artes Gráficas..."
+                          />
+                        )}
+
+                        {/* Línea final: Requiere trabajo de diseño */}
+                        {form.printClass && (
+                          <FormSelect
+                            label="¿Requiere trabajo de diseño?"
+                            value={form.printClass === "Sin impresión" ? "No" : "Sí"}
+                            onChange={() => {}}
+                            options={YES_NO_OPTIONS}
+                            disabled={true}
+                          />
+                        )}
                       </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </FormCard>
               </div>
             )}
@@ -1763,18 +1812,26 @@ if (loading) {
                       label="Gramaje general (g/m2)"
                       value={form.grammage}
                       onChange={(value) => updateField("grammage", value)}
+                      onBlur={() => markFieldAsTouched("grammage")}
+                      error={getError("grammage")}
                       placeholder="Ej. 40"
                     />
                     <FormInput
                       label="Tolerancia de Gramaje"
                       value={form.grammageTolerance}
                       onChange={(value) => updateField("grammageTolerance", value)}
+                      onBlur={() => markFieldAsTouched("grammageTolerance")}
+                      error={getError("grammageTolerance")}
                       placeholder="Ej. ±5%"
                     />
                     <FormSelect
                       label="¿Solicitud de muestra?"
                       value={form.sampleRequest}
-                      onChange={(value) => updateField("sampleRequest", value)}
+                      onChange={(value) => {
+                        updateField("sampleRequest", value);
+                        markFieldAsTouched("sampleRequest");
+                      }}
+                      error={getError("sampleRequest")}
                       options={YES_NO_OPTIONS}
                     />
                     <div className="md:col-span-3">
@@ -1803,7 +1860,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                               onChange={(value) => updateField("width", value)}
                               onBlur={() => markFieldAsTouched("width")}
                               error={getError("width")}
-                              placeholder="mm"
+                              placeholder={shouldApplyPouchDoyPackRestrictions ? "80 - 230 mm" : "mm"}
                             />
                           )}
                           <FormInput
@@ -1812,7 +1869,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                             onChange={(value) => updateField("length", value)}
                             onBlur={() => markFieldAsTouched("length")}
                             error={getError("length")}
-                            placeholder="mm"
+                            placeholder={shouldApplyPouchDoyPackRestrictions ? "134 - 340 mm" : "mm"}
                           />
                           {showRepetition && (
                             <FormInput
@@ -1825,15 +1882,37 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                             />
                           )}
                           {wrapping.includes("pouch") && (
-                            <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(value) => updateField("doyPackBase", value)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
+                            <FormSelect
+                              label="Base Doy Pack"
+                              value={form.doyPackBase}
+                              onChange={(value) => {
+                                updateField("doyPackBase", value);
+                                markFieldAsTouched("doyPackBase");
+                              }}
+                              error={getError("doyPackBase")}
+                              placeholder="-- Seleccione --"
+                              options={DOY_PACK_BASE_OPTIONS}
+                            />
                           )}
                           <FormInput
                             label="Ancho Fuelle"
                             value={form.gussetWidth}
                             onChange={(value) => updateField("gussetWidth", value)}
-                            placeholder="mm"
+                            onBlur={() => markFieldAsTouched("gussetWidth")}
+                            error={getError("gussetWidth")}
+                            placeholder={shouldApplyPouchDoyPackRestrictions ? "0 - 3 mm" : "mm"}
                           />
-                          <FormSelect label="Tipo de Fuelle" value={form.gussetType} onChange={(value) => updateField("gussetType", value)} placeholder="-- Seleccione --" options={GUSSET_TYPE_OPTIONS} />
+                          <FormSelect
+                            label="Tipo de Fuelle"
+                            value={form.gussetType}
+                            onChange={(value) => {
+                              updateField("gussetType", value);
+                              markFieldAsTouched("gussetType");
+                            }}
+                            error={getError("gussetType")}
+                            placeholder="-- Seleccione --"
+                            options={GUSSET_TYPE_OPTIONS}
+                          />
                         </>
                       );
                     })()}

@@ -1131,6 +1131,7 @@ export default function ProjectCreatePage() {
       printingFooter: form.printingFooter,
 
       status: isFormCompleteForValidation ? "Ficha completa" : "Registrado",
+      stage: isFormCompleteForValidation ? "P1_PREPARACION_FICHA" : "P0_REGISTRO_COMERCIAL",
       createdAt: now,
       updatedAt: now,
 

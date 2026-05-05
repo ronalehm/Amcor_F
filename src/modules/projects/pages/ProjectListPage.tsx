@@ -857,7 +857,7 @@ export default function ProjectListPage() {
                   <td className="px-4 py-3 text-right text-sm">
                     <div className="flex items-center justify-end gap-2">
                       <ActionButton
-                        label="Tracking"
+                        label="Ver"
                         variant="outline"
                         size="sm"
                         onClick={() => navigate(`/projects/${item.code || item.id}`)}
@@ -873,7 +873,7 @@ export default function ProjectListPage() {
                       />
 
                       <ActionButton
-                        label="Duplicar"
+                        label="Copia"
                         variant="outline"
                         size="sm"
                         onClick={() => handleDuplicate(item.code || item.id)}
