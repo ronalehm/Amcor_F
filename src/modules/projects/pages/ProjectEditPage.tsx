@@ -280,7 +280,35 @@ function formatGrammageValue(value: number): string {
     ? String(value)
     : value.toFixed(2).replace(/\.?0+$/, "");
 }
+function getLayerCountByStructureType(structureType: string): number {
+  switch (structureType) {
+    case "Monocapa":
+      return 1;
+    case "Bilaminado":
+      return 2;
+    case "Trilaminado":
+      return 3;
+    case "Tetralaminado":
+      return 4;
+    default:
+      return 0;
+  }
+}
 
+function getMaterialTypeForSummary(materialValue: string): string {
+  if (!materialValue) return "";
+
+  const parts = materialValue.split(" - ");
+
+  // Ejemplo:
+  // "PAPEL - PAPEL ANTIGRASA - 60" => "PAPEL ANTIGRASA"
+  // "COEX - PE BLANCO - Libre" => "PE BLANCO"
+  if (parts.length >= 3) {
+    return parts.slice(1, -1).join(" - ");
+  }
+
+  return materialValue;
+}
 const UNIT_OPTIONS = [
   { value: "KGS", label: "KGS" },
   { value: "MLL", label: "MLL" },
@@ -308,85 +336,113 @@ const STRUCTURE_TYPE_OPTIONS = [
   { value: "Tetralaminado", label: "Tetralaminado" },
 ];
 
-type MaterialEntry = { value: string; label: string; micron: string; isFree: boolean };
+type MaterialEntry = {value: string; label: string; micron: string; grammage: string; isFree: boolean;
+};
+
 type MaterialCatalog = Record<string, MaterialEntry[]>;
+const fixedMaterial = (
+  value: string,
+  label: string,
+  micron: string,
+  grammage: string
+): MaterialEntry => ({
+  value,
+  label,
+  micron,
+  grammage,
+  isFree: false,
+});
+
+const freeMaterial = (
+  value: string,
+  label: string
+): MaterialEntry => ({
+  value,
+  label,
+  micron: "",
+  grammage: "",
+  isFree: true,
+});
 
 const MATERIAL_CATALOG: MaterialCatalog = {
-  "BOPP": [
-    { value: "BOPP - BOPP CRISTAL - 15",         label: "BOPP CRISTAL - 15",         micron: "15",  isFree: false },
-    { value: "BOPP - BOPP CRISTAL - 17",         label: "BOPP CRISTAL - 17",         micron: "17",  isFree: false },
-    { value: "BOPP - BOPP CRISTAL - 20",         label: "BOPP CRISTAL - 20",         micron: "20",  isFree: false },
-    { value: "BOPP - BOPP CRISTAL - 25",         label: "BOPP CRISTAL - 25",         micron: "25",  isFree: false },
-    { value: "BOPP - BOPP CRISTAL - 30",         label: "BOPP CRISTAL - 30",         micron: "30",  isFree: false },
-    { value: "BOPP - BOPP CRISTAL - 35",         label: "BOPP CRISTAL - 35",         micron: "35",  isFree: false },
-    { value: "BOPP - BOPP CRISTAL ETIQUETA - 13.5", label: "BOPP CRISTAL ETIQUETA - 13.5", micron: "13.5", isFree: false },
-    { value: "BOPP - BOPP BLANCO/MATE - 17",     label: "BOPP BLANCO/MATE - 17",     micron: "17",  isFree: false },
-    { value: "BOPP - BOPP BLANCO/MATE - 20",     label: "BOPP BLANCO/MATE - 20",     micron: "20",  isFree: false },
-    { value: "BOPP - BOPP BLANCO/MATE - 27",     label: "BOPP BLANCO/MATE - 27",     micron: "27",  isFree: false },
-    { value: "BOPP - BOPP ALOX - 15",            label: "BOPP ALOX - 15",            micron: "15",  isFree: false },
-    { value: "BOPP - BOPP ALOX - 17",            label: "BOPP ALOX - 17",            micron: "17",  isFree: false },
-    { value: "BOPP - BOPP ALOX - 20",            label: "BOPP ALOX - 20",            micron: "20",  isFree: false },
-    { value: "BOPP - BOPP ALOX - 25",            label: "BOPP ALOX - 25",            micron: "25",  isFree: false },
-    { value: "BOPP - BOPP ALOX - 30",            label: "BOPP ALOX - 30",            micron: "30",  isFree: false },
-    { value: "BOPP - BOPP ALOX - 35",            label: "BOPP ALOX - 35",            micron: "35",  isFree: false },
-    { value: "BOPP - BOPP METALIZADO - 15",      label: "BOPP METALIZADO - 15",      micron: "15",  isFree: false },
-    { value: "BOPP - BOPP METALIZADO - 17",      label: "BOPP METALIZADO - 17",      micron: "17",  isFree: false },
-    { value: "BOPP - BOPP METALIZADO - 20",      label: "BOPP METALIZADO - 20",      micron: "20",  isFree: false },
-    { value: "BOPP - BOPP METALIZADO - 25",      label: "BOPP METALIZADO - 25",      micron: "25",  isFree: false },
-    { value: "BOPP - BOPP METALIZADO - 30",      label: "BOPP METALIZADO - 30",      micron: "30",  isFree: false },
-    { value: "BOPP - BOPP METALIZADO - 35",      label: "BOPP METALIZADO - 35",      micron: "35",  isFree: false },
-    { value: "BOPP - BOPP METALIZADO UHB - 18",  label: "BOPP METALIZADO UHB - 18",  micron: "18",  isFree: false },
+  BOPP: [
+    fixedMaterial("BOPP - BOPP CRISTAL - 15", "BOPP CRISTAL - 15", "15", "13.5"),
+    fixedMaterial("BOPP - BOPP CRISTAL - 17", "BOPP CRISTAL - 17", "17", "15.5"),
+    fixedMaterial("BOPP - BOPP CRISTAL - 20", "BOPP CRISTAL - 20", "20", "18"),
+    fixedMaterial("BOPP - BOPP CRISTAL - 25", "BOPP CRISTAL - 25", "25", "22.5"),
+    fixedMaterial("BOPP - BOPP CRISTAL - 30", "BOPP CRISTAL - 30", "30", "27"),
+    fixedMaterial("BOPP - BOPP CRISTAL - 35", "BOPP CRISTAL - 35", "35", "31.5"),
+    fixedMaterial("BOPP - BOPP CRISTAL ETIQUETA - 13.5", "BOPP CRISTAL ETIQUETA - 13.5", "13.5", "12.2"),
+    fixedMaterial("BOPP - BOPP BLANCO/MATE - 17", "BOPP MATE - 17", "17", "15.5"),
+    fixedMaterial("BOPP - BOPP BLANCO/MATE - 20", "BOPP MATE - 20", "20", "18"),
+    fixedMaterial("BOPP - BOPP BLANCO/MATE - 27", "BOPP BLANCO - 27", "27", "17.3"),
+    fixedMaterial("BOPP - BOPP ALOX - 16", "BOPP ALOX - 16", "16", "14"),
+    fixedMaterial("BOPP - BOPP METALIZADO - 15", "BOPP METALIZADO - 15", "15", "13.5"),
+    fixedMaterial("BOPP - BOPP METALIZADO - 17", "BOPP METALIZADO - 17", "17", "15.5"),
+    fixedMaterial("BOPP - BOPP METALIZADO - 20", "BOPP METALIZADO - 20", "20", "18"),
+    fixedMaterial("BOPP - BOPP METALIZADO - 25", "BOPP METALIZADO - 25", "25", "22.5"),
+    fixedMaterial("BOPP - BOPP METALIZADO - 30", "BOPP METALIZADO - 30", "30", "27"),
+    fixedMaterial("BOPP - BOPP METALIZADO - 35", "BOPP METALIZADO - 35", "35", "32"),
+    fixedMaterial("BOPP - BOPP METALIZADO UHB - 18", "BOPP METALIZADO UHB - 18", "18", "16"),
   ],
-  "POLIESTER": [
-    { value: "POLIESTER - PET CRISTAL - 10",         label: "PET CRISTAL - 10",         micron: "10", isFree: false },
-    { value: "POLIESTER - PET CRISTAL - 12",         label: "PET CRISTAL - 12",         micron: "12", isFree: false },
-    { value: "POLIESTER - PET METALIZADO - 12",      label: "PET METALIZADO - 12",      micron: "12", isFree: false },
-    { value: "POLIESTER - PET METALIZADO UHB - 12",  label: "PET METALIZADO UHB - 12",  micron: "12", isFree: false },
+
+  POLIESTER: [
+    fixedMaterial("POLIESTER - PET CRISTAL - 10", "PET CRISTAL - 10", "10", "14"),
+    fixedMaterial("POLIESTER - PET CRISTAL - 12", "PET CRISTAL - 12", "12", "17"),
+    fixedMaterial("POLIESTER - PET METALIZADO - 12", "PET METALIZADO - 12", "12", "17"),
+    fixedMaterial("POLIESTER - PET METALIZADO UHB - 12", "PET METALIZADO UHB - 12", "12", "17"),
   ],
-  "PAPEL": [
-    { value: "PAPEL - PAPEL ANTIGRASA - 40",    label: "PAPEL ANTIGRASA - 40",    micron: "40", isFree: false },
-    { value: "PAPEL - PAPEL ANTIGRASA - 60",    label: "PAPEL ANTIGRASA - 60",    micron: "60", isFree: false },
-    { value: "PAPEL - PAPEL ESTUCADO - 40",     label: "PAPEL ESTUCADO - 40",     micron: "40", isFree: false },
-    { value: "PAPEL - PAPEL ESTUCADO - 60",     label: "PAPEL ESTUCADO - 60",     micron: "60", isFree: false },
-    { value: "PAPEL - PAPEL ESTUCADO - 70",     label: "PAPEL ESTUCADO - 70",     micron: "70", isFree: false },
-    { value: "PAPEL - PAPEL ESPECIAL - Libre",  label: "PAPEL ESPECIAL - Libre",  micron: "",   isFree: true  },
+
+  PAPEL: [
+    fixedMaterial("PAPEL - PAPEL ANTIGRASA - 40", "PAPEL ANTIGRASA - 40", "40", "40"),
+    fixedMaterial("PAPEL - PAPEL ANTIGRASA - 60", "PAPEL ANTIGRASA - 60", "60", "60"),
+    fixedMaterial("PAPEL - PAPEL ESTUCADO - 40", "PAPEL ESTUCADO - 40", "40", "40"),
+    fixedMaterial("PAPEL - PAPEL ESTUCADO - 60", "PAPEL ESTUCADO - 60", "60", "60"),
+    fixedMaterial("PAPEL - PAPEL ESTUCADO - 70", "PAPEL ESTUCADO - 70", "70", "70"),
+    freeMaterial("PAPEL - PAPEL ESPECIAL - Libre", "PAPEL ESPECIAL - Libre"),
   ],
-  "COEX": [
-    { value: "COEX - PE CRISTAL - Libre", label: "PE CRISTAL - Libre", micron: "", isFree: true },
-    { value: "COEX - PE BLANCO - Libre", label: "PE BLANCO - Libre", micron: "", isFree: true },
-    { value: "COEX - BARVAL CRISTAL - Libre", label: "BARVAL CRISTAL - Libre", micron: "", isFree: true },
-    { value: "COEX - BARVAL BLANCO - Libre", label: "BARVAL BLANCO - Libre", micron: "", isFree: true },
-    { value: "COEX - BARLON CRISTAL - Libre", label: "BARLON CRISTAL - Libre", micron: "", isFree: true },
-    { value: "COEX - BARLON BLANCO - Libre", label: "BARLON BLANCO - Libre", micron: "", isFree: true },
-    { value: "COEX - PE PELABLE CRISTAL - Libre", label: "PE PELABLE CRISTAL - Libre", micron: "", isFree: true },
-    { value: "COEX - PE PELABLE BLANCO - Libre", label: "PE PELABLE BLANCO - Libre", micron: "", isFree: true },
-    { value: "COEX - UHT - Libre", label: "UHT - Libre", micron: "", isFree: true },
+
+  COEX: [
+    freeMaterial("COEX - PE CRISTAL - Libre", "PE CRISTAL - Libre"),
+    freeMaterial("COEX - PE BLANCO - Libre", "PE BLANCO - Libre"),
+    freeMaterial("COEX - BARVAL CRISTAL - Libre", "BARVAL CRISTAL - Libre"),
+    freeMaterial("COEX - BARVAL BLANCO - Libre", "BARVAL BLANCO - Libre"),
+    freeMaterial("COEX - BARLON CRISTAL - Libre", "BARLON CRISTAL - Libre"),
+    freeMaterial("COEX - BARLON BLANCO - Libre", "BARLON BLANCO - Libre"),
+    freeMaterial("COEX - PE PELABLE CRISTAL - Libre", "PE PELABLE CRISTAL - Libre"),
+    freeMaterial("COEX - PE PELABLE BLANCO - Libre", "PE PELABLE BLANCO - Libre"),
+    freeMaterial("COEX - UHT - Libre", "UHT - Libre"),
   ],
-  "ALUMINIO": [
-    { value: "ALUMINIO - ALUMINIO - 7", label: "ALUMINIO - 7", micron: "7", isFree: false },
-    { value: "ALUMINIO - ALUMINIO - 8", label: "ALUMINIO - 8", micron: "8", isFree: false },
-    { value: "ALUMINIO - ALUMINIO - 9", label: "ALUMINIO - 9", micron: "9", isFree: false },
+
+  ALUMINIO: [
+    fixedMaterial("ALUMINIO - ALUMINIO - 7", "ALUMINIO - 7", "7", "19"),
+    fixedMaterial("ALUMINIO - ALUMINIO - 8", "ALUMINIO - 8", "8", "22"),
+    fixedMaterial("ALUMINIO - ALUMINIO - 9", "ALUMINIO - 9", "9", "24.3"),
   ],
-  "AMPRIMA": [
-    { value: "AMPRIMA - AMPRIMA - 25", label: "AMPRIMA - 25", micron: "25", isFree: false },
+
+  AMPRIMA: [
+    fixedMaterial("AMPRIMA - AMPRIMA - 25", "AMPRIMA - 25", "25", "24.6"),
   ],
-  "PPCAST": [
-    { value: "PPCAST - CAST CRISTAL - 20", label: "CAST CRISTAL - 20", micron: "20", isFree: false },
-    { value: "PPCAST - CAST CRISTAL - 25", label: "CAST CRISTAL - 25", micron: "25", isFree: false },
-    { value: "PPCAST - CAST CRISTAL - 30", label: "CAST CRISTAL - 30", micron: "30", isFree: false },
-    { value: "PPCAST - CAST CRISTAL - 60", label: "CAST CRISTAL - 60", micron: "60", isFree: false },
+
+  PPCAST: [
+    fixedMaterial("PPCAST - CAST CRISTAL - 20", "CAST CRISTAL - 20", "20", "18"),
+    fixedMaterial("PPCAST - CAST CRISTAL - 25", "CAST CRISTAL - 25", "25", "22.5"),
+    fixedMaterial("PPCAST - CAST CRISTAL - 30", "CAST CRISTAL - 30", "30", "27"),
+    fixedMaterial("PPCAST - CAST CRISTAL - 60", "CAST CRISTAL - 60", "60", "54.3"),
   ],
-  "BOPA": [
-    { value: "BOPA - BOPA CRISTAL - 15", label: "BOPA CRISTAL - 15", micron: "15", isFree: false },
+
+  BOPA: [
+    fixedMaterial("BOPA - BOPA CRISTAL - 15", "BOPA CRISTAL - 15", "15", "17"),
   ],
-  "TERMOFORMADOS": [
-    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 75",  label: "TERMOFORMADO ALTA - 75",  micron: "75",  isFree: false },
-    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 90",  label: "TERMOFORMADO ALTA - 90",  micron: "90",  isFree: false },
-    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 100", label: "TERMOFORMADO ALTA - 100", micron: "100", isFree: false },
-    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 110", label: "TERMOFORMADO ALTA - 110", micron: "110", isFree: false },
-    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 150", label: "TERMOFORMADO ALTA - 150", micron: "150", isFree: false },
-    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 178", label: "TERMOFORMADO ALTA - 178", micron: "178", isFree: false },
-    { value: "TERMOFORMADOS - TERMOFORMADO ALTA - 200", label: "TERMOFORMADO ALTA - 200", micron: "200", isFree: false },
+
+  TERMOFORMADOS: [
+    fixedMaterial("TERMOFORMADOS - TERMOFORMADO ALTA - 75", "TERMOFORMADO ALTA - 75", "75", "75"),
+    fixedMaterial("TERMOFORMADOS - TERMOFORMADO ALTA - 90", "TERMOFORMADO ALTA - 90", "90", "86"),
+    fixedMaterial("TERMOFORMADOS - TERMOFORMADO ALTA - 100", "TERMOFORMADO ALTA - 100", "100", "97.5"),
+    fixedMaterial("TERMOFORMADOS - TERMOFORMADO ALTA - 110", "TERMOFORMADO ALTA - 110", "110", "105"),
+    fixedMaterial("TERMOFORMADOS - TERMOFORMADO ALTA - 150", "TERMOFORMADO ALTA - 150", "150", "145.5"),
+    fixedMaterial("TERMOFORMADOS - TERMOFORMADO ALTA - 178", "TERMOFORMADO ALTA - 178", "178", "170.3"),
+    fixedMaterial("TERMOFORMADOS - TERMOFORMADO ALTA - 200", "TERMOFORMADO ALTA - 200", "200", "191"),
   ],
 };
 
@@ -669,6 +725,26 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
 
   externalVariationPlus: "Variación Externa +",
   externalVariationMinus: "Variación Externa -",
+
+  layer1MaterialGroup: "Capa 1 - Grupo Material",
+layer1Material: "Capa 1 - Tipo de Material y Micraje",
+layer1Micron: "Capa 1 - Micraje",
+layer1Grammage: "Capa 1 - Gramaje",
+
+layer2MaterialGroup: "Capa 2 - Grupo Material",
+layer2Material: "Capa 2 - Tipo de Material y Micraje",
+layer2Micron: "Capa 2 - Micraje",
+layer2Grammage: "Capa 2 - Gramaje",
+
+layer3MaterialGroup: "Capa 3 - Grupo Material",
+layer3Material: "Capa 3 - Tipo de Material y Micraje",
+layer3Micron: "Capa 3 - Micraje",
+layer3Grammage: "Capa 3 - Gramaje",
+
+layer4MaterialGroup: "Capa 4 - Grupo Material",
+layer4Material: "Capa 4 - Tipo de Material y Micraje",
+layer4Micron: "Capa 4 - Micraje",
+layer4Grammage: "Capa 4 - Gramaje",
 };
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Información General
@@ -1065,19 +1141,8 @@ export default function ProjectEditPage() {
   const shouldApplyPouchDoyPackRestrictions = isPouchWrapping && form.blueprintFormat === POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO;
 
   const activeLayerCount = useMemo(() => {
-    switch (form.structureType) {
-      case "Monocapa":
-        return 1;
-      case "Bilaminado":
-        return 2;
-      case "Trilaminado":
-        return 3;
-      case "Tetralaminado":
-        return 4;
-      default:
-        return 0;
-    }
-  }, [form.structureType]);
+  return getLayerCountByStructureType(form.structureType);
+}, [form.structureType]);
 
   const layerGrammageTotal = useMemo(() => {
     const layerGrammages = [
@@ -1118,6 +1183,51 @@ export default function ProjectEditPage() {
       };
     });
   }, [calculatedGrammageTotal]);
+  useEffect(() => {
+  setForm((prev) => {
+    let changed = false;
+    const next: ProjectEditFormData = { ...prev };
+
+    for (let layer = 1; layer <= 4; layer++) {
+      const groupKey = `layer${layer}MaterialGroup` as keyof ProjectEditFormData;
+      const materialKey = `layer${layer}Material` as keyof ProjectEditFormData;
+      const micronKey = `layer${layer}Micron` as keyof ProjectEditFormData;
+      const grammageKey = `layer${layer}Grammage` as keyof ProjectEditFormData;
+
+      const group = prev[groupKey] as string;
+      const material = prev[materialKey] as string;
+
+      if (!group || !material) continue;
+
+      const entry = MATERIAL_CATALOG[group]?.find(
+        (item) => item.value === material || item.label === material
+      );
+
+      if (!entry || entry.isFree) continue;
+
+      if (prev[micronKey] !== entry.micron) {
+        next[micronKey] = entry.micron;
+        changed = true;
+      }
+
+      if (prev[grammageKey] !== entry.grammage) {
+        next[grammageKey] = entry.grammage;
+        changed = true;
+      }
+    }
+
+    return changed ? next : prev;
+  });
+}, [
+  form.layer1MaterialGroup,
+  form.layer1Material,
+  form.layer2MaterialGroup,
+  form.layer2Material,
+  form.layer3MaterialGroup,
+  form.layer3Material,
+  form.layer4MaterialGroup,
+  form.layer4Material,
+]);
 
   const projectTypeOptions = useMemo(() => {
     if (form.classification === "Modificado") {
@@ -1149,7 +1259,18 @@ export default function ProjectEditPage() {
 
   const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
     const fields = [...BASE_REQUIRED_FIELDS];
+    if (form.hasReferenceStructure !== "Sí") {
+      fields.push("structureType");
 
+      for (let layer = 1; layer <= activeLayerCount; layer++) {
+        fields.push(
+          `layer${layer}MaterialGroup` as keyof ProjectEditFormData,
+          `layer${layer}Material` as keyof ProjectEditFormData,
+          `layer${layer}Micron` as keyof ProjectEditFormData,
+          `layer${layer}Grammage` as keyof ProjectEditFormData
+        );
+      }
+    }
     if (form.printClass && form.printClass !== "Sin impresión") {
       fields.push("printType");
     }
@@ -1184,17 +1305,20 @@ export default function ProjectEditPage() {
     }
 
     return fields;
-  }, [
-    inheritedWrapping,
-    form.blueprintFormat,
-    form.classification,
-    form.subClassification,
-    form.printClass,
-    projectTypeOptions,
-    shouldApplyPouchDoyPackRestrictions,
-    form.hasEdagReference,
-    form.hasCustomerTechnicalSpec,
-  ]);
+}, [
+  inheritedWrapping,
+  form.blueprintFormat,
+  form.classification,
+  form.subClassification,
+  form.printClass,
+  form.hasReferenceStructure,
+  form.structureType,
+  activeLayerCount,
+  projectTypeOptions,
+  shouldApplyPouchDoyPackRestrictions,
+  form.hasEdagReference,
+  form.hasCustomerTechnicalSpec,
+]);
   const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -1205,6 +1329,16 @@ export default function ProjectEditPage() {
       [field]: true,
     }));
   };
+  const handleCustomerTechnicalSpecFile = (file?: File | null) => {
+  if (!file) {
+    updateField("customerTechnicalSpecAttachment", "");
+    markFieldAsTouched("customerTechnicalSpecAttachment");
+    return;
+  }
+
+  updateField("customerTechnicalSpecAttachment", file.name);
+  markFieldAsTouched("customerTechnicalSpecAttachment");
+};
 
   const validationErrors = useMemo(() => {
     const errors: Partial<Record<keyof ProjectEditFormData, string>> = {};
@@ -1836,7 +1970,7 @@ if (loading) {
                     />
 
                     <FormSelect
-                      label="Formato de Plano"
+                      label="Formato de Plano *"
                       value={form.blueprintFormat}
                       onChange={(value) => updateField("blueprintFormat", value)}
                       onBlur={() => markFieldAsTouched("blueprintFormat")}
@@ -1847,7 +1981,7 @@ if (loading) {
                     />
 
                     <FormSelect
-                      label="Aplicación Técnica"
+                      label="Aplicación Técnica *"
                       value={form.technicalApplication}
                       onChange={(value) => updateField("technicalApplication", value)}
                       onBlur={() => markFieldAsTouched("technicalApplication")}
@@ -1879,9 +2013,14 @@ if (loading) {
                         {/* Línea 1: Diseño de referencia + EDAG */}
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                           <FormSelect
-                            label="¿Tiene Diseño de referencia?"
+                            label="¿Tiene Diseño de referencia? *"
                             value={form.hasEdagReference}
-                            onChange={(value) => updateField("hasEdagReference", value)}
+                            onChange={(value) => {
+                              updateField("hasEdagReference", value);
+                              markFieldAsTouched("hasEdagReference");
+                            }}
+                            onBlur={() => markFieldAsTouched("hasEdagReference")}
+                            error={getError("hasEdagReference")}
                             placeholder="-- Seleccione --"
                             options={YES_NO_OPTIONS}
                           />
@@ -1910,7 +2049,7 @@ if (loading) {
                         {/* Línea 2: Impresión + especificaciones */}
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                           <FormSelect
-                            label="Impresión"
+                            label="Impresión *"
                             value={form.printClass}
                             onChange={(value) => updateField("printClass", value)}
                             onBlur={() => markFieldAsTouched("printClass")}
@@ -1920,7 +2059,7 @@ if (loading) {
                           />
 
                           <FormSelect
-                            label="Tipo"
+                            label={form.printClass && form.printClass !== "Sin impresión" ? "Tipo *" : "Tipo"}
                             value={form.printType}
                             onChange={(value) => updateField("printType", value)}
                             onBlur={() => markFieldAsTouched("printType")}
@@ -1969,6 +2108,7 @@ if (loading) {
                 <ProjectPlansUploadSection
                   projectCode={projectCode}
                   error={getError("designPlanFiles")}
+                  required={form.hasEdagReference === "Sí"}
                   onFilesChange={(fileNames) => {
                     updateField("designPlanFiles", fileNames);
                     markFieldAsTouched("designPlanFiles");
@@ -2030,20 +2170,7 @@ if (loading) {
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                       {(() => {
-                        const maxLayers = (() => {
-                          switch (form.structureType) {
-                            case "Monocapa":
-                              return 1;
-                            case "Bilaminado":
-                              return 2;
-                            case "Trilaminado":
-                              return 3;
-                            case "Tetralaminado":
-                              return 4;
-                            default:
-                              return 0;
-                          }
-                        })();
+                        const maxLayers = activeLayerCount;
                         return [1, 2, 3, 4].filter(layer => layer <= maxLayers).map((layer) => {
                         const groupKey = `layer${layer}MaterialGroup` as keyof ProjectEditFormData;
                         const materialKey = `layer${layer}Material` as keyof ProjectEditFormData;
@@ -2062,48 +2189,63 @@ if (loading) {
                             </p>
                             <div className="space-y-3">
                               <FormSelect
-                                label="Grupo Material"
+                                label="Grupo Materia Prima *"
                                 value={group}
                                 onChange={(value) => {
                                   updateField(groupKey, value);
                                   updateField(materialKey, "");
                                   updateField(micronKey, "");
+                                  updateField(grammageKey, "");
+                                  markFieldAsTouched(groupKey);
                                 }}
+                                onBlur={() => markFieldAsTouched(groupKey)}
+                                error={getError(groupKey)}
                                 placeholder="-- Seleccione grupo --"
                                 options={MATERIAL_GROUP_OPTIONS}
                               />
                               <FormSelect
-                                label="Tipo de Material y Micraje"
+                                label="Tipo de Materia Prima *"
                                 value={form[materialKey] as string}
                                 onChange={(value) => {
                                   updateField(materialKey, value);
-                                  const entry = MATERIAL_CATALOG[group]?.find(m => m.value === value);
+
+                                  const entry = MATERIAL_CATALOG[group]?.find((m) => m.value === value);
+
                                   if (entry && !entry.isFree) {
                                     updateField(micronKey, entry.micron);
+                                    updateField(grammageKey, entry.grammage);
                                   } else {
                                     updateField(micronKey, "");
+                                    updateField(grammageKey, "");
                                   }
+
+                                  markFieldAsTouched(materialKey);
+                                  markFieldAsTouched(micronKey);
+                                  markFieldAsTouched(grammageKey);
                                 }}
+                                onBlur={() => markFieldAsTouched(materialKey)}
+                                error={getError(materialKey)}
                                 options={groupOptions}
                                 disabled={!group}
                                 placeholder="-- Seleccione tipo --"
                               />
                               <FormInput
-                                label="Micraje"
+                                label="Micraje *"
                                 value={form[micronKey] as string}
-                                onChange={(value) =>
-                                  updateField(micronKey, value)
-                                }
+                                onChange={(value) => updateField(micronKey, value)}
+                                onBlur={() => markFieldAsTouched(micronKey)}
+                                error={getError(micronKey)}
                                 disabled={!isMicronFree}
                                 placeholder={isMicronFree ? "Ingrese micraje" : "Auto"}
                               />
                               <FormInput
-                                label="Gramaje"
+                                label="Gramaje *"
                                 value={form[grammageKey] as string}
-                                onChange={(value) =>
-                                  updateField(grammageKey, value)
-                                }
-                                placeholder="Pendiente completar "
+                                onChange={(value) => updateField(grammageKey, value)}
+                                onBlur={() => markFieldAsTouched(grammageKey)}
+                                error={getError(grammageKey)}
+                                disabled={!isMicronFree}
+                                placeholder={isMicronFree ? "Ingrese gramaje" : "Auto"}
                               />
                             </div>
                           </div>
@@ -2113,72 +2255,103 @@ if (loading) {
                     </div>
 
                     {(() => {
-                      const completedLayers = [];
-                      for (let i = 1; i <= 4; i++) {
+                      const completedLayers: string[] = [];
+                      const missingLayers: string[] = [];
+
+                      for (let i = 1; i <= activeLayerCount; i++) {
                         const material = form[`layer${i}Material` as keyof ProjectEditFormData] as string;
                         const micron = form[`layer${i}Micron` as keyof ProjectEditFormData] as string;
-                        if (material && micron) {
-                          const materialDisplay = material.split(" - ").slice(1).join(" - ");
-                          completedLayers.push(`${materialDisplay} / ${micron}`);
+                        const grammage = form[`layer${i}Grammage` as keyof ProjectEditFormData] as string;
+
+                        const isLayerComplete = material && micron && grammage;
+
+                        if (isLayerComplete) {
+                          const materialDisplay = getMaterialTypeForSummary(material);
+                          completedLayers.push(`${materialDisplay}, ${micron}`);
+                        } else {
+                          missingLayers.push(`Capa ${i}`);
                         }
                       }
-                      return completedLayers.length > 0 ? (
+
+                      return (
                         <div className="mt-4 rounded-lg bg-white border border-slate-200 p-3">
-                          <p className="text-xs font-semibold text-slate-600 mb-2">Resumen de Capas:</p>
-                          <p className="text-sm text-slate-700 font-medium break-words">
-                            {completedLayers.join(" | ")}
+                          <p className="text-xs font-semibold text-slate-600 mb-2">
+                            Materia Prima General:
                           </p>
+
+                          {completedLayers.length > 0 ? (
+                            <p className="text-sm text-slate-700 font-medium break-words">
+                              {completedLayers.join(" | ")}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-slate-500">
+                              Aún no hay capas completas.
+                            </p>
+                          )}
+
+                          {missingLayers.length > 0 && (
+                            <p className="mt-2 text-xs font-medium text-red-600">
+                              Falta completar: {missingLayers.join(", ")}.
+                            </p>
+                          )}
                         </div>
-                      ) : null;
+                      );
                     })()}
                   </div>
                   )}
-
-                  <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div>
-                      <FormInput
-                        label="Gramaje general (g/m2)"
-                        value={form.grammage}
-                        onChange={() => {}}
-                        onBlur={() => markFieldAsTouched("grammage")}
-                        error={getError("grammage")}
-                        placeholder="Calculado automáticamente"
-                        disabled={true}
-                      />
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        Cálculo: suma de gramajes de capas ({formatGrammageValue(layerGrammageTotal)} g/m2)
-                        + Tintas y Adhesivos {form.structureType ? `(${form.structureType}: ${formatGrammageValue(fixedInkAdhesiveGrammage)} g/m2)` : "(según tipo de estructura)"}
-                        = {form.grammage || "0"} g/m2.
-                      </p>
-                    </div>
+                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <FormInput
-                      label="Tolerancia de Gramaje"
+                      label="Gramaje general (g/m2) *"
+                      value={form.grammage}
+                      onChange={() => {}}
+                      onBlur={() => markFieldAsTouched("grammage")}
+                      error={getError("grammage")}
+                      placeholder="Calculado automáticamente"
+                      disabled={true}
+                    />
+
+                    <FormInput
+                      label="Tolerancia de Gramaje *"
                       value={form.grammageTolerance}
                       onChange={(value) => updateField("grammageTolerance", value)}
                       onBlur={() => markFieldAsTouched("grammageTolerance")}
                       error={getError("grammageTolerance")}
                       placeholder="Ej. ±5%"
                     />
+
                     <FormSelect
-                      label="¿Solicitud de muestra?"
+                      label="¿Solicitud de muestra? *"
                       value={form.sampleRequest}
                       onChange={(value) => {
                         updateField("sampleRequest", value);
                         markFieldAsTouched("sampleRequest");
                       }}
+                      onBlur={() => markFieldAsTouched("sampleRequest")}
                       error={getError("sampleRequest")}
+                      placeholder="-- Seleccione --"
                       options={YES_NO_OPTIONS}
                     />
+
+                    <p className="md:col-span-3 text-xs text-slate-500">
+                      Cálculo del gramaje general: suma de gramajes de capas (
+                      {formatGrammageValue(layerGrammageTotal)} g/m2) + Tintas y Adhesivos{" "}
+                      {form.structureType
+                        ? `(${form.structureType}: ${formatGrammageValue(fixedInkAdhesiveGrammage)} g/m2)`
+                        : "(según tipo de estructura)"}
+                      {" "} = {form.grammage || "0"} g/m2.
+                    </p>
+
                     <div className="md:col-span-3">
                       <FormTextarea
-                        label="Especificaciones Especiales de Estructura / Comentarios"
+                        label="Comentarios"
                         value={form.specialStructureSpecs}
                         onChange={(value) => updateField("specialStructureSpecs", value)}
                         placeholder="Restricciones, barreras, sellabilidad, resistencia, OTR/WVTR..."
                       />
                     </div>
                   </div>
+                </div>
                 </CollapsibleSection>
 
                 <CollapsibleSection
@@ -2197,7 +2370,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                         <>
                           {isPouchOrBolsa && (
                             <FormInput
-                              label="Ancho"
+                              label={shouldApplyPouchDoyPackRestrictions ? "Ancho *" : "Ancho"}
                               value={form.width}
                               onChange={(value) => updateField("width", value)}
                               onBlur={() => markFieldAsTouched("width")}
@@ -2206,7 +2379,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                             />
                           )}
                           <FormInput
-                            label="Largo"
+                            label={shouldApplyPouchDoyPackRestrictions ? "Largo *" : "Largo"}
                             value={form.length}
                             onChange={(value) => updateField("length", value)}
                             onBlur={() => markFieldAsTouched("length")}
@@ -2215,7 +2388,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                           />
                           {showRepetition && (
                             <FormInput
-                              label="Repetición"
+                              label="Repetición *"
                               value={form.repetition}
                               onChange={(value) => updateField("repetition", value)}
                               onBlur={() => markFieldAsTouched("repetition")}
@@ -2225,7 +2398,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                           )}
                           {wrapping.includes("pouch") && (
                             <FormSelect
-                              label="Base Doy Pack"
+                              label={shouldApplyPouchDoyPackRestrictions ? "Base Doy Pack *" : "Base Doy Pack"}
                               value={form.doyPackBase}
                               onChange={(value) => {
                                 updateField("doyPackBase", value);
@@ -2237,7 +2410,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                             />
                           )}
                           <FormInput
-                            label="Ancho Fuelle"
+                            label={shouldApplyPouchDoyPackRestrictions ? "Ancho Fuelle *" : "Ancho Fuelle"}
                             value={form.gussetWidth}
                             onChange={(value) => updateField("gussetWidth", value)}
                             onBlur={() => markFieldAsTouched("gussetWidth")}
@@ -2245,7 +2418,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                             placeholder={shouldApplyPouchDoyPackRestrictions ? "0 - 3 mm" : "mm"}
                           />
                           <FormSelect
-                            label="Tipo de Fuelle"
+                            label={shouldApplyPouchDoyPackRestrictions ? "Tipo de Fuelle *" : "Tipo de Fuelle"}
                             value={form.gussetType}
                             onChange={(value) => {
                               updateField("gussetType", value);
@@ -2410,7 +2583,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       {form.hasCustomerTechnicalSpec === "Sí" && (
                         <div className="md:col-span-2">
                           <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                            Especificación Técnica del Cliente Adjunto
+                            Especificación Técnica del Cliente Adjunto *
                           </label>
 
                           <input
@@ -2470,7 +2643,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                 <FormCard title="Condiciones comerciales" icon="💰" color="#0d4c5c">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <FormInput
-                      label="Cantidad / Volumen estimado"
+                      label="Cantidad / Volumen estimado *"
                       value={form.estimatedVolume}
                       onChange={(value) => updateField("estimatedVolume", value)}
                       onBlur={() => markFieldAsTouched("estimatedVolume")}
@@ -2479,7 +2652,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                     />
 
                     <FormSelect
-                      label="Unidad de Medida"
+                      label="Unidad de Medida *"
                       value={form.unitOfMeasure}
                       onChange={(value) => updateField("unitOfMeasure", value)}
                       onBlur={() => markFieldAsTouched("unitOfMeasure")}
@@ -2488,7 +2661,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       placeholder="-- Seleccione --"
                     />
 
-                    <FormSelect label="Venta Nacional / Internacional" value={form.saleType} onChange={(value) => updateField("saleType", value)} options={SALE_TYPE_OPTIONS} />
+                    <FormSelect label="Venta Nacional / Internacional *" value={form.saleType} onChange={(value) => updateField("saleType", value)} options={SALE_TYPE_OPTIONS} />
                     <FormSelect label="Incoterm" value={form.incoterm} onChange={(value) => updateField("incoterm", value)} options={INCOTERM_OPTIONS} />
                     <FormSelect label="País Destino" value={form.destinationCountry} onChange={(value) => updateField("destinationCountry", value)} options={DESTINATION_COUNTRY_OPTIONS} />
 

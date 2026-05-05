@@ -15,12 +15,14 @@ interface ProjectPlansUploadSectionProps {
   projectCode: string;
   onFilesChange?: (fileNames: string[]) => void;
   error?: string;
+  required?: boolean;
 }
 
 export default function ProjectPlansUploadSection({
   projectCode,
   onFilesChange,
   error,
+  required = false,
 }: ProjectPlansUploadSectionProps) {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -187,7 +189,7 @@ export default function ProjectPlansUploadSection({
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 space-y-4">
       <div className="flex items-center gap-2">
         <span className="text-2xl">📐</span>
-        <h3 className="text-sm font-bold uppercase text-slate-700">Planos</h3>
+        <h3 className="text-sm font-bold uppercase text-slate-700">Planos{required && " *"}</h3>
         <span className="text-xs text-slate-500">({PLANOS_EXTENSIONS.join(", ")})</span>
         {error && <span className="text-xs text-red-600 font-semibold">*</span>}
       </div>
