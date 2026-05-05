@@ -1565,7 +1565,7 @@ export default function ProjectCreatePage() {
             </FormCard>
 
             {/* FormCard 6: Dimensiones y accesorios */}
-            <FormCard title="6. Dimensiones y accesorios" icon="⌗" color="#16a085">
+            <FormCard title="Dimensiones y accesorios" icon="⌗" color="#16a085">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
                 {(() => {
                   const wrapping = inheritedWrapping?.toLowerCase() || "";
@@ -1758,7 +1758,7 @@ export default function ProjectCreatePage() {
                         disabled={isPrintingDisabled}
                       />
                       <FormSelect
-                        label="Especificaciones de Diseño Especiales"
+                        label="Especificaciones Especiales"
                         value={form.specialDesignSpecs}
                         onChange={(value) => updateField("specialDesignSpecs", value)}
                         placeholder="-- Seleccione --"
