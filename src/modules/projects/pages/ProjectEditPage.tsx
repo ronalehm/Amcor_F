@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords, TECHNICAL_APPLICATION_OPTIONS } from "../../../shared/data/portfolioStorage";
@@ -930,7 +930,6 @@ export default function ProjectEditPage() {
   const [originalProject, setOriginalProject] = useState<ProjectRecord | null>(null);
   const [showValidationSuccessModal, setShowValidationSuccessModal] = useState(false);
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
-  const [showInheritedDataModal, setShowInheritedDataModal] = useState(false);
   const [openStructureSections, setOpenStructureSections] = useState({
     specs: true,
     dimensions: true,
@@ -1185,14 +1184,23 @@ export default function ProjectEditPage() {
   }, [calculatedGrammageTotal]);
   useEffect(() => {
   setForm((prev) => {
-    let changed = false;
-    const next: ProjectEditFormData = { ...prev };
+    const updates: Partial<ProjectEditFormData> = {};
 
     for (let layer = 1; layer <= 4; layer++) {
       const groupKey = `layer${layer}MaterialGroup` as keyof ProjectEditFormData;
       const materialKey = `layer${layer}Material` as keyof ProjectEditFormData;
-      const micronKey = `layer${layer}Micron` as keyof ProjectEditFormData;
-      const grammageKey = `layer${layer}Grammage` as keyof ProjectEditFormData;
+
+      const micronKey = `layer${layer}Micron` as
+        | "layer1Micron"
+        | "layer2Micron"
+        | "layer3Micron"
+        | "layer4Micron";
+
+      const grammageKey = `layer${layer}Grammage` as
+        | "layer1Grammage"
+        | "layer2Grammage"
+        | "layer3Grammage"
+        | "layer4Grammage";
 
       const group = prev[groupKey] as string;
       const material = prev[materialKey] as string;
@@ -1206,17 +1214,17 @@ export default function ProjectEditPage() {
       if (!entry || entry.isFree) continue;
 
       if (prev[micronKey] !== entry.micron) {
-        next[micronKey] = entry.micron;
-        changed = true;
+        updates[micronKey] = entry.micron;
       }
 
       if (prev[grammageKey] !== entry.grammage) {
-        next[grammageKey] = entry.grammage;
-        changed = true;
+        updates[grammageKey] = entry.grammage;
       }
     }
 
-    return changed ? next : prev;
+    return Object.keys(updates).length > 0
+      ? { ...prev, ...updates }
+      : prev;
   });
 }, [
   form.layer1MaterialGroup,
@@ -2581,45 +2589,71 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       />
 
                       {form.hasCustomerTechnicalSpec === "Sí" && (
-                        <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                            Especificación Técnica del Cliente Adjunto *
+                        <div
+                          className={`md:col-span-3 rounded-xl border bg-slate-50 p-4 ${
+                            getError("customerTechnicalSpecAttachment")
+                              ? "border-red-400"
+                              : "border-slate-200"
+                          }`}
+                        >
+                          <div className="mb-3 flex items-center gap-3">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-sm">
+                              📎
+                            </span>
+
+                            <div>
+                              <h4 className="text-sm font-bold uppercase tracking-wide text-slate-800">
+                                Especificación Técnica del Cliente Adjunto *
+                              </h4>
+                              <p className="text-xs text-slate-500">
+                                Archivo permitido: PDF. Nombre sugerido: Empresa_Especificación_Rev.A.pdf
+                              </p>
+                            </div>
+                          </div>
+
+                          <label
+                            className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
+                              getError("customerTechnicalSpecAttachment")
+                                ? "border-red-300 bg-red-50"
+                                : "border-slate-300 bg-white hover:bg-slate-50"
+                            }`}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                            }}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              const file = event.dataTransfer.files?.[0];
+                              handleCustomerTechnicalSpecFile(file);
+                            }}
+                          >
+                            <input
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="hidden"
+                              onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                handleCustomerTechnicalSpecFile(file);
+                              }}
+                              onBlur={() => markFieldAsTouched("customerTechnicalSpecAttachment")}
+                            />
+
+                            <span className="mb-2 text-sm font-semibold text-slate-700">
+                              Soltar PDF aquí o seleccionar archivo
+                            </span>
+
+                            <span className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+                              Seleccionar archivo PDF
+                            </span>
+
+                            <p className="mt-3 text-xs text-slate-500">
+                              {form.customerTechnicalSpecAttachment
+                                ? `Archivo seleccionado: ${form.customerTechnicalSpecAttachment}`
+                                : "Ningún archivo seleccionado"}
+                            </p>
                           </label>
 
-                          <input
-                            type="file"
-                            accept=".pdf,application/pdf"
-                            onChange={(event) => {
-                              const file = event.target.files?.[0];
-
-                              if (!file) {
-                                updateField("customerTechnicalSpecAttachment", "");
-                                markFieldAsTouched("customerTechnicalSpecAttachment");
-                                return;
-                              }
-
-                              updateField("customerTechnicalSpecAttachment", file.name);
-                              markFieldAsTouched("customerTechnicalSpecAttachment");
-                            }}
-                            onBlur={() => markFieldAsTouched("customerTechnicalSpecAttachment")}
-                            className={`block w-full rounded-lg border px-3 py-2 text-sm text-slate-700 shadow-sm file:mr-4 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200 ${
-                              getError("customerTechnicalSpecAttachment")
-                                ? "border-red-500 bg-red-50"
-                                : "border-slate-300 bg-white"
-                            }`}
-                          />
-
-                          {form.customerTechnicalSpecAttachment && (
-                            <p className="mt-1 text-xs text-slate-500">
-                              Archivo seleccionado:{" "}
-                              <span className="font-semibold">
-                                {form.customerTechnicalSpecAttachment}
-                              </span>
-                            </p>
-                          )}
-
                           {getError("customerTechnicalSpecAttachment") && (
-                            <p className="mt-1 text-xs font-medium text-red-600">
+                            <p className="mt-2 text-xs font-medium text-red-600">
                               {getError("customerTechnicalSpecAttachment")}
                             </p>
                           )}
