@@ -269,10 +269,6 @@ function parseGrammageValue(value: string): number {
   return Number.isFinite(parsedValue) ? parsedValue : 0;
 }
 
-function isPdfFileName(fileName: string): boolean {
-  return fileName.toLowerCase().endsWith(".pdf");
-}
-
 function formatGrammageValue(value: number): string {
   if (!Number.isFinite(value)) return "";
 
@@ -1333,16 +1329,6 @@ export default function ProjectEditPage() {
       [field]: true,
     }));
   };
-  const handleCustomerTechnicalSpecFile = (file?: File | null) => {
-  if (!file) {
-    updateField("customerTechnicalSpecAttachment", "");
-    markFieldAsTouched("customerTechnicalSpecAttachment");
-    return;
-  }
-
-  updateField("customerTechnicalSpecAttachment", file.name);
-  markFieldAsTouched("customerTechnicalSpecAttachment");
-};
 
   const validationErrors = useMemo(() => {
     const errors: Partial<Record<keyof ProjectEditFormData, string>> = {};
@@ -2547,24 +2533,17 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                   </div>
                 </CollapsibleSection>
 
-                <CollapsibleSection
-                  title="Documentos"
-                  icon="📄"
-                  color="#e67e22"
-                  isOpen={openStructureSections.documents}
-                  onToggle={() => toggleStructureSection("documents")}
-                >
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <FormSelect
-                        label="¿Tiene Especificación Técnica del Cliente?"
-                        value={form.hasCustomerTechnicalSpec}
-                        onChange={(value) => {
-                          updateField("hasCustomerTechnicalSpec", value);
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormSelect
+                      label="¿Tiene Especificación Técnica del Cliente?"
+                      value={form.hasCustomerTechnicalSpec}
+                      onChange={(value) => {
+                        updateField("hasCustomerTechnicalSpec", value);
 
-                          if (value !== "Sí") {
-                            updateField("customerTechnicalSpecAttachment", "");
-                          }
+                        if (value !== "Sí") {
+                          updateField("customerTechnicalSpecAttachment", "");
+                        }
 
                           markFieldAsTouched("hasCustomerTechnicalSpec");
                         }}
@@ -2575,71 +2554,45 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       />
 
                       {form.hasCustomerTechnicalSpec === "Sí" && (
-                        <div
-                          className={`md:col-span-3 rounded-xl border bg-slate-50 p-4 ${
-                            getError("customerTechnicalSpecAttachment")
-                              ? "border-red-400"
-                              : "border-slate-200"
-                          }`}
-                        >
-                          <div className="mb-3 flex items-center gap-3">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-sm">
-                              📎
-                            </span>
-
-                            <div>
-                              <h4 className="text-sm font-bold uppercase tracking-wide text-slate-800">
-                                Especificación Técnica del Cliente Adjunto *
-                              </h4>
-                              <p className="text-xs text-slate-500">
-                                Archivo permitido: PDF. Nombre sugerido: Empresa_Especificación_Rev.A.pdf
-                              </p>
-                            </div>
-                          </div>
-
-                          <label
-                            className={`flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
-                              getError("customerTechnicalSpecAttachment")
-                                ? "border-red-300 bg-red-50"
-                                : "border-slate-300 bg-white hover:bg-slate-50"
-                            }`}
-                            onDragOver={(event) => {
-                              event.preventDefault();
-                            }}
-                            onDrop={(event) => {
-                              event.preventDefault();
-                              const file = event.dataTransfer.files?.[0];
-                              handleCustomerTechnicalSpecFile(file);
-                            }}
-                          >
-                            <input
-                              type="file"
-                              accept=".pdf,application/pdf"
-                              className="hidden"
-                              onChange={(event) => {
-                                const file = event.target.files?.[0];
-                                handleCustomerTechnicalSpecFile(file);
-                              }}
-                              onBlur={() => markFieldAsTouched("customerTechnicalSpecAttachment")}
-                            />
-
-                            <span className="mb-2 text-sm font-semibold text-slate-700">
-                              Soltar PDF aquí o seleccionar archivo
-                            </span>
-
-                            <span className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                              Seleccionar archivo PDF
-                            </span>
-
-                            <p className="mt-3 text-xs text-slate-500">
-                              {form.customerTechnicalSpecAttachment
-                                ? `Archivo seleccionado: ${form.customerTechnicalSpecAttachment}`
-                                : "Ningún archivo seleccionado"}
-                            </p>
+                        <div className="md:col-span-2">
+                          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                            Especificación Técnica del Cliente Adjunto *
                           </label>
 
+                          <input
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+
+                              if (!file) {
+                                updateField("customerTechnicalSpecAttachment", "");
+                                markFieldAsTouched("customerTechnicalSpecAttachment");
+                                return;
+                              }
+
+                              updateField("customerTechnicalSpecAttachment", file.name);
+                              markFieldAsTouched("customerTechnicalSpecAttachment");
+                            }}
+                            onBlur={() => markFieldAsTouched("customerTechnicalSpecAttachment")}
+                            className={`block w-full rounded-lg border px-3 py-2 text-sm text-slate-700 shadow-sm file:mr-4 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200 ${
+                              getError("customerTechnicalSpecAttachment")
+                                ? "border-red-500 bg-red-50"
+                                : "border-slate-300 bg-white"
+                            }`}
+                          />
+
+                          {form.customerTechnicalSpecAttachment && (
+                            <p className="mt-1 text-xs text-slate-500">
+                              Archivo seleccionado:{" "}
+                              <span className="font-semibold">
+                                {form.customerTechnicalSpecAttachment}
+                              </span>
+                            </p>
+                          )}
+
                           {getError("customerTechnicalSpecAttachment") && (
-                            <p className="mt-2 text-xs font-medium text-red-600">
+                            <p className="mt-1 text-xs font-medium text-red-600">
                               {getError("customerTechnicalSpecAttachment")}
                             </p>
                           )}
@@ -2647,13 +2600,15 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       )}
                     </div>
 
+                  {form.hasCustomerTechnicalSpec === "Sí" && (
                     <ProjectDocumentsSection
                       projectCode={projectCode}
                       showPlans={false}
                       embedded={true}
                     />
-                  </div>
-                </CollapsibleSection>
+                  )}
+                </div>
+                
               </div>
             )}
 
