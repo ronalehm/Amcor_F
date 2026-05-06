@@ -2553,51 +2553,6 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                         options={YES_NO_OPTIONS}
                       />
 
-                      {form.hasCustomerTechnicalSpec === "Sí" && (
-                        <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                            Especificación Técnica del Cliente Adjunto *
-                          </label>
-
-                          <input
-                            type="file"
-                            accept=".pdf,application/pdf"
-                            onChange={(event) => {
-                              const file = event.target.files?.[0];
-
-                              if (!file) {
-                                updateField("customerTechnicalSpecAttachment", "");
-                                markFieldAsTouched("customerTechnicalSpecAttachment");
-                                return;
-                              }
-
-                              updateField("customerTechnicalSpecAttachment", file.name);
-                              markFieldAsTouched("customerTechnicalSpecAttachment");
-                            }}
-                            onBlur={() => markFieldAsTouched("customerTechnicalSpecAttachment")}
-                            className={`block w-full rounded-lg border px-3 py-2 text-sm text-slate-700 shadow-sm file:mr-4 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200 ${
-                              getError("customerTechnicalSpecAttachment")
-                                ? "border-red-500 bg-red-50"
-                                : "border-slate-300 bg-white"
-                            }`}
-                          />
-
-                          {form.customerTechnicalSpecAttachment && (
-                            <p className="mt-1 text-xs text-slate-500">
-                              Archivo seleccionado:{" "}
-                              <span className="font-semibold">
-                                {form.customerTechnicalSpecAttachment}
-                              </span>
-                            </p>
-                          )}
-
-                          {getError("customerTechnicalSpecAttachment") && (
-                            <p className="mt-1 text-xs font-medium text-red-600">
-                              {getError("customerTechnicalSpecAttachment")}
-                            </p>
-                          )}
-                        </div>
-                      )}
                     </div>
 
                   {form.hasCustomerTechnicalSpec === "Sí" && (
