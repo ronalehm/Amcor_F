@@ -269,10 +269,6 @@ function parseGrammageValue(value: string): number {
   return Number.isFinite(parsedValue) ? parsedValue : 0;
 }
 
-function isPdfFileName(fileName: string): boolean {
-  return fileName.toLowerCase().endsWith(".pdf");
-}
-
 function formatGrammageValue(value: number): string {
   if (!Number.isFinite(value)) return "";
 
@@ -1329,16 +1325,6 @@ export default function ProjectEditPage() {
       [field]: true,
     }));
   };
-  const handleCustomerTechnicalSpecFile = (file?: File | null) => {
-  if (!file) {
-    updateField("customerTechnicalSpecAttachment", "");
-    markFieldAsTouched("customerTechnicalSpecAttachment");
-    return;
-  }
-
-  updateField("customerTechnicalSpecAttachment", file.name);
-  markFieldAsTouched("customerTechnicalSpecAttachment");
-};
 
   const validationErrors = useMemo(() => {
     const errors: Partial<Record<keyof ProjectEditFormData, string>> = {};
@@ -1371,16 +1357,6 @@ export default function ProjectEditPage() {
 
     if (form.hasEdagReference === "Sí" && !hasIllustratorFile(form.designPlanFiles)) {
       errors.designPlanFiles = "Debe cargar al menos un archivo de Illustrator (.ai).";
-    }
-
-    if (form.hasCustomerTechnicalSpec === "Sí") {
-      if (!form.customerTechnicalSpecAttachment?.trim()) {
-        errors.customerTechnicalSpecAttachment =
-          "Ningún archivo seleccionado. Nombre sugerido: Empresa_Especificación_Rev.A.pdf";
-      } else if (!isPdfFileName(form.customerTechnicalSpecAttachment)) {
-        errors.customerTechnicalSpecAttachment =
-          "La especificación técnica del cliente debe ser un archivo PDF.";
-      }
     }
 
     return errors;
@@ -2553,87 +2529,36 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                   </div>
                 </CollapsibleSection>
 
-                <CollapsibleSection
-                  title="Documentos"
-                  icon="📄"
-                  color="#e67e22"
-                  isOpen={openStructureSections.documents}
-                  onToggle={() => toggleStructureSection("documents")}
-                >
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <FormSelect
-                        label="¿Tiene Especificación Técnica del Cliente?"
-                        value={form.hasCustomerTechnicalSpec}
-                        onChange={(value) => {
-                          updateField("hasCustomerTechnicalSpec", value);
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormSelect
+                      label="¿Tiene Especificación Técnica del Cliente?"
+                      value={form.hasCustomerTechnicalSpec}
+                      onChange={(value) => {
+                        updateField("hasCustomerTechnicalSpec", value);
 
-                          if (value !== "Sí") {
-                            updateField("customerTechnicalSpecAttachment", "");
-                          }
+                        if (value !== "Sí") {
+                          updateField("customerTechnicalSpecAttachment", "");
+                        }
 
-                          markFieldAsTouched("hasCustomerTechnicalSpec");
-                        }}
-                        onBlur={() => markFieldAsTouched("hasCustomerTechnicalSpec")}
-                        error={getError("hasCustomerTechnicalSpec")}
-                        placeholder="-- Seleccione --"
-                        options={YES_NO_OPTIONS}
-                      />
+                        markFieldAsTouched("hasCustomerTechnicalSpec");
+                      }}
+                      onBlur={() => markFieldAsTouched("hasCustomerTechnicalSpec")}
+                      error={getError("hasCustomerTechnicalSpec")}
+                      placeholder="-- Seleccione --"
+                      options={YES_NO_OPTIONS}
+                    />
+                  </div>
 
-                      {form.hasCustomerTechnicalSpec === "Sí" && (
-                        <div className="md:col-span-2">
-                          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                            Especificación Técnica del Cliente Adjunto *
-                          </label>
-
-                          <input
-                            type="file"
-                            accept=".pdf,application/pdf"
-                            onChange={(event) => {
-                              const file = event.target.files?.[0];
-
-                              if (!file) {
-                                updateField("customerTechnicalSpecAttachment", "");
-                                markFieldAsTouched("customerTechnicalSpecAttachment");
-                                return;
-                              }
-
-                              updateField("customerTechnicalSpecAttachment", file.name);
-                              markFieldAsTouched("customerTechnicalSpecAttachment");
-                            }}
-                            onBlur={() => markFieldAsTouched("customerTechnicalSpecAttachment")}
-                            className={`block w-full rounded-lg border px-3 py-2 text-sm text-slate-700 shadow-sm file:mr-4 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200 ${
-                              getError("customerTechnicalSpecAttachment")
-                                ? "border-red-500 bg-red-50"
-                                : "border-slate-300 bg-white"
-                            }`}
-                          />
-
-                          {form.customerTechnicalSpecAttachment && (
-                            <p className="mt-1 text-xs text-slate-500">
-                              Archivo seleccionado:{" "}
-                              <span className="font-semibold">
-                                {form.customerTechnicalSpecAttachment}
-                              </span>
-                            </p>
-                          )}
-
-                          {getError("customerTechnicalSpecAttachment") && (
-                            <p className="mt-1 text-xs font-medium text-red-600">
-                              {getError("customerTechnicalSpecAttachment")}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
+                  {form.hasCustomerTechnicalSpec === "Sí" && (
                     <ProjectDocumentsSection
                       projectCode={projectCode}
                       showPlans={false}
                       embedded={true}
                     />
-                  </div>
-                </CollapsibleSection>
+                  )}
+                </div>
+                
               </div>
             )}
 
