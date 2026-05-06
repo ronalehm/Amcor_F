@@ -1308,10 +1308,6 @@ export default function ProjectEditPage() {
       fields.push("designPlanFiles");
     }
 
-    if (form.hasCustomerTechnicalSpec === "Sí") {
-      fields.push("customerTechnicalSpecAttachment");
-    }
-
     return fields;
 }, [
   inheritedWrapping,
@@ -1379,16 +1375,6 @@ export default function ProjectEditPage() {
 
     if (form.hasEdagReference === "Sí" && !hasIllustratorFile(form.designPlanFiles)) {
       errors.designPlanFiles = "Debe cargar al menos un archivo de Illustrator (.ai).";
-    }
-
-    if (form.hasCustomerTechnicalSpec === "Sí") {
-      if (!form.customerTechnicalSpecAttachment?.trim()) {
-        errors.customerTechnicalSpecAttachment =
-          "Ningún archivo seleccionado. Nombre sugerido: Empresa_Especificación_Rev.A.pdf";
-      } else if (!isPdfFileName(form.customerTechnicalSpecAttachment)) {
-        errors.customerTechnicalSpecAttachment =
-          "La especificación técnica del cliente debe ser un archivo PDF.";
-      }
     }
 
     return errors;
