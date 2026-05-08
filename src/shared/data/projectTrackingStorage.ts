@@ -34,15 +34,15 @@ export function initializeProjectTracking(projectCode: string, changedBy: string
 
   const newState: ProjectTrackingState = {
     projectCode,
-    currentStage: "P1",
+    currentStage: "P0_REGISTRO_PROYECTO",
     stageUpdatedAt: new Date().toISOString(),
     isCompleted: false,
   };
 
   localStorage.setItem(PROJECT_TRACKING_KEY, JSON.stringify([newState, ...currentStates]));
-  
+
   // Register initial SLA
-  const stageConfig = getStageConfig("P1");
+  const stageConfig = getStageConfig("P0_REGISTRO_PROYECTO");
   if (stageConfig) {
     registerProjectStatusChange({
       projectCode,
@@ -72,7 +72,7 @@ export function advanceProjectStage(projectCode: string, toStage: ProjectStage, 
     ...prevState,
     currentStage: toStage,
     stageUpdatedAt: new Date().toISOString(),
-    isCompleted: toStage === "P9", // Finalizado
+    isCompleted: toStage === "P5_PREPARACION_ENVIO_SI", // Enviado a SI
   };
 
   localStorage.setItem(PROJECT_TRACKING_KEY, JSON.stringify(currentStates));

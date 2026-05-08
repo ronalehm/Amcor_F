@@ -2,23 +2,35 @@ import type { ProjectStage } from "./projectStageConfig";
 
 export type PhaseRole = "Comercial" | "ArteGraficas" | "RyD" | "CF" | "Credito";
 
+/**
+ * Legacy stage type - para compatibilidad con código antiguo
+ * @deprecated Usar ProjectStage en su lugar
+ */
+export type LegacyStage = "P1" | "P2" | "P3" | "P4" | "P5" | "P6" | "P7" | "P8" | "P9";
+
+/**
+ * Type que acepta tanto etapas nuevas como legacy
+ * @deprecated Usar ProjectStage directamente
+ */
+export type AnyStage = ProjectStage | LegacyStage | string;
+
 export interface PhaseField {
   name: string;
   label: string;
   section: string;
   required: boolean;
   editableByRoles: PhaseRole[];
-  visibleInPhases: ProjectStage[];
+  visibleInPhases: AnyStage[];
 }
 
 export interface ProjectPhaseConfig {
-  stage: ProjectStage;
+  stage: AnyStage;
   name: string;
   description: string;
   primaryRole: PhaseRole;
   allowedRoles: PhaseRole[];
   fields: PhaseField[];
-  allowedTransitions: ProjectStage[];
+  allowedTransitions: AnyStage[];
 }
 
 // P1 - Commercial Phase: Initial project registration with commercial data
@@ -161,7 +173,7 @@ const P5_FIELDS: PhaseField[] = [
 ];
 
 // Phase configurations
-export const PHASE_CONFIGS: Record<ProjectStage, ProjectPhaseConfig> = {
+export const PHASE_CONFIGS: Record<string, ProjectPhaseConfig> = {
   P1: {
     stage: "P1",
     name: "P1 - Comercial",
