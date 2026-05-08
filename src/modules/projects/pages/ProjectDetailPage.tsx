@@ -342,13 +342,7 @@ export default function ProjectDetailPage() {
           <ProjectTrackingTimeline history={history} />
 
           {/* Productos Asociados */}
-          <ProjectProductsPanel
-            projectCode={projectCode || ""}
-            projectStatus={(project.status as any)}
-            onCreateNew={() => {}}
-            onCreateFromApproved={() => {}}
-            onViewProduct={() => {}}
-          />
+          <ProjectProductsPanel project={project} />
 
         </div>
       </div>

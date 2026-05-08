@@ -1,4 +1,4 @@
-import type { ProjectProductStatus, ProjectProductType } from "./projectWorkflow";
+import type { ProjectProductStatus, ProjectProductType, AreaValidationStatus } from "./projectWorkflow";
 import { getProductStateDefinition, getProductStateMeaning } from "./projectProductSemantics";
 
 const STORAGE_KEY = "odiseo_project_products";
@@ -29,6 +29,30 @@ export type ProjectProductRecord = {
   requiresDesign?: boolean;
   requiresSample?: boolean;
   requiresNewStructure?: boolean;
+
+  // Dimensiones propias del producto (pueden diferir del proyecto padre)
+  format?: string;              // Formato del empaque
+  structure?: string;           // Estructura del material
+  width?: number;               // Ancho (mm)
+  length?: number;              // Largo (mm)
+  gusset?: number;              // Fuelle (mm)
+  micron?: number;              // Espesor/micraje
+  grammage?: number;            // Gramaje (g/m²)
+  estimatedVolume?: number;     // Volumen estimado
+  unitOfMeasure?: string;       // Unidad de medida
+
+  // Validaciones a nivel de producto (independientes de validaciones del proyecto)
+  agValidationStatus?: AreaValidationStatus;
+  rdValidationStatus?: AreaValidationStatus;
+  agObservation?: string;
+  rdObservation?: string;
+
+  // Cotización y finanzas
+  targetPriceMin?: number;
+  targetPriceMax?: number;
+  commercialFinanceComment?: string;
+  selectedForQuote?: boolean;       // "Seleccionado para cotizar"
+  selectedForQuoteAt?: string;
 
   // Seguimiento Sistema Integral
   siRequestId?: string;
@@ -303,6 +327,18 @@ export function getProductStatusMeaning(status: ProjectProductStatus): string {
 
 export function getProductStatusDefinition(status: ProjectProductStatus) {
   return getProductStateDefinition(status);
+}
+
+export function toggleProductSelectedForQuote(id: string): ProjectProductRecord {
+  const product = getProjectProductById(id);
+  if (!product) throw new Error(`Product ${id} not found`);
+
+  return saveProjectProduct({
+    ...product,
+    selectedForQuote: !product.selectedForQuote,
+    selectedForQuoteAt: !product.selectedForQuote ? new Date().toISOString() : undefined,
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 export function clearProjectProductStorage(): void {
