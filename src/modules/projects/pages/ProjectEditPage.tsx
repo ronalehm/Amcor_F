@@ -129,6 +129,9 @@ type ProjectEditFormData = {
   deliveryAddress: string;
   additionalComment: string;
 
+  licitacion: string;
+  codigoRFQ: string;
+
   designPlanFiles: string[];
 };
 
@@ -741,6 +744,9 @@ layer4MaterialGroup: "Capa 4 - Grupo Material",
 layer4Material: "Capa 4 - Tipo de Material y Micraje",
 layer4Micron: "Capa 4 - Micraje",
 layer4Grammage: "Capa 4 - Gramaje",
+
+licitacion: "Licitación",
+codigoRFQ: "Código RFQ",
 };
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Información General
@@ -916,6 +922,8 @@ export default function ProjectEditPage() {
     printingFooter: "",
     deliveryAddress: "",
     additionalComment: "",
+    licitacion: "",
+    codigoRFQ: "",
     designPlanFiles: [],
   });
 
@@ -1058,6 +1066,8 @@ export default function ProjectEditPage() {
       printingFooter: toYesNo(project.printingFooter),
       deliveryAddress: (project as any).deliveryAddress || "",
       additionalComment: (project as any).additionalComment || "",
+      licitacion: toYesNo((project as any).licitacion),
+      codigoRFQ: (project as any).codigoRFQ || "",
       designPlanFiles: (project as any).designPlanFiles || [],
     };
 
@@ -1202,12 +1212,12 @@ export default function ProjectEditPage() {
       if (!entry || entry.isFree) continue;
 
       if (prev[micronKey] !== entry.micron) {
-        next[micronKey] = entry.micron;
+        (next[micronKey] as string) = entry.micron;
         changed = true;
       }
 
       if (prev[grammageKey] !== entry.grammage) {
-        next[grammageKey] = entry.grammage;
+        (next[grammageKey] as string) = entry.grammage;
         changed = true;
       }
     }
@@ -1323,6 +1333,15 @@ export default function ProjectEditPage() {
     setTouchedFields((prev) => ({
       ...prev,
       [field]: true,
+    }));
+  };
+
+  const handleLicitacionChange = (value: string) => {
+    const licitacion = value as "Sí" | "No";
+    setForm((prev) => ({
+      ...prev,
+      licitacion,
+      codigoRFQ: licitacion === "No" ? "" : prev.codigoRFQ,
     }));
   };
 
@@ -1651,6 +1670,8 @@ formElement?.requestSubmit();
       printingFooter: form.printingFooter as BooleanLike,
       deliveryAddress: form.deliveryAddress,
       additionalComment: form.additionalComment,
+      licitacion: form.licitacion as YesNoPending,
+      codigoRFQ: form.codigoRFQ,
       designPlanFiles: form.designPlanFiles,
 
       status: shouldSubmitForValidation ? "Ficha completa" : "Ficha en curso",
@@ -1869,6 +1890,31 @@ if (loading) {
                         error={getError("executiveId")}
                       />
                     </div>
+
+                    <FormSelect
+                      label="Licitación *"
+                      value={form.licitacion}
+                      onChange={handleLicitacionChange}
+                      options={[
+                        { value: "Sí", label: "Sí" },
+                        { value: "No", label: "No" },
+                      ]}
+                    />
+
+                    <FormInput
+                      label={form.licitacion === "Sí" ? "Código RFQ *" : "Código RFQ"}
+                      value={form.licitacion === "No" ? "" : form.codigoRFQ}
+                      onChange={(value) => updateField("codigoRFQ", value)}
+                      onBlur={() => markFieldAsTouched("codigoRFQ")}
+                      error={
+                        form.licitacion === "Sí" && shouldShowFieldError("codigoRFQ")
+                          ? validationErrors.codigoRFQ
+                          : ""
+                      }
+                      placeholder={form.licitacion === "No" ? "No aplica" : "Ej. RFQ-093456"}
+                      disabled={form.licitacion === "No" || !["En Cotización", "Cotización Enviada", "Aprobado por Cliente", "Cliente Validado", "Preparación SI", "Enviado a SI"].includes(originalProject?.status || "")}
+                      helper={form.licitacion === "Sí" ? "Se habilitará cuando el proyecto esté en cotización/aprobado" : undefined}
+                    />
                   </div>
                 </FormCard>
               </div>

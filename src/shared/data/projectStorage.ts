@@ -340,6 +340,10 @@ export type ProjectRecord = {
   productIds?: string[];
   productSummaryStatus?: "Sin productos" | "Productos en preparación" | "Productos listos para SI" | "Envío parcial a SI" | "Todos enviados a SI" | "Alta parcial" | "Alta completa" | "Con bloqueos en SI";
 
+  // RFQ y Licitación (se habilitan después de validación de áreas)
+  licitacion?: YesNoPending;
+  codigoRFQ?: string;
+
   // Auditoría
   createdAt: string;
   updatedAt: string;

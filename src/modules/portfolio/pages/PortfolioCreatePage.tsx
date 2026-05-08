@@ -479,31 +479,6 @@ export default function PortfolioCreatePage() {
                   placeholder="Escribe para buscar ejecutivo..."
                   emptyMessage="Usuario no encontrado. Regístrelo en el módulo Usuarios."
                 />
-
-                <FormSelect
-                  label="Licitación *"
-                  value={form.licitacion}
-                  onChange={handleLicitacionChange}
-                  options={[
-                    { value: "Sí", label: "Sí" },
-                    { value: "No", label: "No" },
-                  ]}
-                />
-
-                <FormInput
-                  label={form.licitacion === "Sí" ? "Código RFQ *" : "Código RFQ"}
-                  value={form.licitacion === "No" ? "" : form.codigoRFQ}
-                  onChange={(value) => updateField("codigoRFQ", value)}
-                  onBlur={() => markFieldAsTouched("codigoRFQ")}
-                  error={
-                    form.licitacion === "Sí" && shouldShowFieldError("codigoRFQ")
-                      ? validationErrors.codigoRFQ
-                      : ""
-                  }
-                  placeholder={form.licitacion === "No" ? "No aplica" : "Ej. RFQ-093456"}
-                  disabled={form.licitacion === "No"}
-                  helper={form.licitacion === "Sí" ? "Obligatorio si existe licitación" : undefined}
-                />
               </div>
             </SectionCard>
 

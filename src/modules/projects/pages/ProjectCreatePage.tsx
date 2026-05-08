@@ -122,6 +122,9 @@ type ProjectFormData = {
   customerAdditionalInfo: string;
   peruvianProductLogo: string;
   printingFooter: string;
+
+  licitacion: string;
+  codigoRFQ: string;
 };
 
 const YES_NO_OPTIONS = [
@@ -551,6 +554,8 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   customerAdditionalInfo: "",
   peruvianProductLogo: "",
   printingFooter: "",
+  licitacion: "",
+  codigoRFQ: "",
 });
 
 // STEPPER CONFIGURATION
@@ -705,6 +710,8 @@ export default function ProjectCreatePage() {
           customerAdditionalInfo: original.customerAdditionalInfo || "",
           peruvianProductLogo: original.peruvianProductLogo || "No",
           printingFooter: original.printingFooter || "No",
+          licitacion: (original as any).licitacion ? "Sí" : "No",
+          codigoRFQ: (original as any).codigoRFQ || "",
         });
       }
     }
@@ -780,6 +787,15 @@ export default function ProjectCreatePage() {
 
   const updateField = (field: keyof ProjectFormData, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleLicitacionChange = (value: string) => {
+    const licitacion = value as "Sí" | "No";
+    setForm((prev) => ({
+      ...prev,
+      licitacion,
+      codigoRFQ: licitacion === "No" ? "" : prev.codigoRFQ,
+    }));
   };
 
   const projectTypeOptions = useMemo(() => {
@@ -1129,6 +1145,8 @@ export default function ProjectCreatePage() {
       customerAdditionalInfo: form.customerAdditionalInfo,
       peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
       printingFooter: form.printingFooter,
+      licitacion: form.licitacion as YesNoPending,
+      codigoRFQ: form.codigoRFQ,
 
       status: isFormCompleteForValidation ? "Ficha completa" : "Registrado",
       stage: isFormCompleteForValidation ? "P1_PREPARACION_FICHA" : "P0_REGISTRO_COMERCIAL",
@@ -1277,6 +1295,31 @@ export default function ProjectCreatePage() {
                     error={getError("executiveId")}
                   />
                 </div>
+
+                <FormSelect
+                  label="Licitación *"
+                  value={form.licitacion}
+                  onChange={handleLicitacionChange}
+                  options={[
+                    { value: "Sí", label: "Sí" },
+                    { value: "No", label: "No" },
+                  ]}
+                />
+
+                <FormInput
+                  label={form.licitacion === "Sí" ? "Código RFQ *" : "Código RFQ"}
+                  value={form.licitacion === "No" ? "" : form.codigoRFQ}
+                  onChange={(value) => updateField("codigoRFQ", value)}
+                  onBlur={() => markFieldAsTouched("codigoRFQ")}
+                  error={
+                    form.licitacion === "Sí" && shouldShowFieldError("codigoRFQ")
+                      ? validationErrors.codigoRFQ
+                      : ""
+                  }
+                  placeholder={form.licitacion === "No" ? "No aplica" : "Se habilita cuando el proyecto está aprobado"}
+                  disabled={true}
+                  helper={form.licitacion === "Sí" ? "Se habilitará cuando el proyecto esté en cotización/aprobado" : undefined}
+                />
               </div>
             </FormCard>
           </div>
