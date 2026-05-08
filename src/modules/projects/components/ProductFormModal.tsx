@@ -7,7 +7,7 @@ import {
   saveProjectProduct,
 } from "../../../shared/data/projectProductStorage";
 import type { ProjectRecord } from "../../../shared/data/projectStorage";
-import type { ProjectProductType } from "../../../shared/data/projectWorkflow";
+import type { PreliminaryProductType } from "../../../shared/data/projectWorkflow";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
@@ -36,7 +36,7 @@ export default function ProductFormModal({
 
   const [form, setForm] = useState<FormData>({
     productName: initialData?.productName || "",
-    productType: initialData?.productType || "Nuevo",
+    productType: (initialData?.productType || "Base") as PreliminaryProductType,
     productDescription: initialData?.productDescription || "",
     requiresDesign: initialData?.requiresDesign || false,
     requiresSample: initialData?.requiresSample || false,
@@ -155,13 +155,11 @@ export default function ProductFormModal({
             />
             <FormSelect
               label="Tipo de Producto"
-              value={form.productType || "Nuevo"}
-              onChange={(value) => updateField("productType", value as ProjectProductType)}
+              value={form.productType || "Base"}
+              onChange={(value) => updateField("productType", value as PreliminaryProductType)}
               options={[
-                { value: "Nuevo", label: "Nuevo" },
-                { value: "Repetido", label: "Repetido" },
-                { value: "Modificado", label: "Modificado" },
-                { value: "Variante", label: "Variante" },
+                { value: "Base", label: "Producto Base" },
+                { value: "Variación", label: "Variación" },
               ]}
             />
             <FormTextarea

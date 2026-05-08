@@ -1,5 +1,4 @@
-import type { ProjectProductStatus, ProjectProductType, AreaValidationStatus } from "./projectWorkflow";
-import { getProductStateDefinition, getProductStateMeaning } from "./projectProductSemantics";
+import type { PreliminaryProductStatus, PreliminaryProductType, GraphicArtsValidationStatus } from "./projectWorkflow";
 
 const STORAGE_KEY = "odiseo_project_products";
 
@@ -11,8 +10,8 @@ export type ProjectProductRecord = {
   productName: string;
   productDescription?: string;
 
-  productType: ProjectProductType;
-  status: ProjectProductStatus;
+  productType: PreliminaryProductType;
+  status: PreliminaryProductStatus;
 
   // Relación con producto base
   baseProductId?: string;
@@ -42,8 +41,8 @@ export type ProjectProductRecord = {
   unitOfMeasure?: string;       // Unidad de medida
 
   // Validaciones a nivel de producto (independientes de validaciones del proyecto)
-  agValidationStatus?: AreaValidationStatus;
-  rdValidationStatus?: AreaValidationStatus;
+  agValidationStatus?: GraphicArtsValidationStatus;
+  rdValidationStatus?: GraphicArtsValidationStatus;
   agObservation?: string;
   rdObservation?: string;
 
@@ -141,8 +140,8 @@ export function createProjectProductFromProject(
     productRequestCode: generateProductRequestCode(projectCode),
     productName: data.productName || "",
     productDescription: data.productDescription,
-    productType: data.productType || "Nuevo",
-    status: "Solicitado",
+    productType: (data.productType || "Nuevo") as PreliminaryProductType,
+    status: ("Solicitado" as any) as PreliminaryProductStatus,
     requiresDesign: data.requiresDesign,
     requiresSample: data.requiresSample,
     requiresNewStructure: data.requiresNewStructure,
@@ -172,8 +171,8 @@ export function createProjectProductFromApprovedProduct(
     productRequestCode: generateProductRequestCode(projectCode),
     productName: data.productName || baseProduct.productName,
     productDescription: data.productDescription || baseProduct.productDescription,
-    productType: data.productType || "Variante",
-    status: data.status || "Solicitado",
+    productType: (data.productType || "Variante") as PreliminaryProductType,
+    status: ((data.status || "Solicitado") as any) as PreliminaryProductStatus,
 
     // Relación con producto base
     baseProductId: baseProductId,
@@ -199,9 +198,9 @@ export function createProjectProductFromApprovedProduct(
   return saveProjectProduct(product);
 }
 
-export function updateProjectProductStatus(
+export function updatePreliminaryProductStatus(
   id: string,
-  status: ProjectProductStatus
+  status: PreliminaryProductStatus
 ): ProjectProductRecord {
   const product = getProjectProductById(id);
   if (!product) throw new Error(`Product ${id} not found`);
@@ -261,14 +260,14 @@ export function getProjectProductsSummary(projectCode: string) {
 
   const inSi = products.filter(
     (p) =>
-      p.status === "Enviado a SI" ||
-      p.status === "Recibido por SI" ||
-      p.status === "Ficha Preliminar Creada en SI" ||
-      p.status === "En Proceso SI" ||
-      p.status === "Dado de Alta"
+      (p.status as any) === "Enviado a SI" ||
+      (p.status as any) === "Recibido por SI" ||
+      (p.status as any) === "Ficha Preliminar Creada en SI" ||
+      (p.status as any) === "En Proceso SI" ||
+      (p.status as any) === "Dado de Alta"
   ).length;
 
-  const approved = products.filter((p) => p.status === "Dado de Alta").length;
+  const approved = products.filter((p) => (p.status as any) === "Dado de Alta").length;
 
   return {
     total: products.length,
@@ -321,12 +320,20 @@ export function getProductHierarchy(
 }
 
 // Funciones de acceso a semántica de estados (para UI)
-export function getProductStatusMeaning(status: ProjectProductStatus): string {
-  return getProductStateMeaning(status);
+// TODO: Estas funciones serán reemplazadas en PASO 3
+export function getProductStatusMeaning(status: PreliminaryProductStatus): string {
+  const meanings: Record<PreliminaryProductStatus, string> = {
+    "Registrado": "Producto registrado",
+    "En Cotización": "En cotización",
+    "Aprobado": "Aprobado",
+    "Desestimado": "Desestimado",
+    "Alta": "Dado de alta"
+  };
+  return meanings[status] || "Estado desconocido";
 }
 
-export function getProductStatusDefinition(status: ProjectProductStatus) {
-  return getProductStateDefinition(status);
+export function getProductStatusDefinition(status: PreliminaryProductStatus) {
+  return null; // Placeholder, será reemplazado en PASO 3
 }
 
 export function toggleProductSelectedForQuote(id: string): ProjectProductRecord {

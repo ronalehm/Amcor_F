@@ -1,3 +1,15 @@
+import type {
+  ProjectStage,
+  ProjectStatus as WorkflowProjectStatus,
+  GraphicArtsValidationStatus,
+  TechnicalValidationStatus,
+  TechnicalComplexity,
+  TechnicalValidatorType,
+  CurrentValidationStep,
+  TreasuryValidationStatus,
+} from "./projectWorkflow";
+import { resolveProjectStage } from "./projectWorkflow";
+
 const PROJECTS_STORAGE_KEY = "odiseo_created_projects";
 const PROJECT_STATUS_HISTORY_KEY = "odiseo_project_status_history";
 
@@ -8,45 +20,10 @@ export type BooleanLike = boolean | YesNo;
 export type PortalProjectStage = "P1" | "P2" | "P3" | "P4" | "P5";
 export type SiProjectStage = "P6" | "P7" | "P8" | "P9";
 
-// Nuevo modelo de workflow (importar como tipos separados)
-export type WorkflowProjectStage =
-  | "P0_REGISTRO_COMERCIAL"
-  | "P1_PREPARACION_FICHA"
-  | "P2_VALIDACION_INTERNA"
-  | "P3_COTIZACION_APROBACION_CLIENTE"
-  | "P4_VALIDACION_COMERCIAL_TESORERIA"
-  | "P5_PREPARACION_ENVIO_SI";
-
-export type WorkflowProjectStatus =
-  | "Registrado"
-  | "En Curso"
-  | "Ficha Completa"
-  | "En Validación"
-  | "Observado"
-  | "Validado"
-  | "En Cotización"
-  | "Cotización Enviada"
-  | "Aprobado por Cliente"
-  | "En Validación Tesorería"
-  | "Cliente Validado"
-  | "Preparación SI"
-  | "Enviado a SI"
-  | "Desestimado";
-
-export type WorkflowAreaValidationStatus =
-  | "Sin solicitar"
-  | "Pendiente"
-  | "En revisión"
-  | "Observado"
-  | "Aprobado";
-
-export type WorkflowTreasuryValidationStatus =
-  | "No solicitado"
-  | "Pendiente"
-  | "En revisión"
-  | "Observado"
-  | "Aprobado"
-  | "Rechazado";
+// Aliases para compatibilidad
+export type WorkflowProjectStage = ProjectStage;
+export type WorkflowAreaValidationStatus = GraphicArtsValidationStatus;
+export type WorkflowTreasuryValidationStatus = TreasuryValidationStatus;
 
 export type ProjectStatus =
   | "Borrador"
@@ -138,6 +115,27 @@ export type ProjectRecord = {
   siExternalStatus?: SiExternalStatus;
   siExternalStage?: SiProjectStage;
   completionPercentage?: number;
+
+  // Workflow v2: Etapa y validaciones técnicas internas
+  stage?: ProjectStage;
+  graphicArtsValidationStatus?: GraphicArtsValidationStatus;
+  technicalValidationStatus?: TechnicalValidationStatus;
+  technicalComplexity?: TechnicalComplexity;
+  technicalValidatorType?: TechnicalValidatorType;
+  currentValidationStep?: CurrentValidationStep;
+  treasuryValidationStatus?: TreasuryValidationStatus;
+
+  // Workflow v2: Timestamps de transición
+  validationRound?: number;
+  lastObservationSource?: "Artes Gráficas" | "Área Técnica" | "Desarrollo R&D" | "Tesorería";
+  lastObservationComment?: string;
+  lastObservationAt?: string;
+  lastValidatedAt?: string;
+
+  // Workflow v2: Productos Preliminares
+  hasBasePreliminaryProduct?: boolean;
+  basePreliminaryProductId?: string;
+  preliminaryProductIds?: string[];
 
   // Datos heredados del portafolio
   plantaId?: number;
@@ -316,15 +314,9 @@ export type ProjectRecord = {
   estadoValidacionGeneral: ValidationStatus;
   validaciones: AreaValidationRecord[];
 
-  // === NUEVO MODELO DE WORKFLOW (P0-P5) ===
-  stage?: WorkflowProjectStage;
-  rdValidationStatus?: WorkflowAreaValidationStatus;
-  graphicArtsValidationStatus?: WorkflowAreaValidationStatus;
-  treasuryValidationStatus?: WorkflowTreasuryValidationStatus;
-
+  // Workflow v2: Timestamps de transición (continuación)
   statusUpdatedAt?: string;
   stageUpdatedAt?: string;
-
   quotedAt?: string;
   quoteSentAt?: string;
   clientApprovedAt?: string;
@@ -332,13 +324,12 @@ export type ProjectRecord = {
   treasuryApprovedAt?: string;
   preparedForSiAt?: string;
   sentToSiAt?: string;
-
   desestimatedAt?: string;
   desestimatedReason?: string;
-  closedFromStage?: WorkflowProjectStage;
+  closedFromStage?: ProjectStage;
 
-  productIds?: string[];
-  productSummaryStatus?: "Sin productos" | "Productos en preparación" | "Productos listos para SI" | "Envío parcial a SI" | "Todos enviados a SI" | "Alta parcial" | "Alta completa" | "Con bloqueos en SI";
+  // Workflow v2: Resumen de productos
+  productSummaryStatus?: "Sin productos" | "Producto base registrado" | "Con variaciones" | "En cotización" | "Aprobados" | "Alta parcial" | "Alta completa" | "Con desestimados";
 
   // RFQ y Licitación (se habilitan después de validación de áreas)
   licitacion?: YesNoPending;
@@ -499,9 +490,12 @@ function normalizeProjectRecord(record: ProjectRecord): ProjectRecord {
 
     // Nuevos campos de workflow
     stage: record.stage,
-    rdValidationStatus: record.rdValidationStatus,
     graphicArtsValidationStatus: record.graphicArtsValidationStatus,
+    technicalValidationStatus: record.technicalValidationStatus,
     treasuryValidationStatus: record.treasuryValidationStatus,
+    technicalComplexity: record.technicalComplexity,
+    technicalValidatorType: record.technicalValidatorType,
+    currentValidationStep: record.currentValidationStep,
     statusUpdatedAt: record.statusUpdatedAt,
     stageUpdatedAt: record.stageUpdatedAt,
     quotedAt: record.quotedAt,
@@ -514,7 +508,7 @@ function normalizeProjectRecord(record: ProjectRecord): ProjectRecord {
     desestimatedAt: record.desestimatedAt,
     desestimatedReason: record.desestimatedReason,
     closedFromStage: record.closedFromStage,
-    productIds: record.productIds,
+    preliminaryProductIds: record.preliminaryProductIds,
     productSummaryStatus: record.productSummaryStatus,
 
     createdAt: record.createdAt || now,
@@ -756,13 +750,42 @@ export function getProjectRecords(): ProjectRecord[] {
     (project) => !createdCodes.has(project.code)
   );
 
-  return [...createdProjects, ...initialWithoutDuplicates];
+  const allProjects = [...createdProjects, ...initialWithoutDuplicates];
+  return allProjects.map(normalizeProjectWorkflow);
+}
+
+/**
+ * Normaliza los campos de workflow v2 de un proyecto
+ * Asegura que todos los campos requeridos tengan valores por defecto
+ */
+function normalizeProjectWorkflow(project: ProjectRecord): ProjectRecord {
+  const status = project.status || "Registrado";
+  const stage = project.stage || resolveProjectStage(status as any);
+
+  return {
+    ...project,
+    status,
+    stage: stage as ProjectStage,
+    completionPercentage: project.completionPercentage ?? 0,
+    graphicArtsValidationStatus:
+      project.graphicArtsValidationStatus || "Sin solicitar",
+    technicalValidationStatus:
+      project.technicalValidationStatus || "Sin solicitar",
+    treasuryValidationStatus:
+      project.treasuryValidationStatus || "No solicitado",
+    currentValidationStep: project.currentValidationStep ?? null,
+    validationRound: project.validationRound ?? 0,
+    hasBasePreliminaryProduct: project.hasBasePreliminaryProduct ?? false,
+    basePreliminaryProductId: project.basePreliminaryProductId,
+    preliminaryProductIds: project.preliminaryProductIds ?? [],
+  };
 }
 
 export function getProjectByCode(
   code: string
 ): ProjectRecord | undefined {
-  return getProjectRecords().find((project) => project.code === code);
+  const project = getProjectRecords().find((project) => project.code === code);
+  return project ? normalizeProjectWorkflow(project) : undefined;
 }
 
 export function getProjectsByClientCode(

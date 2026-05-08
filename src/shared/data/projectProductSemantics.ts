@@ -6,20 +6,22 @@
  *
  * Los productos en ODISEO son fichas preliminares o solicitudes de producto,
  * NO SKUs técnicos. El SKU es responsabilidad del Sistema Integral (SI).
+ *
+ * TODO: Este archivo será eliminado en PASO 3 - contiene estados del Sistema Integral
  */
 
-import type { ProjectProductStatus } from "./projectWorkflow";
+import type { PreliminaryProductStatus } from "./projectWorkflow";
 
 export interface ProductStateDefinition {
-  state: ProjectProductStatus;
+  state: PreliminaryProductStatus;
   meaning: string;
   actions: string[];
-  nextPossibleStates: ProjectProductStatus[];
+  nextPossibleStates: PreliminaryProductStatus[];
   owner: "ODISEO" | "SI";
   isTerminal: boolean;
 }
 
-export const PROJECT_PRODUCT_STATE_DEFINITIONS: Record<ProjectProductStatus, ProductStateDefinition> = {
+export const PROJECT_PRODUCT_STATE_DEFINITIONS: Record<PreliminaryProductStatus, ProductStateDefinition> = ({
   // Estados en ODISEO (antes de enviar a SI)
   "Solicitado": {
     state: "Solicitado",
@@ -158,13 +160,13 @@ export const PROJECT_PRODUCT_STATE_DEFINITIONS: Record<ProjectProductStatus, Pro
     owner: "ODISEO",
     isTerminal: true,
   },
-};
+} as any);
 
 /**
  * Obtener la definición de un estado
  */
 export function getProductStateDefinition(
-  status: ProjectProductStatus
+  status: PreliminaryProductStatus
 ): ProductStateDefinition | undefined {
   return PROJECT_PRODUCT_STATE_DEFINITIONS[status];
 }
@@ -172,7 +174,7 @@ export function getProductStateDefinition(
 /**
  * Obtener descripción breve de un estado
  */
-export function getProductStateMeaning(status: ProjectProductStatus): string {
+export function getProductStateMeaning(status: PreliminaryProductStatus): string {
   const def = getProductStateDefinition(status);
   return def?.meaning || "Estado desconocido";
 }
@@ -180,7 +182,7 @@ export function getProductStateMeaning(status: ProjectProductStatus): string {
 /**
  * Verificar si un estado es terminal (sin transiciones posibles)
  */
-export function isProductStateTerminal(status: ProjectProductStatus): boolean {
+export function isProductStateTerminal(status: PreliminaryProductStatus): boolean {
   const def = getProductStateDefinition(status);
   return def?.isTerminal ?? false;
 }
@@ -188,7 +190,7 @@ export function isProductStateTerminal(status: ProjectProductStatus): boolean {
 /**
  * Obtener quién es responsable del estado
  */
-export function getProductStateOwner(status: ProjectProductStatus): "ODISEO" | "SI" | undefined {
+export function getProductStateOwner(status: PreliminaryProductStatus): "ODISEO" | "SI" | undefined {
   const def = getProductStateDefinition(status);
   return def?.owner;
 }
@@ -196,38 +198,38 @@ export function getProductStateOwner(status: ProjectProductStatus): "ODISEO" | "
 /**
  * Estados donde ODISEO tiene control directo
  */
-export const ODISEO_CONTROLLED_STATES: ProjectProductStatus[] = [
+export const ODISEO_CONTROLLED_STATES: PreliminaryProductStatus[] = [
   "Solicitado",
   "En Preparación",
   "Listo para SI",
   "Enviado a SI",
-];
+] as any;
 
 /**
  * Estados donde SI tiene control directo
  */
-export const SI_CONTROLLED_STATES: ProjectProductStatus[] = [
+export const SI_CONTROLLED_STATES: PreliminaryProductStatus[] = [
   "Recibido por SI",
   "Ficha Preliminar Creada en SI",
   "En Proceso SI",
   "Observado / Bloqueado en SI",
   "Aprobado",
   "Dado de Alta",
-];
+] as any;
 
 /**
  * Estados que permiten crear productos derivados
  */
-export const DERIVABLE_STATES: ProjectProductStatus[] = [
+export const DERIVABLE_STATES: PreliminaryProductStatus[] = [
   "Aprobado",
   "Dado de Alta",
-];
+] as any;
 
 /**
  * Estados donde se puede reenviar información a SI
  */
-export const RESUBMITTABLE_STATES: ProjectProductStatus[] = [
+export const RESUBMITTABLE_STATES: PreliminaryProductStatus[] = [
   "En Preparación",
   "Listo para SI",
   "Observado / Bloqueado en SI",
-];
+] as any;

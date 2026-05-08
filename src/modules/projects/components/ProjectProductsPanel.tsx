@@ -9,7 +9,6 @@ import {
 } from "../../../shared/data/projectProductStorage";
 import { exportProductsToExcel } from "../services/projectExportService";
 import type { ProjectRecord } from "../../../shared/data/projectStorage";
-import { canCreateProductFromApprovedProduct } from "../../../shared/data/projectWorkflow";
 import FormCard from "../../../shared/components/forms/FormCard";
 import Button from "../../../shared/components/ui/Button";
 import ProductFormModal from "./ProductFormModal";
@@ -36,11 +35,11 @@ export default function ProjectProductsPanel({ project }: ProjectProductsPanelPr
 
   const canAddProduct =
     project.graphicArtsValidationStatus === "Aprobado" &&
-    project.rdValidationStatus === "Aprobado";
+    project.technicalValidationStatus === "Aprobado";
 
   const selectedForQuoteCount = products.filter((p) => p.selectedForQuote).length;
   const hasApprovedProducts = products.some(
-    (p) => p.status === "Aprobado" || p.status === "Dado de Alta"
+    (p) => p.status === "Aprobado" || (p.status as any) === "Dado de Alta"
   );
 
   const handleOpenCreate = () => {
@@ -150,10 +149,7 @@ export default function ProjectProductsPanel({ project }: ProjectProductsPanelPr
                 </thead>
                 <tbody>
                   {products.map((product) => {
-                    const canCreateFromThis = canCreateProductFromApprovedProduct(
-                      project.status as any,
-                      product.status
-                    );
+                    const canCreateFromThis = ["Aprobado", "Dado de Alta"].includes(product.status as string);
 
                     return (
                       <tr
