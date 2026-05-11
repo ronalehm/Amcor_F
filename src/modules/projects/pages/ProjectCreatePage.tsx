@@ -13,6 +13,7 @@ import {
 import type { BooleanLike, YesNoPending } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers } from "../../../shared/data/userStorage";
+import { computeProjectPreparationStatus } from "../../../shared/data/projectWorkflow";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -1148,8 +1149,11 @@ export default function ProjectCreatePage() {
       licitacion: form.licitacion as YesNoPending,
       codigoRFQ: form.codigoRFQ,
 
-      status: isFormCompleteForValidation ? "Ficha completa" : "Registrado",
-      stage: isFormCompleteForValidation ? "P1_PREPARACION_FICHA" : "P0_REGISTRO_COMERCIAL",
+      status: "Registrado",
+      stage: "P1_PREPARACION_FICHA_PROYECTO",
+      completionPercentage: 0,
+      statusUpdatedAt: now,
+      stageUpdatedAt: now,
       createdAt: now,
       updatedAt: now,
 

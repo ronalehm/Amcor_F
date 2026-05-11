@@ -107,7 +107,7 @@ export default function PortfolioListPage() {
     
     return records.map(portfolio => {
       const portfolioId = portfolio.id || portfolio.codigo;
-      const count = projects.filter(p => p.portfolioCode === portfolioId && p.status !== "Desestimado" && p.status !== "Rechazada").length;
+      const count = projects.filter(p => p.portfolioCode === portfolioId && p.status !== "Desestimado").length;
       return { ...portfolio, activeProjectCount: count };
     });
   }, []);

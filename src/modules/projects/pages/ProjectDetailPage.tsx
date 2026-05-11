@@ -2,22 +2,25 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getProjectByCode, type ProjectRecord } from "../../../shared/data/projectStorage";
+import { getProjectByCode, updateProjectRecord, type ProjectRecord } from "../../../shared/data/projectStorage";
+import { getPortfolioByCode, type PortfolioRecord } from "../../../shared/data/portfolioStorage";
 import { getProjectSlaSummary, getProjectStatusHistory } from "../../../shared/data/slaStorage";
 import { getProjectObservations } from "../../../shared/data/observationStorage";
 import { getProjectTrackingState, advanceProjectStage, initializeProjectTracking } from "../../../shared/data/projectTrackingStorage";
 import { getStageConfig, isPortalStage, type ProjectStage } from "../../../shared/data/projectStageConfig";
 import { PHASE_CONFIGS } from "../../../shared/data/projectPhaseConfig";
+import { type ProjectStatus, resolveProjectStage } from "../../../shared/data/projectWorkflow";
 import { exportProjectToExcelMock } from "../services/projectExportService";
+import { requestValidation } from "../../../modules/validaciones/services/validationService";
 
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import FormCard from "../../../shared/components/forms/FormCard";
 import Button from "../../../shared/components/ui/Button";
 import ValidationObservationsTable from "../../../shared/components/display/ValidationObservationsTable";
-import ValidationStatusCard from "../../../shared/components/display/ValidationStatusCard";
 
 import ProjectStageStepper from "../../../shared/components/projectTracking/ProjectStageStepper";
-import ProjectStageCard from "../../../shared/components/projectTracking/ProjectStageCard";
+import ProjectStatusPanel from "../components/ProjectStatusPanel";
+import ProjectChangeHistory from "../components/ProjectChangeHistory";
 import ProjectActionPanel from "../components/ProjectActionPanel";
 import ProjectFieldImpactList from "../components/ProjectFieldImpactList";
 import ProjectObservationPanel from "../../../shared/components/projectTracking/ProjectObservationPanel";
@@ -31,17 +34,27 @@ export default function ProjectDetailPage() {
   const { projectCode } = useParams<{ projectCode: string }>();
 
   const [project, setProject] = useState<ProjectRecord | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioRecord | null>(null);
   const [trackingState, setTrackingState] = useState<any | null>(null);
   const [slaSummary, setSlaSummary] = useState<any | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [observations, setObservations] = useState<any[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [selectedTestStatus, setSelectedTestStatus] = useState<ProjectStatus | "">(
+    project?.status as ProjectStatus || ""
+  );
 
   const fetchProjectData = () => {
     if (projectCode) {
       const p = getProjectByCode(projectCode);
       setProject(p || null);
       if (p) {
+        // Load portfolio
+        if (p.portfolioCode) {
+          const pf = getPortfolioByCode(p.portfolioCode);
+          setPortfolio(pf);
+        }
+
         let ts = getProjectTrackingState(projectCode);
         if (!ts) {
           // Initialize for mock purposes if it doesn't exist
@@ -49,12 +62,12 @@ export default function ProjectDetailPage() {
           ts = getProjectTrackingState(projectCode);
         }
         setTrackingState(ts);
-        
+
         const slas = getProjectSlaSummary(projectCode);
         // Find the active SLA
-        const activeSla = slas.find(s => !s.completedAt) || slas[0]; 
+        const activeSla = slas.find(s => !s.completedAt) || slas[0];
         setSlaSummary(activeSla || null);
-        
+
         setHistory(getProjectStatusHistory().filter(h => h.projectCode === projectCode));
         setObservations(getProjectObservations().filter(o => o.projectCode === projectCode));
       }
@@ -107,6 +120,21 @@ export default function ProjectDetailPage() {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  const handleTestStatusChange = (newStatus: ProjectStatus) => {
+    if (!project || !projectCode) return;
+
+    const updatedProject: ProjectRecord = {
+      ...project,
+      status: newStatus,
+      stage: resolveProjectStage(newStatus),
+      statusUpdatedAt: new Date().toISOString(),
+    };
+
+    updateProjectRecord(projectCode, updatedProject);
+    setSelectedTestStatus(newStatus);
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   const determineNextStage = (current: ProjectStage): ProjectStage => {
     const sequence: ProjectStage[] = ["P1", "P2", "P3", "P4", "P5", "P6"];
     const idx = sequence.indexOf(current);
@@ -124,6 +152,12 @@ export default function ProjectDetailPage() {
     handleAdvanceStage(determineNextStage(currentStage));
   };
 
+  const handleRequestValidation = () => {
+    if (!project) return;
+    const updated = requestValidation(project);
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   const phaseConfig = PHASE_CONFIGS[currentStage as keyof typeof PHASE_CONFIGS];
 
   return (
@@ -139,6 +173,13 @@ export default function ProjectDetailPage() {
 
       {/* 1. Stepper Global */}
       <ProjectStageStepper currentStage={currentStage} />
+
+      {/* 2. Productos Solicitados a Cotizar */}
+      <ProjectProductsPanel
+        project={project}
+        portfolio={portfolio}
+        onProjectUpdated={() => setRefreshTrigger(prev => prev + 1)}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lado Izquierdo: Ficha Única del Proyecto */}
@@ -296,15 +337,40 @@ export default function ProjectDetailPage() {
           </FormCard>
         </div>
 
-        {/* Lado Derecho: Tracking, Validaciones, SLAs y Observaciones */}
+        {/* Lado Derecho: Estado, Acciones y Observaciones */}
         <div className="space-y-6">
 
-          <ValidationStatusCard project={project} />
+          {/* Estado del Proyecto - Nueva vista centralizada */}
+          <ProjectStatusPanel project={project} />
 
-          <ProjectStageCard
-            currentStage={currentStage}
-            stageUpdatedAt={trackingState.stageUpdatedAt}
-          />
+          {/* TEST CONTROLS: Manual State Transition (Dev/Testing Only) */}
+          <FormCard title="🧪 Controles de Prueba" icon="⚙" color="#e74c3c">
+            <div className="space-y-3">
+              <div className="text-xs text-slate-600 bg-yellow-50 p-2 rounded border border-yellow-200">
+                Cambiar manualmente el estado del proyecto para pruebas de flujo.
+              </div>
+              <select
+                value={project?.status || ""}
+                onChange={(e) => handleTestStatusChange(e.target.value as ProjectStatus)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-brand-primary"
+              >
+                <option value="">Seleccionar estado...</option>
+                <option value="Registrado">Registrado</option>
+                <option value="En Preparación">En Preparación</option>
+                <option value="Ficha Completa">Ficha Completa</option>
+                <option value="En validación">En validación</option>
+                <option value="Observado">Observado</option>
+                <option value="Validado">Validado</option>
+                <option value="En Cotización">En Cotización</option>
+                <option value="Cotización Completa">Cotización Completa</option>
+                <option value="Aprobado por Cliente">Aprobado por Cliente</option>
+                <option value="Desestimado">Desestimado</option>
+              </select>
+              <div className="text-xs text-slate-500 mt-2">
+                Estado actual: <span className="font-semibold text-slate-700">{project?.status || "—"}</span>
+              </div>
+            </div>
+          </FormCard>
 
           <ProjectFieldImpactList 
             projectData={project} 
@@ -316,7 +382,10 @@ export default function ProjectDetailPage() {
           />
 
           {isPortal && (
-            <ProjectActionPanel projectCode={projectCode as string} stageCode={currentStage}
+            <ProjectActionPanel
+              projectCode={projectCode as string}
+              projectStatus={project.status}
+              stageCode={currentStage}
               isCompleted={!isPortal}
               openObservationsCount={observations.filter(o => o.status === "Abierta" && o.isBlocking).length}
               hasBlockingObservations={openBlockingObs}
@@ -328,6 +397,7 @@ export default function ProjectDetailPage() {
               onApproveManufacturing={() => handleAdvance()}
               onApproveSample={() => handleAdvance()}
               onReject={() => alert("Proyecto desestimado.")}
+              onRequestValidation={handleRequestValidation}
             />
           )}
 
@@ -341,8 +411,7 @@ export default function ProjectDetailPage() {
 
           <ProjectTrackingTimeline history={history} />
 
-          {/* Productos Asociados */}
-          <ProjectProductsPanel project={project} />
+          <ProjectChangeHistory history={history} />
 
         </div>
       </div>

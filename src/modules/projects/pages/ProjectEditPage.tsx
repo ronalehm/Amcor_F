@@ -12,6 +12,7 @@ import {
   type BooleanLike,
   type YesNoPending,
 } from "../../../shared/data/projectStorage";
+import { computeProjectPreparationStatus } from "../../../shared/data/projectWorkflow";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers } from "../../../shared/data/userStorage";
 
@@ -1518,6 +1519,12 @@ formElement?.requestSubmit();
 
     const now = new Date().toISOString();
 
+    // Calculate the preparation status based on actual form data
+    const calculatedStatus = computeProjectPreparationStatus({
+      project: form,
+      completionPercentage,
+    });
+
     // Ensure commercial executives are properly resolved and persisted
     const finalExecutiveIds = form.executiveId.map(String);
 
@@ -1674,14 +1681,16 @@ formElement?.requestSubmit();
       codigoRFQ: form.codigoRFQ,
       designPlanFiles: form.designPlanFiles,
 
-      status: shouldSubmitForValidation ? "Ficha completa" : "Ficha en curso",
-      stage: shouldSubmitForValidation ? "P1_PREPARACION_FICHA" : originalProject?.stage || "P0_REGISTRO_COMERCIAL",
+      status: calculatedStatus,
+      stage: "P1_PREPARACION_FICHA_PROYECTO",
+      completionPercentage,
+      statusUpdatedAt: originalProject?.status !== calculatedStatus ? now : originalProject?.statusUpdatedAt,
+      stageUpdatedAt: now,
       updatedAt: now,
 
       ...(shouldSubmitForValidation && {
         validacionSolicitada: true,
         estadoValidacionGeneral: "En validación",
-        stageUpdatedAt: now,
         fechaSolicitudValidacion: now,
         validaciones: [
           { area: "Artes Gráficas", estado: "Pendiente", comentarios: [] },

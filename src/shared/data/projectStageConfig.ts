@@ -1,9 +1,9 @@
 /**
  * CONFIGURACIÓN DE ETAPAS DEL PROYECTO - MÓDULO ODISEO
  *
- * Define las 6 etapas del flujo de proyectos en ODISEO (P0 a P5).
- * ODISEO gestiona solo hasta P5 (Preparación de envío a SI).
- * Los estados P6-P9 del Sistema Integral no están aquí.
+ * Define las 3 etapas del flujo de proyectos en ODISEO (P1 a P3).
+ * ODISEO gestiona solo hasta P3 (Gestión comercial de productos preliminares).
+ * Los estados P4-P9 no están implementados en ODISEO.
  */
 
 import type { ProjectStage as NewProjectStage } from "./projectWorkflow";
@@ -31,23 +31,14 @@ export interface StageConfig {
 }
 
 /**
- * Configuraciones de las 6 etapas ODISEO (P0-P5)
+ * Configuraciones de las 3 etapas ODISEO (P1-P3)
  */
 export const PROJECT_STAGE_CONFIGS: Record<NewProjectStage, StageConfig> = {
-  P0_REGISTRO_PROYECTO: {
-    id: "P0_REGISTRO_PROYECTO",
-    name: "Registro de Proyecto",
-    description:
-      "Ejecutivo comercial registra el proyecto con datos base del cliente, portafolio y ruta de diseño.",
-    responsibleArea: "Ejecutivo Comercial",
-    slaDays: 1,
-  },
-
   P1_PREPARACION_FICHA_PROYECTO: {
     id: "P1_PREPARACION_FICHA_PROYECTO",
     name: "Preparación de Ficha de Proyecto",
     description:
-      "Ejecutivo comercial completa la ficha técnica del proyecto: dimensiones, estructura, especificaciones de diseño y comerciales.",
+      "Registra el proyecto y completa la ficha técnica: datos base del cliente, portafolio, ruta de diseño, dimensiones, estructura y especificaciones.",
     responsibleArea: "Ejecutivo Comercial",
     slaDays: 3,
   },
@@ -56,49 +47,28 @@ export const PROJECT_STAGE_CONFIGS: Record<NewProjectStage, StageConfig> = {
     id: "P2_VALIDACION_VIABILIDAD_TECNICA",
     name: "Validación de Viabilidad Técnica",
     description:
-      "Artes Gráficas valida diseño e impresión. Luego, Área Técnica o Desarrollo R&D valida estructura, especificaciones técnicas y viabilidad de manufactura.",
-    responsibleArea: "Artes Gráficas / Área Técnica / Desarrollo R&D",
+      "Artes Gráficas valida diseño e impresión. Luego, R&D Técnica o R&D Desarrollo valida estructura, especificaciones técnicas y viabilidad de manufactura.",
+    responsibleArea: "Artes Gráficas / R&D Técnica / R&D Desarrollo",
     slaDays: 5,
   },
 
-  P3_COTIZACION_APROBACION_CLIENTE: {
-    id: "P3_COTIZACION_APROBACION_CLIENTE",
-    name: "Cotización y Aprobación Cliente",
+  P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES: {
+    id: "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
+    name: "Gestión Comercial de Productos Preliminares",
     description:
-      "Comercial Finance solicita cotización a proveedores y envía presupuesto a cliente para aprobación.",
+      "Solicita cotización a proveedores, genera productos preliminares y envía presupuesto a cliente para aprobación.",
     responsibleArea: "Comercial Finance",
     slaDays: 7,
-  },
-
-  P4_VALIDACION_COMERCIAL_TESORERIA: {
-    id: "P4_VALIDACION_COMERCIAL_TESORERIA",
-    name: "Validación Comercial / Tesorería",
-    description:
-      "Tesorería valida aspectos comerciales, términos de pago, margen y términos finales con cliente.",
-    responsibleArea: "Tesorería",
-    slaDays: 3,
-  },
-
-  P5_PREPARACION_ENVIO_SI: {
-    id: "P5_PREPARACION_ENVIO_SI",
-    name: "Preparación y Envío a Sistema Integral",
-    description:
-      "Ejecutivo comercial prepara el proyecto para envío al Sistema Integral: genera producto preliminar base y coordina traspaso.",
-    responsibleArea: "Ejecutivo Comercial",
-    slaDays: 2,
   },
 };
 
 /**
- * Array de todas las etapas ODISEO (P0-P5) en orden secuencial
+ * Array de todas las etapas ODISEO (P1-P3) en orden secuencial
  */
 export const ALL_PROJECT_STAGES: StageConfig[] = [
-  PROJECT_STAGE_CONFIGS.P0_REGISTRO_PROYECTO,
   PROJECT_STAGE_CONFIGS.P1_PREPARACION_FICHA_PROYECTO,
   PROJECT_STAGE_CONFIGS.P2_VALIDACION_VIABILIDAD_TECNICA,
-  PROJECT_STAGE_CONFIGS.P3_COTIZACION_APROBACION_CLIENTE,
-  PROJECT_STAGE_CONFIGS.P4_VALIDACION_COMERCIAL_TESORERIA,
-  PROJECT_STAGE_CONFIGS.P5_PREPARACION_ENVIO_SI,
+  PROJECT_STAGE_CONFIGS.P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES,
 ];
 
 /**
@@ -148,22 +118,22 @@ export const PORTAL_PROJECT_STAGES = ALL_PROJECT_STAGES.filter(
 export const SI_PROJECT_STAGES: StageConfig[] = [];
 
 /**
- * Mapeo de etapas legacy (P1-P5, P6-P9) a nuevas etapas (P0-P5)
+ * Mapeo de etapas legacy (P1-P5, P6-P9) a nuevas etapas (P1-P3)
  * @deprecated Usar las nuevas etapas directamente
  */
 export const LEGACY_STAGE_MAPPING: Record<string, ProjectStage> = {
-  // Portal stages: P1-P5 → nuevos P0-P5
-  P1: "P0_REGISTRO_PROYECTO",
+  // Portal stages: P1-P5 → nuevas P1-P3
+  P1: "P1_PREPARACION_FICHA_PROYECTO",
   P2: "P1_PREPARACION_FICHA_PROYECTO",
   P3: "P2_VALIDACION_VIABILIDAD_TECNICA",
-  P4: "P3_COTIZACION_APROBACION_CLIENTE",
-  P5: "P4_VALIDACION_COMERCIAL_TESORERIA",
+  P4: "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
+  P5: "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
 
-  // SI stages: P6-P9 → P5 (preparación para SI)
-  P6: "P5_PREPARACION_ENVIO_SI",
-  P7: "P5_PREPARACION_ENVIO_SI",
-  P8: "P5_PREPARACION_ENVIO_SI",
-  P9: "P5_PREPARACION_ENVIO_SI",
+  // SI stages: P6-P9 → P3 (gestión comercial, última etapa ODISEO)
+  P6: "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
+  P7: "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
+  P8: "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
+  P9: "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
 };
 
 /**

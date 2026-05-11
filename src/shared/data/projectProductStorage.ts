@@ -12,7 +12,7 @@
 import type {
   PreliminaryProductStatus,
   PreliminaryProductType,
-} from "./projectWorkflow";
+} from "./projectProductWorkflow";
 
 const STORAGE_KEY = "odiseo_project_products";
 
@@ -108,6 +108,11 @@ export type ProjectPreliminaryProductRecord = {
   // Indicadores de selección para cotización
   selectedForQuote?: boolean;
   selectedForQuoteAt?: string;
+
+  // Timestamps de transición
+  quoteCompletedAt?: string;
+  clientApprovedAt?: string;
+  quoteRequestedAt?: string;
 
   // Auditoría
   createdAt: string;

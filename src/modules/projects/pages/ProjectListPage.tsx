@@ -15,26 +15,20 @@ import {
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getProjectRecords } from "../../../shared/data/projectStorage";
-import { getAllProjectTrackingStates } from "../../../shared/data/projectTrackingStorage";
 import { getProjectSlaSummary } from "../../../shared/data/slaStorage";
-import { getStageConfig, type ProjectStage } from "../../../shared/data/projectStageConfig";
 import { getProjectObservations } from "../../../shared/data/observationStorage";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
-
+import {
+  normalizeProjectWorkflow,
+  PROJECT_STAGE_LABELS,
+  getResponsibleAreaForProject,
+  type ProjectStatus,
+} from "../../../shared/data/projectWorkflow";
+import ProjectStatusBadge from "../../../shared/components/display/ProjectStatusBadge";
 import SlaStatusBadge from "../../../shared/components/sla/SlaStatusBadge";
 import ActionButton from "../../../shared/components/buttons/ActionButton";
 
-type ProjectBusinessStatus =
-  | "Registrado"
-  | "En evaluación"
-  | "Observada"
-  | "Lista para RFQ"
-  | "En desarrollo"
-  | "Pendiente de alta"
-  | "Dado de alta"
-  | "Desestimado";
-
-type ProjectTab = "all" | ProjectBusinessStatus;
+type ProjectTab = "all" | ProjectStatus;
 
 type SortDirection = "asc" | "desc";
 
@@ -43,7 +37,7 @@ type SortKey =
   | "projectName"
   | "clientName"
   | "portfolio"
-  | "businessStatus"
+  | "status"
   | "stage"
   | "responsibleArea"
   | "sla"
@@ -51,27 +45,18 @@ type SortKey =
   | "createdAt"
   | "createdBy";
 
-const PROJECT_STATUSES: ProjectBusinessStatus[] = [
+const PROJECT_STATUSES: ProjectStatus[] = [
   "Registrado",
-  "En evaluación",
-  "Observada",
-  "Lista para RFQ",
-  "En desarrollo",
-  "Pendiente de alta",
-  "Dado de alta",
+  "En Preparación",
+  "Ficha Completa",
+  "En validación",
+  "Observado",
+  "Validado",
+  "En Cotización",
+  "Cotización Completa",
+  "Aprobado por Cliente",
   "Desestimado",
 ];
-
-const STATUS_STYLES: Record<ProjectBusinessStatus, string> = {
-  Registrado: "border-slate-200 bg-slate-50 text-slate-700",
-  "En evaluación": "border-blue-200 bg-blue-50 text-blue-700",
-  Observada: "border-amber-200 bg-amber-50 text-amber-700",
-  "Lista para RFQ": "border-indigo-200 bg-indigo-50 text-indigo-700",
-  "En desarrollo": "border-cyan-200 bg-cyan-50 text-cyan-700",
-  "Pendiente de alta": "border-orange-200 bg-orange-50 text-orange-700",
-  "Dado de alta": "border-emerald-200 bg-emerald-50 text-emerald-700",
-  Desestimado: "border-red-200 bg-red-50 text-red-700",
-};
 
 const getText = (...values: any[]) => {
   const value = values.find(
@@ -80,8 +65,6 @@ const getText = (...values: any[]) => {
 
   return value ? String(value) : "";
 };
-
-const normalizeText = (...values: any[]) => getText(...values).toLowerCase();
 
 const formatDate = (...values: any[]) => {
   const value = getText(...values);
@@ -133,103 +116,6 @@ const getSlaRemainingLabel = (sla: any) => {
   return `Vencido hace ${Math.abs(days)} días`;
 };
 
-const getProjectBusinessStatus = (
-  project: any,
-  stageId: string,
-  openObs: number
-): ProjectBusinessStatus => {
-  const rawStatus = normalizeText(
-    project.businessStatus,
-    project.projectStatus,
-    project.status,
-    project.estado,
-    project.est
-  );
-
-  if (
-    rawStatus.includes("desestim") ||
-    rawStatus.includes("rechaz") ||
-    rawStatus.includes("cancel") ||
-    rawStatus.includes("perd")
-  ) {
-    return "Desestimado";
-  }
-
-  if (
-    rawStatus.includes("dado de alta") ||
-    rawStatus.includes("alta confirmada") ||
-    rawStatus.includes("sku confirmado") ||
-    rawStatus.includes("sku creado") ||
-    rawStatus.includes("confirmado")
-  ) {
-    return "Dado de alta";
-  }
-
-  if (
-    rawStatus.includes("pendiente de alta") ||
-    rawStatus.includes("lista para alta") ||
-    rawStatus.includes("espera de sku")
-  ) {
-    return "Pendiente de alta";
-  }
-
-  if (openObs > 0 || rawStatus.includes("observ")) {
-    return "Observada";
-  }
-
-  if (rawStatus.includes("rfq") || rawStatus.includes("estimación")) {
-    return "Lista para RFQ";
-  }
-
-  if (rawStatus.includes("desarrollo")) {
-    return "En desarrollo";
-  }
-
-  if (
-    rawStatus.includes("evaluación") ||
-    rawStatus.includes("evaluacion") ||
-    rawStatus.includes("validación") ||
-    rawStatus.includes("validacion")
-  ) {
-    return "En evaluación";
-  }
-
-  if (rawStatus.includes("aprob")) {
-    return "Lista para RFQ";
-  }
-
-  if (rawStatus.includes("borrador") || rawStatus.includes("registr")) {
-    return "Registrado";
-  }
-
-  if (stageId === "P1") return "Registrado";
-  if (stageId === "P2" || stageId === "P3") return "En evaluación";
-  if (stageId === "P4") return "Lista para RFQ";
-  if (stageId === "P5") return "Pendiente de alta";
-
-  if (
-    stageId.startsWith("P6") ||
-    stageId.startsWith("P7") ||
-    stageId.startsWith("P8") ||
-    stageId.startsWith("P9")
-  ) {
-    return "Pendiente de alta";
-  }
-
-  return "Registrado";
-};
-
-const ProjectBusinessStatusBadge = ({
-  status,
-}: {
-  status: ProjectBusinessStatus;
-}) => (
-  <span
-    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_STYLES[status]}`}
-  >
-    {status}
-  </span>
-);
 
 const getSortValue = (project: any, key: SortKey): string | number => {
   switch (key) {
@@ -245,11 +131,11 @@ const getSortValue = (project: any, key: SortKey): string | number => {
     case "portfolio":
       return getText(project.portfolioCode, project.portfolioName).toLowerCase();
 
-    case "businessStatus":
-      return getText(project.businessStatus).toLowerCase();
+    case "status":
+      return getText(project.status).toLowerCase();
 
     case "stage":
-      return getText(project.stageId, project.stageName).toLowerCase();
+      return getText(project.stageName).toLowerCase();
 
     case "responsibleArea":
       return getText(project.responsibleArea).toLowerCase();
@@ -317,25 +203,13 @@ export default function ProjectListPage() {
   }, [setHeader, resetHeader]);
 
   const projects = useMemo(() => getProjectRecords(), []);
-  const trackingStates = useMemo(() => getAllProjectTrackingStates(), []);
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const observations = useMemo(() => getProjectObservations(), []);
 
   const augmentedProjects = useMemo(() => {
     return projects.map((project) => {
+      const normalizedProject = normalizeProjectWorkflow(project);
       const code = getText(project.code, project.id);
-      const tracking = trackingStates.find(
-        (trackingState) => trackingState.projectCode === code
-      );
-
-      const stageId = getText(
-        tracking?.currentStage,
-        project.currentPortalStage,
-        (project as any).stageId,
-        "P1"
-      );
-
-      const config = getStageConfig(stageId as ProjectStage);
 
       const slas = getProjectSlaSummary(code);
       const activeSla = slas.find((sla) => !sla.completedAt) || slas[0];
@@ -347,8 +221,6 @@ export default function ProjectListPage() {
       const openObs = projectObservations.filter(
         (observation) => observation.status === "Abierta"
       ).length;
-
-      const businessStatus = getProjectBusinessStatus(project, stageId, openObs);
 
       const portfolioCode = getText(
         project.portfolioCode,
@@ -388,33 +260,24 @@ export default function ProjectListPage() {
         slaDaysRemaining >= 0 &&
         slaDaysRemaining <= 2;
 
-      const isExternal =
-        !config ||
-        stageId.startsWith("P6") ||
-        stageId.startsWith("P7") ||
-        stageId.startsWith("P8") ||
-        stageId.startsWith("P9") ||
-        businessStatus === "Pendiente de alta" ||
-        businessStatus === "Dado de alta";
+      const stageName = PROJECT_STAGE_LABELS[normalizedProject.stage];
+      const responsibleArea = getResponsibleAreaForProject(normalizedProject);
 
       return {
-        ...project,
+        ...normalizedProject,
         code,
         projectNameLabel: getText(project.projectName, (project as any).name),
         clientNameLabel: getText(project.clientName, (project as any).cli),
         portfolioCodeLabel: portfolioCode,
         portfolioNameLabel: portfolioName,
-        stageId,
-        stageName: getText(config?.name, "Registro de Proyecto"),
-        responsibleArea: getText(config?.responsibleArea, "Comercial"),
-        isExternal,
+        stageName,
+        responsibleArea,
         activeSla,
         slaStatus,
         slaDaysRemaining,
         isSlaOverdue,
         isSlaDueSoon,
         openObs,
-        businessStatus,
         createdAtLabel: formatDate(
           project.createdAt,
           (project as any).createdDate,
@@ -431,17 +294,14 @@ export default function ProjectListPage() {
           ) || "—",
       };
     });
-  }, [projects, trackingStates, observations, portfolios]);
+  }, [projects, observations, portfolios]);
 
   const totalProjects = augmentedProjects.length;
 
   const portalProjects = useMemo(
     () =>
       augmentedProjects.filter(
-        (project) =>
-          !project.isExternal &&
-          project.businessStatus !== "Dado de alta" &&
-          project.businessStatus !== "Desestimado"
+        (project) => project.status !== "Desestimado"
       ),
     [augmentedProjects]
   );
@@ -450,7 +310,7 @@ export default function ProjectListPage() {
     () =>
       augmentedProjects.filter(
         (project) =>
-          project.openObs > 0 || project.businessStatus === "Observada"
+          project.openObs > 0 || project.status === "Observado"
       ),
     [augmentedProjects]
   );
@@ -466,14 +326,14 @@ export default function ProjectListPage() {
         project.clientNameLabel,
         project.portfolioCodeLabel,
         project.portfolioNameLabel,
-        project.businessStatus,
+        project.status,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
       const matchesSearch = !search || searchableText.includes(search);
-      const matchesTab = activeTab === "all" || project.businessStatus === activeTab;
+      const matchesTab = activeTab === "all" || project.status === activeTab;
 
       return matchesSearch && matchesTab;
     });
@@ -576,7 +436,7 @@ export default function ProjectListPage() {
       key: status as ProjectTab,
       label: status,
       count: augmentedProjects.filter(
-        (project) => project.businessStatus === status
+        (project) => project.status === status
       ).length,
     })),
   ];
@@ -614,7 +474,7 @@ export default function ProjectListPage() {
                 {portalProjects.length}
               </p>
               <p className="mt-1 text-xs text-slate-500">
-                Seguimiento P1-P5
+                Seguimiento P1-P3
               </p>
             </div>
 
@@ -727,7 +587,7 @@ export default function ProjectListPage() {
                 <SortableHeader label="Proyecto" sortKey="projectName" />
                 <SortableHeader label="Cliente" sortKey="clientName" />
                 <SortableHeader label="Portafolio" sortKey="portfolio" />
-                <SortableHeader label="Estado Proyecto" sortKey="businessStatus" />
+                <SortableHeader label="Estado Proyecto" sortKey="status" />
                 <SortableHeader label="Etapa Actual" sortKey="stage" />
                 <SortableHeader label="Área Resp." sortKey="responsibleArea" />
                 <SortableHeader label="SLA" sortKey="sla" />
@@ -780,33 +640,17 @@ export default function ProjectListPage() {
                   </td>
 
                   <td className="px-4 py-3 text-sm">
-                    <ProjectBusinessStatusBadge status={item.businessStatus} />
+                    <ProjectStatusBadge status={item.status} />
                   </td>
 
                   <td className="px-4 py-3 text-sm">
-                    <div
-                      className={`font-bold ${
-                        item.isExternal ? "text-slate-500" : "text-brand-primary"
-                      }`}
-                    >
-                      {item.stageId} - {item.stageName}
+                    <div className="font-bold text-brand-primary">
+                      {item.stageName}
                     </div>
-
-                    {item.isExternal && (
-                      <div className="mt-0.5 text-xs text-slate-400">
-                        Seguimiento externo
-                      </div>
-                    )}
                   </td>
 
                   <td className="px-4 py-3 text-sm">
-                    <span
-                      className={`rounded-md border px-2 py-1 text-xs font-bold ${
-                        item.isExternal
-                          ? "border-slate-200 bg-slate-100 text-slate-500"
-                          : "border-blue-200 bg-blue-50 text-blue-700"
-                      }`}
-                    >
+                    <span className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
                       {item.responsibleArea}
                     </span>
                   </td>

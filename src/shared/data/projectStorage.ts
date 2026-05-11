@@ -4,9 +4,8 @@ import type {
   GraphicArtsValidationStatus,
   TechnicalValidationStatus,
   TechnicalComplexity,
-  TechnicalValidatorType,
+  TechnicalSubArea,
   CurrentValidationStep,
-  TreasuryValidationStatus,
 } from "./projectWorkflow";
 import { resolveProjectStage } from "./projectWorkflow";
 
@@ -23,27 +22,7 @@ export type SiProjectStage = "P6" | "P7" | "P8" | "P9";
 // Aliases para compatibilidad
 export type WorkflowProjectStage = ProjectStage;
 export type WorkflowAreaValidationStatus = GraphicArtsValidationStatus;
-export type WorkflowTreasuryValidationStatus = TreasuryValidationStatus;
-
-export type ProjectStatus =
-  | "Borrador"
-  | "Registrado"
-  | "Ficha en proceso"
-  | "Ficha completa"
-  | "Pendiente de validación"
-  | "En validación"
-  | "Observada"
-  | "Rechazada"
-  | "Validada por áreas"
-  | "Lista para RFQ"
-  | "Pendiente de precio"
-  | "Precio cargado"
-  | "Ficha aprobada"
-  | "Aprobado"
-  | "Dado de alta"
-  | "Desestimado"
-  | "Aprobado para fabricación"
-  | "Aprobado para muestra";
+export type ProjectStatus = WorkflowProjectStatus;
 
 export type ValidationStatus =
   | "Sin solicitar"
@@ -121,13 +100,12 @@ export type ProjectRecord = {
   graphicArtsValidationStatus?: GraphicArtsValidationStatus;
   technicalValidationStatus?: TechnicalValidationStatus;
   technicalComplexity?: TechnicalComplexity;
-  technicalValidatorType?: TechnicalValidatorType;
+  technicalSubArea?: TechnicalSubArea;
   currentValidationStep?: CurrentValidationStep;
-  treasuryValidationStatus?: TreasuryValidationStatus;
 
   // Workflow v2: Timestamps de transición
   validationRound?: number;
-  lastObservationSource?: "Artes Gráficas" | "Área Técnica" | "Desarrollo R&D" | "Tesorería";
+  lastObservationSource?: "Artes Gráficas" | "R&D Técnica" | "R&D Desarrollo";
   lastObservationComment?: string;
   lastObservationAt?: string;
   lastValidatedAt?: string;
@@ -317,13 +295,9 @@ export type ProjectRecord = {
   // Workflow v2: Timestamps de transición (continuación)
   statusUpdatedAt?: string;
   stageUpdatedAt?: string;
-  quotedAt?: string;
-  quoteSentAt?: string;
+  quoteStartedAt?: string;
+  quoteCompletedAt?: string;
   clientApprovedAt?: string;
-  treasuryRequestedAt?: string;
-  treasuryApprovedAt?: string;
-  preparedForSiAt?: string;
-  sentToSiAt?: string;
   desestimatedAt?: string;
   desestimatedReason?: string;
   closedFromStage?: ProjectStage;
@@ -399,12 +373,25 @@ function inferRouteType(project: Partial<ProjectRecord>): "Con diseño" | "Sin d
 }
 
 function inferPortalStage(status: ProjectStatus): PortalProjectStage {
-  // Legacy mapeo de estados antiguos a etapas P1-P5
-  if (status === "En validación") return "P2";
-  if (status === "Aprobado para muestra") return "P3";
-  if (status === "Aprobado para fabricación") return "P4";
-  if (status === "Dado de alta" || status === "Registrado") return "P5";
-  return "P1";
+  // Mapeo de estados a etapas portales P1-P3 (P4-P5 ya no existen)
+  switch (status) {
+    case "Registrado":
+    case "En Preparación":
+    case "Ficha Completa":
+      return "P1";
+    case "En validación":
+    case "Observado":
+    case "Validado":
+      return "P2";
+    case "En Cotización":
+    case "Cotización Completa":
+    case "Aprobado por Cliente":
+      return "P3";
+    case "Desestimado":
+      return "P1"; // Default to P1
+    default:
+      return "P1";
+  }
 }
 
 function normalizeProjectRecord(record: ProjectRecord): ProjectRecord {
@@ -492,22 +479,18 @@ function normalizeProjectRecord(record: ProjectRecord): ProjectRecord {
     stage: record.stage,
     graphicArtsValidationStatus: record.graphicArtsValidationStatus,
     technicalValidationStatus: record.technicalValidationStatus,
-    treasuryValidationStatus: record.treasuryValidationStatus,
     technicalComplexity: record.technicalComplexity,
-    technicalValidatorType: record.technicalValidatorType,
+    technicalSubArea: record.technicalSubArea,
     currentValidationStep: record.currentValidationStep,
     statusUpdatedAt: record.statusUpdatedAt,
     stageUpdatedAt: record.stageUpdatedAt,
-    quotedAt: record.quotedAt,
-    quoteSentAt: record.quoteSentAt,
+    quoteStartedAt: record.quoteStartedAt,
+    quoteCompletedAt: record.quoteCompletedAt,
     clientApprovedAt: record.clientApprovedAt,
-    treasuryRequestedAt: record.treasuryRequestedAt,
-    treasuryApprovedAt: record.treasuryApprovedAt,
-    preparedForSiAt: record.preparedForSiAt,
-    sentToSiAt: record.sentToSiAt,
     desestimatedAt: record.desestimatedAt,
     desestimatedReason: record.desestimatedReason,
     closedFromStage: record.closedFromStage,
+    basePreliminaryProductId: record.basePreliminaryProductId,
     preliminaryProductIds: record.preliminaryProductIds,
     productSummaryStatus: record.productSummaryStatus,
 
@@ -709,7 +692,7 @@ const INITIAL_PROJECTS: ProjectRecord[] = [
     routeType: "Sin diseño",
     designRoute: "Sin diseño",
 
-    status: "Borrador",
+    status: "Registrado",
     currentPortalStage: "P1",
     siExternalStatus: "No enviado",
 
@@ -771,8 +754,6 @@ function normalizeProjectWorkflow(project: ProjectRecord): ProjectRecord {
       project.graphicArtsValidationStatus || "Sin solicitar",
     technicalValidationStatus:
       project.technicalValidationStatus || "Sin solicitar",
-    treasuryValidationStatus:
-      project.treasuryValidationStatus || "No solicitado",
     currentValidationStep: project.currentValidationStep ?? null,
     validationRound: project.validationRound ?? 0,
     hasBasePreliminaryProduct: project.hasBasePreliminaryProduct ?? false,
@@ -992,11 +973,7 @@ export function getProjectsSummary() {
   const projects = getProjectRecords();
 
   const activeProjects = projects.filter(
-    (project) =>
-      project.status !== "Dado de alta" &&
-      project.status !== "Desestimado" &&
-      project.status !== "Aprobado para fabricación" &&
-      project.status !== "Aprobado para muestra"
+    (project) => project.status !== "Desestimado"
   );
 
   const byStatus = projects.reduce<Record<string, number>>((acc, project) => {

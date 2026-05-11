@@ -1,9 +1,11 @@
 import { useMemo } from "react";
+import type { ProjectStatus } from "../../../shared/data/projectStorage";
 import Button from "../../../shared/components/ui/Button";
 
 type ProjectActionPanelProps = {
   projectCode: string;
-  stageCode: string;
+  projectStatus: ProjectStatus;
+  stageCode?: string;
   isCompleted: boolean;
   openObservationsCount: number;
   hasBlockingObservations: boolean;
@@ -15,10 +17,12 @@ type ProjectActionPanelProps = {
   onApproveManufacturing: () => void;
   onApproveSample: () => void;
   onReject: () => void;
+  onRequestValidation?: () => void;
 };
 
 export default function ProjectActionPanel({
-  stageCode,
+  projectStatus,
+  stageCode = "P0",
   isCompleted,
   openObservationsCount,
   hasBlockingObservations,
@@ -30,6 +34,7 @@ export default function ProjectActionPanel({
   onApproveManufacturing,
   onApproveSample,
   onReject,
+  onRequestValidation,
 }: ProjectActionPanelProps) {
 
   const actionButtons = useMemo(() => {
@@ -41,69 +46,91 @@ export default function ProjectActionPanel({
       );
     }
 
-    switch (stageCode) {
-      case "P1":
+    switch (projectStatus) {
+      case "Registrado":
+      case "En Preparación":
         return (
           <>
-            <Button variant="primary" onClick={onAdvance}>
+            <Button variant="primary" onClick={onRequestValidation || onAdvance}>
               Solicitar validación
             </Button>
           </>
         );
-      case "P2":
-      case "P3":
+      case "Ficha Completa":
         return (
           <>
-            <Button
-              variant="outline"
-              onClick={onObserve}
-            >
-              Registrar Observación
-            </Button>
-            <Button
-              variant="primary"
-              onClick={onAdvance}
-              disabled={hasBlockingObservations}
-            >
-              Aprobar validación
+            <Button variant="primary" onClick={onRequestValidation || onAdvance}>
+              Solicitar validación
             </Button>
           </>
         );
-      case "P4":
+      case "En validación":
+        return (
+          <>
+            <Button variant="outline" onClick={onObserve}>
+              Ver Validaciones
+            </Button>
+          </>
+        );
+      case "Observado":
+        return (
+          <>
+            <Button variant="outline" onClick={onObserve}>
+              Ver Observaciones
+            </Button>
+            <Button variant="primary" onClick={onAdvance}>
+              Corregir Ficha
+            </Button>
+          </>
+        );
+      case "Validado":
+        return (
+          <>
+            <Button variant="primary" onClick={onAdvance}>
+              Generar Producto Preliminar
+            </Button>
+          </>
+        );
+      case "En Cotización":
         return (
           <>
             <Button variant="outline" onClick={onExportExcel}>
-              Exportar ficha Excel
+              Ver Productos
             </Button>
             <Button variant="primary" onClick={onSendOffer}>
-              Enviar Oferta y Avanzar
+              Exportar Excel
             </Button>
           </>
         );
-      case "P5":
+      case "Cotización Completa":
         return (
           <>
-            <div className="grid grid-cols-2 gap-2 w-full">
-              <Button variant="outline" onClick={onRequestCreditEvaluation}>
-                Evaluación Crediticia
-              </Button>
-              <Button variant="danger" onClick={onReject}>
-                Desestimar oportunidad
-              </Button>
-              <Button variant="success" onClick={onApproveSample}>
-                Aprobar desarrollo de muestra
-              </Button>
-              <Button variant="primary" onClick={onApproveManufacturing}>
-                Aprobar pase a fabricación
-              </Button>
-            </div>
+            <Button variant="primary" onClick={onAdvance}>
+              Registrar Aprobación Cliente
+            </Button>
+          </>
+        );
+      case "Aprobado por Cliente":
+        return (
+          <>
+            <Button variant="outline" onClick={onSendOffer}>
+              Ver Resumen Aprobación
+            </Button>
+          </>
+        );
+      case "Desestimado":
+        return (
+          <>
+            <Button variant="outline" onClick={onObserve}>
+              Ver Motivo Cierre
+            </Button>
           </>
         );
       default:
         return null;
     }
   }, [
-    stageCode,
+    projectStatus,
     isCompleted,
     hasBlockingObservations,
     onAdvance,
@@ -114,12 +141,13 @@ export default function ProjectActionPanel({
     onApproveManufacturing,
     onApproveSample,
     onReject,
+    onRequestValidation,
   ]);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <h3 className="mb-4 text-sm font-extrabold uppercase tracking-wide text-slate-800">
-        Acciones de Etapa ({stageCode})
+        Acciones del Proyecto ({projectStatus})
       </h3>
 
       {hasBlockingObservations && !isCompleted && (

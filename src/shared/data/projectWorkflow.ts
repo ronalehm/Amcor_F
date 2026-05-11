@@ -4,8 +4,8 @@
    Este archivo centraliza toda la lógica de estados, etapas, validaciones
    y transiciones del flujo de proyectos en ODISEO.
 
-   IMPORTANTE: ODISEO solo gestiona hasta P5_PREPARACION_ENVIO_SI
-   NO se implementan estados técnicos del Sistema Integral.
+   IMPORTANTE: ODISEO gestiona 4 etapas (P0-P3).
+   NO se implementan P4-P5 (Sistema Integral) ni estados técnicos de SI.
    ============================================================================ */
 
 // ============================================================================
@@ -13,27 +13,20 @@
 // ============================================================================
 
 export type ProjectStage =
-  | "P0_REGISTRO_PROYECTO"
   | "P1_PREPARACION_FICHA_PROYECTO"
   | "P2_VALIDACION_VIABILIDAD_TECNICA"
-  | "P3_COTIZACION_APROBACION_CLIENTE"
-  | "P4_VALIDACION_COMERCIAL_TESORERIA"
-  | "P5_PREPARACION_ENVIO_SI";
+  | "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES";
 
 export type ProjectStatus =
   | "Registrado"
-  | "En Curso"
+  | "En Preparación"
   | "Ficha Completa"
-  | "En Validación"
+  | "En validación"
   | "Observado"
   | "Validado"
   | "En Cotización"
-  | "Cotización Enviada"
+  | "Cotización Completa"
   | "Aprobado por Cliente"
-  | "En Validación Tesorería"
-  | "Cliente Validado"
-  | "Preparación SI"
-  | "Enviado a SI"
   | "Desestimado";
 
 // ============================================================================
@@ -46,32 +39,24 @@ export type GraphicArtsValidationStatus =
   | "Pendiente revisión manual"
   | "En revisión"
   | "Observado"
-  | "Aprobado";
+  | "Validado";
 
 export type TechnicalValidationStatus =
   | "Sin solicitar"
+  | "Aprobado automático"
   | "Pendiente"
   | "En revisión"
   | "Observado"
-  | "Aprobado";
+  | "Validado";
 
 export type TechnicalComplexity = "Baja" | "Alta";
 
-export type TechnicalValidatorType = "Área Técnica" | "Desarrollo R&D";
-
-export type TreasuryValidationStatus =
-  | "No solicitado"
-  | "Pendiente"
-  | "En revisión"
-  | "Observado"
-  | "Aprobado"
-  | "Rechazado";
+export type TechnicalSubArea = "R&D Técnica" | "R&D Desarrollo";
 
 export type CurrentValidationStep =
   | "Artes Gráficas"
-  | "Área Técnica"
-  | "Desarrollo R&D"
-  | "Tesorería"
+  | "R&D Técnica"
+  | "R&D Desarrollo"
   | null;
 
 // ============================================================================
@@ -110,51 +95,40 @@ export type AreaValidationStatus = GraphicArtsValidationStatus;
 // ============================================================================
 
 export const PROJECT_STAGE_LABELS: Record<ProjectStage, string> = {
-  P0_REGISTRO_PROYECTO: "P0 - Registro de Proyecto",
   P1_PREPARACION_FICHA_PROYECTO: "P1 - Preparación de ficha de proyecto",
   P2_VALIDACION_VIABILIDAD_TECNICA: "P2 - Validación de viabilidad técnica",
-  P3_COTIZACION_APROBACION_CLIENTE: "P3 - Cotización y aprobación cliente",
-  P4_VALIDACION_COMERCIAL_TESORERIA: "P4 - Validación comercial / Tesorería",
-  P5_PREPARACION_ENVIO_SI: "P5 - Preparación y envío a Sistema Integral",
+  P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES: "P3 - Gestión comercial de productos preliminares",
 };
 
 export const PROJECT_STATUS_TO_STAGE: Record<ProjectStatus, ProjectStage> = {
-  Registrado: "P0_REGISTRO_PROYECTO",
+  Registrado: "P1_PREPARACION_FICHA_PROYECTO",
 
-  "En Curso": "P1_PREPARACION_FICHA_PROYECTO",
+  "En Preparación": "P1_PREPARACION_FICHA_PROYECTO",
   "Ficha Completa": "P1_PREPARACION_FICHA_PROYECTO",
 
-  "En Validación": "P2_VALIDACION_VIABILIDAD_TECNICA",
+  "En validación": "P2_VALIDACION_VIABILIDAD_TECNICA",
   Observado: "P2_VALIDACION_VIABILIDAD_TECNICA",
   Validado: "P2_VALIDACION_VIABILIDAD_TECNICA",
 
-  "En Cotización": "P3_COTIZACION_APROBACION_CLIENTE",
-  "Cotización Enviada": "P3_COTIZACION_APROBACION_CLIENTE",
-  "Aprobado por Cliente": "P3_COTIZACION_APROBACION_CLIENTE",
+  "En Cotización": "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
+  "Cotización Completa": "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
+  "Aprobado por Cliente": "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
 
-  "En Validación Tesorería": "P4_VALIDACION_COMERCIAL_TESORERIA",
-  "Cliente Validado": "P4_VALIDACION_COMERCIAL_TESORERIA",
-
-  "Preparación SI": "P5_PREPARACION_ENVIO_SI",
-  "Enviado a SI": "P5_PREPARACION_ENVIO_SI",
-
-  Desestimado: "P0_REGISTRO_PROYECTO",
+  Desestimado: "P1_PREPARACION_FICHA_PROYECTO",
 };
 
 export const STAGE_STATUSES: Record<ProjectStage, ProjectStatus[]> = {
-  P0_REGISTRO_PROYECTO: ["Registrado"],
-  P1_PREPARACION_FICHA_PROYECTO: ["En Curso", "Ficha Completa"],
-  P2_VALIDACION_VIABILIDAD_TECNICA: ["En Validación", "Observado", "Validado"],
-  P3_COTIZACION_APROBACION_CLIENTE: [
+  P1_PREPARACION_FICHA_PROYECTO: [
+    "Registrado",
+    "En Preparación",
+    "Ficha Completa",
+  ],
+  P2_VALIDACION_VIABILIDAD_TECNICA: ["En validación", "Observado", "Validado"],
+  P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES: [
     "En Cotización",
-    "Cotización Enviada",
+    "Cotización Completa",
     "Aprobado por Cliente",
   ],
-  P4_VALIDACION_COMERCIAL_TESORERIA: [
-    "En Validación Tesorería",
-    "Cliente Validado",
-  ],
-  P5_PREPARACION_ENVIO_SI: ["Preparación SI", "Enviado a SI"],
 };
 
 // ============================================================================
@@ -186,18 +160,14 @@ export function canAdvanceTo(
   const toStage = resolveProjectStage(toStatus);
 
   const stageSequence: ProjectStage[] = [
-    "P0_REGISTRO_PROYECTO",
     "P1_PREPARACION_FICHA_PROYECTO",
     "P2_VALIDACION_VIABILIDAD_TECNICA",
-    "P3_COTIZACION_APROBACION_CLIENTE",
-    "P4_VALIDACION_COMERCIAL_TESORERIA",
-    "P5_PREPARACION_ENVIO_SI",
+    "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
   ];
 
   const fromIdx = stageSequence.indexOf(fromStage);
   const toIdx = stageSequence.indexOf(toStage);
 
-  // Permitir avance secuencial o dentro de la misma etapa
   return toIdx >= fromIdx;
 }
 
@@ -224,96 +194,6 @@ export function canGenerateBaseProduct(project: any): boolean {
 }
 
 /**
- * Verifica si se puede crear una variación desde un producto
- */
-export function canCreateVariation(
-  productStatus: PreliminaryProductStatus,
-  isBaseProduct?: boolean
-): boolean {
-  if (isBaseProduct) return true;
-  return productStatus === "Aprobado" || productStatus === "Alta";
-}
-
-/**
- * Verifica si un campo está bloqueado en variaciones
- */
-export function isLockedField(fieldName: string): boolean {
-  const lockedFields = [
-    "structureType",
-    "blueprintFormat",
-    "printType",
-    "printClass",
-    "layer1Material",
-    "layer1Micron",
-    "layer1Grammage",
-    "layer2Material",
-    "layer2Micron",
-    "layer2Grammage",
-    "layer3Material",
-    "layer3Micron",
-    "layer3Grammage",
-    "layer4Material",
-    "layer4Micron",
-    "layer4Grammage",
-    "grammage",
-    "grammageTolerance",
-    "referenceEmCode",
-    "referenceEmVersion",
-    "bomReference",
-  ];
-  return lockedFields.includes(fieldName);
-}
-
-/**
- * Calcula el estado resumen de productos del proyecto
- */
-export function computeProjectProductSummaryStatus(
-  products: any[]
-): ProjectProductSummaryStatus {
-  if (products.length === 0) {
-    return "Sin productos";
-  }
-
-  const hasBase = products.some((p) => p.isBaseProduct);
-  const hasVariations = products.some((p) => p.isDerived);
-  const hasDesestimados = products.some((p) => p.status === "Desestimado");
-  const inQuote = products.some((p) => p.status === "En Cotización");
-  const approved = products.filter((p) => p.status === "Aprobado");
-  const alta = products.filter((p) => p.status === "Alta");
-  const activeProducts = products.filter((p) => p.status !== "Desestimado");
-
-  if (hasDesestimados && activeProducts.length > 0) {
-    return "Con desestimados";
-  }
-
-  if (alta.length === activeProducts.length && activeProducts.length > 0) {
-    return "Alta completa";
-  }
-
-  if (alta.length > 0 && activeProducts.length > 0) {
-    return "Alta parcial";
-  }
-
-  if (approved.length === activeProducts.length && activeProducts.length > 0) {
-    return "Aprobados";
-  }
-
-  if (inQuote) {
-    return "En cotización";
-  }
-
-  if (hasVariations) {
-    return "Con variaciones";
-  }
-
-  if (hasBase && !hasVariations) {
-    return "Producto base registrado";
-  }
-
-  return "Sin productos";
-}
-
-/**
  * Retorna las acciones disponibles para un estado de proyecto
  */
 export function getActionsForProjectStatus(
@@ -321,44 +201,34 @@ export function getActionsForProjectStatus(
 ): string[] {
   switch (status) {
     case "Registrado":
-    case "En Curso":
-      return [];
+      return ["continuar-edicion"];
+
+    case "En Preparación":
+      return ["actualizar-proyecto"];
 
     case "Ficha Completa":
       return ["solicitar-validacion"];
 
-    case "En Validación":
-      return ["aprobar-ag", "observar-ag", "aprobar-tecnica", "observar-tecnica"];
+    case "En validación":
+      return ["ver-validaciones"];
 
     case "Observado":
-      return ["ver-observaciones"];
+      return ["ver-observaciones", "corregir-ficha"];
 
     case "Validado":
-      return ["solicitar-cotizacion"];
+      return ["generar-producto-preliminar"];
 
     case "En Cotización":
-      return ["enviar-cotizacion"];
+      return ["ver-productos", "exportar-excel"];
 
-    case "Cotización Enviada":
-      return ["aprobar-cliente"];
+    case "Cotización Completa":
+      return ["registrar-aprobacion-cliente"];
 
     case "Aprobado por Cliente":
-      return ["solicitar-tesoreria"];
-
-    case "En Validación Tesorería":
-      return ["aprobar-tesoreria", "observar-tesoreria", "rechazar-tesoreria"];
-
-    case "Cliente Validado":
-      return ["preparar-si"];
-
-    case "Preparación SI":
-      return ["enviar-si"];
-
-    case "Enviado a SI":
-      return [];
+      return ["ver-resumen-aprobacion"];
 
     case "Desestimado":
-      return [];
+      return ["ver-motivo-cierre"];
 
     default:
       return [];
@@ -366,12 +236,112 @@ export function getActionsForProjectStatus(
 }
 
 /**
+ * Normaliza estados antiguos al modelo oficial
+ * Usada para migraciones de datos
+ */
+export function normalizeProjectStatus(rawStatus?: string): ProjectStatus {
+  if (!rawStatus) return "Registrado";
+
+  const status = String(rawStatus).trim();
+
+  switch (status) {
+    case "Registrado":
+      return "Registrado";
+
+    case "En Curso":
+    case "En preparación":
+    case "En Preparación":
+      return "En Preparación";
+
+    case "Ficha completa":
+    case "Ficha Completa":
+      return "Ficha Completa";
+
+    case "En Validación":
+    case "En validación":
+    case "En Evaluación":
+    case "En evaluación":
+      return "En validación";
+
+    case "Observada":
+    case "Observado":
+      return "Observado";
+
+    case "Lista para RFQ":
+    case "Validado":
+      return "Validado";
+
+    case "En Cotización":
+      return "En Cotización";
+
+    case "Cotización Completa":
+    case "Cotización completa":
+    case "Cotización Enviada":
+      return "Cotización Completa";
+
+    case "Aprobado por Cliente":
+      return "Aprobado por Cliente";
+
+    case "Desestimado":
+    case "Rechazado":
+    case "Cancelado":
+      return "Desestimado";
+
+    default:
+      return "Registrado";
+  }
+}
+
+/**
+ * Normaliza currentValidationStep a los valores estándar
+ */
+function normalizeCurrentValidationStep(value: any): CurrentValidationStep {
+  if (value === "Artes Gráficas") return "Artes Gráficas";
+  if (value === "Área Técnica") return "R&D Técnica";
+  if (value === "R&D Técnica") return "R&D Técnica";
+  if (value === "Desarrollo R&D") return "R&D Desarrollo";
+  if (value === "R&D Desarrollo") return "R&D Desarrollo";
+  return null;
+}
+
+/**
+ * Resuelve la subárea técnica (R&D Técnica o R&D Desarrollo) basada en subclasificación
+ */
+export function resolveTechnicalSubAreaBySubclassification(
+  subclassification?: string
+): TechnicalSubArea | null {
+  if (!subclassification) return null;
+
+  const value = subclassification.trim();
+
+  if (
+    value === "Área_Técnica" ||
+    value === "Area_Tecnica" ||
+    value === "Área Técnica" ||
+    value === "Area Tecnica"
+  ) {
+    return "R&D Técnica";
+  }
+
+  if (
+    value === "Desarrollo_RD" ||
+    value === "Desarrollo R&D" ||
+    value === "Desarrollo RD"
+  ) {
+    return "R&D Desarrollo";
+  }
+
+  return null;
+}
+
+/**
  * Normaliza los campos de workflow de un proyecto
  * Asegura que todos los campos requeridos tengan valores por defecto
  */
 export function normalizeProjectWorkflow(project: any): any {
-  const status = project.status || "Registrado";
-  const stage = project.stage || resolveProjectStage(status as ProjectStatus);
+  const rawStatus = project.status || "Registrado";
+  const status = normalizeProjectStatus(rawStatus);
+  const stage = project.stage || resolveProjectStage(status);
 
   return {
     ...project,
@@ -382,38 +352,218 @@ export function normalizeProjectWorkflow(project: any): any {
       project.graphicArtsValidationStatus || "Sin solicitar",
     technicalValidationStatus:
       project.technicalValidationStatus || "Sin solicitar",
-    treasuryValidationStatus:
-      project.treasuryValidationStatus || "No solicitado",
-    currentValidationStep: project.currentValidationStep ?? null,
+    currentValidationStep: normalizeCurrentValidationStep(project.currentValidationStep),
+    technicalSubArea: project.technicalSubArea || null,
     validationRound: project.validationRound ?? 0,
     hasBasePreliminaryProduct: project.hasBasePreliminaryProduct ?? false,
     preliminaryProductIds: project.preliminaryProductIds ?? [],
+    statusUpdatedAt: project.statusUpdatedAt ?? null,
+    stageUpdatedAt: project.stageUpdatedAt ?? null,
+    quoteStartedAt: project.quoteStartedAt ?? null,
+    quoteCompletedAt: project.quoteCompletedAt ?? null,
+    clientApprovedAt: project.clientApprovedAt ?? null,
+    desestimatedAt: project.desestimatedAt ?? null,
+    desestimatedReason: project.desestimatedReason ?? null,
   };
 }
 
 /**
- * Retorna las acciones disponibles para un estado de producto preliminar
+ * Área responsable visible en UI
  */
-export function getActionsForProductStatus(
-  status: PreliminaryProductStatus
-): string[] {
+export type ProjectResponsibleArea =
+  | "Comercial"
+  | "Artes Gráficas"
+  | "R&D Técnica"
+  | "R&D Desarrollo";
+
+/**
+ * Determina el área responsable de un proyecto basada en su estado actual
+ */
+export function getResponsibleAreaForProject(
+  project: any
+): ProjectResponsibleArea {
+  const normalizedProject = normalizeProjectWorkflow(project);
+  const { status, currentValidationStep, graphicArtsValidationStatus, technicalSubArea, technicalValidationStatus } = normalizedProject;
+
   switch (status) {
     case "Registrado":
-      return ["editar", "crear-variacion", "desestimar"];
-
+    case "En Preparación":
+    case "Ficha Completa":
+    case "Observado":
+    case "Validado":
     case "En Cotización":
-      return ["editar", "crear-variacion", "desestimar"];
-
-    case "Aprobado":
-      return ["editar", "crear-variacion", "desestimar"];
-
-    case "Alta":
-      return ["crear-variacion"];
-
+    case "Cotización Completa":
+    case "Aprobado por Cliente":
     case "Desestimado":
-      return [];
+      return "Comercial";
+
+    case "En validación": {
+      // Durante validación, mostrar el área específica en validación
+      if (currentValidationStep === "Artes Gráficas") {
+        return "Artes Gráficas";
+      }
+
+      if (
+        currentValidationStep === "R&D Técnica" ||
+        technicalSubArea === "R&D Técnica"
+      ) {
+        return "R&D Técnica";
+      }
+
+      if (
+        currentValidationStep === "R&D Desarrollo" ||
+        technicalSubArea === "R&D Desarrollo"
+      ) {
+        return "R&D Desarrollo";
+      }
+
+      // Fallback logic
+      if (
+        graphicArtsValidationStatus === "Pendiente revisión manual" ||
+        graphicArtsValidationStatus === "En revisión"
+      ) {
+        return "Artes Gráficas";
+      }
+
+      if (
+        technicalValidationStatus === "Pendiente" ||
+        technicalValidationStatus === "En revisión"
+      ) {
+        if (technicalSubArea === "R&D Técnica") {
+          return "R&D Técnica";
+        }
+
+        if (technicalSubArea === "R&D Desarrollo") {
+          return "R&D Desarrollo";
+        }
+      }
+
+      return "Comercial";
+    }
 
     default:
-      return [];
+      return "Comercial";
   }
 }
+
+/**
+ * Verifica si un valor es significativo (no vacío, no null, no undefined)
+ */
+function hasValue(value: any): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim() !== "";
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return true;
+}
+
+/**
+ * Verifica si existe al menos un dato en las secciones 2-6 del proyecto
+ * Sección 1: Datos básicos (obligatorios)
+ * Sección 2: Portafolio / Productos
+ * Sección 3: Ruta de diseño / Especificaciones de impresión
+ * Sección 4: Dimensiones / Estructura
+ * Sección 5: Especificaciones técnicas
+ * Sección 6: Requisitos técnicos / Otros
+ */
+export function hasAnySection2To6Data(project: any): boolean {
+  // Sección 2: Portfolio
+  if (hasValue(project.portfolioCode) || hasValue(project.portfolioName)) {
+    return true;
+  }
+
+  // Sección 3: Ruta de diseño y especificaciones de impresión
+  if (
+    hasValue(project.routeDescription) ||
+    hasValue(project.designPath) ||
+    hasValue(project.blueprintFormat) ||
+    hasValue(project.printType) ||
+    hasValue(project.colorSpecification) ||
+    hasValue(project.colorSpecificationDetails) ||
+    hasValue(project.coatings) ||
+    hasValue(project.printingSpecifications)
+  ) {
+    return true;
+  }
+
+  // Sección 4: Dimensiones y estructura
+  if (
+    hasValue(project.width) ||
+    hasValue(project.height) ||
+    hasValue(project.depth) ||
+    hasValue(project.structureType) ||
+    hasValue(project.structureDescription) ||
+    hasValue(project.materialType) ||
+    hasValue(project.thicknessValue) ||
+    hasValue(project.thicknessUnit) ||
+    hasValue(project.flute) ||
+    hasValue(project.liners) ||
+    hasValue(project.density)
+  ) {
+    return true;
+  }
+
+  // Sección 5: Especificaciones técnicas
+  if (
+    hasValue(project.estimatedVolume) ||
+    hasValue(project.unitOfMeasure) ||
+    hasValue(project.targetPrice) ||
+    hasValue(project.currencyType) ||
+    hasValue(project.accessories) ||
+    hasValue(project.specialRequirements) ||
+    hasValue(project.technicalComplexity) ||
+    hasValue(project.requiresDesignWork)
+  ) {
+    return true;
+  }
+
+  // Sección 6: Otros requisitos
+  if (
+    hasValue(project.observations) ||
+    hasValue(project.additionalNotes) ||
+    hasValue(project.closureMechanism) ||
+    hasValue(project.printPosition) ||
+    hasValue(project.dieCutSpecifications) ||
+    hasValue(project.environmentalRequirements)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Calcula el estado de preparación correcto basado en los datos completados
+ *
+ * - Registrado: Solo sección 1 (datos básicos) completada
+ * - En Preparación: Al menos un campo de secciones 2-6, pero incompleto
+ * - Ficha Completa: Todos los campos obligatorios de secciones 1-6 completados
+ */
+export function computeProjectPreparationStatus(params: {
+  project: any;
+  completionPercentage: number;
+}): ProjectStatus {
+  const { project, completionPercentage } = params;
+
+  // Si completó 100% de campos obligatorios, es Ficha Completa
+  if (completionPercentage === 100) {
+    return "Ficha Completa";
+  }
+
+  // Si tiene datos en secciones 2-6, está en preparación
+  if (hasAnySection2To6Data(project)) {
+    return "En Preparación";
+  }
+
+  // Si solo tiene datos básicos (sección 1), es Registrado
+  return "Registrado";
+}
+
+// Re-exportar funciones y tipos de producto desde projectProductWorkflow.ts
+export {
+  computeProjectProductSummaryStatus,
+  getActionsForProductStatus,
+  canCreateVariation,
+  isLockedField,
+  normalizePreliminaryProductStatus,
+} from "./projectProductWorkflow";
