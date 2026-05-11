@@ -538,12 +538,31 @@ export function hasAnySection2To6Data(project: any): boolean {
  * - Registrado: Solo sección 1 (datos básicos) completada
  * - En Preparación: Al menos un campo de secciones 2-6, pero incompleto
  * - Ficha Completa: Todos los campos obligatorios de secciones 1-6 completados
+ *
+ * NO modifica estados avanzados (En validación, Observado, Validado, etc.)
  */
 export function computeProjectPreparationStatus(params: {
   project: any;
   completionPercentage: number;
+  currentStatus?: ProjectStatus;
 }): ProjectStatus {
-  const { project, completionPercentage } = params;
+  const { project, completionPercentage, currentStatus } = params;
+
+  // Definir estados avanzados que NO deben ser modificados automáticamente
+  const advancedStatuses: ProjectStatus[] = [
+    "En validación",
+    "Observado",
+    "Validado",
+    "En Cotización",
+    "Cotización Completa",
+    "Aprobado por Cliente",
+    "Desestimado",
+  ];
+
+  // Si el estado actual es avanzado, mantenerlo sin cambios
+  if (currentStatus && advancedStatuses.includes(currentStatus)) {
+    return currentStatus;
+  }
 
   // Si completó 100% de campos obligatorios, es Ficha Completa
   if (completionPercentage === 100) {

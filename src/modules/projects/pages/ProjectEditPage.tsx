@@ -12,7 +12,7 @@ import {
   type BooleanLike,
   type YesNoPending,
 } from "../../../shared/data/projectStorage";
-import { computeProjectPreparationStatus } from "../../../shared/data/projectWorkflow";
+import { computeProjectPreparationStatus, normalizeProjectStatus } from "../../../shared/data/projectWorkflow";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers } from "../../../shared/data/userStorage";
 
@@ -1503,15 +1503,18 @@ formElement?.requestSubmit();
     event.preventDefault();
     setSubmitAttempted(true);
 
-    const hasValidationErrors = Object.keys(validationErrors).length > 0;
+    if (!projectCode || !form) return;
 
-    if (hasValidationErrors || hasMissingRequiredFields || !projectCode) {
+    const hasValidationErrors = Object.keys(validationErrors).length > 0;
+    const shouldForceSaveAsDraft = allowIncompleteSaveRef.current;
+
+    // If there are validation errors and user didn't click "Guardar avance", show modal
+    if ((hasValidationErrors || hasMissingRequiredFields) && !shouldForceSaveAsDraft) {
       setShowMissingFieldsModal(true);
       return;
     }
 
-    const shouldForceSaveAsDraft = allowIncompleteSaveRef.current;
-
+    // User either has no errors or clicked "Guardar avance"
     allowIncompleteSaveRef.current = false;
 
     const shouldSubmitForValidation =
@@ -1520,9 +1523,11 @@ formElement?.requestSubmit();
     const now = new Date().toISOString();
 
     // Calculate the preparation status based on actual form data
+    // Pass current status to avoid overriding advanced statuses
     const calculatedStatus = computeProjectPreparationStatus({
       project: form,
       completionPercentage,
+      currentStatus: normalizeProjectStatus(originalProject?.status),
     });
 
     // Ensure commercial executives are properly resolved and persisted
@@ -1700,11 +1705,16 @@ formElement?.requestSubmit();
       }),
     } as unknown as ProjectRecord);
 
-    if (shouldSubmitForValidation) {
-  setShowValidationSuccessModal(true);
-} else {
-  navigate("/projects");
-}
+    if (shouldForceSaveAsDraft) {
+      // Close the missing fields modal after saving draft
+      setShowMissingFieldsModal(false);
+    } else if (shouldSubmitForValidation) {
+      // Show validation success modal when submitting for validation
+      setShowValidationSuccessModal(true);
+    } else {
+      // Navigate back to projects list
+      navigate("/projects");
+    }
 }; // <-- cierra handleSubmit
 
 const CollapsibleSection = ({
