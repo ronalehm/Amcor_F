@@ -587,7 +587,6 @@ const STEPS = [
   { label: "Diseño" },
   { label: "Estructura" },
   { label: "Condiciones Comerciales" },
-  { label: "Información Adicional" },
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
@@ -693,9 +692,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "currencyType",
     "deliveryAddress",
   ],
-
-  // 5. Información adicional
-  4: [],
 };
 const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   portfolioCode: "Portafolio base",
@@ -1444,7 +1440,6 @@ export default function ProjectEditPage() {
       1: [],
       2: [],
       3: [],
-      4: [],
     };
 
     missing.forEach((field) => {
@@ -1460,7 +1455,7 @@ export default function ProjectEditPage() {
   }, [form, requiredFields]);
 
   const stepsWithErrors = useMemo(() => {
-    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0 };
 
     Object.keys(validationErrors).forEach((field) => {
       for (const [step, fields] of Object.entries(STEP_FIELDS)) {
@@ -1887,7 +1882,7 @@ if (loading) {
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           {/* ========== COLUMNA IZQUIERDA: PASOS DEL FORMULARIO ========== */}
           <div className="space-y-5">
-            {/* PASO 0: INFORMACIÓN DEL PROYECTO */}
+            {/* PASO 1: INFORMACIÓN DE PRODUCTO */}
             {activeStep === 0 && (
               <div className="space-y-5">
                 <FormCard title="Información del Proyecto" icon="▦" color="#00395A" required>
@@ -1923,25 +1918,9 @@ if (loading) {
                       />
                     </div>
 
-                    <div className="md:col-span-3">
-                      <CommercialExecutiveMultiSearch
-                        label="Ejecutivo Comercial *"
-                        value={form.executiveId}
-                        onChange={(value) => {
-                          updateField("executiveId", value);
-                          markFieldAsTouched("executiveId");
-                        }}
-                        error={getError("executiveId")}
-                      />
-                    </div>
                   </div>
                 </FormCard>
-              </div>
-            )}
 
-            {/* PASO 1: PRODUCTO COMERCIAL */}
-            {activeStep === 1 && (
-              <div className="space-y-5">
                 <FormCard title="Datos de Producto Comercial" icon="◈" color="#27ae60" required>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 md:col-span-3">
@@ -1949,66 +1928,6 @@ if (loading) {
                       <p className="text-sm font-semibold text-slate-800 mt-1">{inheritedWrapping || "—"}</p>
                     </div>
 
-                    <FormSelect
-                      label="Clasificación *"
-                      value={form.classification}
-                      onChange={(value) => {
-                        updateField("classification", value);
-                        updateField("subClassification", "");
-                        updateField("projectType", "");
-                      }}
-                      onBlur={() => markFieldAsTouched("classification")}
-                      error={getError("classification")}
-                      options={CLASSIFICATION_OPTIONS}
-                      placeholder="-- Seleccione --"
-                    />
-
-                    <FormSelect
-                      label={form.classification ? "Subsección Clasificación *" : "Subsección Clasificación"}
-                      value={form.subClassification}
-                      onChange={(value) => {
-                        updateField("subClassification", value);
-                        updateField("projectType", "");
-                      }}
-                      onBlur={() => markFieldAsTouched("subClassification")}
-                      error={getError("subClassification")}
-                      options={
-                        form.classification === "Nuevo"
-                          ? SUBCLASSIFICATION_NUEVO_OPTIONS
-                          : form.classification === "Modificado"
-                            ? SUBCLASSIFICATION_MODIFICADO_OPTIONS
-                            : []
-                      }
-                      placeholder="-- Seleccione --"
-                      disabled={!form.classification}
-                    />
-
-                    <FormSelect
-                      label={
-                        form.subClassification &&
-                        form.classification !== "Modificado" &&
-                        projectTypeOptions.length > 0
-                          ? "Tipo de Proyecto *"
-                          : "Tipo de Proyecto"
-                      }
-                      value={form.projectType}
-                      onChange={(value) => updateField("projectType", value)}
-                      onBlur={() => markFieldAsTouched("projectType")}
-                      error={getError("projectType")}
-                      options={projectTypeOptions}
-                      placeholder={
-                        form.classification === "Modificado"
-                          ? "No aplica para modificado"
-                          : !form.subClassification
-                            ? "-- Seleccione subsección primero --"
-                            : "-- Seleccione --"
-                      }
-                      disabled={
-                        form.classification === "Modificado" ||
-                        !form.subClassification ||
-                        projectTypeOptions.length === 0
-                      }
-                    />
 
                     {/* BOLSA: Preguntas Guiadas */}
                     {inheritedWrapping && normalizeWrapping(inheritedWrapping) === "bolsa" ? (
@@ -2155,11 +2074,33 @@ if (loading) {
                     />
                   </div>
                 </FormCard>
+
+                <FormCard title="Datos del cliente / producto" icon="👤" color="#2c3e50">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="md:col-span-3">
+                      <FormTextarea
+                        label="Información adicional cliente"
+                        value={form.customerAdditionalInfo}
+                        onChange={(value) => updateField("customerAdditionalInfo", value)}
+                        placeholder="Información adicional del cliente..."
+                      />
+                    </div>
+
+                    <div className="md:col-span-3">
+                      <FormTextarea
+                        label="Comentario"
+                        value={form.additionalComment}
+                        onChange={(value) => updateField("additionalComment", value)}
+                        placeholder="Comentario general..."
+                      />
+                    </div>
+                  </div>
+                </FormCard>
               </div>
             )}
 
             {/* PASO 2: DISEÑO */}
-            {activeStep === 2 && (
+            {activeStep === 1 && (
               <div className="space-y-5">
                 <FormCard title="Especificaciones de diseño" icon="🎨" color="#8e44ad">
                   {(() => {
@@ -2271,11 +2212,41 @@ if (loading) {
                     markFieldAsTouched("designPlanFiles");
                   }}
                 />
+
+                <FormCard title="Datos adicionales de Artes Gráficas" icon="📌" color="#8e44ad">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormSelect
+                      label='Logo "Producto Peruano"'
+                      value={form.peruvianProductLogo}
+                      onChange={(value) => {
+                        updateField("peruvianProductLogo", value);
+                        markFieldAsTouched("peruvianProductLogo");
+                      }}
+                      onBlur={() => markFieldAsTouched("peruvianProductLogo")}
+                      error={getError("peruvianProductLogo")}
+                      placeholder="-- Seleccione --"
+                      options={YES_NO_OPTIONS}
+                    />
+
+                    <FormSelect
+                      label="Pie de Imprenta"
+                      value={form.printingFooter}
+                      onChange={(value) => {
+                        updateField("printingFooter", value);
+                        markFieldAsTouched("printingFooter");
+                      }}
+                      onBlur={() => markFieldAsTouched("printingFooter")}
+                      error={getError("printingFooter")}
+                      placeholder="-- Seleccione --"
+                      options={YES_NO_OPTIONS}
+                    />
+                  </div>
+                </FormCard>
               </div>
             )}
 
-            {/* PASO 3: ESTRUCTURA - Mostrar el paso 3 con más contenido */}
-            {activeStep === 3 && (
+            {/* PASO 3: ESTRUCTURA */}
+            {activeStep === 2 && (
               <div className="space-y-5">
                 <CollapsibleSection
                   title="Especificaciones de estructura"
@@ -2740,12 +2711,85 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                     />
                   )}
                 </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm">
+                      🧻
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
+                        Especificaciones de Core
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormSelect
+                      label="Material del Core"
+                      value={form.coreMaterial}
+                      onChange={(value) => {
+                        updateField("coreMaterial", value);
+                        markFieldAsTouched("coreMaterial");
+                      }}
+                      onBlur={() => markFieldAsTouched("coreMaterial")}
+                      error={getError("coreMaterial")}
+                      placeholder="-- Seleccione --"
+                      options={CORE_MATERIAL_OPTIONS}
+                    />
+
+                    <FormInput
+                      label="Diámetro Core"
+                      value={form.coreDiameter}
+                      onChange={(value) => updateField("coreDiameter", value)}
+                      onBlur={() => markFieldAsTouched("coreDiameter")}
+                      error={getError("coreDiameter")}
+                      placeholder="Ej. 76"
+                    />
+
+                    <FormInput
+                      label="Diámetro Externo"
+                      value={form.externalDiameter}
+                      onChange={(value) => updateField("externalDiameter", value)}
+                      onBlur={() => markFieldAsTouched("externalDiameter")}
+                      error={getError("externalDiameter")}
+                      placeholder="Ej. 600"
+                    />
+
+                    <FormInput
+                      label="Variación Externa +"
+                      value={form.externalVariationPlus}
+                      onChange={(value) => updateField("externalVariationPlus", value)}
+                      onBlur={() => markFieldAsTouched("externalVariationPlus")}
+                      error={getError("externalVariationPlus")}
+                      placeholder="Ej. 5"
+                    />
+
+                    <FormInput
+                      label="Variación Externa -"
+                      value={form.externalVariationMinus}
+                      onChange={(value) => updateField("externalVariationMinus", value)}
+                      onBlur={() => markFieldAsTouched("externalVariationMinus")}
+                      error={getError("externalVariationMinus")}
+                      placeholder="Ej. 5"
+                    />
+
+                    <FormInput
+                      label="Peso Máximo Rollo (kg)"
+                      value={form.maxRollWeight}
+                      onChange={(value) => updateField("maxRollWeight", value)}
+                      onBlur={() => markFieldAsTouched("maxRollWeight")}
+                      error={getError("maxRollWeight")}
+                      placeholder="Ej. 500"
+                    />
+                  </div>
+                </div>
                 
               </div>
             )}
 
             {/* PASO 4: CONDICIONES COMERCIALES */}
-            {activeStep === 4 && (
+            {activeStep === 3 && (
               <div className="space-y-5">
                 <FormCard title="Condiciones comerciales" icon="💰" color="#0d4c5c">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -2774,174 +2818,115 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
 
                     <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(value) => updateField("targetPrice", value)} placeholder="Ej. 45" />
                     <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={CURRENCY_OPTIONS} />
+
+                    <div className="md:col-span-3">
+                      <FormTextarea
+                        label="Dirección de entrega"
+                        value={form.deliveryAddress}
+                        onChange={(value) => updateField("deliveryAddress", value)}
+                        onBlur={() => markFieldAsTouched("deliveryAddress")}
+                        error={getError("deliveryAddress")}
+                        placeholder="Ingrese la dirección de entrega..."
+                      />
+                    </div>
                   </div>
                 </FormCard>
 
               </div>
             )}
 
-            {/* PASO 5: INFORMACIÓN ADICIONAL */}
-              {activeStep === 5 && (
-                <div className="space-y-5">
-                  <FormCard title="Información adicional" icon="📝" color="#00395A">
-                    <div className="space-y-6">
-                      {/* Sección 1: Especificaciones de Core */}
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="mb-4 flex items-center gap-3">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm">
-                            🧻
-                          </span>
-                          <div>
-                            <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
-                              Especificaciones de Core
-                            </h4>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                          <FormSelect
-                            label="Material del Core"
-                            value={form.coreMaterial}
-                            onChange={(value) => {
-                              updateField("coreMaterial", value);
-                              markFieldAsTouched("coreMaterial");
-                            }}
-                            onBlur={() => markFieldAsTouched("coreMaterial")}
-                            error={getError("coreMaterial")}
-                            placeholder="-- Seleccione --"
-                            options={CORE_MATERIAL_OPTIONS}
-                          />
-
-                          <FormInput
-                            label="Diámetro Core"
-                            value={form.coreDiameter}
-                            onChange={(value) => updateField("coreDiameter", value)}
-                            onBlur={() => markFieldAsTouched("coreDiameter")}
-                            error={getError("coreDiameter")}
-                            placeholder="Ej. 76"
-                          />
-
-                          <FormInput
-                            label="Diámetro Externo"
-                            value={form.externalDiameter}
-                            onChange={(value) => updateField("externalDiameter", value)}
-                            onBlur={() => markFieldAsTouched("externalDiameter")}
-                            error={getError("externalDiameter")}
-                            placeholder="Ej. 600"
-                          />
-
-                          <FormInput
-                            label="Variación Externa +"
-                            value={form.externalVariationPlus}
-                            onChange={(value) => updateField("externalVariationPlus", value)}
-                            onBlur={() => markFieldAsTouched("externalVariationPlus")}
-                            error={getError("externalVariationPlus")}
-                            placeholder="Ej. 5"
-                          />
-
-                          <FormInput
-                            label="Variación Externa -"
-                            value={form.externalVariationMinus}
-                            onChange={(value) => updateField("externalVariationMinus", value)}
-                            onBlur={() => markFieldAsTouched("externalVariationMinus")}
-                            error={getError("externalVariationMinus")}
-                            placeholder="Ej. 5"
-                          />
-
-                          <FormInput
-                            label="Peso Máximo Rollo (kg)"
-                            value={form.maxRollWeight}
-                            onChange={(value) => updateField("maxRollWeight", value)}
-                            onBlur={() => markFieldAsTouched("maxRollWeight")}
-                            error={getError("maxRollWeight")}
-                            placeholder="Ej. 500"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Sección 2: Datos adicionales del cliente */}
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="mb-4 flex items-center gap-3">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm">
-                            📌
-                          </span>
-                          <div>
-                            <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
-                              Datos adicionales del cliente
-                            </h4>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                          <div className="md:col-span-3">
-                            <FormTextarea
-                              label="Información adicional cliente"
-                              value={form.customerAdditionalInfo}
-                              onChange={(value) => updateField("customerAdditionalInfo", value)}
-                              onBlur={() => markFieldAsTouched("customerAdditionalInfo")}
-                              error={getError("customerAdditionalInfo")}
-                              placeholder="Información adicional proporcionada por el cliente..."
-                            />
-                          </div>
-
-                          <FormSelect
-                            label='Logo "Producto Peruano"'
-                            value={form.peruvianProductLogo}
-                            onChange={(value) => {
-                              updateField("peruvianProductLogo", value);
-                              markFieldAsTouched("peruvianProductLogo");
-                            }}
-                            onBlur={() => markFieldAsTouched("peruvianProductLogo")}
-                            error={getError("peruvianProductLogo")}
-                            placeholder="-- Seleccione --"
-                            options={YES_NO_OPTIONS}
-                          />
-
-                          <FormSelect
-                            label="Pie de Imprenta"
-                            value={form.printingFooter}
-                            onChange={(value) => {
-                              updateField("printingFooter", value);
-                              markFieldAsTouched("printingFooter");
-                            }}
-                            onBlur={() => markFieldAsTouched("printingFooter")}
-                            error={getError("printingFooter")}
-                            placeholder="-- Seleccione --"
-                            options={YES_NO_OPTIONS}
-                          />
-
-                          <div className="md:col-span-3">
-                            <FormTextarea
-                              label="Dirección de entrega"
-                              value={form.deliveryAddress}
-                              onChange={(value) => updateField("deliveryAddress", value)}
-                              onBlur={() => markFieldAsTouched("deliveryAddress")}
-                              error={getError("deliveryAddress")}
-                              placeholder="Ingrese la dirección de entrega..."
-                            />
-                          </div>
-
-                          <div className="md:col-span-3">
-                            <FormTextarea
-                              label="Comentario"
-                              value={form.additionalComment}
-                              onChange={(value) => updateField("additionalComment", value)}
-                              onBlur={() => markFieldAsTouched("additionalComment")}
-                              error={getError("additionalComment")}
-                              placeholder="Comentarios adicionales..."
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </FormCard>
-                </div>
-              )}
           </div>
 
           {/* ========== COLUMNA DERECHA: PANEL DE CONTEXTO (STICKY) ========== */}
           <div className="space-y-5">
-            {/* TARJETA A: PORTAFOLIO BASE */}
+            {/* TARJETA 1: PROYECTO CORE */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h3 className="font-semibold text-sm text-slate-900 mb-4">Proyecto Core</h3>
+              <div className="space-y-3">
+                <FormSelect
+                  label="Clasificación *"
+                  value={form.classification}
+                  onChange={(value) => {
+                    updateField("classification", value);
+                    updateField("subClassification", "");
+                    updateField("projectType", "");
+                  }}
+                  onBlur={() => markFieldAsTouched("classification")}
+                  error={getError("classification")}
+                  options={CLASSIFICATION_OPTIONS}
+                  placeholder="-- Seleccione --"
+                />
+
+                <FormSelect
+                  label={form.classification ? "Subsección Clasificación *" : "Subsección Clasificación"}
+                  value={form.subClassification}
+                  onChange={(value) => {
+                    updateField("subClassification", value);
+                    updateField("projectType", "");
+                  }}
+                  onBlur={() => markFieldAsTouched("subClassification")}
+                  error={getError("subClassification")}
+                  options={
+                    form.classification === "Nuevo"
+                      ? SUBCLASSIFICATION_NUEVO_OPTIONS
+                      : form.classification === "Modificado"
+                        ? SUBCLASSIFICATION_MODIFICADO_OPTIONS
+                        : []
+                  }
+                  placeholder="-- Seleccione --"
+                  disabled={!form.classification}
+                />
+
+                <FormSelect
+                  label={
+                    form.subClassification &&
+                    form.classification !== "Modificado" &&
+                    projectTypeOptions.length > 0
+                      ? "Tipo de Proyecto *"
+                      : "Tipo de Proyecto"
+                  }
+                  value={form.projectType}
+                  onChange={(value) => updateField("projectType", value)}
+                  onBlur={() => markFieldAsTouched("projectType")}
+                  error={getError("projectType")}
+                  options={projectTypeOptions}
+                  placeholder={
+                    form.classification === "Modificado"
+                      ? "No aplica para modificado"
+                      : !form.subClassification
+                        ? "-- Seleccione subsección primero --"
+                        : "-- Seleccione --"
+                  }
+                  disabled={
+                    form.classification === "Modificado" ||
+                    !form.subClassification ||
+                    projectTypeOptions.length === 0
+                  }
+                />
+
+                <FormSelect
+                  label="Licitación"
+                  value={form.licitacion}
+                  onChange={(value) => updateField("licitacion", value)}
+                  placeholder="-- Seleccione --"
+                  options={[
+                    { value: "Sí", label: "Sí" },
+                    { value: "No", label: "No" },
+                  ]}
+                />
+
+                {form.licitacion === "Sí" && (
+                  <FormInput
+                    label="Código de Licitación"
+                    value={form.codigoRFQ}
+                    onChange={(value) => updateField("codigoRFQ", value)}
+                    placeholder="Ej. RFQ-000001"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* TARJETA 2: PORTAFOLIO BASE */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <h3 className="font-semibold text-sm text-slate-900 mb-3">Portafolio base</h3>
               <PortfolioSearch
@@ -2961,7 +2946,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
               )}
             </div>
 
-            {/* TARJETA B: HERENCIA DEL PORTAFOLIO */}
+            {/* TARJETA 3: HERENCIA DEL PORTAFOLIO */}
             {selectedPortfolio && (
               <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <h3 className="font-semibold text-sm text-slate-900 mb-3">Herencia del portafolio</h3>

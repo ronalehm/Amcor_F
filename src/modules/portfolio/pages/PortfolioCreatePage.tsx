@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 
@@ -17,7 +17,7 @@ import {
   getPackingMachinesByWrappingId,
 } from "../../../shared/data/mockDatabase";
 
-import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
+import { getClientCatalogRecords, getClientByCode, canClientHavePortfolio } from "../../../shared/data/clientStorage";
 import { getCommercialExecutives } from "../../../shared/data/userStorage";
 import { savePortfolioRecord } from "../../../shared/data/portfolioStorage";
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
@@ -39,6 +39,9 @@ type PortfolioFormData = {
   codigo: string;
   estadoId: string;
   clienteId: string;
+  clientCode?: string;
+  clientName?: string;
+  clientRuc?: string;
   ejecutivoId: string;
   plantaId: string;
   licitacion: "Sí" | "No";
@@ -78,10 +81,13 @@ function getTemporaryPortfolioCode() {
   return `PO-${String(maxNumber + 1).padStart(6, "0")}`;
 }
 
-const buildInitialForm = (): PortfolioFormData => ({
+const buildInitialForm = (clienteId: string = "", clientCode: string = "", clientName: string = "", clientRuc: string = ""): PortfolioFormData => ({
   codigo: getTemporaryPortfolioCode(),
   estadoId: String(STATUS_CATALOG[0].id),
-  clienteId: "",
+  clienteId,
+  clientCode,
+  clientName,
+  clientRuc,
   ejecutivoId: "",
   plantaId: "",
   licitacion: "No",
@@ -97,11 +103,24 @@ const buildInitialForm = (): PortfolioFormData => ({
 export default function PortfolioCreatePage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
+  const [searchParams] = useSearchParams();
 
-  const [form, setForm] = useState<PortfolioFormData>(buildInitialForm);
+  const inheritedClientCode = searchParams.get("clientCode");
+  const inheritedClient = inheritedClientCode ? getClientByCode(inheritedClientCode) : null;
+  const isClientInherited = Boolean(inheritedClientCode && inheritedClient);
+
+  const [form, setForm] = useState<PortfolioFormData>(
+    buildInitialForm(
+      inheritedClient?.id || "",
+      inheritedClient?.code || "",
+      inheritedClient?.businessName || "",
+      inheritedClient?.ruc || ""
+    )
+  );
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [showFinalUseCatalog, setShowFinalUseCatalog] = useState(false);
   const [showTaxonomyDetail, setShowTaxonomyDetail] = useState(false);
+  const [clientInheritanceError, setClientInheritanceError] = useState<string>("");
   const [touchedFields, setTouchedFields] = useState<
     Partial<Record<keyof PortfolioFormData, boolean>>
   >({});
@@ -177,6 +196,25 @@ export default function PortfolioCreatePage() {
 
     return allCompleted ? "completed" : "pending";
   };
+
+  // Validate inherited client
+  useEffect(() => {
+    if (!inheritedClientCode) return;
+
+    if (!inheritedClient) {
+      setClientInheritanceError("No se encontró el cliente heredado.");
+      return;
+    }
+
+    if (!canClientHavePortfolio(inheritedClient.status)) {
+      setClientInheritanceError(
+        "No se puede crear un portafolio para este cliente porque su estado actual no permite asignación de portafolios."
+      );
+      return;
+    }
+
+    setClientInheritanceError("");
+  }, [inheritedClientCode, inheritedClient]);
 
   // Update header dynamically
   useEffect(() => {
@@ -308,6 +346,10 @@ export default function PortfolioCreatePage() {
     event.preventDefault();
     setSubmitAttempted(true);
 
+    if (clientInheritanceError) {
+      return;
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       const fieldsWithErrors = Object.keys(validationErrors).reduce(
         (acc, field) => {
@@ -371,6 +413,9 @@ export default function PortfolioCreatePage() {
 
       clienteId: selectedClient.id,
       clienteCode: selectedClient.code,
+      clientCode: form.clientCode || selectedClient.code,
+      clientName: form.clientName || selectedClient.businessName,
+      clientRuc: form.clientRuc || selectedClient.ruc || "",
       cli: selectedClient.businessName,
 
       ejecutivoId: selectedExecutive.id,
@@ -440,6 +485,16 @@ export default function PortfolioCreatePage() {
               required
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {clientInheritanceError && (
+                  <div className="md:col-span-2 bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-sm font-semibold text-red-700">{clientInheritanceError}</p>
+                  </div>
+                )}
+                {isClientInherited && (
+                  <div className="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-blue-700">Cliente heredado desde Detalle de Cliente</p>
+                  </div>
+                )}
                 <SmartCatalogSearch
                   label="Nombre del Cliente *"
                   value={form.clienteId}
@@ -480,30 +535,7 @@ export default function PortfolioCreatePage() {
                   emptyMessage="Usuario no encontrado. Regístrelo en el módulo Usuarios."
                 />
 
-                <FormSelect
-                  label="Licitación *"
-                  value={form.licitacion}
-                  onChange={handleLicitacionChange}
-                  options={[
-                    { value: "Sí", label: "Sí" },
-                    { value: "No", label: "No" },
-                  ]}
-                />
-
-                <FormInput
-                  label={form.licitacion === "Sí" ? "Código RFQ *" : "Código RFQ"}
-                  value={form.licitacion === "No" ? "" : form.codigoRFQ}
-                  onChange={(value) => updateField("codigoRFQ", value)}
-                  onBlur={() => markFieldAsTouched("codigoRFQ")}
-                  error={
-                    form.licitacion === "Sí" && shouldShowFieldError("codigoRFQ")
-                      ? validationErrors.codigoRFQ
-                      : ""
-                  }
-                  placeholder={form.licitacion === "No" ? "No aplica" : "Ej. RFQ-093456"}
-                  disabled={form.licitacion === "No"}
-                  helper={form.licitacion === "Sí" ? "Obligatorio si existe licitación" : undefined}
-                />
+              
               </div>
             </SectionCard>
 
@@ -685,7 +717,9 @@ export default function PortfolioCreatePage() {
               estado={selectedStatus?.name || "Registrado"}
               completionPercentage={completionPercentage}
               items={[
-                { label: "Cliente", value: selectedClient?.businessName || "—" },
+                { label: "Cliente", value: selectedClient?.businessName || form.clientName || "—" },
+                ...(form.clientCode ? [{ label: "Código Cliente", value: form.clientCode }] : []),
+                ...(form.clientRuc ? [{ label: "RUC", value: form.clientRuc }] : []),
                 { label: "Ejecutivo", value: selectedExecutive?.fullName || "—" },
                 { label: "Planta", value: selectedPlant?.name || "—" },
                 { label: "Portafolio", value: form.nombrePortafolio || "—" },
