@@ -4,6 +4,7 @@ import {
   type TechnicalSubArea,
 } from "../../../shared/data/projectWorkflow";
 import { updateProjectRecord, type ProjectRecord } from "../../../shared/data/projectStorage";
+import { recordValidationEvent } from "../../../shared/data/validationHistoryStorage";
 
 export type ValidationArea =
   | "Artes Gráficas"
@@ -219,7 +220,21 @@ export function requestValidation(project: ProjectRecord): ProjectRecord {
       technicalValidationStatus: "Sin solicitar",
     };
 
-    return persistProject(updated);
+    const saved = persistProject(updated);
+
+    recordValidationEvent({
+      projectCode: getProjectCode(project),
+      timestamp: now,
+      eventType: "validation_requested",
+      fromStatus: project.status,
+      toStatus: "En validación",
+      toValidationStep: "Artes Gráficas",
+      graphicArtsStatus: "Pendiente revisión manual",
+      technicalStatus: "Sin solicitar",
+      validationRound: saved.validationRound,
+    });
+
+    return saved;
   }
 
   const subArea = resolveTechnicalValidatorForProject(updated);
@@ -239,7 +254,35 @@ export function requestValidation(project: ProjectRecord): ProjectRecord {
     stageUpdatedAt: now,
   };
 
-  return persistProject(updated);
+  const saved = persistProject(updated);
+
+  recordValidationEvent({
+    projectCode: getProjectCode(project),
+    timestamp: now,
+    eventType: "validation_requested",
+    fromStatus: project.status,
+    toStatus: "En validación",
+    graphicArtsStatus: "Aprobado automático",
+    toValidationStep: subArea,
+    technicalSubArea: subArea,
+    technicalStatus: "Pendiente",
+    isAutomatic: true,
+    validationRound: saved.validationRound,
+  });
+
+  recordValidationEvent({
+    projectCode: getProjectCode(project),
+    timestamp: now,
+    eventType: subArea === "R&D Técnica" ? "derived_to_rnd_tecnica" : "derived_to_rnd_desarrollo",
+    fromValidationStep: "Artes Gráficas",
+    toValidationStep: subArea,
+    graphicArtsStatus: "Aprobado automático",
+    technicalSubArea: subArea,
+    technicalStatus: "Pendiente",
+    validationRound: saved.validationRound,
+  });
+
+  return saved;
 }
 
 /* ============================================================================
@@ -329,7 +372,34 @@ export function approveValidation(
       stageUpdatedAt: now,
     };
 
-    return persistProject(updated);
+    const saved = persistProject(updated);
+
+    recordValidationEvent({
+      projectCode: getProjectCode(project),
+      timestamp: now,
+      eventType: "graphic_arts_approved",
+      fromStatus: project.status,
+      toStatus: "En validación",
+      fromValidationStep: project.currentValidationStep,
+      toValidationStep: subArea,
+      graphicArtsStatus: "Validado",
+      technicalSubArea: subArea,
+      technicalStatus: "Pendiente",
+      comment,
+    });
+
+    recordValidationEvent({
+      projectCode: getProjectCode(project),
+      timestamp: now,
+      eventType: subArea === "R&D Técnica" ? "derived_to_rnd_tecnica" : "derived_to_rnd_desarrollo",
+      fromValidationStep: "Artes Gráficas",
+      toValidationStep: subArea,
+      graphicArtsStatus: "Validado",
+      technicalSubArea: subArea,
+      technicalStatus: "Pendiente",
+    });
+
+    return saved;
   }
 
   if (area === "R&D Técnica" || area === "R&D Desarrollo") {
@@ -360,7 +430,34 @@ export function approveValidation(
       lastValidatedAt: now,
     };
 
-    return persistProject(updated);
+    const saved = persistProject(updated);
+
+    recordValidationEvent({
+      projectCode: getProjectCode(project),
+      timestamp: now,
+      eventType: "rnd_approved",
+      fromStatus: project.status,
+      toStatus: "Validado",
+      fromValidationStep: project.currentValidationStep,
+      graphicArtsStatus: project.graphicArtsValidationStatus,
+      technicalSubArea: area,
+      technicalStatus: "Validado",
+      comment,
+    });
+
+    recordValidationEvent({
+      projectCode: getProjectCode(project),
+      timestamp: now,
+      eventType: "project_validated",
+      fromStatus: "En validación",
+      toStatus: "Validado",
+      graphicArtsStatus: project.graphicArtsValidationStatus,
+      technicalSubArea: area,
+      technicalStatus: "Validado",
+      comment: "✅ Proyecto completamente validado",
+    });
+
+    return saved;
   }
 
   return persistProject(updated);
@@ -402,7 +499,22 @@ export function observeValidation(
       currentValidationStep: "Artes Gráficas",
     };
 
-    return persistProject(updated);
+    const saved = persistProject(updated);
+
+    recordValidationEvent({
+      projectCode: getProjectCode(project),
+      timestamp: now,
+      eventType: "graphic_arts_observed",
+      fromStatus: project.status,
+      toStatus: "Observado",
+      fromValidationStep: project.currentValidationStep,
+      toValidationStep: "Artes Gráficas",
+      graphicArtsStatus: "Observado",
+      comment: trimmedComment,
+      observation: trimmedComment,
+    });
+
+    return saved;
   }
 
   if (area === "R&D Técnica" || area === "R&D Desarrollo") {
@@ -415,7 +527,23 @@ export function observeValidation(
       currentValidationStep: area,
     };
 
-    return persistProject(updated);
+    const saved = persistProject(updated);
+
+    recordValidationEvent({
+      projectCode: getProjectCode(project),
+      timestamp: now,
+      eventType: "rnd_observed",
+      fromStatus: project.status,
+      toStatus: "Observado",
+      fromValidationStep: project.currentValidationStep,
+      toValidationStep: area,
+      technicalSubArea: area,
+      technicalStatus: "Observado",
+      comment: trimmedComment,
+      observation: trimmedComment,
+    });
+
+    return saved;
   }
 
   return persistProject(updated);
