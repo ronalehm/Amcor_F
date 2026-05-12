@@ -199,12 +199,19 @@ export type ProjectRecord = {
   specialDesignComments?: string;
   edagCode?: string;
   edagVersion?: string;
+  colorObjective?: string[];
+  objetivoColor?: string[];
+  colorObjectiveComment?: string;
+  comentarioObjetivoColor?: string;
+  designWorkInstructions?: string;
+  instruccionesTrabajoDiseno?: string;
 
   hasDigitalFiles?: BooleanLike;
   artworkFileType?: string;
   artworkAttachments?: string;
 
   requiresDesignWork?: BooleanLike;
+  hasDesignPlan?: BooleanLike;
 
   // === ESPECIFICACIONES DE ESTRUCTURA ===
   hasReferenceStructure?: BooleanLike;

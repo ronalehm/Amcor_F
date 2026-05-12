@@ -31,7 +31,6 @@ import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
-import PortfolioSearch from "../../../shared/components/forms/PortfolioSearch";
 import CommercialExecutiveMultiSearch from "../../../shared/components/forms/CommercialExecutiveMultiSearch";
 import ProjectDocumentsSection from "../components/ProjectDocumentsSection";
 import ProjectPlansUploadSection from "../components/ProjectPlansUploadSection";
@@ -72,6 +71,7 @@ type ProjectEditFormData = {
   printClass: string;
   printType: string;
   requiresDesignWork: string;
+  hasDesignPlan: string;
   hasEdagReference: string;
   referenceEdagCode: string;
   referenceEdagVersion: string;
@@ -79,6 +79,9 @@ type ProjectEditFormData = {
   specialDesignComments: string;
   edagCode: string;
   edagVersion: string;
+  colorObjective: string[];
+  colorObjectiveComment: string;
+  designWorkInstructions: string;
 
   hasReferenceStructure: string;
   referenceEmCode: string;
@@ -239,6 +242,10 @@ function normalizeWrapping(value: string): string {
 
 function normalizeWrappingName(value: string): string {
   return value.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+}
+
+function isLaminaWrapping(wrapping: string): boolean {
+  return normalizeWrapping(wrapping).includes("lamina");
 }
 
 function getWrappingImage(name: string): string {
@@ -518,6 +525,14 @@ const CORE_MATERIAL_OPTIONS = [
   { value: "Otros", label: "Otros" },
 ];
 
+const COLOR_OBJECTIVE_OPTIONS = [
+  { value: "No existe", label: "No existe" },
+  { value: "Muestra física", label: "Muestra física" },
+  { value: "Color pantone", label: "Color pantone" },
+  { value: "Producción de referencia", label: "Producción de referencia" },
+  { value: "Otros", label: "Otros" },
+];
+
 const GUSSET_TYPE_OPTIONS = [
   { value: "Lateral", label: "Lateral" },
   { value: "Fondo", label: "Fondo" },
@@ -618,6 +633,10 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "edagVersion",
     "printClass",
     "printType",
+    "hasDesignPlan",
+    "colorObjective",
+    "colorObjectiveComment",
+    "designWorkInstructions",
     "specialDesignSpecs",
     "specialDesignComments",
     "designPlanFiles",
@@ -706,9 +725,13 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   classification: "Clasificación",
   projectType: "Tipo de Proyecto",
 
+  hasDesignPlan: "¿Tiene plano de diseño?",
   hasEdagReference: "¿Tiene Diseño de referencia?",
   edagCode: "Código EDAG",
   edagVersion: "Versión EDAG",
+  colorObjective: "Objetivo de color",
+  colorObjectiveComment: "Comentar Objetivo de color",
+  designWorkInstructions: "Instrucciones de trabajo para diseño",
   specialDesignSpecs: "Especificaciones Especiales",
   specialDesignComments: "Comentarios de diseños especiales",
 
@@ -989,6 +1012,7 @@ export default function ProjectEditPage() {
     printClass: "",
     printType: "",
     requiresDesignWork: "",
+    hasDesignPlan: "",
     hasEdagReference: "",
     referenceEdagCode: "",
     referenceEdagVersion: "",
@@ -996,6 +1020,9 @@ export default function ProjectEditPage() {
     specialDesignComments: "",
     edagCode: "",
     edagVersion: "",
+    colorObjective: [],
+    colorObjectiveComment: "",
+    designWorkInstructions: "",
     hasReferenceStructure: "",
     referenceEmCode: "",
     referenceEmVersion: "",
@@ -1149,6 +1176,7 @@ export default function ProjectEditPage() {
       printClass: project.printClass || "",
       printType: project.printType || "",
       requiresDesignWork: toYesNo(project.requiresDesignWork),
+      hasDesignPlan: toYesNo((project as any).hasDesignPlan),
       hasEdagReference: toYesNo(project.isPreviousDesign),
       referenceEdagCode: project.previousEdagCode || "",
       referenceEdagVersion: project.previousEdagVersion || "",
@@ -1156,6 +1184,9 @@ export default function ProjectEditPage() {
       specialDesignComments: project.specialDesignComments || "",
       edagCode: project.edagCode || "",
       edagVersion: project.edagVersion || "",
+      colorObjective: (project as any).colorObjective || (project as any).objetivoColor || [],
+      colorObjectiveComment: (project as any).colorObjectiveComment || (project as any).comentarioObjetivoColor || "",
+      designWorkInstructions: (project as any).designWorkInstructions || (project as any).instruccionesTrabajoDiseno || "",
       hasReferenceStructure: toYesNo(project.hasReferenceStructure),
       referenceEmCode: project.referenceEmCode || "",
       referenceEmVersion: project.referenceEmVersion || "",
@@ -1447,6 +1478,10 @@ export default function ProjectEditPage() {
       fields.push("customerTechnicalSpecAttachment");
     }
 
+    if (isLaminaWrapping(inheritedWrapping)) {
+      fields.push("coreMaterial", "coreDiameter", "externalDiameter", "maxRollWeight");
+    }
+
     return fields;
   }, [
     inheritedWrapping,
@@ -1513,6 +1548,43 @@ export default function ProjectEditPage() {
     }
   };
 
+  const handleColorObjectiveChange = (value: string) => {
+    setForm((prev) => {
+      const current = Array.isArray(prev.colorObjective)
+        ? prev.colorObjective
+        : [];
+
+      const alreadySelected = current.includes(value);
+
+      let nextValues = alreadySelected
+        ? current.filter((item) => item !== value)
+        : [...current, value];
+
+      if (value === "No existe" && !alreadySelected) {
+        nextValues = ["No existe"];
+      }
+
+      if (value !== "No existe") {
+        nextValues = nextValues.filter((item) => item !== "No existe");
+      }
+
+      return {
+        ...prev,
+        colorObjective: nextValues,
+      };
+    });
+
+    markFieldAsTouched("colorObjective");
+  };
+
+  const isNoColorObjectiveSelected =
+    Array.isArray(form.colorObjective) &&
+    form.colorObjective.includes("No existe");
+
+  const hasAnyColorObjectiveSelected =
+    Array.isArray(form.colorObjective) &&
+    form.colorObjective.some((item) => item !== "No existe");
+
   const validationErrors = useMemo(() => {
     const errors: Partial<Record<keyof ProjectEditFormData, string>> = {};
 
@@ -1546,12 +1618,36 @@ export default function ProjectEditPage() {
       errors.designPlanFiles = "Debe cargar al menos un archivo de Illustrator (.ai).";
     }
 
+    if (form.hasDesignPlan === "Sí" && (!form.designPlanFiles || form.designPlanFiles.length === 0)) {
+      errors.designPlanFiles = "Debe cargar al menos un plano de diseño.";
+    }
+
     if (form.licitacion === "Sí" && !form.codigoRFQ.trim()) {
       errors.codigoRFQ = "Ingresa el código de licitación.";
     }
 
     if (form.salesforceAction && !isValidSalesforceAction(form.salesforceAction)) {
       errors.salesforceAction = "La Acción Salesforce debe tener el formato A- seguido de 6 dígitos. Ejemplo: A-123456.";
+    }
+
+    if (!Array.isArray(form.colorObjective) || form.colorObjective.length === 0) {
+      errors.colorObjective = "Selecciona el objetivo de color.";
+    }
+
+    if (
+      Array.isArray(form.colorObjective) &&
+      form.colorObjective.includes("Otros") &&
+      !String(form.colorObjectiveComment || "").trim()
+    ) {
+      errors.colorObjectiveComment = "Comenta cuál es el objetivo de color cuando seleccionas Otros.";
+    }
+
+    if (
+      Array.isArray(form.colorObjective) &&
+      form.colorObjective.includes("No existe") &&
+      form.colorObjective.length > 1
+    ) {
+      errors.colorObjective = "No existe no puede combinarse con otros objetivos de color.";
     }
 
     return errors;
@@ -1774,10 +1870,17 @@ export default function ProjectEditPage() {
       specialDesignComments: form.specialDesignComments,
       edagCode: form.edagCode,
       edagVersion: form.edagVersion,
+      colorObjective: form.colorObjective || [],
+      objetivoColor: form.colorObjective || [],
+      colorObjectiveComment: form.colorObjectiveComment || "",
+      comentarioObjetivoColor: form.colorObjectiveComment || "",
+      designWorkInstructions: form.designWorkInstructions || "",
+      instruccionesTrabajoDiseno: form.designWorkInstructions || "",
       isPreviousDesign: form.hasEdagReference as BooleanLike,
       previousEdagCode: form.referenceEdagCode,
       previousEdagVersion: form.referenceEdagVersion,
       requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
+      hasDesignPlan: form.hasDesignPlan as BooleanLike,
 
       hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
       referenceEmCode: form.referenceEmCode,
@@ -1845,12 +1948,12 @@ export default function ProjectEditPage() {
       destinationCountry: form.destinationCountry,
       targetPrice: form.targetPrice,
       currencyType: form.currencyType,
-      coreMaterial: form.coreMaterial,
-      coreDiameter: form.coreDiameter,
-      externalDiameter: form.externalDiameter,
-      externalVariationPlus: form.externalVariationPlus,
-      externalVariationMinus: form.externalVariationMinus,
-      maxRollWeight: form.maxRollWeight,
+      coreMaterial: isLaminaWrapping(inheritedWrapping) ? form.coreMaterial : "",
+      coreDiameter: isLaminaWrapping(inheritedWrapping) ? form.coreDiameter : "",
+      externalDiameter: isLaminaWrapping(inheritedWrapping) ? form.externalDiameter : "",
+      externalVariationPlus: isLaminaWrapping(inheritedWrapping) ? form.externalVariationPlus : "",
+      externalVariationMinus: isLaminaWrapping(inheritedWrapping) ? form.externalVariationMinus : "",
+      maxRollWeight: isLaminaWrapping(inheritedWrapping) ? form.maxRollWeight : "",
       customerAdditionalInfo: form.customerAdditionalInfo,
       peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
       printingFooter: form.printingFooter as BooleanLike,
@@ -1978,10 +2081,17 @@ export default function ProjectEditPage() {
       specialDesignComments: form.specialDesignComments,
       edagCode: form.edagCode,
       edagVersion: form.edagVersion,
+      colorObjective: form.colorObjective || [],
+      objetivoColor: form.colorObjective || [],
+      colorObjectiveComment: form.colorObjectiveComment || "",
+      comentarioObjetivoColor: form.colorObjectiveComment || "",
+      designWorkInstructions: form.designWorkInstructions || "",
+      instruccionesTrabajoDiseno: form.designWorkInstructions || "",
       isPreviousDesign: form.hasEdagReference as BooleanLike,
       previousEdagCode: form.referenceEdagCode,
       previousEdagVersion: form.referenceEdagVersion,
       requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
+      hasDesignPlan: form.hasDesignPlan as BooleanLike,
 
       hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
       referenceEmCode: form.referenceEmCode,
@@ -2049,12 +2159,12 @@ export default function ProjectEditPage() {
       destinationCountry: form.destinationCountry,
       targetPrice: form.targetPrice,
       currencyType: form.currencyType,
-      coreMaterial: form.coreMaterial,
-      coreDiameter: form.coreDiameter,
-      externalDiameter: form.externalDiameter,
-      externalVariationPlus: form.externalVariationPlus,
-      externalVariationMinus: form.externalVariationMinus,
-      maxRollWeight: form.maxRollWeight,
+      coreMaterial: isLaminaWrapping(inheritedWrapping) ? form.coreMaterial : "",
+      coreDiameter: isLaminaWrapping(inheritedWrapping) ? form.coreDiameter : "",
+      externalDiameter: isLaminaWrapping(inheritedWrapping) ? form.externalDiameter : "",
+      externalVariationPlus: isLaminaWrapping(inheritedWrapping) ? form.externalVariationPlus : "",
+      externalVariationMinus: isLaminaWrapping(inheritedWrapping) ? form.externalVariationMinus : "",
+      maxRollWeight: isLaminaWrapping(inheritedWrapping) ? form.maxRollWeight : "",
       customerAdditionalInfo: form.customerAdditionalInfo,
       peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
       printingFooter: form.printingFooter as BooleanLike,
@@ -2451,6 +2561,86 @@ export default function ProjectEditPage() {
                             disabled={true}
                           />
                         )}
+
+                        {/* ¿Tiene plano de diseño? */}
+                        <FormSelect
+                          label="¿Tiene plano de diseño? *"
+                          value={form.hasDesignPlan}
+                          onChange={(value) => updateField("hasDesignPlan", value)}
+                          onBlur={() => markFieldAsTouched("hasDesignPlan")}
+                          error={getError("hasDesignPlan")}
+                          placeholder="-- Seleccione --"
+                          options={YES_NO_OPTIONS}
+                        />
+
+                        {/* Objetivo de color - Multi selección */}
+                        <div>
+                          <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
+                            Objetivo de color *
+                          </label>
+
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                            {COLOR_OBJECTIVE_OPTIONS.map((option) => {
+                              const checked = form.colorObjective?.includes(option.value);
+
+                              const disabled =
+                                option.value === "No existe"
+                                  ? hasAnyColorObjectiveSelected
+                                  : isNoColorObjectiveSelected;
+
+                              return (
+                                <label
+                                  key={option.value}
+                                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                                    disabled
+                                      ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
+                                      : "cursor-pointer border-slate-200 bg-white text-slate-700 hover:border-brand-primary"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    disabled={disabled}
+                                    onChange={() => handleColorObjectiveChange(option.value)}
+                                    className="h-4 w-4 rounded border-slate-300"
+                                  />
+                                  <span>{option.label}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+
+                          {getError("colorObjective") && (
+                            <p className="mt-1 text-xs font-semibold text-red-600">
+                              {getError("colorObjective")}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Comentar Objetivo de color */}
+                        <FormTextarea
+                          label={
+                            form.colorObjective?.includes("Otros")
+                              ? "Comentar Objetivo de color *"
+                              : "Comentar Objetivo de color"
+                          }
+                          value={form.colorObjectiveComment}
+                          onChange={(value) => updateField("colorObjectiveComment", value)}
+                          onBlur={() => markFieldAsTouched("colorObjectiveComment")}
+                          error={getError("colorObjectiveComment")}
+                          placeholder="Describe la muestra, pantone, producción de referencia u otro criterio de color..."
+                        />
+
+                        {/* Instrucciones de trabajo para diseño */}
+                        <FormTextarea
+                          label="Instrucciones de trabajo para diseño"
+                          value={form.designWorkInstructions}
+                          onChange={(value) => updateField("designWorkInstructions", value)}
+                          onBlur={() => markFieldAsTouched("designWorkInstructions")}
+                          error={getError("designWorkInstructions")}
+                          placeholder="Indica instrucciones específicas para Artes Gráficas o diseño. Campo opcional."
+                        />
+
                         {/* Línea 0: Formato de Plano */}
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
@@ -3066,7 +3256,8 @@ export default function ProjectEditPage() {
                   )}
                 </div>
 
-                {/* Especificaciones de Core en Estructura */}
+                {/* Especificaciones de Core en Estructura - Solo para LÁMINA */}
+                {isLaminaWrapping(inheritedWrapping) && (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <div className="mb-4 flex items-center gap-3">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm">
@@ -3139,6 +3330,7 @@ export default function ProjectEditPage() {
                     />
                   </div>
                 </div>
+                )}
 
               </div>
             )}
@@ -3257,27 +3449,7 @@ export default function ProjectEditPage() {
               </div>
             </div>
 
-            {/* TARJETA A: PORTAFOLIO BASE */}
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="font-semibold text-sm text-slate-900 mb-3">Portafolio base</h3>
-              <PortfolioSearch
-                label="Portafolio base *"
-                value={form.portfolioCode}
-                onChange={(value) => {
-                  updateField("portfolioCode", value);
-                  updateField("blueprintFormat", "");
-                  markFieldAsTouched("portfolioCode");
-                }}
-                error={getError("portfolioCode")}
-              />
-              {!form.portfolioCode && (
-                <p className="text-xs text-slate-400 mt-3 italic">
-                  Selecciona un portafolio para ver la información heredada.
-                </p>
-              )}
-            </div>
-
-            {/* TARJETA B: HERENCIA DEL PORTAFOLIO */}
+            {/* HERENCIA DEL PORTAFOLIO */}
             {selectedPortfolio && (
               <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <h3 className="font-semibold text-sm text-slate-900 mb-3">Herencia del portafolio</h3>
