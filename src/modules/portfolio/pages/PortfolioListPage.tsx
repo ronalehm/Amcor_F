@@ -19,13 +19,22 @@ import ActionButton from "../../../shared/components/buttons/ActionButton";
 
 type PortfolioTab = "all" | "active" | "inactive";
 type SortDirection = "asc" | "desc";
-type SortKey = "codigo" | "nombre" | "clientName" | "envoltura" | "maquinaCliente" | "createdAt" | "proyectos";
+type SortKey = "codigo" | "nombre" | "clientName" | "planta" | "envoltura" | "maquinaCliente" | "createdAt" | "proyectos";
 
 const getText = (...values: any[]) => {
   const value = values.find(
     (item) => item !== undefined && item !== null && String(item).trim() !== "",
   );
   return value ? String(value) : "";
+};
+
+const getPortfolioPlantName = (portfolio: any): string => {
+  return getText(
+    portfolio.plantaName,
+    (portfolio as any).pl,
+    (portfolio as any).planta,
+    (portfolio as any).plantName,
+  ) || "—";
 };
 
 const getPortfolioStatus = (portfolio: any): "active" | "inactive" => {
@@ -53,6 +62,7 @@ const getSortValue = (portfolio: any, key: SortKey): string | number => {
     case "codigo": return getText(portfolio.id).toLowerCase();
     case "nombre": return getText(portfolio.nom).toLowerCase();
     case "clientName": return getText(portfolio.cli).toLowerCase();
+    case "planta": return getPortfolioPlantName(portfolio).toLowerCase();
     case "envoltura": return getText(portfolio.env).toLowerCase();
     case "maquinaCliente": return getText(portfolio.maq).toLowerCase();
     case "createdAt": {
@@ -133,6 +143,7 @@ export default function PortfolioListPage() {
         portfolio.id,
         (portfolio as any).nom,
         (portfolio as any).cli,
+        getPortfolioPlantName(portfolio),
         (portfolio as any).env,
         (portfolio as any).maq,
         (portfolio as any).ej,
@@ -374,7 +385,7 @@ export default function PortfolioListPage() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar por código, nombre, cliente, envoltura, envasado..."
+                placeholder="Buscar por código, nombre, cliente, planta, envoltura, envasado..."
                 className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
               />
             </div>
@@ -406,6 +417,7 @@ export default function PortfolioListPage() {
                 <SortableHeader label="Código" sortKey="codigo" />
                 <SortableHeader label="Nombre" sortKey="nombre" />
                 <SortableHeader label="Cliente" sortKey="clientName" />
+                <SortableHeader label="Planta de Origen" sortKey="planta" />
                 <SortableHeader label="Envoltura" sortKey="envoltura" />
                 <SortableHeader label="Envasado / Máquina de Cliente" sortKey="maquinaCliente" />
                 <SortableHeader label="Proyectos" sortKey="proyectos" align="right" />
@@ -445,6 +457,10 @@ export default function PortfolioListPage() {
                       <div className="font-semibold text-slate-800">
                         {(portfolio as any).cli || "—"}
                       </div>
+                    </td>
+
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {getPortfolioPlantName(portfolio)}
                     </td>
 
                     <td className="px-4 py-3 text-sm text-slate-700">
@@ -501,7 +517,7 @@ export default function PortfolioListPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={8} className="px-6 py-14 text-center">
+                  <td colSpan={9} className="px-6 py-14 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <BriefcaseBusiness size={26} className="text-slate-400" />
