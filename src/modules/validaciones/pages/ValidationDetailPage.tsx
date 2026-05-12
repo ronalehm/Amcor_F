@@ -8,6 +8,7 @@ import type { ProjectRecord } from "../../../shared/data/projectStorage";
 import FormCard from "../../../shared/components/forms/FormCard";
 import Button from "../../../shared/components/ui/Button";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
+import ValidationHistoryTimeline from "../components/ValidationHistoryTimeline";
 
 export default function ValidationDetailPage() {
   const navigate = useNavigate();
@@ -305,6 +306,12 @@ export default function ValidationDetailPage() {
             </FormCard>
           )}
         </div>
+      </div>
+
+      {/* Historial de validaciones - Sección completa */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h3 className="text-lg font-semibold text-slate-900 mb-6">Historial de Validaciones</h3>
+        <ValidationHistoryTimeline projectCode={project.code} />
       </div>
     </div>
   );
