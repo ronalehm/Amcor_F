@@ -14,7 +14,18 @@ import {
 } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers } from "../../../shared/data/userStorage";
-import { isGuidedFormatEnabled, calculateBolsaFormatPlan, inferBolsaGussetType } from "../../../shared/data/formatPlanRules";
+import {
+  isGuidedFormatEnabled,
+  isBolsaWrapping,
+  isLaminaWrapping,
+  isPouchWrapping,
+  calculateBolsaFormatPlan,
+  calculateLaminaFormatPlan,
+  calculatePouchFormatPlan,
+  validateLaminaFormatPlan,
+  validatePouchFormatPlan,
+  inferBolsaGussetType,
+} from "../../../shared/data/formatPlanRules";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -45,6 +56,15 @@ type ProjectEditFormData = {
   acabadoBolsa: string;
   tieneFuelleBolsa: string;
   tipoFuelleBolsa: string;
+  tipoFormatoLamina: string;
+  tipoFamiliaPouch: string;
+  tipoStandUpPouch: string;
+  formaDoyPackPouch: string;
+  tipoFuelleStandUpPouch: string;
+  cantidadSellosPouchPlano: string;
+  tieneFuelleSelloCentralPouch: string;
+  materialSelloCentralPouch: string;
+  tipoSelloEnFuellePouch: string;
   technicalApplication: string;
   estimatedVolume: string;
   unitOfMeasure: string;
@@ -233,6 +253,49 @@ const LAMINA_FORMAT_OPTIONS = [
   { value: "GENERICA", label: "GENERICA" },
   { value: "TISSUE", label: "TISSUE" },
   { value: "FOOD", label: "FOOD" },
+];
+
+const POUCH_FAMILY_OPTIONS = [
+  { value: "Pouch Stand Up", label: "Pouch Stand Up" },
+  { value: "Pouch Plano", label: "Pouch Plano" },
+  { value: "Pouch con Sello Central", label: "Pouch con Sello Central" },
+  { value: "Pouch con Sello en Fuelle", label: "Pouch con Sello en Fuelle" },
+];
+
+const POUCH_STAND_UP_OPTIONS = [
+  { value: "Tipo K", label: "Tipo K" },
+  { value: "Normal", label: "Normal" },
+  { value: "Doy Pack", label: "Doy Pack" },
+];
+
+const POUCH_DOY_PACK_FORM_OPTIONS = [
+  { value: "Redondo", label: "Redondo" },
+  { value: "Cuadrado", label: "Cuadrado" },
+];
+
+const POUCH_FUELLE_STAND_UP_OPTIONS = [
+  { value: "Fuelle Propio", label: "Fuelle Propio" },
+  { value: "Fuelle Insertado", label: "Fuelle Insertado" },
+];
+
+const POUCH_PLANO_SEALS_OPTIONS = [
+  { value: "Dos sellos", label: "Dos sellos" },
+  { value: "Tres sellos", label: "Tres sellos" },
+];
+
+const POUCH_SELLO_CENTRAL_FUELLE_OPTIONS = [
+  { value: "Sí", label: "Sí" },
+  { value: "No", label: "No" },
+];
+
+const POUCH_SELLO_CENTRAL_MATERIAL_OPTIONS = [
+  { value: "PE-PE/PE", label: "PE-PE/PE" },
+  { value: "Otro", label: "Otro" },
+];
+
+const POUCH_SELLO_EN_FUELLE_OPTIONS = [
+  { value: "Tipo 4-1", label: "Tipo 4-1" },
+  { value: "Tipo 1-1", label: "Tipo 1-1" },
 ];
 
 function normalizeWrapping(value: string): string {
@@ -566,6 +629,12 @@ const OTHER_ACCESSORIES_OPTIONS = [
   { value: "No aplica", label: "No aplica" },
 ];
 
+const LAMINA_GUIDED_FORMAT_OPTIONS = [
+  { value: "GENERICA", label: "Genérica" },
+  { value: "TISSUE", label: "Tissue" },
+  { value: "FOOD", label: "Food" },
+];
+
 const DESTINATION_COUNTRY_OPTIONS = [
   { value: "Perú", label: "Perú" },
   { value: "Chile", label: "Chile" },
@@ -625,6 +694,15 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "acabadoBolsa",
     "tieneFuelleBolsa",
     "tipoFuelleBolsa",
+    "tipoFormatoLamina",
+    "tipoFamiliaPouch",
+    "tipoStandUpPouch",
+    "formaDoyPackPouch",
+    "tipoFuelleStandUpPouch",
+    "cantidadSellosPouchPlano",
+    "tieneFuelleSelloCentralPouch",
+    "materialSelloCentralPouch",
+    "tipoSelloEnFuellePouch",
     "designPlanFiles",
   ],
 
@@ -701,6 +779,15 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   projectDescription: "Descripción del proyecto",
 
   blueprintFormat: "Formato de plano",
+  tipoFormatoLamina: "Tipo de formato de lámina",
+  tipoFamiliaPouch: "Familia de pouch",
+  tipoStandUpPouch: "Tipo de stand up",
+  formaDoyPackPouch: "Forma doy pack",
+  tipoFuelleStandUpPouch: "Tipo de fuelle (stand up)",
+  cantidadSellosPouchPlano: "Cantidad de sellos",
+  tieneFuelleSelloCentralPouch: "¿Tiene fuelle? (sello central)",
+  materialSelloCentralPouch: "Material (sello central)",
+  tipoSelloEnFuellePouch: "Tipo de sello en fuelle",
   technicalApplication: "Aplicación técnica",
   customerPackingCode: "Código de empaque del cliente",
 
@@ -827,14 +914,16 @@ function shouldShowRepetitionField(wrapping: string, blueprintFormat: string): b
   const normalizedWrapping = normalizeWrappingName(wrapping);
   const normalizedFormat = normalizeOptionValue(blueprintFormat);
 
-  const isBolsa = normalizedWrapping.includes("bolsa");
+  const isLamina =
+    normalizedWrapping.includes("lamina") ||
+    normalizedWrapping.includes("lámina");
 
   const isRepetitionFormat =
     normalizedFormat.includes("tissue") ||
     normalizedFormat.includes("generica") ||
     normalizedFormat.includes("food");
 
-  return isBolsa && isRepetitionFormat;
+  return isLamina && isRepetitionFormat;
 }
 type ProjectRecordWithExecutives = ProjectRecord & {
   ejecutivoIds?: Array<string | number>;
@@ -883,6 +972,15 @@ export default function ProjectEditPage() {
     acabadoBolsa: "",
     tieneFuelleBolsa: "",
     tipoFuelleBolsa: "",
+    tipoFormatoLamina: "",
+    tipoFamiliaPouch: "",
+    tipoStandUpPouch: "",
+    formaDoyPackPouch: "",
+    tipoFuelleStandUpPouch: "",
+    cantidadSellosPouchPlano: "",
+    tieneFuelleSelloCentralPouch: "",
+    materialSelloCentralPouch: "",
+    tipoSelloEnFuellePouch: "",
     technicalApplication: "",
     estimatedVolume: "",
     unitOfMeasure: "",
@@ -1115,6 +1213,15 @@ export default function ProjectEditPage() {
       acabadoBolsa: (project as any).acabadoBolsa || "",
       tieneFuelleBolsa: (project as any).tieneFuelleBolsa || "",
       tipoFuelleBolsa: (project as any).tipoFuelleBolsa || "",
+      tipoFormatoLamina: (project as any).tipoFormatoLamina || "",
+      tipoFamiliaPouch: (project as any).tipoFamiliaPouch || "",
+      tipoStandUpPouch: (project as any).tipoStandUpPouch || "",
+      formaDoyPackPouch: (project as any).formaDoyPackPouch || "",
+      tipoFuelleStandUpPouch: (project as any).tipoFuelleStandUpPouch || "",
+      cantidadSellosPouchPlano: (project as any).cantidadSellosPouchPlano || "",
+      tieneFuelleSelloCentralPouch: (project as any).tieneFuelleSelloCentralPouch || "",
+      materialSelloCentralPouch: (project as any).materialSelloCentralPouch || "",
+      tipoSelloEnFuellePouch: (project as any).tipoSelloEnFuellePouch || "",
       designPlanFiles: (project as any).designPlanFiles || [],
     };
 
@@ -1191,6 +1298,8 @@ export default function ProjectEditPage() {
   const inheritedMachine = selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || selectedPortfolio?.packingMachineName || "";
 
   const isPouchWrapping = normalizeWrapping(inheritedWrapping).includes("pouch");
+  const isBolsa = isBolsaWrapping(inheritedWrapping);
+  const isLamina = isLaminaWrapping(inheritedWrapping);
   const shouldApplyPouchDoyPackRestrictions = isPouchWrapping && form.blueprintFormat === POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO;
 
   const activeLayerCount = useMemo(() => {
@@ -1291,6 +1400,129 @@ export default function ProjectEditPage() {
   form.layer4Material,
 ]);
 
+  // Limpiar campos entre envolturas para evitar datos cruzados
+  useEffect(() => {
+    setForm((prev) => {
+      if (isBolsa) {
+        return {
+          ...prev,
+          tipoFormatoLamina: "",
+          tipoFamiliaPouch: "",
+          tipoStandUpPouch: "",
+          formaDoyPackPouch: "",
+          tipoFuelleStandUpPouch: "",
+          cantidadSellosPouchPlano: "",
+          tieneFuelleSelloCentralPouch: "",
+          materialSelloCentralPouch: "",
+          tipoSelloEnFuellePouch: "",
+        };
+      }
+
+      if (isLamina) {
+        return {
+          ...prev,
+          tipoPresentacionBolsa: "",
+          tipoSelloBolsa: "",
+          acabadoBolsa: "",
+          tieneFuelleBolsa: "",
+          tipoFuelleBolsa: "",
+          gussetType: "",
+          tipoFamiliaPouch: "",
+          tipoStandUpPouch: "",
+          formaDoyPackPouch: "",
+          tipoFuelleStandUpPouch: "",
+          cantidadSellosPouchPlano: "",
+          tieneFuelleSelloCentralPouch: "",
+          materialSelloCentralPouch: "",
+          tipoSelloEnFuellePouch: "",
+        };
+      }
+
+      if (isPouchWrapping) {
+        return {
+          ...prev,
+          tipoFormatoLamina: "",
+          tipoPresentacionBolsa: "",
+          tipoSelloBolsa: "",
+          acabadoBolsa: "",
+          tieneFuelleBolsa: "",
+          tipoFuelleBolsa: "",
+        };
+      }
+
+      return {
+        ...prev,
+        tipoFormatoLamina: "",
+        tipoPresentacionBolsa: "",
+        tipoSelloBolsa: "",
+        acabadoBolsa: "",
+        tieneFuelleBolsa: "",
+        tipoFuelleBolsa: "",
+        tipoFamiliaPouch: "",
+        tipoStandUpPouch: "",
+        formaDoyPackPouch: "",
+        tipoFuelleStandUpPouch: "",
+        cantidadSellosPouchPlano: "",
+        tieneFuelleSelloCentralPouch: "",
+        materialSelloCentralPouch: "",
+        tipoSelloEnFuellePouch: "",
+      };
+    });
+  }, [isBolsa, isLamina, isPouchWrapping]);
+
+  // Calcular automáticamente blueprintFormat para LÁMINA
+  useEffect(() => {
+    if (!isLamina) return;
+
+    const calculatedFormat = calculateLaminaFormatPlan({
+      tipoFormatoLamina: form.tipoFormatoLamina,
+    });
+
+    setForm((prev) => {
+      if (prev.blueprintFormat === calculatedFormat) return prev;
+
+      return {
+        ...prev,
+        blueprintFormat: calculatedFormat,
+      };
+    });
+  }, [isLamina, form.tipoFormatoLamina]);
+
+  // Calcular automáticamente blueprintFormat para POUCH
+  useEffect(() => {
+    if (!isPouchWrapping) return;
+
+    const calculatedFormat = calculatePouchFormatPlan({
+      tipoFamiliaPouch: form.tipoFamiliaPouch,
+      tipoStandUpPouch: form.tipoStandUpPouch,
+      formaDoyPackPouch: form.formaDoyPackPouch,
+      tipoFuelleStandUpPouch: form.tipoFuelleStandUpPouch,
+      cantidadSellosPouchPlano: form.cantidadSellosPouchPlano,
+      tieneFuelleSelloCentralPouch: form.tieneFuelleSelloCentralPouch,
+      materialSelloCentralPouch: form.materialSelloCentralPouch,
+      tipoSelloEnFuellePouch: form.tipoSelloEnFuellePouch,
+    });
+
+    setForm((prev) => {
+      if (prev.blueprintFormat === calculatedFormat) return prev;
+
+      return {
+        ...prev,
+        blueprintFormat: calculatedFormat,
+      };
+    });
+  }, [
+    isPouchWrapping,
+    form.tipoFamiliaPouch,
+    form.tipoStandUpPouch,
+    form.formaDoyPackPouch,
+    form.tipoFuelleStandUpPouch,
+    form.cantidadSellosPouchPlano,
+    form.tieneFuelleSelloCentralPouch,
+    form.materialSelloCentralPouch,
+    form.tipoSelloEnFuellePouch,
+  ]);
+
   const projectTypeOptions = useMemo(() => {
     if (form.classification === "Modificado") {
       return [];
@@ -1362,6 +1594,33 @@ export default function ProjectEditPage() {
       fields.push("designPlanFiles");
     }
 
+    if (isLamina) {
+      fields.push("tipoFormatoLamina", "blueprintFormat");
+    }
+
+    if (isPouchWrapping) {
+      fields.push("tipoFamiliaPouch", "blueprintFormat");
+
+      if (form.tipoFamiliaPouch === "Pouch Stand Up") {
+        fields.push("tipoStandUpPouch");
+        if (form.tipoStandUpPouch === "Doy Pack") {
+          fields.push("formaDoyPackPouch", "tipoFuelleStandUpPouch");
+        }
+      }
+
+      if (form.tipoFamiliaPouch === "Pouch Plano") {
+        fields.push("cantidadSellosPouchPlano");
+      }
+
+      if (form.tipoFamiliaPouch === "Pouch con Sello Central") {
+        fields.push("tieneFuelleSelloCentralPouch", "materialSelloCentralPouch");
+      }
+
+      if (form.tipoFamiliaPouch === "Pouch con Sello en Fuelle") {
+        fields.push("tipoSelloEnFuellePouch");
+      }
+    }
+
     return fields;
 }, [
   inheritedWrapping,
@@ -1376,6 +1635,16 @@ export default function ProjectEditPage() {
   shouldApplyPouchDoyPackRestrictions,
   form.hasEdagReference,
   form.hasCustomerTechnicalSpec,
+  isLamina,
+  isPouchWrapping,
+  form.tipoFamiliaPouch,
+  form.tipoStandUpPouch,
+  form.formaDoyPackPouch,
+  form.tipoFuelleStandUpPouch,
+  form.cantidadSellosPouchPlano,
+  form.tieneFuelleSelloCentralPouch,
+  form.materialSelloCentralPouch,
+  form.tipoSelloEnFuellePouch,
 ]);
   const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -1386,6 +1655,15 @@ export default function ProjectEditPage() {
       ...prev,
       [field]: true,
     }));
+  };
+
+  const handleLaminaFormatChange = (value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      tipoFormatoLamina: value,
+      blueprintFormat: "",
+    }));
+    markFieldAsTouched("tipoFormatoLamina");
   };
 
   const validationErrors = useMemo(() => {
@@ -1614,6 +1892,20 @@ formElement?.requestSubmit();
       salesforceAction: form.salesforceAction,
 
       blueprintFormat: form.blueprintFormat,
+      tipoFormatoLamina: form.tipoFormatoLamina,
+      tipoPresentacionBolsa: form.tipoPresentacionBolsa,
+      tipoSelloBolsa: form.tipoSelloBolsa,
+      acabadoBolsa: form.acabadoBolsa,
+      tieneFuelleBolsa: form.tieneFuelleBolsa,
+      tipoFuelleBolsa: form.tipoFuelleBolsa,
+      tipoFamiliaPouch: form.tipoFamiliaPouch,
+      tipoStandUpPouch: form.tipoStandUpPouch,
+      formaDoyPackPouch: form.formaDoyPackPouch,
+      tipoFuelleStandUpPouch: form.tipoFuelleStandUpPouch,
+      cantidadSellosPouchPlano: form.cantidadSellosPouchPlano,
+      tieneFuelleSelloCentralPouch: form.tieneFuelleSelloCentralPouch,
+      materialSelloCentralPouch: form.materialSelloCentralPouch,
+      tipoSelloEnFuellePouch: form.tipoSelloEnFuellePouch,
       technicalApplication: form.technicalApplication,
       estimatedVolume: form.estimatedVolume,
       unitOfMeasure: form.unitOfMeasure,
@@ -1929,9 +2221,10 @@ if (loading) {
                     </div>
 
 
-                    {/* BOLSA: Preguntas Guiadas */}
-                    {inheritedWrapping && normalizeWrapping(inheritedWrapping) === "bolsa" ? (
+                    {/* Lógica guiada: BOLSA, LÁMINA, o selector tradicional para POUCH */}
+                    {isBolsa ? (
                       <>
+                        {/* BOLSA: Preguntas Guiadas */}
                         {/* Pregunta 1: Tipo de presentación */}
                         <FormSelect
                           label="¿Tipo de presentación de bolsa? *"
@@ -2042,8 +2335,194 @@ if (loading) {
                           );
                         })()}
                       </>
+                    ) : isLamina ? (
+                      <>
+                        {/* LÁMINA: Bloque guiado */}
+                        <FormSelect
+                          label="¿Qué tipo de lámina requiere el proyecto? *"
+                          value={form.tipoFormatoLamina}
+                          onChange={handleLaminaFormatChange}
+                          onBlur={() => markFieldAsTouched("tipoFormatoLamina")}
+                          error={getError("tipoFormatoLamina")}
+                          placeholder="-- Seleccione --"
+                          options={LAMINA_GUIDED_FORMAT_OPTIONS}
+                        />
+
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 md:col-span-3">
+                          <p className="text-xs font-bold uppercase text-blue-800 mb-2">
+                            Formato de Plano (Calculado)
+                          </p>
+                          <p className="text-sm font-semibold text-blue-900">
+                            {form.blueprintFormat || "—"}
+                          </p>
+                        </div>
+
+                        <p className="text-xs text-slate-500 md:col-span-3">
+                          El formato de plano se calcula automáticamente según el tipo de lámina seleccionado.
+                        </p>
+                      </>
+                    ) : isPouchWrapping ? (
+                      <>
+                        {/* POUCH: Bloque guiado */}
+                        {/* Pregunta 1: Familia de Pouch */}
+                        <FormSelect
+                          label="¿Qué tipo de familia de pouch requiere? *"
+                          value={form.tipoFamiliaPouch}
+                          onChange={(value) => {
+                            updateField("tipoFamiliaPouch", value);
+                            updateField("tipoStandUpPouch", "");
+                            updateField("formaDoyPackPouch", "");
+                            updateField("tipoFuelleStandUpPouch", "");
+                            updateField("cantidadSellosPouchPlano", "");
+                            updateField("tieneFuelleSelloCentralPouch", "");
+                            updateField("materialSelloCentralPouch", "");
+                            updateField("tipoSelloEnFuellePouch", "");
+                            updateField("blueprintFormat", "");
+                            markFieldAsTouched("tipoFamiliaPouch");
+                          }}
+                          onBlur={() => markFieldAsTouched("tipoFamiliaPouch")}
+                          error={getError("tipoFamiliaPouch")}
+                          placeholder="-- Seleccione --"
+                          options={POUCH_FAMILY_OPTIONS}
+                        />
+
+                        {/* Stand Up: Tipo */}
+                        {form.tipoFamiliaPouch === "Pouch Stand Up" && (
+                          <FormSelect
+                            label="¿Qué tipo de Stand Up? *"
+                            value={form.tipoStandUpPouch}
+                            onChange={(value) => {
+                              updateField("tipoStandUpPouch", value);
+                              updateField("formaDoyPackPouch", "");
+                              updateField("tipoFuelleStandUpPouch", "");
+                              updateField("blueprintFormat", "");
+                              markFieldAsTouched("tipoStandUpPouch");
+                            }}
+                            onBlur={() => markFieldAsTouched("tipoStandUpPouch")}
+                            error={getError("tipoStandUpPouch")}
+                            placeholder="-- Seleccione --"
+                            options={POUCH_STAND_UP_OPTIONS}
+                          />
+                        )}
+
+                        {/* Stand Up Doy Pack: Forma */}
+                        {form.tipoStandUpPouch === "Doy Pack" && (
+                          <FormSelect
+                            label="¿Forma del Doy Pack? *"
+                            value={form.formaDoyPackPouch}
+                            onChange={(value) => {
+                              updateField("formaDoyPackPouch", value);
+                              updateField("blueprintFormat", "");
+                              markFieldAsTouched("formaDoyPackPouch");
+                            }}
+                            onBlur={() => markFieldAsTouched("formaDoyPackPouch")}
+                            error={getError("formaDoyPackPouch")}
+                            placeholder="-- Seleccione --"
+                            options={POUCH_DOY_PACK_FORM_OPTIONS}
+                          />
+                        )}
+
+                        {/* Stand Up Doy Pack: Tipo de Fuelle */}
+                        {form.tipoStandUpPouch === "Doy Pack" && (
+                          <FormSelect
+                            label="¿Tipo de fuelle? *"
+                            value={form.tipoFuelleStandUpPouch}
+                            onChange={(value) => {
+                              updateField("tipoFuelleStandUpPouch", value);
+                              updateField("blueprintFormat", "");
+                              markFieldAsTouched("tipoFuelleStandUpPouch");
+                            }}
+                            onBlur={() => markFieldAsTouched("tipoFuelleStandUpPouch")}
+                            error={getError("tipoFuelleStandUpPouch")}
+                            placeholder="-- Seleccione --"
+                            options={POUCH_FUELLE_STAND_UP_OPTIONS}
+                          />
+                        )}
+
+                        {/* Pouch Plano: Cantidad de sellos */}
+                        {form.tipoFamiliaPouch === "Pouch Plano" && (
+                          <FormSelect
+                            label="¿Cantidad de sellos? *"
+                            value={form.cantidadSellosPouchPlano}
+                            onChange={(value) => {
+                              updateField("cantidadSellosPouchPlano", value);
+                              updateField("blueprintFormat", "");
+                              markFieldAsTouched("cantidadSellosPouchPlano");
+                            }}
+                            onBlur={() => markFieldAsTouched("cantidadSellosPouchPlano")}
+                            error={getError("cantidadSellosPouchPlano")}
+                            placeholder="-- Seleccione --"
+                            options={POUCH_PLANO_SEALS_OPTIONS}
+                          />
+                        )}
+
+                        {/* Pouch Sello Central: ¿Tiene fuelle? */}
+                        {form.tipoFamiliaPouch === "Pouch con Sello Central" && (
+                          <FormSelect
+                            label="¿Tiene fuelle? *"
+                            value={form.tieneFuelleSelloCentralPouch}
+                            onChange={(value) => {
+                              updateField("tieneFuelleSelloCentralPouch", value);
+                              updateField("blueprintFormat", "");
+                              markFieldAsTouched("tieneFuelleSelloCentralPouch");
+                            }}
+                            onBlur={() => markFieldAsTouched("tieneFuelleSelloCentralPouch")}
+                            error={getError("tieneFuelleSelloCentralPouch")}
+                            placeholder="-- Seleccione --"
+                            options={POUCH_SELLO_CENTRAL_FUELLE_OPTIONS}
+                          />
+                        )}
+
+                        {/* Pouch Sello Central: Material */}
+                        {form.tipoFamiliaPouch === "Pouch con Sello Central" && (
+                          <FormSelect
+                            label="¿Material especificado? *"
+                            value={form.materialSelloCentralPouch}
+                            onChange={(value) => {
+                              updateField("materialSelloCentralPouch", value);
+                              updateField("blueprintFormat", "");
+                              markFieldAsTouched("materialSelloCentralPouch");
+                            }}
+                            onBlur={() => markFieldAsTouched("materialSelloCentralPouch")}
+                            error={getError("materialSelloCentralPouch")}
+                            placeholder="-- Seleccione --"
+                            options={POUCH_SELLO_CENTRAL_MATERIAL_OPTIONS}
+                          />
+                        )}
+
+                        {/* Pouch Sello en Fuelle: Tipo */}
+                        {form.tipoFamiliaPouch === "Pouch con Sello en Fuelle" && (
+                          <FormSelect
+                            label="¿Tipo de sello en fuelle? *"
+                            value={form.tipoSelloEnFuellePouch}
+                            onChange={(value) => {
+                              updateField("tipoSelloEnFuellePouch", value);
+                              updateField("blueprintFormat", "");
+                              markFieldAsTouched("tipoSelloEnFuellePouch");
+                            }}
+                            onBlur={() => markFieldAsTouched("tipoSelloEnFuellePouch")}
+                            error={getError("tipoSelloEnFuellePouch")}
+                            placeholder="-- Seleccione --"
+                            options={POUCH_SELLO_EN_FUELLE_OPTIONS}
+                          />
+                        )}
+
+                        {/* Resultado: Formato de Plano Calculado */}
+                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 md:col-span-3">
+                          <p className="text-xs font-bold uppercase text-blue-800 mb-2">
+                            Formato de Plano (Calculado)
+                          </p>
+                          <p className="text-sm font-semibold text-blue-900">
+                            {form.blueprintFormat || "—"}
+                          </p>
+                        </div>
+
+                        <p className="text-xs text-slate-500 md:col-span-3">
+                          El formato de plano se calcula automáticamente según tus respuestas.
+                        </p>
+                      </>
                     ) : (
-                      /* NO BOLSA: Selector tradicional */
+                      /* Otros tipos de envoltura: Selector tradicional */
                       <FormSelect
                         label="Formato de Plano *"
                         value={form.blueprintFormat}
