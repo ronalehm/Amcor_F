@@ -49,11 +49,27 @@ export default function ValidationDetailPage() {
     );
   }
 
-  const currentStep = project.currentValidationStep;
-  const isGraphicArtsStep = currentStep === "Artes Gráficas";
-  const isTechnicalStep = currentStep === "R&D Técnica" || currentStep === "R&D Desarrollo";
+  // Get validation area from multiple possible sources
+  const validationArea =
+    project.currentValidationStep ||
+    project.technicalSubArea ||
+    "";
+
+  const isGraphicArtsStep = validationArea === "Artes Gráficas";
+
+  const isTechnicalStep =
+    validationArea === "R&D Técnica" ||
+    validationArea === "R&D Desarrollo";
+
+  const canValidateCurrentStep =
+    isGraphicArtsStep || isTechnicalStep;
 
   const handleObservar = async () => {
+    if (!canValidateCurrentStep || !validationArea) {
+      alert("No hay un área de validación activa para este proyecto.");
+      return;
+    }
+
     if (!comment.trim()) {
       alert("El comentario es obligatorio al observar.");
       return;
@@ -61,8 +77,7 @@ export default function ValidationDetailPage() {
 
     setLoading(true);
     try {
-      const area = isGraphicArtsStep ? "Artes Gráficas" : (currentStep || "R&D Técnica");
-      const updated = observeProject(project, area as any, comment);
+      const updated = observeProject(project, validationArea as any, comment);
       setProject(updated);
       alert("Proyecto observado. El ejecutivo deberá corregir y solicitar validación nuevamente.");
       navigate("/validaciones");
@@ -75,10 +90,14 @@ export default function ValidationDetailPage() {
   };
 
   const handleValidar = async () => {
+    if (!canValidateCurrentStep || !validationArea) {
+      alert("No hay un área de validación activa para este proyecto.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const area = isGraphicArtsStep ? "Artes Gráficas" : (currentStep || "R&D Técnica");
-      const updated = approveValidation(project, area as any, comment || undefined);
+      const updated = approveValidation(project, validationArea as any, comment || undefined);
       setProject(updated);
       alert("Validación completada.");
       navigate("/validaciones");
@@ -234,12 +253,21 @@ export default function ValidationDetailPage() {
           </FormCard>
 
           {/* Formulario de acción */}
-          {(isGraphicArtsStep || isTechnicalStep) && (
-            <FormCard title="Acción de Validación" icon="📋" color="#e74c3c">
+          {canValidateCurrentStep && (
+            <FormCard
+              title="Acción de Validación"
+              icon="📋"
+              color="#e74c3c"
+            >
               <div className="space-y-4">
+                {validationArea && (
+                  <p className="text-xs text-slate-500 mb-3">
+                    Área responsable: {validationArea}
+                  </p>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Comentarios {isGraphicArtsStep || isTechnicalStep ? "(obligatorio al observar)" : ""}
+                    Comentarios (obligatorio al observar)
                   </label>
                   <textarea
                     value={comment}
