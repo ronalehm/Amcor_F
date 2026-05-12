@@ -159,6 +159,7 @@ export type ProjectRecord = {
   classification?: string;
   subClassification?: string;
   projectType?: string;
+  approvedProductCode?: string;
   salesforceAction?: string;
 
   graphicResponsible?: string;
@@ -175,6 +176,13 @@ export type ProjectRecord = {
   estimatedVolume?: string;
   unitOfMeasure?: string;
   customerPackingCode?: string;
+
+  // Lógica de Formato de Plano para BOLSA
+  tipoPresentacionBolsa?: string;
+  tipoSelloBolsa?: string;
+  acabadoBolsa?: string;
+  tieneFuelleBolsa?: string;
+  tipoFuelleBolsa?: string;
 
   // === ESPECIFICACIONES DE DISEÑO ===
   printClass?: string;
@@ -984,6 +992,7 @@ export function createProjectFromPortfolio(params: {
     tipoProyecto: string;
     licitacion: "Sí" | "No";
     codigoLicitacion?: string;
+    approvedProductCode?: string;
   };
   createdBy?: string;
 }): ProjectRecord {
@@ -1017,6 +1026,7 @@ export function createProjectFromPortfolio(params: {
 
     classification: params.initialData.clasificacion,
     projectType: params.initialData.tipoProyecto,
+    approvedProductCode: params.initialData.approvedProductCode,
     licitacion: params.initialData.licitacion,
     codigoRFQ:
       params.initialData.licitacion === "Sí"

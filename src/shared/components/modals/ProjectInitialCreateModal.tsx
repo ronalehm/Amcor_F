@@ -51,6 +51,7 @@ export default function ProjectInitialCreateModal({
   const [portfolioCode, setPortfolioCode] = useState(initialPortfolioCode || "");
   const [clasificacion, setClasificacion] = useState("");
   const [tipoProyecto, setTipoProyecto] = useState("");
+  const [approvedProductCode, setApprovedProductCode] = useState("");
   const [licitacion, setLicitacion] = useState<"Sí" | "No">("No");
   const [codigoLicitacion, setCodigoLicitacion] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -64,15 +65,19 @@ export default function ProjectInitialCreateModal({
       setPortfolioCode(initialPortfolioCode || "");
       setClasificacion("");
       setTipoProyecto("");
+      setApprovedProductCode("");
       setLicitacion("No");
       setCodigoLicitacion("");
       setErrors({});
     }
   }, [isOpen, initialPortfolioCode]);
 
-  // Si cambia la clasificación, se resetea el tipo de proyecto
+  // Si cambia la clasificación, se resetea el tipo de proyecto y campos dependientes
   useEffect(() => {
     setTipoProyecto("");
+    setApprovedProductCode("");
+    setLicitacion("No");
+    setCodigoLicitacion("");
   }, [clasificacion]);
 
   if (!isOpen) return null;
@@ -99,11 +104,15 @@ export default function ProjectInitialCreateModal({
       newErrors.tipoProyecto = "Selecciona el tipo de proyecto.";
     }
 
-    if (!licitacion) {
+    if (clasificacion === "Modificado" && !approvedProductCode.trim()) {
+      newErrors.approvedProductCode = "Ingresa el código del producto aprobado.";
+    }
+
+    if (clasificacion === "Nuevo" && !licitacion) {
       newErrors.licitacion = "Indica si corresponde a licitación.";
     }
 
-    if (licitacion === "Sí" && !codigoLicitacion.trim()) {
+    if (clasificacion === "Nuevo" && licitacion === "Sí" && !codigoLicitacion.trim()) {
       newErrors.codigoLicitacion = "Ingresa el código de licitación.";
     }
 
@@ -117,8 +126,9 @@ export default function ProjectInitialCreateModal({
       initialData: {
         clasificacion,
         tipoProyecto,
-        licitacion,
-        codigoLicitacion,
+        approvedProductCode: clasificacion === "Modificado" ? approvedProductCode : undefined,
+        licitacion: clasificacion === "Nuevo" ? licitacion : "No",
+        codigoLicitacion: clasificacion === "Nuevo" ? codigoLicitacion : "",
       },
       createdBy: currentUser?.id,
     });
@@ -170,59 +180,80 @@ export default function ProjectInitialCreateModal({
                 </div>
               )}
 
-              <FormSelect
-                label="Clasificación *"
-                value={clasificacion}
-                onChange={(val) => {
-                  setClasificacion(val);
-                  setErrors((prev) => ({ ...prev, clasificacion: "" }));
-                }}
-                options={CLASSIFICATION_OPTIONS}
-                error={errors.clasificacion}
-                placeholder="-- Seleccione --"
-                disabled={!portfolioCode}
-              />
-
-              <FormSelect
-                label="Tipo de Proyecto *"
-                value={tipoProyecto}
-                onChange={(val) => {
-                  setTipoProyecto(val);
-                  setErrors((prev) => ({ ...prev, tipoProyecto: "" }));
-                }}
-                options={tipoProyectoOptions}
-                error={errors.tipoProyecto}
-                placeholder={clasificacion ? "-- Seleccione --" : "Primero seleccione clasificación"}
-                disabled={!clasificacion || !portfolioCode}
-              />
-
-              <FormSelect
-                label="Licitación *"
-                value={licitacion}
-                onChange={(val) => {
-                  setLicitacion(val as "Sí" | "No");
-                  if (val === "No") setCodigoLicitacion("");
-                  setErrors((prev) => ({ ...prev, licitacion: "", codigoLicitacion: "" }));
-                }}
-                options={[
-                  { value: "Sí", label: "Sí" },
-                  { value: "No", label: "No" },
-                ]}
-                error={errors.licitacion}
-                disabled={!portfolioCode}
-              />
-
-              {licitacion === "Sí" && (
-                <FormInput
-                  label="Código de Licitación *"
-                  value={codigoLicitacion}
+              {portfolioCode && (
+                <FormSelect
+                  label="Clasificación *"
+                  value={clasificacion}
                   onChange={(val) => {
-                    setCodigoLicitacion(val);
-                    setErrors((prev) => ({ ...prev, codigoLicitacion: "" }));
+                    setClasificacion(val);
+                    setErrors((prev) => ({ ...prev, clasificacion: "" }));
                   }}
-                  error={errors.codigoLicitacion}
+                  options={CLASSIFICATION_OPTIONS}
+                  error={errors.clasificacion}
+                  placeholder="-- Seleccione --"
+                  disabled={!portfolioCode}
+                />
+              )}
+
+              {clasificacion === "Modificado" && (
+                <FormInput
+                  label="Cód Producto aprobado *"
+                  value={approvedProductCode}
+                  onChange={(val) => {
+                    setApprovedProductCode(val);
+                    setErrors((prev) => ({ ...prev, approvedProductCode: "" }));
+                  }}
+                  error={errors.approvedProductCode}
                   placeholder="Ingrese el código"
                 />
+              )}
+
+              {clasificacion && (
+                <FormSelect
+                  label="Tipo de Proyecto *"
+                  value={tipoProyecto}
+                  onChange={(val) => {
+                    setTipoProyecto(val);
+                    setErrors((prev) => ({ ...prev, tipoProyecto: "" }));
+                  }}
+                  options={tipoProyectoOptions}
+                  error={errors.tipoProyecto}
+                  placeholder="-- Seleccione --"
+                  disabled={!clasificacion || !portfolioCode}
+                />
+              )}
+
+              {clasificacion === "Nuevo" && (
+                <>
+                  <FormSelect
+                    label="Licitación *"
+                    value={licitacion}
+                    onChange={(val) => {
+                      setLicitacion(val as "Sí" | "No");
+                      if (val === "No") setCodigoLicitacion("");
+                      setErrors((prev) => ({ ...prev, licitacion: "", codigoLicitacion: "" }));
+                    }}
+                    options={[
+                      { value: "Sí", label: "Sí" },
+                      { value: "No", label: "No" },
+                    ]}
+                    error={errors.licitacion}
+                    disabled={!portfolioCode}
+                  />
+
+                  {licitacion === "Sí" && (
+                    <FormInput
+                      label="Código de Licitación *"
+                      value={codigoLicitacion}
+                      onChange={(val) => {
+                        setCodigoLicitacion(val);
+                        setErrors((prev) => ({ ...prev, codigoLicitacion: "" }));
+                      }}
+                      error={errors.codigoLicitacion}
+                      placeholder="Ingrese el código"
+                    />
+                  )}
+                </>
               )}
             </div>
 
