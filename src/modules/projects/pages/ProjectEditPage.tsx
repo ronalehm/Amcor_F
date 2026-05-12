@@ -349,7 +349,7 @@ const PRINT_CLASS_OPTIONS = [
 ];
 
 const PRINT_TYPE_OPTIONS = [
-  { value: "Nuevo", label: "Nuevo" },
+  { value: "Continuo", label: "Continuo" },
   { value: "Repetitivo", label: "Repetitivo" },
 ];
 
@@ -581,13 +581,14 @@ const POUCH_DOY_PACK_DIMENSION_RESTRICTIONS = {
 } as const;
 
 const STEPS = [
-  { label: "Producto" },
+  { label: "Proyecto" },
   { label: "Diseño" },
   { label: "Estructura" },
+  { label: "Condiciones comerciales" },
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
-  // 1. Información de Producto
+  // 0. Proyecto
   0: [
     "salesforceAction",
     "projectName",
@@ -601,13 +602,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "customerPackingCode",
     "customerAdditionalInfo",
     "additionalComment",
-    "estimatedVolume",
-    "unitOfMeasure",
-    "saleType",
-    "incoterm",
-    "destinationCountry",
-    "targetPrice",
-    "currencyType",
     "deliveryAddress",
   ],
 
@@ -658,6 +652,17 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "coreMaterial", "coreDiameter", "externalDiameter",
     "externalVariationPlus", "externalVariationMinus", "maxRollWeight",
   ],
+
+  // 3. Condiciones comerciales
+  3: [
+    "estimatedVolume",
+    "unitOfMeasure",
+    "saleType",
+    "incoterm",
+    "destinationCountry",
+    "targetPrice",
+    "currencyType",
+  ],
 };
 const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   portfolioCode: "Portafolio base",
@@ -697,8 +702,7 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   hasCustomerTechnicalSpec: "¿Tiene Especificación Técnica del Cliente?",
   customerTechnicalSpecAttachment: "Especificación Técnica del Cliente Adjunto",
   customerAdditionalInfo: "Información adicional cliente",
-  deliveryAddress: "Dirección de entrega",
-  additionalComment: "Comentario",
+  additionalComment: "Comentario del Ejecutivo Comercial",
   classification: "Clasificación",
   projectType: "Tipo de Proyecto",
 
@@ -795,6 +799,24 @@ function shouldShowRepetitionField(wrapping: string, blueprintFormat: string): b
 
   return isBolsa && isRepetitionFormat;
 }
+
+const SALESFORCE_ACTION_PREFIX = "A-";
+
+function normalizeSalesforceAction(value: string): string {
+  const rawValue = String(value || "").trim();
+
+  const withoutPrefix = rawValue
+    .replace(/^A-/i, "")
+    .replace(/\D/g, "")
+    .slice(0, 6);
+
+  return withoutPrefix ? `${SALESFORCE_ACTION_PREFIX}${withoutPrefix}` : "";
+}
+
+function isValidSalesforceAction(value: string): boolean {
+  return /^A-\d{6}$/.test(String(value || "").trim());
+}
+
 type ProjectRecordWithExecutives = ProjectRecord & {
   ejecutivoIds?: Array<string | number>;
   ejecutivoNames?: string;
@@ -1104,7 +1126,7 @@ export default function ProjectEditPage() {
       classification: project.classification || "",
       subClassification: (project as any).subClassification || "",
       projectType: project.projectType || "",
-      salesforceAction: project.salesforceAction || "",
+      salesforceAction: normalizeSalesforceAction(project.salesforceAction || ""),
       blueprintFormat: project.blueprintFormat || "",
       tipoPresentacionBolsa: (project as any).tipoPresentacionBolsa || "",
       tipoSelloBolsa: (project as any).tipoSelloBolsa || "",
@@ -1528,6 +1550,10 @@ export default function ProjectEditPage() {
       errors.codigoRFQ = "Ingresa el código de licitación.";
     }
 
+    if (form.salesforceAction && !isValidSalesforceAction(form.salesforceAction)) {
+      errors.salesforceAction = "La Acción Salesforce debe tener el formato A- seguido de 6 dígitos. Ejemplo: A-123456.";
+    }
+
     return errors;
   }, [form, requiredFields, shouldApplyPouchDoyPackRestrictions]);
 
@@ -1730,7 +1756,7 @@ export default function ProjectEditPage() {
 
       classification: form.classification,
       projectType: form.projectType,
-      salesforceAction: form.salesforceAction,
+      salesforceAction: normalizeSalesforceAction(form.salesforceAction),
 
       blueprintFormat: form.blueprintFormat,
       technicalApplication: form.technicalApplication,
@@ -1934,7 +1960,7 @@ export default function ProjectEditPage() {
 
       classification: form.classification,
       projectType: form.projectType,
-      salesforceAction: form.salesforceAction,
+      salesforceAction: normalizeSalesforceAction(form.salesforceAction),
 
       blueprintFormat: form.blueprintFormat,
       technicalApplication: form.technicalApplication,
@@ -2222,14 +2248,39 @@ export default function ProjectEditPage() {
               <div className="space-y-5">
                 <FormCard title="Información del Proyecto y Producto" icon="▦" color="#00395A" required>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormInput
-                      label="Acción Salesforce *"
-                      value={form.salesforceAction}
-                      onChange={(value) => updateField("salesforceAction", value)}
-                      onBlur={() => markFieldAsTouched("salesforceAction")}
-                      error={getError("salesforceAction")}
-                      placeholder="Ej. Nueva oportunidad / RFQ / Muestra"
-                    />
+                    <div>
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                          Acción Salesforce *
+                        </span>
+                      </label>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-3 text-sm font-semibold text-slate-700">A-</span>
+                        <input
+                          type="text"
+                          value={form.salesforceAction.replace(/^A-/i, "")}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+                            updateField("salesforceAction", digits ? `A-${digits}` : "");
+                          }}
+                          onBlur={() => markFieldAsTouched("salesforceAction")}
+                          placeholder="123456"
+                          maxLength={6}
+                          inputMode="numeric"
+                          pattern="\d{0,6}"
+                          className={`w-full rounded-md border px-3 py-2 pl-8 text-sm outline-none transition-colors ${
+                            getError("salesforceAction")
+                              ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                              : "border-slate-300 bg-white focus:ring-2 focus:border-slate-500 focus:ring-slate-200"
+                          }`}
+                        />
+                      </div>
+                      {getError("salesforceAction") && (
+                        <span className="mt-1 block text-xs font-normal text-red-600">
+                          {getError("salesforceAction")}
+                        </span>
+                      )}
+                    </div>
 
                     <div className="md:col-span-3">
                       <FormInput
@@ -2252,36 +2303,6 @@ export default function ProjectEditPage() {
                         placeholder="Descripción comercial y técnica del proyecto..."
                       />
                     </div>
-                  </div>
-                </FormCard>
-
-                <FormCard title="Condiciones comerciales" icon="💰" color="#0d4c5c">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormInput
-                      label="Cantidad / Volumen estimado *"
-                      value={form.estimatedVolume}
-                      onChange={(value) => updateField("estimatedVolume", value)}
-                      onBlur={() => markFieldAsTouched("estimatedVolume")}
-                      error={getError("estimatedVolume")}
-                      placeholder="Ej. 500"
-                    />
-
-                    <FormSelect
-                      label="Unidad de Medida *"
-                      value={form.unitOfMeasure}
-                      onChange={(value) => updateField("unitOfMeasure", value)}
-                      onBlur={() => markFieldAsTouched("unitOfMeasure")}
-                      error={getError("unitOfMeasure")}
-                      options={UNIT_OPTIONS}
-                      placeholder="-- Seleccione --"
-                    />
-
-                    <FormSelect label="Venta Nacional / Internacional *" value={form.saleType} onChange={(value) => updateField("saleType", value)} options={[ {value: "Nacional", label: "Nacional"}, {value: "Internacional", label: "Internacional"} ]} placeholder="-- Seleccione --" />
-                    <FormSelect label="Incoterm" value={form.incoterm} onChange={(value) => updateField("incoterm", value)} options={INCOTERM_OPTIONS} placeholder="-- Seleccione --" />
-                    <FormSelect label="País Destino" value={form.destinationCountry} onChange={(value) => updateField("destinationCountry", value)} options={DESTINATION_COUNTRY_OPTIONS} placeholder="-- Seleccione --" />
-
-                    <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(value) => updateField("targetPrice", value)} placeholder="Ej. 45" />
-                    <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={[ {value: "USD", label: "USD"}, {value: "PEN", label: "PEN"}, {value: "EUR", label: "EUR"} ]} placeholder="-- Seleccione --" />
                   </div>
                 </FormCard>
 
@@ -2317,21 +2338,9 @@ export default function ProjectEditPage() {
                         placeholder="Información adicional proporcionada por el cliente..."
                       />
                     </div>
-
                     <div className="md:col-span-3">
                       <FormTextarea
-                        label="Dirección de entrega"
-                        value={form.deliveryAddress}
-                        onChange={(value) => updateField("deliveryAddress", value)}
-                        onBlur={() => markFieldAsTouched("deliveryAddress")}
-                        error={getError("deliveryAddress")}
-                        placeholder="Ingrese la dirección de entrega..."
-                      />
-                    </div>
-
-                    <div className="md:col-span-3">
-                      <FormTextarea
-                        label="Comentario"
+                        label="Comentario Ejecutivo Comercial"
                         value={form.additionalComment}
                         onChange={(value) => updateField("additionalComment", value)}
                         onBlur={() => markFieldAsTouched("additionalComment")}
@@ -3134,6 +3143,60 @@ export default function ProjectEditPage() {
               </div>
             )}
 
+            {/* PASO 3: CONDICIONES COMERCIALES */}
+            {activeStep === 3 && (
+              <div className="space-y-5">
+                <FormCard title="4. Condiciones comerciales" icon="💰" color="#0d4c5c">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormInput
+                      label="Cantidad / Volumen estimado *"
+                      value={form.estimatedVolume}
+                      onChange={(value) => updateField("estimatedVolume", value)}
+                      onBlur={() => markFieldAsTouched("estimatedVolume")}
+                      error={getError("estimatedVolume")}
+                      placeholder="Ej. 500"
+                    />
+
+                    <FormSelect
+                      label="Unidad de Medida *"
+                      value={form.unitOfMeasure}
+                      onChange={(value) => updateField("unitOfMeasure", value)}
+                      onBlur={() => markFieldAsTouched("unitOfMeasure")}
+                      error={getError("unitOfMeasure")}
+                      options={UNIT_OPTIONS}
+                      placeholder="-- Seleccione --"
+                    />
+
+                    <FormSelect
+                      label="Incoterm"
+                      value={form.incoterm}
+                      onChange={(value) => updateField("incoterm", value)}
+                      options={INCOTERM_OPTIONS}
+                      placeholder="-- Seleccione --"
+                    />
+
+                    <FormInput
+                      label="Precio Objetivo"
+                      value={form.targetPrice}
+                      onChange={(value) => updateField("targetPrice", value)}
+                      placeholder="Ej. 45"
+                    />
+
+                    <FormSelect
+                      label="Tipo de Moneda"
+                      value={form.currencyType}
+                      onChange={(value) => updateField("currencyType", value)}
+                      options={[
+                        { value: "USD", label: "USD" },
+                        { value: "PEN", label: "PEN" },
+                        { value: "EUR", label: "EUR" },
+                      ]}
+                      placeholder="-- Seleccione --"
+                    />
+                  </div>
+                </FormCard>
+              </div>
+            )}
 
           </div>
 

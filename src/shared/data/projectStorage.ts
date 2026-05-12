@@ -158,7 +158,10 @@ export type ProjectRecord = {
   // === INFORMACIÓN GENERAL ===
   classification?: string;
   subClassification?: string;
+  complexity?: "ALTA" | "BAJA" | string;
+  complejidad?: "ALTA" | "BAJA" | string;
   projectType?: string;
+  tipoProyecto?: string;
   approvedProductCode?: string;
   salesforceAction?: string;
 
@@ -989,10 +992,11 @@ export function createProjectFromPortfolio(params: {
   portfolio: any;
   initialData: {
     clasificacion: string;
+    complejidad?: "ALTA" | "BAJA" | string;
     tipoProyecto: string;
+    approvedProductCode?: string;
     licitacion: "Sí" | "No";
     codigoLicitacion?: string;
-    approvedProductCode?: string;
   };
   createdBy?: string;
 }): ProjectRecord {
@@ -1025,8 +1029,11 @@ export function createProjectFromPortfolio(params: {
     packingMachineName: params.portfolio.maquinaCliente || params.portfolio.maq,
 
     classification: params.initialData.clasificacion,
-    projectType: params.initialData.tipoProyecto,
-    approvedProductCode: params.initialData.approvedProductCode,
+    complexity: params.initialData.complejidad || "",
+    complejidad: params.initialData.complejidad || "",
+    projectType: params.initialData.tipoProyecto || "",
+    tipoProyecto: params.initialData.tipoProyecto || "",
+    approvedProductCode: params.initialData.approvedProductCode || "",
     licitacion: params.initialData.licitacion,
     codigoRFQ:
       params.initialData.licitacion === "Sí"

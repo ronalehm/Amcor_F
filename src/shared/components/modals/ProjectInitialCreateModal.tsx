@@ -21,7 +21,12 @@ const CLASSIFICATION_OPTIONS = [
   { value: "Modificado", label: "Modificado" },
 ];
 
-const TIPO_NUEVO_OPTIONS = [
+const COMPLEJIDAD_OPTIONS = [
+  { value: "ALTA", label: "ALTA" },
+  { value: "BAJA", label: "BAJA" },
+];
+
+const TIPO_PROYECTO_ALTA_OPTIONS = [
   { value: "Producto nuevo", label: "Producto nuevo" },
   { value: "Nuevo equipamiento de envasado", label: "Nuevo equipamiento de envasado" },
   { value: "Nuevos insumos", label: "Nuevos insumos" },
@@ -32,7 +37,7 @@ const TIPO_NUEVO_OPTIONS = [
   { value: "Nuevas temperaturas de envasado y almacenaje", label: "Nuevas temperaturas de envasado y almacenaje" },
 ];
 
-const TIPO_MODIFICADO_OPTIONS = [
+const TIPO_PROYECTO_BAJA_OPTIONS = [
   { value: "Extensión de línea por familia (EM de referencia)", label: "Extensión de línea por familia (EM de referencia)" },
   { value: "Modifica Dimensiones", label: "Modifica Dimensiones" },
   { value: "Modifica Propiedades", label: "Modifica Propiedades" },
@@ -50,6 +55,7 @@ export default function ProjectInitialCreateModal({
 
   const [portfolioCode, setPortfolioCode] = useState(initialPortfolioCode || "");
   const [clasificacion, setClasificacion] = useState("");
+  const [complejidad, setComplejidad] = useState<"ALTA" | "BAJA" | "">("");
   const [tipoProyecto, setTipoProyecto] = useState("");
   const [approvedProductCode, setApprovedProductCode] = useState("");
   const [licitacion, setLicitacion] = useState<"Sí" | "No">("No");
@@ -64,6 +70,7 @@ export default function ProjectInitialCreateModal({
     if (isOpen) {
       setPortfolioCode(initialPortfolioCode || "");
       setClasificacion("");
+      setComplejidad("");
       setTipoProyecto("");
       setApprovedProductCode("");
       setLicitacion("No");
@@ -74,20 +81,25 @@ export default function ProjectInitialCreateModal({
 
   // Si cambia la clasificación, se resetea el tipo de proyecto y campos dependientes
   useEffect(() => {
-    setTipoProyecto("");
-    setApprovedProductCode("");
-    setLicitacion("No");
-    setCodigoLicitacion("");
-  }, [clasificacion]);
+  setComplejidad("");
+  setTipoProyecto("");
+  setApprovedProductCode("");
+  setLicitacion("No");
+  setCodigoLicitacion("");
+}, [clasificacion]);
+
+useEffect(() => {
+  setTipoProyecto("");
+}, [complejidad]);
 
   if (!isOpen) return null;
 
   const tipoProyectoOptions =
-    clasificacion === "Nuevo"
-      ? TIPO_NUEVO_OPTIONS
-      : clasificacion === "Modificado"
-      ? TIPO_MODIFICADO_OPTIONS
-      : [];
+  complejidad === "ALTA"
+    ? TIPO_PROYECTO_ALTA_OPTIONS
+    : complejidad === "BAJA"
+    ? TIPO_PROYECTO_BAJA_OPTIONS
+    : [];
 
   const handleCreate = () => {
     const newErrors: Record<string, string> = {};
@@ -100,20 +112,24 @@ export default function ProjectInitialCreateModal({
       newErrors.clasificacion = "Selecciona la clasificación del proyecto.";
     }
 
-    if (!tipoProyecto) {
+    if (clasificacion === "Nuevo" && !complejidad) {
+      newErrors.complejidad = "Selecciona la complejidad del proyecto.";
+    }
+
+    if (clasificacion === "Nuevo" && !tipoProyecto) {
       newErrors.tipoProyecto = "Selecciona el tipo de proyecto.";
     }
 
-    if (clasificacion === "Modificado" && !approvedProductCode.trim()) {
-      newErrors.approvedProductCode = "Ingresa el código del producto aprobado.";
-    }
-
     if (clasificacion === "Nuevo" && !licitacion) {
-      newErrors.licitacion = "Indica si corresponde a licitación.";
+      newErrors.licitacion = "Indica si el proyecto corresponde a licitación.";
     }
 
     if (clasificacion === "Nuevo" && licitacion === "Sí" && !codigoLicitacion.trim()) {
       newErrors.codigoLicitacion = "Ingresa el código de licitación.";
+    }
+
+    if (clasificacion === "Modificado" && !approvedProductCode.trim()) {
+      newErrors.approvedProductCode = "Ingresa el código del producto aprobado.";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -125,10 +141,11 @@ export default function ProjectInitialCreateModal({
       portfolio: portfolio!,
       initialData: {
         clasificacion,
-        tipoProyecto,
-        approvedProductCode: clasificacion === "Modificado" ? approvedProductCode : undefined,
+        complejidad: clasificacion === "Nuevo" ? complejidad : "",
+        tipoProyecto: clasificacion === "Nuevo" ? tipoProyecto : "",
+        approvedProductCode: clasificacion === "Modificado" ? approvedProductCode.trim() : "",
         licitacion: clasificacion === "Nuevo" ? licitacion : "No",
-        codigoLicitacion: clasificacion === "Nuevo" ? codigoLicitacion : "",
+        codigoLicitacion: clasificacion === "Nuevo" ? codigoLicitacion.trim() : "",
       },
       createdBy: currentUser?.id,
     });
@@ -164,7 +181,7 @@ export default function ProjectInitialCreateModal({
               {!initialPortfolioCode && (
                 <div className="space-y-1">
                   <PortfolioSearch
-                    label="Portafolio Base *"
+                    label="Portafolio Base"
                     value={portfolioCode}
                     onChange={(val) => {
                       setPortfolioCode(val);
@@ -182,7 +199,7 @@ export default function ProjectInitialCreateModal({
 
               {portfolioCode && (
                 <FormSelect
-                  label="Clasificación *"
+                  label="Clasificación"
                   value={clasificacion}
                   onChange={(val) => {
                     setClasificacion(val);
@@ -194,10 +211,24 @@ export default function ProjectInitialCreateModal({
                   disabled={!portfolioCode}
                 />
               )}
+              {clasificacion === "Nuevo" && (
+              <FormSelect
+                label="Complejidad"
+                value={complejidad}
+                onChange={(val) => {
+                  setComplejidad(val as "ALTA" | "BAJA");
+                  setErrors((prev) => ({ ...prev, complejidad: "" }));
+                }}
+                options={COMPLEJIDAD_OPTIONS}
+                error={errors.complejidad}
+                placeholder="-- Seleccione --"
+                disabled={!portfolioCode}
+              />
+            )}
 
               {clasificacion === "Modificado" && (
                 <FormInput
-                  label="Cód Producto aprobado *"
+                  label="Cód Producto aprobado"
                   value={approvedProductCode}
                   onChange={(val) => {
                     setApprovedProductCode(val);
@@ -208,25 +239,25 @@ export default function ProjectInitialCreateModal({
                 />
               )}
 
-              {clasificacion && (
-                <FormSelect
-                  label="Tipo de Proyecto *"
-                  value={tipoProyecto}
-                  onChange={(val) => {
-                    setTipoProyecto(val);
-                    setErrors((prev) => ({ ...prev, tipoProyecto: "" }));
-                  }}
-                  options={tipoProyectoOptions}
-                  error={errors.tipoProyecto}
-                  placeholder="-- Seleccione --"
-                  disabled={!clasificacion || !portfolioCode}
-                />
-              )}
+              {clasificacion === "Nuevo" && complejidad && (
+              <FormSelect
+                label="Motivo"
+                value={tipoProyecto}
+                onChange={(val) => {
+                  setTipoProyecto(val);
+                  setErrors((prev) => ({ ...prev, tipoProyecto: "" }));
+                }}
+                options={tipoProyectoOptions}
+                error={errors.tipoProyecto}
+                placeholder="-- Seleccione --"
+                disabled={!complejidad}
+              />
+            )}
 
               {clasificacion === "Nuevo" && (
                 <>
                   <FormSelect
-                    label="Licitación *"
+                    label="Licitación"
                     value={licitacion}
                     onChange={(val) => {
                       setLicitacion(val as "Sí" | "No");
@@ -243,7 +274,7 @@ export default function ProjectInitialCreateModal({
 
                   {licitacion === "Sí" && (
                     <FormInput
-                      label="Código de Licitación *"
+                      label="Código de Licitación"
                       value={codigoLicitacion}
                       onChange={(val) => {
                         setCodigoLicitacion(val);
