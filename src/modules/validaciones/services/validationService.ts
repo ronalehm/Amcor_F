@@ -214,7 +214,7 @@ export function requestValidation(project: ProjectRecord): ProjectRecord {
   if (needsGraphicArtsManual) {
     updated = {
       ...updated,
-      graphicArtsValidationStatus: "Pendiente revisión manual",
+      graphicArtsValidationStatus: "Revisión manual",
       currentValidationStep: "Artes Gráficas" as CurrentValidationStep,
       technicalSubArea: undefined,
       technicalValidationStatus: "Sin solicitar",
@@ -229,7 +229,7 @@ export function requestValidation(project: ProjectRecord): ProjectRecord {
       fromStatus: project.status,
       toStatus: "En validación",
       toValidationStep: "Artes Gráficas",
-      graphicArtsStatus: "Pendiente revisión manual",
+      graphicArtsStatus: "Revisión manual",
       technicalStatus: "Sin solicitar",
       validationRound: saved.validationRound,
     });
@@ -633,7 +633,7 @@ export function getValidationAreaForProject(
   }
 
   if (
-    project.graphicArtsValidationStatus === "Pendiente revisión manual" ||
+    project.graphicArtsValidationStatus === "Revisión manual" ||
     project.graphicArtsValidationStatus === "En revisión"
   ) {
     return "Artes Gráficas";

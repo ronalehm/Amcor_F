@@ -45,7 +45,7 @@ export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps)
     if (!status) return "bg-gray-100 text-gray-800";
     if (status === "Sin solicitar" || status === "No solicitado")
       return "bg-gray-100 text-gray-800";
-    if (status === "Pendiente" || status === "En revisión" || status === "Pendiente revisión manual")
+    if (status === "Pendiente" || status === "En revisión" || status === "Revisión manual")
       return "bg-yellow-100 text-yellow-800";
     if (status === "Validado" || status === "Aprobado automático")
       return "bg-green-100 text-green-800";

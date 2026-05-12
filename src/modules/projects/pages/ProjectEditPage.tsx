@@ -165,7 +165,7 @@ type ProjectEditFormData = {
   additionalComment: string;
 
   licitacion: string;
-  codigoRFQ: string;
+  numeroItemsLicitacion: string;
 
   designPlanFiles: string[];
 };
@@ -615,7 +615,7 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "classification",
     "projectType",
     "licitacion",
-    "codigoRFQ",
+    "numeroItemsLicitacion",
     "technicalApplication",
     "customerPackingCode",
     "customerAdditionalInfo",
@@ -790,7 +790,7 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   layer4Grammage: "Capa 4 - Gramaje",
 
   licitacion: "Licitación",
-  codigoRFQ: "Código de Licitación",
+  numeroItemsLicitacion: "N° de ítems",
 };
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Información General
@@ -806,6 +806,7 @@ const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
 
   // Diseño
   "hasEdagReference",
+  "hasDesignPlan",
   "printClass",
 
   // Condiciones comerciales
@@ -816,6 +817,9 @@ const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Estructura
   "grammage",
   "sampleRequest",
+
+  // Especificaciones técnicas
+  "hasCustomerTechnicalSpec",
 ];
 
 const isFieldEmpty = (value: unknown) => {
@@ -978,7 +982,7 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     deliveryAddress: form.deliveryAddress?.trim() || "",
     additionalComment: form.additionalComment?.trim() || "",
     licitacion: form.licitacion,
-    codigoRFQ: form.codigoRFQ,
+    numeroItemsLicitacion: form.numeroItemsLicitacion,
     designPlanFiles: form.designPlanFiles.slice(),
   };
 }
@@ -1108,7 +1112,7 @@ export default function ProjectEditPage() {
     deliveryAddress: "",
     additionalComment: "",
     licitacion: "",
-    codigoRFQ: "",
+    numeroItemsLicitacion: "",
     designPlanFiles: [],
   });
 
@@ -1271,7 +1275,7 @@ export default function ProjectEditPage() {
       deliveryAddress: (project as any).deliveryAddress || "",
       additionalComment: (project as any).additionalComment || "",
       licitacion: toYesNo((project as any).licitacion),
-      codigoRFQ: (project as any).codigoRFQ || "",
+      numeroItemsLicitacion: ((project as any).numeroItemsLicitacion || "").toString(),
       designPlanFiles: (project as any).designPlanFiles || [],
     };
 
@@ -1481,8 +1485,23 @@ export default function ProjectEditPage() {
       fields.push("repetition");
     }
 
+    // Dimensiones - siempre requeridas excepto en casos específicos
+    const normalizedFormat = String(form.blueprintFormat || "").trim().toUpperCase();
+    const isLaminaFood = isLaminaWrapping(inheritedWrapping) && normalizedFormat === "FOOD";
+
+    if (!isLaminaFood) {
+      // width solo si es POUCH/BOLSA o LÁMINA (pero no LÁMINA FOOD)
+      const shouldRequireWidth = isPouchWrapping(inheritedWrapping) || isBolsaWrapping(inheritedWrapping) ||
+        (isLaminaWrapping(inheritedWrapping) && (normalizedFormat === "TISSUE" || normalizedFormat === "GENERICA"));
+      if (shouldRequireWidth) {
+        fields.push("width");
+      }
+      // length y gussetWidth siempre requeridos en esta sección
+      fields.push("length", "gussetWidth");
+    }
+
     if (shouldApplyPouchDoyPackRestrictions) {
-      fields.push("width", "length", "gussetWidth", "doyPackBase", "gussetType");
+      fields.push("doyPackBase", "gussetType");
     }
 
     if (form.hasEdagReference === "Sí") {
@@ -1601,13 +1620,13 @@ export default function ProjectEditPage() {
     setForm((prev) => ({
       ...prev,
       licitacion,
-      codigoRFQ: licitacion === "No" ? "" : prev.codigoRFQ,
+      numeroItemsLicitacion: licitacion === "No" ? "" : prev.numeroItemsLicitacion,
     }));
 
     if (licitacion === "No") {
       setTouchedFields((prev) => ({
         ...prev,
-        codigoRFQ: false,
+        numeroItemsLicitacion: false,
       }));
     }
   };
@@ -1777,8 +1796,8 @@ export default function ProjectEditPage() {
       errors.designPlanFiles = "Debe cargar al menos un plano de diseño.";
     }
 
-    if (form.licitacion === "Sí" && !form.codigoRFQ.trim()) {
-      errors.codigoRFQ = "Ingresa el código de licitación.";
+    if (form.licitacion === "Sí" && (!form.numeroItemsLicitacion || Number(form.numeroItemsLicitacion) <= 0)) {
+      errors.numeroItemsLicitacion = "Ingresa un número válido de ítems.";
     }
 
     if (form.salesforceAction && !isValidSalesforceAction(form.salesforceAction)) {
@@ -2141,7 +2160,7 @@ export default function ProjectEditPage() {
       deliveryAddress: form.deliveryAddress,
       additionalComment: form.additionalComment,
       licitacion: form.licitacion as YesNoPending,
-      codigoRFQ: form.codigoRFQ,
+      numeroItemsLicitacion: form.licitacion === "Sí" ? Number(form.numeroItemsLicitacion) : null,
       designPlanFiles: form.designPlanFiles,
 
       status: nextStatus,
@@ -2378,7 +2397,7 @@ export default function ProjectEditPage() {
       deliveryAddress: form.deliveryAddress,
       additionalComment: form.additionalComment,
       licitacion: form.licitacion as YesNoPending,
-      codigoRFQ: form.codigoRFQ,
+      numeroItemsLicitacion: form.licitacion === "Sí" ? Number(form.numeroItemsLicitacion) : null,
       designPlanFiles: form.designPlanFiles,
 
       status: shouldSubmitForValidation ? "En validación" : calculatedStatus,
@@ -2394,7 +2413,7 @@ export default function ProjectEditPage() {
         estadoValidacionGeneral: "En validación",
         fechaSolicitudValidacion: now,
         ...(requiresManualAG ? {
-          graphicArtsValidationStatus: "Pendiente revisión manual",
+          graphicArtsValidationStatus: "Revisión manual",
           currentValidationStep: "Artes Gráficas",
         } : {
           graphicArtsValidationStatus: "Aprobado automático",
@@ -2769,17 +2788,6 @@ export default function ProjectEditPage() {
                           />
                         )}
 
-                        {/* ¿Tiene plano de diseño? */}
-                        <FormSelect
-                          label="¿Tiene plano de diseño? *"
-                          value={form.hasDesignPlan}
-                          onChange={(value) => updateField("hasDesignPlan", value)}
-                          onBlur={() => markFieldAsTouched("hasDesignPlan")}
-                          error={getError("hasDesignPlan")}
-                          placeholder="-- Seleccione --"
-                          options={YES_NO_OPTIONS}
-                        />
-
                         {/* Objetivo de color - Multi selección */}
                         <div>
                           <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -2824,29 +2832,29 @@ export default function ProjectEditPage() {
                           )}
                         </div>
 
-                        {/* Comentar Objetivo de color */}
-                        <FormTextarea
-                          label={
-                            form.colorObjective?.includes("Otros")
-                              ? "Comentar Objetivo de color *"
-                              : "Comentar Objetivo de color"
-                          }
-                          value={form.colorObjectiveComment}
-                          onChange={(value) => updateField("colorObjectiveComment", value)}
-                          onBlur={() => markFieldAsTouched("colorObjectiveComment")}
-                          error={getError("colorObjectiveComment")}
-                          placeholder="Describe la muestra, pantone, producción de referencia u otro criterio de color..."
-                        />
+                        {/* Comentar Objetivo de color - solo si "Otros" está seleccionado */}
+                        {form.colorObjective?.includes("Otros") && (
+                          <FormTextarea
+                            label="Comentar Objetivo de color *"
+                            value={form.colorObjectiveComment}
+                            onChange={(value) => updateField("colorObjectiveComment", value)}
+                            onBlur={() => markFieldAsTouched("colorObjectiveComment")}
+                            error={getError("colorObjectiveComment")}
+                            placeholder="Describe la muestra, pantone, producción de referencia u otro criterio de color..."
+                          />
+                        )}
 
-                        {/* Instrucciones de trabajo para diseño */}
-                        <FormTextarea
-                          label="Instrucciones de trabajo para diseño"
-                          value={form.designWorkInstructions}
-                          onChange={(value) => updateField("designWorkInstructions", value)}
-                          onBlur={() => markFieldAsTouched("designWorkInstructions")}
-                          error={getError("designWorkInstructions")}
-                          placeholder="Indica instrucciones específicas para Artes Gráficas o diseño. Campo opcional."
-                        />
+                        {/* Instrucciones de trabajo para diseño - oculto si "No existe" está seleccionado */}
+                        {!form.colorObjective?.includes("No existe") && (
+                          <FormTextarea
+                            label="Instrucciones de trabajo para diseño"
+                            value={form.designWorkInstructions}
+                            onChange={(value) => updateField("designWorkInstructions", value)}
+                            onBlur={() => markFieldAsTouched("designWorkInstructions")}
+                            error={getError("designWorkInstructions")}
+                            placeholder="Indica instrucciones específicas para Artes Gráficas o diseño. Campo opcional."
+                          />
+                        )}
 
                         {/* Configuración de Formato - POUCH, BOLSA, LÁMINA o genérico */}
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -2975,17 +2983,6 @@ export default function ProjectEditPage() {
                                   placeholder="-- Seleccione --"
                                 />
                               )}
-
-                              <div className="mt-4 border-t border-slate-200 pt-4">
-                                <FormInput
-                                  label="Formato de Plano Calculado *"
-                                  value={form.blueprintFormat}
-                                  onChange={() => {}}
-                                  error={getError("blueprintFormat")}
-                                  disabled={true}
-                                  placeholder="Se calculará automáticamente..."
-                                />
-                              </div>
                             </div>
                           ) : isBolsaWrapping(inheritedWrapping) ? (
                             <div className="space-y-4">
@@ -3068,17 +3065,6 @@ export default function ProjectEditPage() {
                                   </>
                                 )}
                               </div>
-
-                              <div className="mt-4 border-t border-slate-200 pt-4">
-                                <FormInput
-                                  label="Formato de Plano Calculado *"
-                                  value={form.blueprintFormat}
-                                  onChange={() => {}}
-                                  error={getError("blueprintFormat")}
-                                  disabled={true}
-                                  placeholder="Se calculará automáticamente..."
-                                />
-                              </div>
                             </div>
                           ) : isLaminaWrapping(inheritedWrapping) ? (
                             <div className="space-y-4">
@@ -3098,17 +3084,6 @@ export default function ProjectEditPage() {
                                 ]}
                                 placeholder="-- Seleccione --"
                               />
-
-                              <div className="mt-4 border-t border-slate-200 pt-4">
-                                <FormInput
-                                  label="Formato de Plano Calculado *"
-                                  value={form.blueprintFormat}
-                                  onChange={() => {}}
-                                  error={getError("blueprintFormat")}
-                                  disabled={true}
-                                  placeholder="Se calculará automáticamente..."
-                                />
-                              </div>
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -3158,6 +3133,18 @@ export default function ProjectEditPage() {
                   })()}
                 </FormCard>
 
+                {/* ¿Tiene plano de diseño? */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <FormSelect
+                    label="¿Tiene plano de diseño? *"
+                    value={form.hasDesignPlan}
+                    onChange={(value) => updateField("hasDesignPlan", value)}
+                    onBlur={() => markFieldAsTouched("hasDesignPlan")}
+                    error={getError("hasDesignPlan")}
+                    placeholder="-- Seleccione --"
+                    options={YES_NO_OPTIONS}
+                  />
+                </div>
 
                 <ProjectPlansUploadSection
                   projectCode={projectCode}
@@ -3414,11 +3401,12 @@ export default function ProjectEditPage() {
                       const isLamina = isLaminaWrapping(inheritedWrapping);
 
                       // For LÁMINA, determine if width should be shown based on blueprint format
+                      const normalizedBlueprintFormat = String(form.blueprintFormat || "")
+                        .trim()
+                        .toUpperCase();
+                      const isLaminaFood = isLamina && normalizedBlueprintFormat === "FOOD";
                       let shouldShowWidth = isPouchOrBolsa;
                       if (isLamina) {
-                        const normalizedBlueprintFormat = String(form.blueprintFormat || "")
-                          .trim()
-                          .toUpperCase();
                         // Show width for TISSUE and GENERICA, hide for FOOD
                         shouldShowWidth = normalizedBlueprintFormat === "TISSUE" || normalizedBlueprintFormat === "GENERICA";
                       }
@@ -3427,7 +3415,7 @@ export default function ProjectEditPage() {
                         <>
                           {shouldShowWidth && (
                             <FormInput
-                              label={shouldApplyPouchDoyPackRestrictions ? "Ancho *" : "Ancho"}
+                              label="Ancho *"
                               value={form.width}
                               onChange={(value) => updateField("width", value)}
                               onBlur={() => markFieldAsTouched("width")}
@@ -3435,14 +3423,16 @@ export default function ProjectEditPage() {
                               placeholder={shouldApplyPouchDoyPackRestrictions ? "80 - 230 mm" : "mm"}
                             />
                           )}
-                          <FormInput
-                            label={shouldApplyPouchDoyPackRestrictions ? "Largo *" : "Largo"}
-                            value={form.length}
-                            onChange={(value) => updateField("length", value)}
-                            onBlur={() => markFieldAsTouched("length")}
-                            error={getError("length")}
-                            placeholder={shouldApplyPouchDoyPackRestrictions ? "134 - 340 mm" : "mm"}
-                          />
+                          {!isLaminaFood && (
+                            <FormInput
+                              label="Largo *"
+                              value={form.length}
+                              onChange={(value) => updateField("length", value)}
+                              onBlur={() => markFieldAsTouched("length")}
+                              error={getError("length")}
+                              placeholder={shouldApplyPouchDoyPackRestrictions ? "134 - 340 mm" : "mm"}
+                            />
+                          )}
                           {showRepetition && (
                             <FormInput
                               label="Repetición *"
@@ -3453,14 +3443,16 @@ export default function ProjectEditPage() {
                               placeholder="mm"
                             />
                           )}
-                          <FormInput
-                            label={shouldApplyPouchDoyPackRestrictions ? "Ancho Fuelle *" : "Ancho Fuelle"}
-                            value={form.gussetWidth}
-                            onChange={(value) => updateField("gussetWidth", value)}
-                            onBlur={() => markFieldAsTouched("gussetWidth")}
-                            error={getError("gussetWidth")}
-                            placeholder={shouldApplyPouchDoyPackRestrictions ? "0 - 3 mm" : "mm"}
-                          />
+                          {!isLaminaFood && (
+                            <FormInput
+                              label="Ancho Fuelle *"
+                              value={form.gussetWidth}
+                              onChange={(value) => updateField("gussetWidth", value)}
+                              onBlur={() => markFieldAsTouched("gussetWidth")}
+                              error={getError("gussetWidth")}
+                              placeholder={shouldApplyPouchDoyPackRestrictions ? "0 - 3 mm" : "mm"}
+                            />
+                          )}
                         </>
                       );
                     })()}
@@ -3756,7 +3748,7 @@ export default function ProjectEditPage() {
           <div className="space-y-5">
             {/* TARJETA: PROYECTO CORE */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="font-semibold text-sm text-slate-900 mb-3">Proyecto Core</h3>
+              <h3 className="font-semibold text-sm text-slate-900 mb-3">Proyecto</h3>
               <div className="space-y-4">
                 <FormSelect
                   label="Clasificación *"
@@ -3771,8 +3763,8 @@ export default function ProjectEditPage() {
                   <FormSelect
                     label={
                       projectTypeOptions.length > 0
-                        ? "Tipo de Proyecto *"
-                        : "Tipo de Proyecto"
+                        ? "Motivo *"
+                        : "Motivo "
                     }
                     value={form.projectType}
                     onChange={() => {}}
@@ -3797,14 +3789,25 @@ export default function ProjectEditPage() {
 
                     {form.licitacion === "Sí" && (
                       <FormInput
-                        label="Código de Licitación *"
-                        value={form.codigoRFQ}
+                        label="N° de ítems *"
+                        type="number"
+                        value={form.numeroItemsLicitacion}
                         onChange={() => {}}
-                        placeholder="Ej. LIC-2026-001"
+                        placeholder="Ej: 5, 10, 15..."
                         disabled={true}
                       />
                     )}
                   </>
+                )}
+
+                {form.blueprintFormat && (
+                  <FormInput
+                    label="Formato de Plano Calculado *"
+                    value={form.blueprintFormat}
+                    onChange={() => {}}
+                    placeholder="Formato calculado"
+                    disabled={true}
+                  />
                 )}
               </div>
             </div>

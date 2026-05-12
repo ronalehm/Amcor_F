@@ -114,7 +114,7 @@ export function clearProjectHistory(projectCode: string) {
 export function getValidationEventLabel(eventType: ValidationEventType): string {
   const labels: Record<ValidationEventType, string> = {
     validation_requested: "Solicitud de validación",
-    graphic_arts_pending: "Artes Gráficas: Pendiente revisión manual",
+    graphic_arts_pending: "Artes Gráficas: Revisión manual",
     graphic_arts_auto_approved: "Artes Gráficas: Aprobada automáticamente",
     graphic_arts_review_started: "Artes Gráficas: Revisión iniciada",
     graphic_arts_approved: "Artes Gráficas: Aprobada ✓",

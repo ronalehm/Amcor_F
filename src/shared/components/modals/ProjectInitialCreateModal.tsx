@@ -59,7 +59,7 @@ export default function ProjectInitialCreateModal({
   const [tipoProyecto, setTipoProyecto] = useState("");
   const [approvedProductCode, setApprovedProductCode] = useState("");
   const [licitacion, setLicitacion] = useState<"Sí" | "No">("No");
-  const [codigoLicitacion, setCodigoLicitacion] = useState("");
+  const [numeroItemsLicitacion, setNumeroItemsLicitacion] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const portfolio = useMemo(() => {
@@ -74,7 +74,7 @@ export default function ProjectInitialCreateModal({
       setTipoProyecto("");
       setApprovedProductCode("");
       setLicitacion("No");
-      setCodigoLicitacion("");
+      setNumeroItemsLicitacion("");
       setErrors({});
     }
   }, [isOpen, initialPortfolioCode]);
@@ -85,7 +85,7 @@ export default function ProjectInitialCreateModal({
   setTipoProyecto("");
   setApprovedProductCode("");
   setLicitacion("No");
-  setCodigoLicitacion("");
+  setNumeroItemsLicitacion("");
 }, [clasificacion]);
 
 useEffect(() => {
@@ -124,8 +124,8 @@ useEffect(() => {
       newErrors.licitacion = "Indica si el proyecto corresponde a licitación.";
     }
 
-    if (clasificacion === "Nuevo" && licitacion === "Sí" && !codigoLicitacion.trim()) {
-      newErrors.codigoLicitacion = "Ingresa el código de licitación.";
+    if (clasificacion === "Nuevo" && licitacion === "Sí" && (!numeroItemsLicitacion || Number(numeroItemsLicitacion) <= 0)) {
+      newErrors.numeroItemsLicitacion = "Ingresa un número válido de ítems.";
     }
 
     if (clasificacion === "Modificado" && !approvedProductCode.trim()) {
@@ -145,7 +145,7 @@ useEffect(() => {
         tipoProyecto: clasificacion === "Nuevo" ? tipoProyecto : "",
         approvedProductCode: clasificacion === "Modificado" ? approvedProductCode.trim() : "",
         licitacion: clasificacion === "Nuevo" ? licitacion : "No",
-        codigoLicitacion: clasificacion === "Nuevo" ? codigoLicitacion.trim() : "",
+        numeroItemsLicitacion: clasificacion === "Nuevo" && licitacion === "Sí" ? Number(numeroItemsLicitacion) : null,
       },
       createdBy: currentUser?.id,
     });
@@ -261,8 +261,8 @@ useEffect(() => {
                     value={licitacion}
                     onChange={(val) => {
                       setLicitacion(val as "Sí" | "No");
-                      if (val === "No") setCodigoLicitacion("");
-                      setErrors((prev) => ({ ...prev, licitacion: "", codigoLicitacion: "" }));
+                      if (val === "No") setNumeroItemsLicitacion("");
+                      setErrors((prev) => ({ ...prev, licitacion: "", numeroItemsLicitacion: "" }));
                     }}
                     options={[
                       { value: "Sí", label: "Sí" },
@@ -274,14 +274,16 @@ useEffect(() => {
 
                   {licitacion === "Sí" && (
                     <FormInput
-                      label="Código de Licitación"
-                      value={codigoLicitacion}
+                      label="N° de ítems *"
+                      type="number"
+                      value={numeroItemsLicitacion}
                       onChange={(val) => {
-                        setCodigoLicitacion(val);
-                        setErrors((prev) => ({ ...prev, codigoLicitacion: "" }));
+                        const numericVal = val.replace(/[^\d]/g, "");
+                        setNumeroItemsLicitacion(numericVal);
+                        setErrors((prev) => ({ ...prev, numeroItemsLicitacion: "" }));
                       }}
-                      error={errors.codigoLicitacion}
-                      placeholder="Ingrese el código"
+                      error={errors.numeroItemsLicitacion}
+                      placeholder="Ej: 5, 10, 15..."
                     />
                   )}
                 </>

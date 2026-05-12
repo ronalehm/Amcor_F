@@ -331,6 +331,7 @@ export type ProjectRecord = {
   // RFQ y Licitación (se habilitan después de validación de áreas)
   licitacion?: YesNoPending;
   codigoRFQ?: string;
+  numeroItemsLicitacion?: number | null;
 
   // Auditoría
   createdAt: string;
@@ -1003,7 +1004,7 @@ export function createProjectFromPortfolio(params: {
     tipoProyecto: string;
     approvedProductCode?: string;
     licitacion: "Sí" | "No";
-    codigoLicitacion?: string;
+    numeroItemsLicitacion?: number | null;
   };
   createdBy?: string;
 }): ProjectRecord {
@@ -1042,10 +1043,7 @@ export function createProjectFromPortfolio(params: {
     tipoProyecto: params.initialData.tipoProyecto || "",
     approvedProductCode: params.initialData.approvedProductCode || "",
     licitacion: params.initialData.licitacion,
-    codigoRFQ:
-      params.initialData.licitacion === "Sí"
-        ? params.initialData.codigoLicitacion?.trim()
-        : "",
+    numeroItemsLicitacion: params.initialData.licitacion === "Sí" ? params.initialData.numeroItemsLicitacion || null : null,
     projectName: "", // To be filled in the full form
     projectDescription: "",
 

@@ -230,7 +230,7 @@ export default function ValidationDetailPage() {
                   project.graphicArtsValidationStatus === "Validado" ? "bg-green-100 text-green-800" :
                   project.graphicArtsValidationStatus === "Aprobado automático" ? "bg-green-100 text-green-800" :
                   project.graphicArtsValidationStatus === "Observado" ? "bg-orange-100 text-orange-800" :
-                  project.graphicArtsValidationStatus === "Pendiente revisión manual" ? "bg-yellow-100 text-yellow-800" :
+                  project.graphicArtsValidationStatus === "Revisión manual" ? "bg-yellow-100 text-yellow-800" :
                   "bg-gray-100 text-gray-800"
                 }`}>
                   {project.graphicArtsValidationStatus || "Sin solicitar"}

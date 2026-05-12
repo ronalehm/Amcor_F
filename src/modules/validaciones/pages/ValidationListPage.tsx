@@ -77,7 +77,7 @@ export default function ValidationListPage() {
   const getValidationStatusBadge = (area: string, status: string): string => {
     if (area === "Artes Gráficas") {
       switch (status) {
-        case "Pendiente revisión manual":
+        case "Revisión manual":
           return "bg-yellow-100 text-yellow-800";
         case "En revisión":
           return "bg-amber-100 text-amber-800";

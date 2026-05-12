@@ -36,7 +36,7 @@ export type ProjectStatus =
 export type GraphicArtsValidationStatus =
   | "Sin solicitar"
   | "Aprobado automático"
-  | "Pendiente revisión manual"
+  | "Revisión manual"
   | "En revisión"
   | "Observado"
   | "Validado";
@@ -180,7 +180,7 @@ export function computeGraphicArtsValidationStatus(
   if (requiresDesignWork === false) {
     return "Aprobado automático";
   }
-  return "Pendiente revisión manual";
+  return "Revisión manual";
 }
 
 /**
@@ -478,7 +478,7 @@ export function normalizeProjectWorkflow(project: any): any {
     status === "En validación" &&
     !currentValidationStep &&
     (
-      project.graphicArtsValidationStatus === "Pendiente revisión manual" ||
+      project.graphicArtsValidationStatus === "Revisión manual" ||
       project.graphicArtsValidationStatus === "En revisión"
     )
   ) {
@@ -549,7 +549,7 @@ export function getResponsibleAreaForProject(
 
   // Si no hay currentValidationStep, inferir del estado de AG
   if (
-    graphicArtsValidationStatus === "Pendiente revisión manual" ||
+    graphicArtsValidationStatus === "Revisión manual" ||
     graphicArtsValidationStatus === "En revisión"
   ) {
     return "Artes Gráficas";

@@ -98,7 +98,7 @@ export type ProjectStatus =
 ```typescript
 "Sin solicitar"               // No hay diseño
 | "Aprobado automático"       // Sin diseño → aprobado automático
-| "Pendiente revisión manual" // Con diseño → espera revisión
+| "Revisión manual" // Con diseño → espera revisión
 | "En revisión"               // Validador revisando
 | "Observado"                 // Con comentarios
 | "Aprobado"                  // Listo
@@ -127,7 +127,7 @@ status: ProjectStatus;               // "Ficha Completa", "Validado", etc.
 stage?: ProjectStage;                // P1, P2, etc.
 
 // Estados INTERNOS (NO se muestran al usuario, solo en paneles técnicos)
-graphicArtsValidationStatus?:        // "Pendiente revisión manual"
+graphicArtsValidationStatus?:        // "Revisión manual"
 technicalValidationStatus?:          // "En revisión"
 technicalComplexity?:                // "Baja" | "Alta"
 technicalValidatorType?:             // "Área Técnica" | "Desarrollo R&D"
@@ -153,7 +153,7 @@ export function computeGraphicArtsValidationStatus(
   if (requiresDesignWork === false) {
     return "Aprobado automático";  // ✅ Sin diseño → aprobado automático
   }
-  return "Pendiente revisión manual";  // ✅ Con diseño → espera revisión
+  return "Revisión manual";  // ✅ Con diseño → espera revisión
 }
 ```
 
@@ -178,7 +178,7 @@ export function computeGraphicArtsValidationStatus(
   if (requiresDesignWork === false) {
     return "Aprobado automático";
   }
-  return "Pendiente revisión manual";
+  return "Revisión manual";
 }
 
 // En projectStorage.ts (normalizeProjectWorkflow)
@@ -196,7 +196,7 @@ graphicArtsValidationStatus:
 
 ```typescript
 // Si project.requiresDesignWork === true
-// Entonces computeGraphicArtsValidationStatus(true) → "Pendiente revisión manual"
+// Entonces computeGraphicArtsValidationStatus(true) → "Revisión manual"
 ```
 
 ✅ **Validación:** Lógica correcta. Cuando hay diseño especial, requiere revisión manual.

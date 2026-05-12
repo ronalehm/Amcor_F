@@ -62,7 +62,7 @@ if (status === "En validación" && !currentValidationStep && hasTechnicalArea &&
 
 **Lógica Defensiva 4:** Si está en validación sin currentValidationStep pero AG pendiente
 ```typescript
-if (status === "En validación" && !currentValidationStep && (graphicArtsValidationStatus === "Pendiente revisión manual" || graphicArtsValidationStatus === "En revisión")) {
+if (status === "En validación" && !currentValidationStep && (graphicArtsValidationStatus === "Revisión manual" || graphicArtsValidationStatus === "En revisión")) {
   currentValidationStep = "Artes Gráficas";
 }
 ```
