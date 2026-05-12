@@ -1,401 +1,287 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
   getClientByCode,
-  STATUS_LABELS,
-  STATUS_COLORS,
+  deleteClient,
   activateClient,
   deactivateClient,
   blockClient,
   unblockClient,
-  deleteClient,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  canClientHavePortfolio,
+  getClientPortfolioEligibilityMessage,
   type ClientStatus,
 } from "../../../shared/data/clientStorage";
+import { getPortfoliosByClient, type PortfolioRecord } from "../../../shared/data/portfolioStorage";
+import { getCurrentUser } from "../../../shared/data/userStorage";
+import Button from "../../../shared/components/ui/Button";
+import PreviewRow from "../../../shared/components/display/PreviewRow";
 import FormCard from "../../../shared/components/forms/FormCard";
-import ActionButton from "../../../shared/components/buttons/ActionButton";
-
-const STATUS_DESCRIPTIONS: Record<ClientStatus, string> = {
-  active: "El cliente est� activo y puede crear portafolios y proyectos.",
-  inactive: "El cliente est� inactivo. Puede ser reactivado en cualquier momento.",
-  pending_validation: "El cliente est� en validaci�n por tesorer�a. Es posible crear portafolios y proyectos mientras se completa la evaluaci�n.",
-  pending_activation: "Estado de transici�n (no deber�a verse).",
-  blocked: "El cliente est� bloqueado. Solo un administrador puede desbloquearlo.",
-};
+import RowActionButtons from "../../../shared/components/table/RowActionButtons";
 
 export default function ClientDetailPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
   const { clientCode } = useParams<{ clientCode: string }>();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [client, setClient] = useState<any>(null);
-  const [actionInProgress, setActionInProgress] = useState(false);
-  const [modalState, setModalState] = useState<{
-    type: "delete" | "deactivate" | "block" | "unblock" | null;
-    isOpen: boolean;
-  }>({ type: null, isOpen: false });
+  const [portfolios, setPortfolios] = useState<PortfolioRecord[]>([]);
+  const [showStatusModal, setShowStatusModal] = useState(false);
 
-  useEffect(() => {
-    if (!clientCode) {
-      setError("C�digo de cliente no v�lido");
-      setLoading(false);
-      return;
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === "administrador";
+
+  const handleToggleClientStatus = () => {
+    if (!client) return;
+
+    const currentStatus = client.status;
+    const nextStatus: ClientStatus = currentStatus === "active" ? "inactive" : "active";
+    const now = new Date().toISOString();
+
+    if (nextStatus === "active") {
+      activateClient(client.id);
+    } else {
+      deactivateClient(client.id);
     }
 
-    const clientData = getClientByCode(clientCode);
-    if (!clientData) {
-      setError(`Cliente con c�digo ${clientCode} no encontrado`);
-      setLoading(false);
-      return;
-    }
-
-    setClient(clientData);
-    setLoading(false);
-  }, [clientCode]);
+    const updatedClient = getClientByCode(client.code);
+    setClient(updatedClient);
+    setPortfolios(updatedClient ? getPortfoliosByClient(updatedClient) : []);
+    setShowStatusModal(false);
+  };
 
   useEffect(() => {
-    if (client) {
+    if (clientCode) {
+      const record = getClientByCode(clientCode);
+      const clientPortfolios = record ? getPortfoliosByClient(record) : [];
+      setClient(record || null);
+      setPortfolios(clientPortfolios);
+
       setHeader({
-        title: client.businessName,
+        title: "Detalle de Cliente",
         breadcrumbs: [
           { label: "Clientes", href: "/clients" },
-          { label: client.code },
+          { label: clientCode },
+          { label: "Ver" },
         ],
+        actions: (
+          <div className="flex gap-2">
+            {isAdmin && portfolios.length === 0 && (
+              <Button
+                variant="danger"
+                onClick={() => {
+                  if (window.confirm("¿Está seguro de que desea eliminar este cliente?")) {
+                    deleteClient(record?.id);
+                    navigate("/clients");
+                  }
+                }}
+              >
+                Eliminar
+              </Button>
+            )}
+            {client?.status === "active" && (
+              <Button
+                variant="outline"
+                onClick={() => setShowStatusModal(true)}
+              >
+                Desactivar Cliente
+              </Button>
+            )}
+            {client?.status === "inactive" && (
+              <Button
+                variant="primary"
+                onClick={() => setShowStatusModal(true)}
+              >
+                Activar Cliente
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/clients/${clientCode}/edit`)}
+            >
+              Editar Cliente
+            </Button>
+          </div>
+        )
       });
     }
+
     return () => resetHeader();
-  }, [client, setHeader, resetHeader]);
+  }, [clientCode, setHeader, resetHeader, navigate, isAdmin, portfolios.length]);
 
-  const handleStatusChange = (newStatus: ClientStatus) => {
-    if (!client) return;
-    setActionInProgress(true);
-
-    try {
-      if (newStatus === "active") {
-        activateClient(client.id);
-      } else if (newStatus === "inactive") {
-        deactivateClient(client.id);
-      } else if (newStatus === "blocked") {
-        blockClient(client.id);
-      }
-
-      const updatedClient = getClientByCode(client.code);
-      setClient(updatedClient);
-      setModalState({ type: null, isOpen: false });
-    } finally {
-      setActionInProgress(false);
-    }
-  };
-
-  const closeModal = () => {
-    setModalState({ type: null, isOpen: false });
-  };
-
-  const handleDeleteClient = () => {
-    if (!client) return;
-    setActionInProgress(true);
-
-    try {
-      deleteClient(client.id);
-      navigate("/clients");
-    } finally {
-      setActionInProgress(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-slate-600">Cargando cliente...</div>
-      </div>
-    );
-  }
-
-  if (error || !client) {
+  if (!client) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <div className="text-red-600 font-semibold">{error || "Error cargando cliente"}</div>
-        <button
-          onClick={() => navigate("/clients")}
-          className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium"
-        >
+        <div className="text-red-600 font-semibold">Cliente no encontrado</div>
+        <button onClick={() => navigate("/clients")} className="text-brand-primary hover:underline">
           Volver a Clientes
         </button>
       </div>
     );
   }
 
-  const statusColor = STATUS_COLORS[client.status] || "bg-slate-100 text-slate-700";
+  const clientStatus = client.status;
+  const isClientActive = clientStatus === "active";
 
   return (
-    <div className="w-full max-w-none bg-[#f6f8fb]">
+    <div className="w-full max-w-none bg-[#f6f8fb] space-y-6">
       <button
         type="button"
         onClick={() => navigate("/clients")}
-        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+        className="flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
       >
         <ArrowLeft size={16} />
         Atrás
       </button>
 
-      <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(380px,0.5fr)] p-5">
-        <div className="space-y-5">
-          <FormCard title="Datos del Cliente" icon="??" color="#00395A">
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">C�digo</p>
-                  <p className="text-sm font-medium text-slate-900">{client.code}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Raz�n Social</p>
-                  <p className="text-sm font-medium text-slate-900">{client.businessName}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Correo</p>
-                  <p className="text-sm font-medium text-slate-900">{client.email}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">RUC</p>
-                  <p className="text-sm font-medium text-slate-900">{client.ruc}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Rubro</p>
-                  <p className="text-sm font-medium text-slate-900">{client.industry || "�"}</p>
-                </div>
-              </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-6 bg-gradient-to-br from-brand-primary to-brand-secondary text-white">
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl font-bold">{client.businessName}</h2>
+              <p className="text-sm opacity-80 mt-1">Código: {client.code}</p>
             </div>
-          </FormCard>
-
-          {client.siClientId && (
-            <FormCard title="Sistema Integral" icon="??" color="#0D9488">
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Cód. SI</p>
-                  <p className="text-sm font-medium text-slate-900">{client.siClientCode || "�"}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">ID SI</p>
-                  <p className="text-sm font-medium text-slate-900">{client.siClientId}</p>
-                </div>
-              </div>
-            </FormCard>
-          )}
-        </div>
-
-        <div className="space-y-5">
-          <FormCard title="Estado Actual" icon="?" color="#EA580C">
-            <div className="space-y-4">
-              <div>
-                <div className={`rounded-lg px-4 py-3 ${statusColor}`}>
-                  <p className="text-sm font-bold">{STATUS_LABELS[client.status]}</p>
-                  <p className="text-xs mt-1 opacity-90">
-                    {STATUS_DESCRIPTIONS[client.status] || ""}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {client.status === "pending_validation" && (
-                  <>
-                    <ActionButton
-                      onClick={() => handleStatusChange("active")}
-                      disabled={actionInProgress}
-                      variant="primary"
-                      size="sm"
-                      label="Activar Cliente"
-                      fullWidth
-                    />
-                    <ActionButton
-                      onClick={() => handleStatusChange("inactive")}
-                      disabled={actionInProgress}
-                      variant="outline"
-                      size="sm"
-                      label="Rechazar"
-                      fullWidth
-                    />
-                  </>
-                )}
-
-                {client.status === "active" && (
-                  <>
-                    <ActionButton
-                      onClick={() => setModalState({ type: "deactivate", isOpen: true })}
-                      disabled={actionInProgress}
-                      variant="outline"
-                      size="sm"
-                      label="Desactivar"
-                      fullWidth
-                    />
-                    <ActionButton
-                      onClick={() => setModalState({ type: "block", isOpen: true })}
-                      disabled={actionInProgress}
-                      variant="danger"
-                      size="sm"
-                      label="Bloquear"
-                      fullWidth
-                    />
-                  </>
-                )}
-
-                {client.status === "inactive" && (
-                  <ActionButton
-                    onClick={() => handleStatusChange("active")}
-                    disabled={actionInProgress}
-                    variant="primary"
-                    size="sm"
-                    label="Reactivar"
-                    fullWidth
-                  />
-                )}
-
-                {client.status === "blocked" && (
-                  <ActionButton
-                    onClick={() => setModalState({ type: "unblock", isOpen: true })}
-                    disabled={actionInProgress}
-                    variant="success"
-                    size="sm"
-                    label="Desbloquear"
-                    fullWidth
-                  />
-                )}
-              </div>
-            </div>
-          </FormCard>
-
-          <div className="space-y-2">
-            <ActionButton
-              onClick={() => navigate(`/clients/${client.code}/edit`)}
-              variant="outline"
-              size="sm"
-              label="Editar Cliente"
-              fullWidth
-            />
-            <ActionButton
-              onClick={() => setModalState({ type: "delete", isOpen: true })}
-              variant="danger"
-              size="sm"
-              label="Eliminar Cliente"
-              fullWidth
-            />
+            <span className={isClientActive
+              ? "rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700"
+              : "rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700"
+            }>
+              {STATUS_LABELS[client.status]}
+            </span>
           </div>
         </div>
       </div>
 
-      {modalState.type === "deactivate" && modalState.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-auto">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Desactivar Cliente</h3>
-            <p className="text-sm text-slate-600 mb-6">
-              Desea desactivar a <strong>{client.businessName}</strong>?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={closeModal}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  handleStatusChange("inactive");
-                }}
-                disabled={actionInProgress}
-                className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-md text-sm font-medium hover:bg-orange-700 disabled:opacity-50"
-              >
-                Desactivar
-              </button>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormCard title="Datos Generales" icon="▦" color="#00395A">
+          <div className="space-y-4">
+            <PreviewRow label="Código" value={client.code} />
+            <PreviewRow label="Razón Social" value={client.businessName} />
+            <PreviewRow label="RUC" value={client.ruc} />
+            <PreviewRow label="Email" value={client.email} />
+            <PreviewRow label="Rubro" value={client.industry} />
           </div>
+        </FormCard>
+
+        {client.siClientId && (
+          <FormCard title="Sistema Integral" icon="◇" color="#0D9488">
+            <div className="space-y-4">
+              <PreviewRow label="Código SI" value={client.siClientCode} />
+              <PreviewRow label="ID SI" value={client.siClientId} />
+            </div>
+          </FormCard>
+        )}
+      </div>
+
+      {canClientHavePortfolio(client.status) ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
+            <h3 className="font-bold text-gray-800">Portafolios Asignados</h3>
+            <button
+              onClick={() => navigate(`/portfolio/new?clientCode=${client.code}`)}
+              className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-bold text-white hover:bg-brand-primary-hover"
+            >
+              + Nuevo Portafolio
+            </button>
+          </div>
+
+          <table className="w-full border-collapse text-sm">
+            <thead className="bg-white text-gray-500 border-b border-gray-200 uppercase text-xs">
+              <tr>
+                <th className="px-6 py-3 text-left font-semibold">Código</th>
+                <th className="px-6 py-3 text-left font-semibold">Nombre</th>
+                <th className="px-6 py-3 text-left font-semibold">Planta</th>
+                <th className="px-6 py-3 text-left font-semibold">Envoltura</th>
+                <th className="px-6 py-3 text-left font-semibold">Máquina</th>
+                <th className="px-6 py-3 text-left font-semibold">Estado</th>
+                <th className="px-6 py-3 text-left font-semibold">Proyectos</th>
+                <th className="px-6 py-3 text-left font-semibold">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {portfolios.map((portfolio) => (
+                <tr key={portfolio.codigo || portfolio.id} className={`border-b border-gray-100 hover:bg-gray-50`}>
+                  <td className="px-6 py-4 font-bold text-brand-primary">{portfolio.codigo || portfolio.id}</td>
+                  <td className="px-6 py-4">{portfolio.nom || "—"}</td>
+                  <td className="px-6 py-4 text-gray-500">{portfolio.plantaName || portfolio.pl || "—"}</td>
+                  <td className="px-6 py-4 text-gray-500">{portfolio.envoltura || portfolio.env || "—"}</td>
+                  <td className="px-6 py-4 text-gray-500">{portfolio.maquinaCliente || portfolio.maq || "—"}</td>
+                  <td className="px-6 py-4">
+                    <span className={portfolio.status === "Activo"
+                      ? "rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700"
+                      : portfolio.status === "Inactivo"
+                      ? "rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700"
+                      : "rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-700"
+                    }>
+                      {portfolio.status || "—"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold bg-brand-secondary-soft text-brand-primary min-w-[2rem]">
+                      {(portfolio as any).projectCount || (portfolio as any).activeProjectCount || 0}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <RowActionButtons
+                      viewPath={`/portfolio/${portfolio.codigo || portfolio.id}`}
+                      editPath={`/portfolio/${portfolio.codigo || portfolio.id}/edit`}
+                    />
+                  </td>
+                </tr>
+              ))}
+              {portfolios.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500 italic">Este cliente no tiene portafolios asignados.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <p className="text-sm text-amber-900">
+            <strong>Portafolios no disponibles:</strong> {getClientPortfolioEligibilityMessage(client.status)}
+          </p>
         </div>
       )}
 
-      {modalState.type === "block" && modalState.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-auto">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Bloquear Cliente</h3>
-            <p className="text-sm text-slate-600 mb-6">
-              �Desea bloquear a <strong>{client.businessName}</strong>?
-            </p>
-            <div className="flex gap-3">
+      {/* Confirmación Modal */}
+      {showStatusModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm mx-4">
+            <div className="flex items-start justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-900">
+                {isClientActive ? "¿Desactivar cliente?" : "¿Activar cliente?"}
+              </h3>
               <button
-                onClick={closeModal}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50"
+                onClick={() => setShowStatusModal(false)}
+                className="text-slate-400 hover:text-slate-600"
               >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  handleStatusChange("blocked");
-                }}
-                disabled={actionInProgress}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-              >
-                Bloquear
+                <X size={20} />
               </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {modalState.type === "unblock" && modalState.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-auto">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Desbloquear Cliente</h3>
             <p className="text-sm text-slate-600 mb-6">
-              �Desea desbloquear a <strong>{client.businessName}</strong>?
+              {isClientActive
+                ? "El cliente quedará inactivo, pero sus portafolios existentes se mantendrán para consulta y seguimiento."
+                : "El cliente volverá a estar disponible para crear nuevos portafolios."}
             </p>
-            <div className="flex gap-3">
-              <button
-                onClick={closeModal}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50"
+
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowStatusModal(false)}
               >
                 Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  handleStatusChange("active");
-                }}
-                disabled={actionInProgress}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+              </Button>
+              <Button
+                variant={isClientActive ? "danger" : "primary"}
+                onClick={handleToggleClientStatus}
               >
-                Desbloquear
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {modalState.type === "delete" && modalState.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-auto">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Eliminar Cliente</h3>
-            <p className="text-sm text-slate-600 mb-6">
-              �Est� seguro de que desea eliminar a <strong>{client.businessName}</strong>? Esta acci�n no se puede deshacer.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={closeModal}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDeleteClient}
-                disabled={actionInProgress}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-              >
-                Eliminar
-              </button>
+                {isClientActive ? "Desactivar" : "Activar"}
+              </Button>
             </div>
           </div>
         </div>

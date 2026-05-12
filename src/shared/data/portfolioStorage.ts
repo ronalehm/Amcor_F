@@ -197,6 +197,26 @@ export function deletePortfolioRecord(code: string): boolean {
   return true;
 }
 
+export function getPortfoliosByClient(client: any): PortfolioRecord[] {
+  const clientId = String(client.id || client.code || client.codigo || "").trim();
+  const clientCode = String(client.code || client.codigo || client.id || "").trim();
+  const clientName = String(client.nombre || client.name || client.razonSocial || client.businessName || "").trim().toLowerCase();
+  const clientRuc = String(client.ruc || client.RUC || "").trim();
+
+  return getPortfolioDisplayRecords().filter((portfolio: any) => {
+    const portfolioClientId = String(portfolio.clientId || portfolio.clienteId || portfolio.clientCode || portfolio.codigoCliente || "").trim();
+    const portfolioClientName = String(portfolio.clientName || portfolio.cliente || portfolio.cli || portfolio.nombreCliente || "").trim().toLowerCase();
+    const portfolioClientRuc = String(portfolio.clientRuc || portfolio.ruc || portfolio.rucCliente || "").trim();
+
+    return (
+      (clientId && portfolioClientId === clientId) ||
+      (clientCode && portfolioClientId === clientCode) ||
+      (clientName && portfolioClientName === clientName) ||
+      (clientRuc && portfolioClientRuc === clientRuc)
+    );
+  });
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Catálogo oficial de Aplicación Técnica
 // Fuente única reutilizable para Portafolio y Proyecto

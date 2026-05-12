@@ -197,3 +197,25 @@ export async function saveSeedClients(clients: Client[]): Promise<void> {
     console.error("Error saving seed clients:", error);
   }
 }
+
+export function canClientHavePortfolio(status?: ClientStatus): boolean {
+  return status === "active" || status === "inactive";
+}
+
+export function getClientPortfolioEligibilityMessage(status?: ClientStatus): string {
+  if (!status) return "";
+
+  if (status === "pending_activation") {
+    return "El cliente debe completar su activación. Estado actual: Pendiente de Activación";
+  }
+
+  if (status === "pending_validation") {
+    return "El cliente debe completar su validación. Estado actual: Pendiente de Validación";
+  }
+
+  if (status === "blocked") {
+    return "El cliente bloqueado no puede tener portafolios asignados.";
+  }
+
+  return "";
+}
