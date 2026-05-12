@@ -19,7 +19,7 @@ import ActionButton from "../../../shared/components/buttons/ActionButton";
 
 type PortfolioTab = "all" | "active" | "inactive";
 type SortDirection = "asc" | "desc";
-type SortKey = "codigo" | "nombre" | "clientName" | "planta" | "envoltura" | "maquinaCliente" | "createdAt" | "proyectos";
+type SortKey = "codigo" | "nombre" | "clientName" | "planta" | "envoltura" | "maquinaCliente" | "proyectos" | "updatedAt" | "updatedBy";
 
 const getText = (...values: any[]) => {
   const value = values.find(
@@ -57,6 +57,47 @@ const getPortfolioStatus = (portfolio: any): "active" | "inactive" => {
   return "active";
 };
 
+const getPortfolioUpdatedAt = (portfolio: any): string => {
+  return getText(
+    portfolio.updatedAt,
+    portfolio.modifiedAt,
+    portfolio.lastUpdatedAt,
+    portfolio.fechaActualizacion,
+    portfolio.updated_at,
+    portfolio.createdAt,
+  );
+};
+
+const getPortfolioUpdatedBy = (portfolio: any): string => {
+  return (
+    getText(
+      portfolio.updatedByName,
+      portfolio.updatedBy,
+      portfolio.lastUpdatedBy,
+      portfolio.usuarioActualizacion,
+      portfolio.modifiedBy,
+      portfolio.createdByName,
+      portfolio.createdBy,
+    ) || "—"
+  );
+};
+
+const formatPortfolioDate = (value: any): string => {
+  const text = getText(value);
+
+  if (!text) return "—";
+
+  const date = new Date(text);
+
+  if (Number.isNaN(date.getTime())) return text;
+
+  return date.toLocaleDateString("es-PE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
 const getSortValue = (portfolio: any, key: SortKey): string | number => {
   switch (key) {
     case "codigo": return getText(portfolio.id).toLowerCase();
@@ -65,11 +106,13 @@ const getSortValue = (portfolio: any, key: SortKey): string | number => {
     case "planta": return getPortfolioPlantName(portfolio).toLowerCase();
     case "envoltura": return getText(portfolio.env).toLowerCase();
     case "maquinaCliente": return getText(portfolio.maq).toLowerCase();
-    case "createdAt": {
-      const createdAt = getText(portfolio.createdAt);
-      const time = createdAt ? new Date(createdAt).getTime() : 0;
+    case "updatedAt": {
+      const updatedAt = getPortfolioUpdatedAt(portfolio);
+      const time = updatedAt ? new Date(updatedAt).getTime() : 0;
       return Number.isNaN(time) ? 0 : time;
     }
+    case "updatedBy":
+      return getPortfolioUpdatedBy(portfolio).toLowerCase();
     case "proyectos": return portfolio.activeProjectCount || 0;
     default: return "";
   }
@@ -98,7 +141,7 @@ export default function PortfolioListPage() {
     key: SortKey;
     direction: SortDirection;
   }>({
-    key: "createdAt",
+    key: "updatedAt",
     direction: "desc",
   });
 
@@ -150,6 +193,8 @@ export default function PortfolioListPage() {
         (portfolio as any).pl,
         statusLabel,
         (portfolio as any).fch,
+        getPortfolioUpdatedBy(portfolio),
+        getPortfolioUpdatedAt(portfolio),
       ]
         .filter(Boolean)
         .join(" ")
@@ -205,7 +250,7 @@ export default function PortfolioListPage() {
     setActiveTab("all");
     setPageSize(25);
     setCurrentPage(1);
-    setSortConfig({ key: "createdAt", direction: "desc" });
+    setSortConfig({ key: "updatedAt", direction: "desc" });
   };
 
   const requestSort = (key: SortKey) => {
@@ -219,7 +264,7 @@ export default function PortfolioListPage() {
 
       return {
         key,
-        direction: key === "createdAt" ? "desc" : "asc",
+        direction: key === "updatedAt" ? "desc" : "asc",
       };
     });
   };
@@ -421,10 +466,11 @@ export default function PortfolioListPage() {
                 <SortableHeader label="Envoltura" sortKey="envoltura" />
                 <SortableHeader label="Envasado / Máquina de Cliente" sortKey="maquinaCliente" />
                 <SortableHeader label="Proyectos" sortKey="proyectos" align="right" />
-                <SortableHeader label="Estado" sortKey="createdAt" />
                 <th className="px-4 py-3 text-xs font-bold uppercase tracking-wide">
-                  Creado
+                  Estado
                 </th>
+                <SortableHeader label="Últ. actualización" sortKey="updatedAt" />
+                <SortableHeader label="Realizado por" sortKey="updatedBy" />
 
                 <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
                   Acciones
@@ -486,13 +532,11 @@ export default function PortfolioListPage() {
                     </td>
 
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {(portfolio as any).createdAt
-                        ? new Date((portfolio as any).createdAt).toLocaleDateString("es-PE", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
-                        : "—"}
+                      {formatPortfolioDate(getPortfolioUpdatedAt(portfolio))}
+                    </td>
+
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {getPortfolioUpdatedBy(portfolio)}
                     </td>
 
                     <td className="px-4 py-3 text-right text-sm">
@@ -517,7 +561,7 @@ export default function PortfolioListPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={9} className="px-6 py-14 text-center">
+                  <td colSpan={10} className="px-6 py-14 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <BriefcaseBusiness size={26} className="text-slate-400" />

@@ -17,7 +17,7 @@ import {
   getPackingMachinesByWrappingId,
 } from "../../../shared/data/mockDatabase";
 
-import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
+import { getClientCatalogRecords, canClientHavePortfolio } from "../../../shared/data/clientStorage";
 import { getCommercialExecutives } from "../../../shared/data/userStorage";
 import { savePortfolioRecord } from "../../../shared/data/portfolioStorage";
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
@@ -108,7 +108,7 @@ export default function PortfolioCreatePage() {
 
   const selectedStatus = getStatusById(Number(form.estadoId));
   const allClients = getClientCatalogRecords();
-  const realClients = allClients.filter((c) => c.status === "active");
+  const eligibleClients = allClients.filter((c) => canClientHavePortfolio(c.status));
   const selectedClient = allClients.find((c) => c.id === form.clienteId);
   const comercialUsers = getCommercialExecutives();
   const selectedExecutive = comercialUsers.find((u) => u.id === form.ejecutivoId);
@@ -450,7 +450,7 @@ export default function PortfolioCreatePage() {
                       ? validationErrors.clienteId
                       : ""
                   }
-                  options={realClients.map((item) => ({
+                  options={eligibleClients.map((item) => ({
                     id: item.id,
                     code: item.code,
                     name: item.businessName,

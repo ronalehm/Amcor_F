@@ -195,7 +195,7 @@ export default function ProjectListPage() {
 
   useEffect(() => {
     setHeader({
-      title: "Proyectos >> Bandeja de seguimiento",
+      title: "Gestión de Proyectos",
       breadcrumbs: [{ label: "Proyectos" }, { label: "Lista de Proyectos" }],
     });
 

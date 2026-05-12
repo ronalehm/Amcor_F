@@ -23,7 +23,7 @@ import {
 
 import { getPortfolioByCode, updatePortfolioRecord } from "../../../shared/data/portfolioStorage";
 import { getCurrentUser, getCommercialExecutives } from "../../../shared/data/userStorage";
-import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
+import { getClientCatalogRecords, canClientHavePortfolio } from "../../../shared/data/clientStorage";
 
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
 import FinalUseCatalogModal from "../../../shared/components/catalog/FinalUseCatalogModal";
@@ -130,7 +130,7 @@ export default function PortfolioEditPage() {
 
   const selectedStatus = getStatusById(Number(form?.estadoId));
   const allClients = getClientCatalogRecords();
-  const activeClients = useMemo(() => allClients.filter((c) => c.status === "active"), [allClients]);
+  const eligibleClients = useMemo(() => allClients.filter((c) => canClientHavePortfolio(c.status)), [allClients]);
   const selectedClient = allClients.find((c) => c.id === form?.clienteId);
 
   const comercialExecutives = useMemo(() => getCommercialExecutives(), []);
@@ -509,7 +509,7 @@ export default function PortfolioEditPage() {
                       ? validationErrors.clienteId
                       : ""
                   }
-                  options={activeClients.map((item) => ({
+                  options={eligibleClients.map((item) => ({
                     id: item.id,
                     code: item.code,
                     name: item.businessName,

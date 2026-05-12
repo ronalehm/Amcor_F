@@ -457,6 +457,27 @@ const DESTINATION_COUNTRY_OPTIONS = [
 const DIMENSION_MIN_MM = 38;
 const DIMENSION_MAX_MM = 2390;
 
+const getPortfolioStatus = (portfolio: any): "active" | "inactive" => {
+  const rawStatus = String(
+    portfolio.status ||
+    portfolio.est ||
+    portfolio.estado ||
+    (portfolio.isActive === false ? "inactive" : "") ||
+    (portfolio.active === false ? "inactive" : "") ||
+    "active"
+  ).toLowerCase();
+
+  if (
+    rawStatus.includes("inactivo") ||
+    rawStatus.includes("inactive") ||
+    rawStatus === "false"
+  ) {
+    return "inactive";
+  }
+
+  return "active";
+};
+
 const initialForm = (portfolioCode: string): ProjectFormData => ({
   portfolioCode,
   executiveId: [],
@@ -987,6 +1008,12 @@ export default function ProjectCreatePage() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitAttempted(true);
+
+    // Check if selected portfolio is inactive
+    if (selectedPortfolio && getPortfolioStatus(selectedPortfolio) === "inactive") {
+      alert("No se puede crear un proyecto desde un portafolio inactivo.");
+      return;
+    }
 
     // Only validate CREATE_REQUIRED fields - other sections are optional
     if (Object.keys(createRequiredErrors).length > 0) {

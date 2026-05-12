@@ -11,17 +11,20 @@ import {
   blockClient,
   unblockClient,
   deleteClient,
+  canClientHavePortfolio,
+  getClientPortfolioEligibilityMessage,
   type ClientStatus,
 } from "../../../shared/data/clientStorage";
+import { getPortfoliosByClient, type PortfolioRecord } from "../../../shared/data/portfolioStorage";
 import FormCard from "../../../shared/components/forms/FormCard";
 import ActionButton from "../../../shared/components/buttons/ActionButton";
 
 const STATUS_DESCRIPTIONS: Record<ClientStatus, string> = {
-  active: "El cliente est� activo y puede crear portafolios y proyectos.",
-  inactive: "El cliente est� inactivo. Puede ser reactivado en cualquier momento.",
-  pending_validation: "El cliente est� en validaci�n por tesorer�a. Es posible crear portafolios y proyectos mientras se completa la evaluaci�n.",
-  pending_activation: "Estado de transici�n (no deber�a verse).",
-  blocked: "El cliente est� bloqueado. Solo un administrador puede desbloquearlo.",
+  active: "El cliente está activo y puede crear portafolios y proyectos.",
+  inactive: "El cliente está inactivo. Puede ser reactivado en cualquier momento.",
+  pending_validation: "El cliente está en validación por tesorería. Es posible crear portafolios y proyectos mientras se completa la evaluaci�n.",
+  pending_activation: "Estado de transición (no debería verse).",
+  blocked: "El cliente está bloqueado. Solo un administrador puede desbloquearlo.",
 };
 
 export default function ClientDetailPage() {
@@ -32,6 +35,7 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [client, setClient] = useState<any>(null);
+  const [portfolios, setPortfolios] = useState<PortfolioRecord[]>([]);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [modalState, setModalState] = useState<{
     type: "delete" | "deactivate" | "block" | "unblock" | null;
@@ -40,19 +44,20 @@ export default function ClientDetailPage() {
 
   useEffect(() => {
     if (!clientCode) {
-      setError("C�digo de cliente no v�lido");
+      setError("Código de cliente no válido");
       setLoading(false);
       return;
     }
 
     const clientData = getClientByCode(clientCode);
     if (!clientData) {
-      setError(`Cliente con c�digo ${clientCode} no encontrado`);
+      setError(`Cliente con código ${clientCode} no encontrado`);
       setLoading(false);
       return;
     }
 
     setClient(clientData);
+    setPortfolios(getPortfoliosByClient(clientData));
     setLoading(false);
   }, [clientCode]);
 
@@ -84,6 +89,7 @@ export default function ClientDetailPage() {
 
       const updatedClient = getClientByCode(client.code);
       setClient(updatedClient);
+      setPortfolios(getPortfoliosByClient(updatedClient));
       setModalState({ type: null, isOpen: false });
     } finally {
       setActionInProgress(false);
@@ -147,11 +153,11 @@ export default function ClientDetailPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">C�digo</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Código</p>
                   <p className="text-sm font-medium text-slate-900">{client.code}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Raz�n Social</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Razón Social</p>
                   <p className="text-sm font-medium text-slate-900">{client.businessName}</p>
                 </div>
               </div>
@@ -290,6 +296,78 @@ export default function ClientDetailPage() {
           </div>
         </div>
       </div>
+
+      {canClientHavePortfolio(client.status) ? (
+        <div className="p-5">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
+              <h3 className="font-bold text-gray-800">Portafolios Asignados</h3>
+              <button
+                onClick={() => navigate(`/portfolio/new?clientCode=${client.code}`)}
+                className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-bold text-white hover:bg-brand-primary-hover"
+              >
+                + Nuevo Portafolio
+              </button>
+            </div>
+
+            <table className="w-full border-collapse text-sm">
+              <thead className="bg-white text-gray-500 border-b border-gray-200 uppercase text-xs">
+                <tr>
+                  <th className="px-6 py-3 text-left font-semibold">Código</th>
+                  <th className="px-6 py-3 text-left font-semibold">Nombre</th>
+                  <th className="px-6 py-3 text-left font-semibold">Planta</th>
+                  <th className="px-6 py-3 text-left font-semibold">Envoltura</th>
+                  <th className="px-6 py-3 text-left font-semibold">Máquina</th>
+                  <th className="px-6 py-3 text-left font-semibold">Estado</th>
+                  <th className="px-6 py-3 text-left font-semibold">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {portfolios.map((portfolio) => (
+                  <tr key={portfolio.codigo} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-6 py-4 font-bold text-brand-primary">{portfolio.codigo}</td>
+                    <td className="px-6 py-4">{portfolio.nom || "—"}</td>
+                    <td className="px-6 py-4 text-gray-500">{portfolio.plantaName || portfolio.pl || "—"}</td>
+                    <td className="px-6 py-4 text-gray-500">{portfolio.envoltura || portfolio.env || "—"}</td>
+                    <td className="px-6 py-4 text-gray-500">{portfolio.maquinaCliente || portfolio.maq || "—"}</td>
+                    <td className="px-6 py-4">
+                      <span className={portfolio.status === "Activo"
+                        ? "rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700"
+                        : portfolio.status === "Inactivo"
+                        ? "rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700"
+                        : "rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-700"
+                      }>
+                        {portfolio.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => navigate(`/portfolio/${portfolio.codigo}`)}
+                        className="text-xs font-bold text-brand-primary hover:underline"
+                      >
+                        Ver
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {portfolios.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500 italic">No hay portafolios asignados.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="p-5">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+            <p className="text-sm text-amber-800">
+              <strong>Portafolios no disponibles:</strong> {getClientPortfolioEligibilityMessage(client.status)}
+            </p>
+          </div>
+        </div>
+      )}
 
       {modalState.type === "deactivate" && modalState.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
