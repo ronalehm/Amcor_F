@@ -564,8 +564,7 @@ const POUCH_DOY_PACK_DIMENSION_RESTRICTIONS = {
 } as const;
 
 const STEPS = [
-  { label: "Información General" },
-  { label: "Producto Comercial" },
+  { label: "Información General y Producto Comercial" },
   { label: "Diseño" },
   { label: "Estructura" },
   { label: "Condiciones comerciales" },
@@ -573,27 +572,22 @@ const STEPS = [
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
-  // 1. Información General
+  // 1. Información General y Producto Comercial
   0: [
     "salesforceAction",
     "projectName",
     "projectDescription",
     "executiveId",
     "portfolioCode",
-  ],
-
-  // 2. Producto Comercial
-  1: [
     "classification",
-    "subClassification",
     "projectType",
     "blueprintFormat",
     "technicalApplication",
     "customerPackingCode",
   ],
 
-  // 3. Diseño
-  2: [
+  // 2. Diseño
+  1: [
     "hasEdagReference",
     "edagCode",
     "edagVersion",
@@ -604,8 +598,8 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "designPlanFiles",
   ],
 
-  // 4. Estructura
-  3: [
+  // 2. Estructura
+  2: [
     "hasReferenceStructure",
     "referenceEmCode",
     "referenceEmVersion",
@@ -644,8 +638,8 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "customerTechnicalSpecAttachment",
   ],
 
-  // 5. Condiciones comerciales
-  4: [
+  // 3. Condiciones comerciales
+  3: [
     "estimatedVolume",
     "unitOfMeasure",
     "saleType",
@@ -655,8 +649,8 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "currencyType",
   ],
 
-  // 6. Información adicional
-  5: [
+  // 4. Información adicional
+  4: [
     "coreMaterial",
     "coreDiameter",
     "externalDiameter",
@@ -711,7 +705,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   deliveryAddress: "Dirección de entrega",
   additionalComment: "Comentario",
   classification: "Clasificación",
-  subClassification: "Subsección Clasificación",
   projectType: "Tipo de Proyecto",
 
   hasEdagReference: "¿Tiene Diseño de referencia?",
@@ -842,7 +835,6 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     projectName: form.projectName?.trim() || "",
     projectDescription: form.projectDescription?.trim() || "",
     classification: form.classification,
-    subClassification: form.subClassification,
     projectType: form.projectType,
     salesforceAction: form.salesforceAction,
     blueprintFormat: form.blueprintFormat,
@@ -955,7 +947,6 @@ export default function ProjectEditPage() {
     projectName: "",
     projectDescription: "",
     classification: "",
-    subClassification: "",
     projectType: "",
     salesforceAction: "",
     blueprintFormat: "",
@@ -1101,7 +1092,6 @@ export default function ProjectEditPage() {
       projectName: project.projectName || "",
       projectDescription: project.projectDescription || "",
       classification: project.classification || "",
-      subClassification: project.subClassification || "",
       projectType: project.projectType || "",
       salesforceAction: project.salesforceAction || "",
       blueprintFormat: project.blueprintFormat || "",
@@ -1415,7 +1405,6 @@ export default function ProjectEditPage() {
   inheritedWrapping,
   form.blueprintFormat,
   form.classification,
-  form.subClassification,
   form.printClass,
   form.hasReferenceStructure,
   form.structureType,
@@ -1509,7 +1498,6 @@ export default function ProjectEditPage() {
       2: [],
       3: [],
       4: [],
-      5: [],
     };
 
     missing.forEach((field) => {
@@ -1525,7 +1513,7 @@ export default function ProjectEditPage() {
   }, [form, requiredFields]);
 
   const stepsWithErrors = useMemo(() => {
-    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
 
     Object.keys(validationErrors).forEach((field) => {
       for (const [step, fields] of Object.entries(STEP_FIELDS)) {
@@ -1691,7 +1679,6 @@ const handleSaveAndExit = () => {
     packingMachineName: inheritedMachine,
 
     classification: form.classification,
-    subClassification: form.subClassification,
     projectType: form.projectType,
     salesforceAction: form.salesforceAction,
 
@@ -1896,7 +1883,6 @@ const handleSaveAndExit = () => {
       packingMachineName: inheritedMachine,
 
       classification: form.classification,
-      subClassification: form.subClassification,
       projectType: form.projectType,
       salesforceAction: form.salesforceAction,
 
@@ -2019,9 +2005,9 @@ const handleSaveAndExit = () => {
           currentValidationStep: "Artes Gráficas",
         } : {
           graphicArtsValidationStatus: "Aprobado automático",
-          technicalSubArea: resolveTechnicalSubAreaByProjectType(form.projectType) || resolveTechnicalSubAreaBySubclassification(form.subClassification),
-          currentValidationStep: resolveTechnicalSubAreaByProjectType(form.projectType) || resolveTechnicalSubAreaBySubclassification(form.subClassification),
-          technicalValidationStatus: (resolveTechnicalSubAreaByProjectType(form.projectType) || resolveTechnicalSubAreaBySubclassification(form.subClassification)) ? "Pendiente" : "Sin solicitar",
+          technicalSubArea: resolveTechnicalSubAreaByProjectType(form.projectType),
+          currentValidationStep: resolveTechnicalSubAreaByProjectType(form.projectType),
+          technicalValidationStatus: resolveTechnicalSubAreaByProjectType(form.projectType) ? "Pendiente" : "Sin solicitar",
         }),
       }),
     } as unknown as ProjectRecord);
@@ -2183,10 +2169,10 @@ if (loading) {
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           {/* ========== COLUMNA IZQUIERDA: PASOS DEL FORMULARIO ========== */}
           <div className="space-y-5">
-            {/* PASO 0: INFORMACIÓN DEL PROYECTO */}
+            {/* PASO 0: INFORMACIÓN GENERAL Y PRODUCTO COMERCIAL */}
             {activeStep === 0 && (
               <div className="space-y-5">
-                <FormCard title="Información del Proyecto" icon="▦" color="#00395A" required>
+                <FormCard title="Información del Proyecto y Producto" icon="▦" color="#00395A" required>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <FormInput
                       label="Acción Salesforce *"
@@ -2232,51 +2218,10 @@ if (loading) {
                     </div>
 
                     <FormSelect
-                      label="Licitación *"
-                      value={form.licitacion}
-                      onChange={handleLicitacionChange}
-                      options={[
-                        { value: "Sí", label: "Sí" },
-                        { value: "No", label: "No" },
-                      ]}
-                    />
-
-                    {form.licitacion === "Sí" && (
-                      <FormInput
-                        label="Código de Licitación *"
-                        value={form.codigoRFQ}
-                        onChange={(value) => updateField("codigoRFQ", value)}
-                        onBlur={() => markFieldAsTouched("codigoRFQ")}
-                        error={
-                          shouldShowFieldError("codigoRFQ")
-                            ? validationErrors.codigoRFQ
-                            : ""
-                        }
-                        placeholder="Ej. LIC-2026-001"
-                        helper="Obligatorio cuando el proyecto corresponde a una licitación."
-                      />
-                    )}
-                  </div>
-                </FormCard>
-              </div>
-            )}
-
-            {/* PASO 1: PRODUCTO COMERCIAL */}
-            {activeStep === 1 && (
-              <div className="space-y-5">
-                <FormCard title="Datos de Producto Comercial" icon="◈" color="#27ae60" required>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 md:col-span-3">
-                      <p className="text-xs text-slate-500 font-medium">Envoltura</p>
-                      <p className="text-sm font-semibold text-slate-800 mt-1">{inheritedWrapping || "—"}</p>
-                    </div>
-
-                    <FormSelect
                       label="Clasificación *"
                       value={form.classification}
                       onChange={(value) => {
                         updateField("classification", value);
-                        updateField("subClassification", "");
                         updateField("projectType", "");
                       }}
                       onBlur={() => markFieldAsTouched("classification")}
@@ -2286,29 +2231,7 @@ if (loading) {
                     />
 
                     <FormSelect
-                      label={form.classification ? "Subsección Clasificación *" : "Subsección Clasificación"}
-                      value={form.subClassification}
-                      onChange={(value) => {
-                        updateField("subClassification", value);
-                        updateField("projectType", "");
-                      }}
-                      onBlur={() => markFieldAsTouched("subClassification")}
-                      error={getError("subClassification")}
-                      options={
-                        form.classification === "Nuevo"
-                          ? SUBCLASSIFICATION_NUEVO_OPTIONS
-                          : form.classification === "Modificado"
-                            ? SUBCLASSIFICATION_MODIFICADO_OPTIONS
-                            : []
-                      }
-                      placeholder="-- Seleccione --"
-                      disabled={!form.classification}
-                    />
-
-                    <FormSelect
                       label={
-                        form.subClassification &&
-                        form.classification !== "Modificado" &&
                         projectTypeOptions.length > 0
                           ? "Tipo de Proyecto *"
                           : "Tipo de Proyecto"
@@ -2319,15 +2242,12 @@ if (loading) {
                       error={getError("projectType")}
                       options={projectTypeOptions}
                       placeholder={
-                        form.classification === "Modificado"
-                          ? "No aplica para modificado"
-                          : !form.subClassification
-                            ? "-- Seleccione subsección primero --"
-                            : "-- Seleccione --"
+                        !form.classification
+                          ? "-- Seleccione clasificación primero --"
+                          : "-- Seleccione --"
                       }
                       disabled={
-                        form.classification === "Modificado" ||
-                        !form.subClassification ||
+                        !form.classification ||
                         projectTypeOptions.length === 0
                       }
                     />
@@ -2364,8 +2284,8 @@ if (loading) {
               </div>
             )}
 
-            {/* PASO 2: DISEÑO */}
-            {activeStep === 2 && (
+            {/* PASO 1: DISEÑO */}
+            {activeStep === 1 && (
               <div className="space-y-5">
                 <FormCard title="Especificaciones de diseño" icon="🎨" color="#8e44ad">
                   {(() => {
@@ -2480,8 +2400,8 @@ if (loading) {
               </div>
             )}
 
-            {/* PASO 3: ESTRUCTURA - Mostrar el paso 3 con más contenido */}
-            {activeStep === 3 && (
+            {/* PASO 2: ESTRUCTURA */}
+            {activeStep === 2 && (
               <div className="space-y-5">
                 <CollapsibleSection
                   title="Especificaciones de estructura"
@@ -2949,8 +2869,8 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
               </div>
             )}
 
-            {/* PASO 4: CONDICIONES COMERCIALES */}
-            {activeStep === 4 && (
+            {/* PASO 3: CONDICIONES COMERCIALES */}
+            {activeStep === 3 && (
               <div className="space-y-5">
                 <FormCard title="Condiciones comerciales" icon="💰" color="#0d4c5c">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -2985,8 +2905,8 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
               </div>
             )}
 
-            {/* PASO 5: INFORMACIÓN ADICIONAL */}
-              {activeStep === 5 && (
+            {/* PASO 4: INFORMACIÓN ADICIONAL Y RESUMEN */}
+              {activeStep === 4 && (
                 <div className="space-y-5">
                   <FormCard title="Información adicional" icon="📝" color="#00395A">
                     <div className="space-y-6">
