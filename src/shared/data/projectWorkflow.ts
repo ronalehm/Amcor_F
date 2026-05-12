@@ -374,6 +374,46 @@ export function resolveTechnicalSubAreaBySubclassification(
 }
 
 /**
+ * Resuelve la subárea técnica basada en el tipo de proyecto
+ */
+export function resolveTechnicalSubAreaByProjectType(
+  projectType?: string
+): TechnicalSubArea | null {
+  if (!projectType) return null;
+
+  const type = projectType.trim();
+
+  const rdDesarrolloTypes = [
+    "Producto nuevo",
+    "Nuevo equipamiento de envasado",
+    "Nuevos insumos",
+    "Nueva estructura",
+    "Nuevo formato de envasado",
+    "Nuevos accesorios",
+    "Nuevos procesos por el lado del cliente",
+    "Nuevas temperaturas de envasado y almacenaje",
+  ];
+
+  const rdTecnicaTypes = [
+    "Extensión de línea por familia (EM de referencia)",
+    "Modifica Dimensiones",
+    "Modifica Propiedades",
+    "Portafolio Estándar",
+    "ICO (Intercompany), BCP (Business Continous Production)",
+  ];
+
+  if (rdDesarrolloTypes.includes(type)) {
+    return "R&D Desarrollo";
+  }
+
+  if (rdTecnicaTypes.includes(type)) {
+    return "R&D Técnica";
+  }
+
+  return null;
+}
+
+/**
  * Normaliza los campos de workflow de un proyecto
  * Asegura que todos los campos requeridos tengan valores por defecto
  * INCLUYE LÓGICA DEFENSIVA para corregir proyectos mal guardados
@@ -385,6 +425,7 @@ export function normalizeProjectWorkflow(project: any): any {
   // Detectar y normalizar technicalSubArea desde varios campos posibles
   let technicalSubArea: TechnicalSubArea | null =
     normalizeTechnicalSubArea(project.technicalSubArea) ||
+    resolveTechnicalSubAreaByProjectType(project.projectType || project.tipoProyecto) ||
     resolveTechnicalSubAreaBySubclassification(
       project.subClassification ||
         project.subseccionClasificacion ||

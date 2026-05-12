@@ -10,6 +10,7 @@ import PreviewRow from "../../../shared/components/display/PreviewRow";
 import ProjectStatusBadge from "../../../shared/components/display/ProjectStatusBadge";
 import FormCard from "../../../shared/components/forms/FormCard";
 import RowActionButtons from "../../../shared/components/table/RowActionButtons";
+import ProjectInitialCreateModal from "../../../shared/components/modals/ProjectInitialCreateModal";
 
 const getPortfolioStatus = (portfolio: any): "active" | "inactive" => {
   const rawStatus = String(
@@ -40,6 +41,7 @@ export default function PortfolioDetailPage() {
   const [portfolio, setPortfolio] = useState<PortfolioRecord | null>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
 
   const currentUser = getCurrentUser();
   const isAdmin = currentUser?.role === "administrador";
@@ -221,7 +223,7 @@ export default function PortfolioDetailPage() {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
           <h3 className="font-bold text-gray-800">Proyectos Asociados</h3>
           <button
-            onClick={() => navigate(`/projects/new?portfolioCode=${portfolioCode}`)}
+            onClick={() => setShowCreateProjectModal(true)}
             className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-bold text-white hover:bg-brand-primary-hover"
           >
             + Nuevo Proyecto
@@ -301,6 +303,13 @@ export default function PortfolioDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Inicial Crear Proyecto */}
+      <ProjectInitialCreateModal
+        isOpen={showCreateProjectModal}
+        onClose={() => setShowCreateProjectModal(false)}
+        initialPortfolioCode={portfolio.codigo || portfolio.id}
+      />
     </div>
   );
 }

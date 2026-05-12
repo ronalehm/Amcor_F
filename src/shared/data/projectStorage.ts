@@ -977,6 +977,75 @@ export function getNextProjectCode() {
   return `PR-${String(getNextProjectNumber()).padStart(6, "0")}`;
 }
 
+export function createProjectFromPortfolio(params: {
+  portfolio: any;
+  initialData: {
+    clasificacion: string;
+    tipoProyecto: string;
+    licitacion: "Sí" | "No";
+    codigoLicitacion?: string;
+  };
+  createdBy?: string;
+}): ProjectRecord {
+  const now = new Date().toISOString();
+  const code = getNextProjectCode();
+
+  const project: ProjectRecord = {
+    code,
+    id: code,
+
+    portfolioCode: params.portfolio.codigo || params.portfolio.code || params.portfolio.id || "",
+    portfolioName: params.portfolio.nombre || params.portfolio.name || params.portfolio.nom || "",
+
+    clientId: params.portfolio.clientId || params.portfolio.clienteId,
+    clientCode: params.portfolio.clientCode || params.portfolio.codigoCliente || params.portfolio.cli,
+    clientName: params.portfolio.clientName || params.portfolio.cliente || params.portfolio.cli,
+
+    plantaId: params.portfolio.plantaId,
+    plantaName: params.portfolio.plantaName || params.portfolio.planta || params.portfolio.pl,
+
+    envoltura: params.portfolio.envoltura || params.portfolio.env,
+    wrappingName: params.portfolio.envoltura || params.portfolio.env,
+    usoFinal: params.portfolio.usoFinal || params.portfolio.uf,
+    useFinalName: params.portfolio.usoFinal || params.portfolio.uf,
+    sector: params.portfolio.sector,
+    segment: params.portfolio.segmento || params.portfolio.seg,
+    subSegment: params.portfolio.subSegmento || params.portfolio.subsegmento || params.portfolio.subseg,
+    afMarketId: params.portfolio.afMarketId || params.portfolio.afmarketId || params.portfolio.af,
+    maquinaCliente: params.portfolio.maquinaCliente || params.portfolio.maq,
+    packingMachineName: params.portfolio.maquinaCliente || params.portfolio.maq,
+
+    classification: params.initialData.clasificacion,
+    projectType: params.initialData.tipoProyecto,
+    licitacion: params.initialData.licitacion,
+    codigoRFQ:
+      params.initialData.licitacion === "Sí"
+        ? params.initialData.codigoLicitacion?.trim()
+        : "",
+    projectName: "", // To be filled in the full form
+    projectDescription: "",
+
+    status: "Registrado",
+    stage: "P1_PREPARACION_FICHA_PROYECTO",
+    completionPercentage: 0,
+    hasStartedExtendedFicha: false,
+    
+    requiereValidacion: true,
+    validacionSolicitada: false,
+    estadoValidacionGeneral: "Sin solicitar",
+    validaciones: [],
+
+    createdAt: now,
+    updatedAt: now,
+    statusUpdatedAt: now,
+    stageUpdatedAt: now,
+  };
+
+  saveProjectRecord(project);
+  return project;
+}
+
+
 export function getProjectsSummary() {
   const projects = getProjectRecords();
 

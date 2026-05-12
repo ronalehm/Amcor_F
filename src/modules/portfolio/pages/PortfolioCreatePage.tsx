@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 
@@ -17,7 +17,7 @@ import {
   getPackingMachinesByWrappingId,
 } from "../../../shared/data/mockDatabase";
 
-import { getClientCatalogRecords, canClientHavePortfolio } from "../../../shared/data/clientStorage";
+import { getClientCatalogRecords, getClientByCode, canClientHavePortfolio } from "../../../shared/data/clientStorage";
 import { getCommercialExecutives } from "../../../shared/data/userStorage";
 import { savePortfolioRecord } from "../../../shared/data/portfolioStorage";
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
@@ -97,8 +97,12 @@ const buildInitialForm = (): PortfolioFormData => ({
 export default function PortfolioCreatePage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
+  const [searchParams] = useSearchParams();
+  const inheritedClientCode = searchParams.get("clientCode");
 
   const [form, setForm] = useState<PortfolioFormData>(buildInitialForm);
+  const [clientInheritanceError, setClientInheritanceError] = useState<string | null>(null);
+  const isClientInherited = Boolean(inheritedClientCode && form.clienteId && !clientInheritanceError);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [showFinalUseCatalog, setShowFinalUseCatalog] = useState(false);
   const [showTaxonomyDetail, setShowTaxonomyDetail] = useState(false);
@@ -112,6 +116,32 @@ export default function PortfolioCreatePage() {
   const selectedClient = allClients.find((c) => c.id === form.clienteId);
   const comercialUsers = getCommercialExecutives();
   const selectedExecutive = comercialUsers.find((u) => u.id === form.ejecutivoId);
+
+  // ── Client Inheritance from ClientDetailPage ──
+  useEffect(() => {
+    if (!inheritedClientCode) return;
+
+    const inheritedClient = getClientByCode(inheritedClientCode);
+
+    if (!inheritedClient) {
+      setClientInheritanceError(
+        `No se encontró el cliente con código ${inheritedClientCode}.`
+      );
+      return;
+    }
+
+    if (!canClientHavePortfolio(inheritedClient.status)) {
+      setClientInheritanceError(
+        "No se puede crear un portafolio para este cliente porque su estado actual no permite asignación de portafolios."
+      );
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      clienteId: inheritedClient.id,
+    }));
+  }, [inheritedClientCode]);
 
   const selectedPlant = getPlantById(Number(form.plantaId));
   const selectedWrapping = getWrappingById(Number(form.envolturaId));
@@ -372,6 +402,11 @@ export default function PortfolioCreatePage() {
       clienteId: selectedClient.id,
       clienteCode: selectedClient.code,
       cli: selectedClient.businessName,
+      // Campos para asociación Cliente → Portafolio
+      clientId: selectedClient.id,
+      clientCode: selectedClient.code,
+      clientName: selectedClient.businessName,
+      clientRuc: selectedClient.ruc || "",
 
       ejecutivoId: selectedExecutive.id,
       ejecutivoCode: selectedExecutive.code,
@@ -440,25 +475,44 @@ export default function PortfolioCreatePage() {
               required
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <SmartCatalogSearch
-                  label="Nombre del Cliente *"
-                  value={form.clienteId}
-                  onChange={(value) => updateField("clienteId", value)}
-                  onBlur={() => markFieldAsTouched("clienteId")}
-                  error={
-                    shouldShowFieldError("clienteId")
-                      ? validationErrors.clienteId
-                      : ""
-                  }
-                  options={eligibleClients.map((item) => ({
-                    id: item.id,
-                    code: item.code,
-                    name: item.businessName,
-                    meta: item.ruc,
-                  }))}
-                  placeholder="Escribe para buscar cliente..."
-                  emptyMessage="Cliente no encontrado. Regístrelo en el módulo Clientes."
-                />
+                {clientInheritanceError ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                    <p className="text-sm font-semibold text-red-800 mb-1">Error de herencia de cliente</p>
+                    <p className="text-sm text-red-700">{clientInheritanceError}</p>
+                  </div>
+                ) : isClientInherited ? (
+                  <div>
+                    <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                      Nombre del Cliente *
+                    </span>
+                    <div className="w-full rounded-lg border border-green-200 bg-green-50 py-2 px-3 text-sm font-semibold text-green-800">
+                      {selectedClient?.businessName || "—"}
+                    </div>
+                    <span className="mt-1 block text-xs text-slate-500">
+                      Cliente heredado desde Detalle de Cliente.
+                    </span>
+                  </div>
+                ) : (
+                  <SmartCatalogSearch
+                    label="Nombre del Cliente *"
+                    value={form.clienteId}
+                    onChange={(value) => updateField("clienteId", value)}
+                    onBlur={() => markFieldAsTouched("clienteId")}
+                    error={
+                      shouldShowFieldError("clienteId")
+                        ? validationErrors.clienteId
+                        : ""
+                    }
+                    options={eligibleClients.map((item) => ({
+                      id: item.id,
+                      code: item.code,
+                      name: item.businessName,
+                      meta: item.ruc,
+                    }))}
+                    placeholder="Escribe para buscar cliente..."
+                    emptyMessage="Cliente no encontrado. Regístrelo en el módulo Clientes."
+                  />
+                )}
 
                 <SmartCatalogSearch
                   label="Ejecutivo Comercial *"

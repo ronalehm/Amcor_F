@@ -19,6 +19,7 @@ import {
   resolveProjectStage,
   requiresManualGraphicArtsValidation,
   resolveTechnicalSubAreaBySubclassification,
+  resolveTechnicalSubAreaByProjectType,
 } from "../../../shared/data/projectWorkflow";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers } from "../../../shared/data/userStorage";
@@ -1357,32 +1358,16 @@ export default function ProjectEditPage() {
 ]);
 
   const projectTypeOptions = useMemo(() => {
+    if (form.classification === "Nuevo") {
+      return PROJECT_TYPE_RD_OPTIONS;
+    }
+
     if (form.classification === "Modificado") {
-      return [];
-    }
-
-    if (!form.subClassification) return [];
-
-    if (form.subClassification === "Desarrollo_RD") {
-      return PROJECT_TYPE_RD_OPTIONS;
-    }
-
-    if (form.subClassification === "Área_Técnica") {
-      return PROJECT_TYPE_TECNICA_OPTIONS;
-    }
-
-    const normalized = normalizeOptionValue(form.subClassification);
-
-    if (normalized.includes("desarrollo") || normalized.includes("rd")) {
-      return PROJECT_TYPE_RD_OPTIONS;
-    }
-
-    if (normalized.includes("area") || normalized.includes("tecnica")) {
       return PROJECT_TYPE_TECNICA_OPTIONS;
     }
 
     return [];
-  }, [form.classification, form.subClassification]);
+  }, [form.classification]);
 
   const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
     const fields = [...BASE_REQUIRED_FIELDS];
@@ -1402,13 +1387,7 @@ export default function ProjectEditPage() {
       fields.push("printType");
     }
 
-    if (form.classification) {
-      fields.push("subClassification");
-    }
-
     const isProjectTypeEnabled =
-      Boolean(form.subClassification) &&
-      form.classification !== "Modificado" &&
       projectTypeOptions.length > 0;
 
     if (isProjectTypeEnabled) {
@@ -2040,9 +2019,9 @@ const handleSaveAndExit = () => {
           currentValidationStep: "Artes Gráficas",
         } : {
           graphicArtsValidationStatus: "Aprobado automático",
-          technicalSubArea: resolveTechnicalSubAreaBySubclassification(form.subClassification),
-          currentValidationStep: resolveTechnicalSubAreaBySubclassification(form.subClassification),
-          technicalValidationStatus: resolveTechnicalSubAreaBySubclassification(form.subClassification) ? "Pendiente" : "Sin solicitar",
+          technicalSubArea: resolveTechnicalSubAreaByProjectType(form.projectType) || resolveTechnicalSubAreaBySubclassification(form.subClassification),
+          currentValidationStep: resolveTechnicalSubAreaByProjectType(form.projectType) || resolveTechnicalSubAreaBySubclassification(form.subClassification),
+          technicalValidationStatus: (resolveTechnicalSubAreaByProjectType(form.projectType) || resolveTechnicalSubAreaBySubclassification(form.subClassification)) ? "Pendiente" : "Sin solicitar",
         }),
       }),
     } as unknown as ProjectRecord);
