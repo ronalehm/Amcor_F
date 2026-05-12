@@ -20,14 +20,12 @@ import ValidationObservationsTable from "../../../shared/components/display/Vali
 
 import ProjectStageStepper from "../../../shared/components/projectTracking/ProjectStageStepper";
 import ProjectStatusPanel from "../components/ProjectStatusPanel";
-import ProjectChangeHistory from "../components/ProjectChangeHistory";
 import ProjectActionPanel from "../components/ProjectActionPanel";
 import ProjectFieldImpactList from "../components/ProjectFieldImpactList";
 import ProjectObservationPanel from "../../../shared/components/projectTracking/ProjectObservationPanel";
 import ProjectSlaPanel from "../../../shared/components/projectTracking/ProjectSlaPanel";
-import ProjectTrackingTimeline from "../../../shared/components/projectTracking/ProjectTrackingTimeline";
 import ProjectProductsPanel from "../components/ProjectProductsPanel";
-import ValidationHistoryTimeline from "../../../modules/validaciones/components/ValidationHistoryTimeline";
+import UnifiedProjectHistory from "../components/UnifiedProjectHistory";
 
 export default function ProjectDetailPage() {
   const navigate = useNavigate();
@@ -410,16 +408,14 @@ export default function ProjectDetailPage() {
             </FormCard>
           )}
 
-          <ProjectTrackingTimeline history={history} />
-
-          <ProjectChangeHistory history={history} />
-
-          {project.status === "En validación" && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <h3 className="text-lg font-semibold text-slate-900 mb-6">Historial de Validaciones</h3>
-              <ValidationHistoryTimeline projectCode={project.code} />
+          {/* Historial Unificado: Estados, Validaciones y Observaciones */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <h3 className="text-lg font-semibold text-slate-900">Historial Completo</h3>
+              <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">Estados, Validaciones, Observaciones</span>
             </div>
-          )}
+            <UnifiedProjectHistory projectCode={project.code} statusHistory={history} />
+          </div>
 
         </div>
       </div>
