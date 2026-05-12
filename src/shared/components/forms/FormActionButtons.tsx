@@ -57,11 +57,6 @@ export default function FormActionButtons({
           variant="primary"
           isLoading={isLoading}
           disabled={isLoading}
-          style={
-            validationErrorList.length > 0
-              ? { backgroundColor: "#94a3b8", cursor: "default" }
-              : undefined
-          }
         >
           {submitLabel}
         </Button>

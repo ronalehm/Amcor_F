@@ -1,15 +1,17 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getProjectRecords, type ValidationStatus } from "../../../shared/data/projectStorage";
+import { getProjectRecords } from "../../../shared/data/projectStorage";
+import { normalizeProjectWorkflow, getResponsibleAreaForProject } from "../../../shared/data/projectWorkflow";
 import FormInput from "../../../shared/components/forms/FormInput";
-import PreviewRow from "../../../shared/components/display/PreviewRow";
+
+type ValidationAreaFilter = "todas" | "artesGraficas" | "rdTecnica" | "rdDesarrollo";
 
 export default function ValidationListPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ValidationStatus | "">("");
+  const [areaFilter, setAreaFilter] = useState<ValidationAreaFilter>("todas");
 
   useEffect(() => {
     setHeader({
@@ -19,48 +21,87 @@ export default function ValidationListPage() {
     return () => resetHeader();
   }, [setHeader, resetHeader]);
 
-  const projects = useMemo(() => {
-    return getProjectRecords().filter(
-      (p) => p.validacionSolicitada && p.requiereValidacion
-    );
+  // Obtener todos los proyectos normalizados
+  const allProjects = useMemo(() => {
+    return getProjectRecords().map(normalizeProjectWorkflow);
   }, []);
 
-  const filteredProjects = useMemo(() => {
-    return projects.filter((project) => {
-      const matchSearch = !searchText ||
-        project.code.toLowerCase().includes(searchText.toLowerCase()) ||
-        project.projectName?.toLowerCase().includes(searchText.toLowerCase()) ||
-        project.clientName?.toLowerCase().includes(searchText.toLowerCase());
+  // FILTRO PRINCIPAL: Proyectos con status === "En validación"
+  const projectsInValidation = useMemo(() => {
+    return allProjects.filter((project) => project.status === "En validación");
+  }, [allProjects]);
 
-      const matchStatus = !statusFilter || project.estadoValidacionGeneral === statusFilter;
+  // Agregar área responsable a cada proyecto
+  const projectsWithArea = useMemo(() => {
+    return projectsInValidation.map((project) => ({
+      project,
+      responsibleArea: getResponsibleAreaForProject(project),
+    }));
+  }, [projectsInValidation]);
 
-      return matchSearch && matchStatus;
+  // FILTRAR POR ÁREA SELECCIONADA
+  const filteredByArea = useMemo(() => {
+    if (areaFilter === "todas") {
+      return projectsWithArea;
+    }
+
+    return projectsWithArea.filter(({ project, responsibleArea }) => {
+      if (areaFilter === "artesGraficas") {
+        return responsibleArea === "Artes Gráficas";
+      }
+      if (areaFilter === "rdTecnica") {
+        return responsibleArea === "R&D Técnica";
+      }
+      if (areaFilter === "rdDesarrollo") {
+        return responsibleArea === "R&D Desarrollo";
+      }
+      return false;
     });
-  }, [projects, searchText, statusFilter]);
+  }, [projectsWithArea, areaFilter]);
 
-  const statusOptions = [
-    { value: "", label: "Todos los estados" },
-    { value: "Pendiente de validación", label: "Pendiente de validación" },
-    { value: "En validación", label: "En validación" },
-    { value: "Observada", label: "Observada" },
-    { value: "Rechazada", label: "Rechazada" },
-    { value: "Validada por áreas", label: "Validada por áreas" },
-  ];
+  // FILTRAR POR BÚSQUEDA
+  const filteredBySearch = useMemo(() => {
+    if (!searchText) return filteredByArea;
+    const lower = searchText.toLowerCase();
+    return filteredByArea.filter(
+      ({ project }) =>
+        project.code.toLowerCase().includes(lower) ||
+        project.projectName?.toLowerCase().includes(lower) ||
+        project.clientName?.toLowerCase().includes(lower)
+    );
+  }, [filteredByArea, searchText]);
 
-  const getStatusBadgeColor = (status: ValidationStatus): string => {
-    switch (status) {
-      case "Pendiente de validación":
-        return "bg-yellow-100 text-yellow-700";
-      case "En validación":
-        return "bg-amber-100 text-amber-700";
-      case "Observada":
-        return "bg-orange-100 text-orange-700";
-      case "Rechazada":
-        return "bg-red-100 text-red-700";
-      case "Validada por áreas":
-        return "bg-green-100 text-green-700";
-      default:
-        return "bg-gray-100 text-gray-700";
+  const getValidationStatusBadge = (area: string, status: string): string => {
+    if (area === "Artes Gráficas") {
+      switch (status) {
+        case "Pendiente revisión manual":
+          return "bg-yellow-100 text-yellow-800";
+        case "En revisión":
+          return "bg-amber-100 text-amber-800";
+        case "Observado":
+          return "bg-orange-100 text-orange-800";
+        default:
+          return "bg-gray-100 text-gray-700";
+      }
+    } else {
+      switch (status) {
+        case "Pendiente":
+          return "bg-yellow-100 text-yellow-800";
+        case "En revisión":
+          return "bg-amber-100 text-amber-800";
+        case "Observado":
+          return "bg-orange-100 text-orange-800";
+        default:
+          return "bg-gray-100 text-gray-700";
+      }
+    }
+  };
+
+  const getValidationStatus = (area: string, project: any): string => {
+    if (area === "Artes Gráficas") {
+      return project.graphicArtsValidationStatus || "Pendiente";
+    } else {
+      return project.technicalValidationStatus || "Pendiente";
     }
   };
 
@@ -78,27 +119,26 @@ export default function ValidationListPage() {
           />
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Estado de Validación
+              Área Validadora
             </label>
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as ValidationStatus | "")}
+              value={areaFilter}
+              onChange={(e) => setAreaFilter(e.target.value as ValidationAreaFilter)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             >
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
+              <option value="todas">Todas las áreas</option>
+              <option value="artesGraficas">Artes Gráficas</option>
+              <option value="rdTecnica">R&D Técnica</option>
+              <option value="rdDesarrollo">R&D Desarrollo</option>
             </select>
           </div>
         </div>
 
         {/* Lista de Proyectos */}
-        {filteredProjects.length === 0 ? (
+        {filteredBySearch.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 py-12">
             <div className="text-slate-500 font-medium">
-              {projects.length === 0
+              {projectsInValidation.length === 0
                 ? "No hay proyectos pendientes de validación"
                 : "No hay proyectos que coincidan con los filtros"}
             </div>
@@ -106,58 +146,63 @@ export default function ValidationListPage() {
         ) : (
           <div className="space-y-3">
             <div className="text-sm text-slate-600 font-medium">
-              {filteredProjects.length} proyecto{filteredProjects.length !== 1 ? "s" : ""} pendiente{filteredProjects.length !== 1 ? "s" : ""}
+              {filteredBySearch.length} proyecto{filteredBySearch.length !== 1 ? "s" : ""} pendiente{filteredBySearch.length !== 1 ? "s" : ""}
             </div>
-            {filteredProjects.map((project) => (
-              <div
-                key={project.code}
-                onClick={() => navigate(`/validaciones/${project.code}`)}
-                className="cursor-pointer rounded-lg border border-slate-200 bg-white p-4 transition-all hover:border-blue-500 hover:shadow-md"
-              >
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                  <PreviewRow label="Código" value={project.code} />
-                  <PreviewRow label="Proyecto" value={project.projectName} />
-                  <PreviewRow label="Cliente" value={project.clientName} />
-                  <div>
-                    <div className="text-xs font-bold uppercase text-slate-400 mb-1">Estado</div>
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(
-                        project.estadoValidacionGeneral
-                      )}`}
-                    >
-                      {project.estadoValidacionGeneral}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Resumen de validaciones por área */}
-                {project.validaciones.length > 0 && (
-                  <div className="mt-3 border-t border-slate-200 pt-3">
-                    <div className="text-xs font-medium text-slate-600 mb-2">
-                      Validaciones por área:
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {project.validaciones.map((validation) => (
-                        <div
-                          key={validation.area}
-                          className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                            validation.estado === "Aprobada"
-                              ? "bg-green-100 text-green-700"
-                              : validation.estado === "Pendiente"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : validation.estado === "Observada"
-                                  ? "bg-orange-100 text-orange-700"
-                                  : "bg-red-100 text-red-700"
-                          }`}
+            <div className="overflow-x-auto bg-white rounded-lg border border-slate-200">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="text-left px-4 py-3 font-medium text-slate-700">Código</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-700">Proyecto</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-700">Cliente</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-700">Estado</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-700">Área Validadora</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-700">Estado Validación</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-700">Complejidad</th>
+                    <th className="text-center px-4 py-3 font-medium text-slate-700">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredBySearch.map(({ project, responsibleArea }) => (
+                    <tr
+                      key={project.code}
+                      className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 font-mono text-xs text-slate-700">{project.code}</td>
+                      <td className="px-4 py-3 max-w-xs">
+                        <div className="font-medium text-slate-900 truncate">{project.projectName}</div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{project.clientName || "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                          project.status === "En validación" ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"
+                        }`}>
+                          {project.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">{responsibleArea}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getValidationStatusBadge(responsibleArea, getValidationStatus(responsibleArea, project))}`}>
+                          {getValidationStatus(responsibleArea, project)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {project.technicalComplexity || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => navigate(`/validaciones/${project.code}`)}
+                          className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-medium"
                         >
-                          {validation.area}: {validation.estado}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                          Ver
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

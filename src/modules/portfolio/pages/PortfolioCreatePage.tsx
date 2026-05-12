@@ -39,9 +39,6 @@ type PortfolioFormData = {
   codigo: string;
   estadoId: string;
   clienteId: string;
-  clientCode?: string;
-  clientName?: string;
-  clientRuc?: string;
   ejecutivoId: string;
   plantaId: string;
   licitacion: "Sí" | "No";
@@ -81,13 +78,10 @@ function getTemporaryPortfolioCode() {
   return `PO-${String(maxNumber + 1).padStart(6, "0")}`;
 }
 
-const buildInitialForm = (clienteId: string = "", clientCode: string = "", clientName: string = "", clientRuc: string = ""): PortfolioFormData => ({
+const buildInitialForm = (): PortfolioFormData => ({
   codigo: getTemporaryPortfolioCode(),
   estadoId: String(STATUS_CATALOG[0].id),
-  clienteId,
-  clientCode,
-  clientName,
-  clientRuc,
+  clienteId: "",
   ejecutivoId: "",
   plantaId: "",
   licitacion: "No",
@@ -104,33 +98,50 @@ export default function PortfolioCreatePage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
   const [searchParams] = useSearchParams();
-
   const inheritedClientCode = searchParams.get("clientCode");
-  const inheritedClient = inheritedClientCode ? getClientByCode(inheritedClientCode) : null;
-  const isClientInherited = Boolean(inheritedClientCode && inheritedClient);
 
-  const [form, setForm] = useState<PortfolioFormData>(
-    buildInitialForm(
-      inheritedClient?.id || "",
-      inheritedClient?.code || "",
-      inheritedClient?.businessName || "",
-      inheritedClient?.ruc || ""
-    )
-  );
+  const [form, setForm] = useState<PortfolioFormData>(buildInitialForm);
+  const [clientInheritanceError, setClientInheritanceError] = useState<string | null>(null);
+  const isClientInherited = Boolean(inheritedClientCode && form.clienteId && !clientInheritanceError);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [showFinalUseCatalog, setShowFinalUseCatalog] = useState(false);
   const [showTaxonomyDetail, setShowTaxonomyDetail] = useState(false);
-  const [clientInheritanceError, setClientInheritanceError] = useState<string>("");
   const [touchedFields, setTouchedFields] = useState<
     Partial<Record<keyof PortfolioFormData, boolean>>
   >({});
 
   const selectedStatus = getStatusById(Number(form.estadoId));
   const allClients = getClientCatalogRecords();
-  const realClients = allClients.filter((c) => c.status === "active");
+  const eligibleClients = allClients.filter((c) => canClientHavePortfolio(c.status));
   const selectedClient = allClients.find((c) => c.id === form.clienteId);
   const comercialUsers = getCommercialExecutives();
   const selectedExecutive = comercialUsers.find((u) => u.id === form.ejecutivoId);
+
+  // ── Client Inheritance from ClientDetailPage ──
+  useEffect(() => {
+    if (!inheritedClientCode) return;
+
+    const inheritedClient = getClientByCode(inheritedClientCode);
+
+    if (!inheritedClient) {
+      setClientInheritanceError(
+        `No se encontró el cliente con código ${inheritedClientCode}.`
+      );
+      return;
+    }
+
+    if (!canClientHavePortfolio(inheritedClient.status)) {
+      setClientInheritanceError(
+        "No se puede crear un portafolio para este cliente porque su estado actual no permite asignación de portafolios."
+      );
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      clienteId: inheritedClient.id,
+    }));
+  }, [inheritedClientCode]);
 
   const selectedPlant = getPlantById(Number(form.plantaId));
   const selectedWrapping = getWrappingById(Number(form.envolturaId));
@@ -196,25 +207,6 @@ export default function PortfolioCreatePage() {
 
     return allCompleted ? "completed" : "pending";
   };
-
-  // Validate inherited client
-  useEffect(() => {
-    if (!inheritedClientCode) return;
-
-    if (!inheritedClient) {
-      setClientInheritanceError("No se encontró el cliente heredado.");
-      return;
-    }
-
-    if (!canClientHavePortfolio(inheritedClient.status)) {
-      setClientInheritanceError(
-        "No se puede crear un portafolio para este cliente porque su estado actual no permite asignación de portafolios."
-      );
-      return;
-    }
-
-    setClientInheritanceError("");
-  }, [inheritedClientCode, inheritedClient]);
 
   // Update header dynamically
   useEffect(() => {
@@ -346,10 +338,6 @@ export default function PortfolioCreatePage() {
     event.preventDefault();
     setSubmitAttempted(true);
 
-    if (clientInheritanceError) {
-      return;
-    }
-
     if (Object.keys(validationErrors).length > 0) {
       const fieldsWithErrors = Object.keys(validationErrors).reduce(
         (acc, field) => {
@@ -413,10 +401,12 @@ export default function PortfolioCreatePage() {
 
       clienteId: selectedClient.id,
       clienteCode: selectedClient.code,
-      clientCode: form.clientCode || selectedClient.code,
-      clientName: form.clientName || selectedClient.businessName,
-      clientRuc: form.clientRuc || selectedClient.ruc || "",
       cli: selectedClient.businessName,
+      // Campos para asociación Cliente → Portafolio
+      clientId: selectedClient.id,
+      clientCode: selectedClient.code,
+      clientName: selectedClient.businessName,
+      clientRuc: selectedClient.ruc || "",
 
       ejecutivoId: selectedExecutive.id,
       ejecutivoCode: selectedExecutive.code,
@@ -485,35 +475,44 @@ export default function PortfolioCreatePage() {
               required
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {clientInheritanceError && (
-                  <div className="md:col-span-2 bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-sm font-semibold text-red-700">{clientInheritanceError}</p>
+                {clientInheritanceError ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                    <p className="text-sm font-semibold text-red-800 mb-1">Error de herencia de cliente</p>
+                    <p className="text-sm text-red-700">{clientInheritanceError}</p>
                   </div>
-                )}
-                {isClientInherited && (
-                  <div className="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-xs font-semibold text-blue-700">Cliente heredado desde Detalle de Cliente</p>
+                ) : isClientInherited ? (
+                  <div>
+                    <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                      Nombre del Cliente *
+                    </span>
+                    <div className="w-full rounded-lg border border-green-200 bg-green-50 py-2 px-3 text-sm font-semibold text-green-800">
+                      {selectedClient?.businessName || "—"}
+                    </div>
+                    <span className="mt-1 block text-xs text-slate-500">
+                      Cliente heredado desde Detalle de Cliente.
+                    </span>
                   </div>
+                ) : (
+                  <SmartCatalogSearch
+                    label="Nombre del Cliente *"
+                    value={form.clienteId}
+                    onChange={(value) => updateField("clienteId", value)}
+                    onBlur={() => markFieldAsTouched("clienteId")}
+                    error={
+                      shouldShowFieldError("clienteId")
+                        ? validationErrors.clienteId
+                        : ""
+                    }
+                    options={eligibleClients.map((item) => ({
+                      id: item.id,
+                      code: item.code,
+                      name: item.businessName,
+                      meta: item.ruc,
+                    }))}
+                    placeholder="Escribe para buscar cliente..."
+                    emptyMessage="Cliente no encontrado. Regístrelo en el módulo Clientes."
+                  />
                 )}
-                <SmartCatalogSearch
-                  label="Nombre del Cliente *"
-                  value={form.clienteId}
-                  onChange={(value) => updateField("clienteId", value)}
-                  onBlur={() => markFieldAsTouched("clienteId")}
-                  error={
-                    shouldShowFieldError("clienteId")
-                      ? validationErrors.clienteId
-                      : ""
-                  }
-                  options={realClients.map((item) => ({
-                    id: item.id,
-                    code: item.code,
-                    name: item.businessName,
-                    meta: item.ruc,
-                  }))}
-                  placeholder="Escribe para buscar cliente..."
-                  emptyMessage="Cliente no encontrado. Regístrelo en el módulo Clientes."
-                />
 
                 <SmartCatalogSearch
                   label="Ejecutivo Comercial *"
@@ -534,8 +533,6 @@ export default function PortfolioCreatePage() {
                   placeholder="Escribe para buscar ejecutivo..."
                   emptyMessage="Usuario no encontrado. Regístrelo en el módulo Usuarios."
                 />
-
-              
               </div>
             </SectionCard>
 
@@ -717,9 +714,7 @@ export default function PortfolioCreatePage() {
               estado={selectedStatus?.name || "Registrado"}
               completionPercentage={completionPercentage}
               items={[
-                { label: "Cliente", value: selectedClient?.businessName || form.clientName || "—" },
-                ...(form.clientCode ? [{ label: "Código Cliente", value: form.clientCode }] : []),
-                ...(form.clientRuc ? [{ label: "RUC", value: form.clientRuc }] : []),
+                { label: "Cliente", value: selectedClient?.businessName || "—" },
                 { label: "Ejecutivo", value: selectedExecutive?.fullName || "—" },
                 { label: "Planta", value: selectedPlant?.name || "—" },
                 { label: "Portafolio", value: form.nombrePortafolio || "—" },

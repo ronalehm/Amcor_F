@@ -1,359 +1,317 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getProjectByCode, updateProjectRecord, type AreaValidation, type ValidationState, type ValidationStatus } from "../../../shared/data/projectStorage";
+import { getProjectByCode } from "../../../shared/data/projectStorage";
+import { observeProject, approveValidation } from "../services/validationService";
+import type { ProjectRecord } from "../../../shared/data/projectStorage";
 import FormCard from "../../../shared/components/forms/FormCard";
-import FormInput from "../../../shared/components/forms/FormInput";
-import FormTextarea from "../../../shared/components/forms/FormTextarea";
+import Button from "../../../shared/components/ui/Button";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
-import { getCurrentUser } from "../../../shared/data/userStorage";
-import ActionButton from "../../../shared/components/buttons/ActionButton";
+import ValidationHistoryTimeline from "../components/ValidationHistoryTimeline";
 
 export default function ValidationDetailPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
-  const { id: projectCode } = useParams<{ id: string }>();
-  const currentUser = getCurrentUser();
+  const { projectCode } = useParams<{ projectCode: string }>();
+  const [project, setProject] = useState<ProjectRecord | null>(null);
+  const [comment, setComment] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [loading, setLoading] = useState(true);
-  const [activeArea, setActiveArea] = useState<AreaValidation | null>(null);
-  const [newComment, setNewComment] = useState("");
-  const [campoObservado, setCampoObservado] = useState("");
-  const [accionRequerida, setAccionRequerida] = useState("");
-
-  const project = useMemo(() => {
-    if (!projectCode) return null;
-    return getProjectByCode(projectCode);
+  useEffect(() => {
+    if (projectCode) {
+      const p = getProjectByCode(projectCode);
+      setProject(p);
+    }
   }, [projectCode]);
 
   useEffect(() => {
-    setLoading(false);
-    if (projectCode && project) {
+    if (project) {
       setHeader({
-        title: "Detalle de Validaci�n",
-        subtitle: `Validaci�n del proyecto ${projectCode}`,
+        title: `Validación: ${project.code}`,
         breadcrumbs: [
           { label: "Validaciones", href: "/validaciones" },
-          { label: projectCode },
+          { label: project.code },
         ],
       });
-      if (project.validaciones.length > 0) {
-        setActiveArea(project.validaciones[0].area);
-      }
     }
     return () => resetHeader();
-  }, [projectCode, project, setHeader, resetHeader]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-slate-500">Cargando...</div>
-      </div>
-    );
-  }
+  }, [project, setHeader, resetHeader]);
 
   if (!project) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <div className="text-red-600 font-semibold">Proyecto no encontrado</div>
-        <ActionButton
-          label="Volver a Validaciones"
-          onClick={() => navigate("/validaciones")}
-          variant="primary"
-        />
+        <Button variant="ghost" onClick={() => navigate("/validaciones")}>
+          Volver a Validaciones
+        </Button>
       </div>
     );
   }
 
-  const activeValidation = project.validaciones.find((v) => v.area === activeArea);
+  const currentStep = project.currentValidationStep;
+  const isGraphicArtsStep = currentStep === "Artes Gráficas";
+  const isTechnicalStep = currentStep === "R&D Técnica" || currentStep === "R&D Desarrollo";
 
-  const handleAddComment = () => {
-    if (!newComment.trim() || !activeArea) return;
+  const handleObservar = async () => {
+    if (!comment.trim()) {
+      alert("El comentario es obligatorio al observar.");
+      return;
+    }
 
-    const updated = {
-      ...project,
-      validaciones: project.validaciones.map((v) =>
-        v.area === activeArea
-          ? {
-            ...v,
-            comentarios: [
-              ...v.comentarios,
-              {
-                id: `COM-${Date.now()}`,
-                comentario: newComment,
-                campo: campoObservado || undefined,
-                accionRequerida: accionRequerida || undefined,
-                fecha: new Date().toISOString(),
-                autor: currentUser?.fullName || "Sistema",
-              },
-            ],
-          }
-          : v
-      ),
-    };
-
-    updateProjectRecord(projectCode!, updated);
-    setNewComment("");
-    setCampoObservado("");
-    setAccionRequerida("");
-  };
-
-  const handleChangeStatus = (newStatus: ValidationState) => {
-    if (!activeArea) return;
-
-    const updated = {
-      ...project,
-      validaciones: project.validaciones.map((v) =>
-        v.area === activeArea
-          ? {
-            ...v,
-            estado: newStatus,
-            validador: currentUser?.fullName || "Sistema",
-            fechaValidacion: new Date().toISOString(),
-          }
-          : v
-      ),
-    };
-
-    updateProjectRecord(projectCode!, updated);
-  };
-
-  const getStatusColor = (status: ValidationState): string => {
-    switch (status) {
-      case "Aprobada":
-        return "bg-green-100 text-green-700";
-      case "Pendiente":
-        return "bg-yellow-100 text-yellow-700";
-      case "Observada":
-        return "bg-orange-100 text-orange-700";
-      case "Rechazada":
-        return "bg-red-100 text-red-700";
+    setLoading(true);
+    try {
+      const area = isGraphicArtsStep ? "Artes Gráficas" : (currentStep || "R&D Técnica");
+      const updated = observeProject(project, area as any, comment);
+      setProject(updated);
+      alert("Proyecto observado. El ejecutivo deberá corregir y solicitar validación nuevamente.");
+      navigate("/validaciones");
+    } catch (error) {
+      console.error("Error al observar:", error);
+      alert("Error al procesar la observación.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const hasObservations = project.validaciones.some((v) => v.estado === "Observada");
-  const hasRejections = project.validaciones.some((v) => v.estado === "Rechazada");
+  const handleValidar = async () => {
+    setLoading(true);
+    try {
+      const area = isGraphicArtsStep ? "Artes Gráficas" : (currentStep || "R&D Técnica");
+      const updated = approveValidation(project, area as any, comment || undefined);
+      setProject(updated);
+      alert("Validación completada.");
+      navigate("/validaciones");
+    } catch (error) {
+      console.error("Error al validar:", error);
+      alert("Error al procesar la validación.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="w-full max-w-none bg-[#f6f8fb] pb-12">
+    <div className="w-full max-w-none bg-[#f6f8fb] space-y-6 pb-12 p-6">
       <button
         type="button"
         onClick={() => navigate("/validaciones")}
-        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+        className="flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
       >
         <ArrowLeft size={16} />
         Atrás
       </button>
-      <div className="space-y-5 p-5">
-        {/* Informaci�n del Proyecto */}
-        <FormCard title="Informaci�n del Proyecto" icon="?" color="#00395A">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <PreviewRow label="C�digo" value={project.code} />
-            <PreviewRow label="Proyecto" value={project.projectName} />
-            <PreviewRow label="Cliente" value={project.clientName} />
-            <div>
-              <div className="text-xs font-bold uppercase text-slate-400 mb-1">Estado General</div>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                project.estadoValidacionGeneral === "Validada por áreas"
-                  ? "bg-green-100 text-green-700"
-                  : project.estadoValidacionGeneral === "En validación"
-                    ? "bg-amber-100 text-amber-700"
-                    : project.estadoValidacionGeneral === "Observada"
-                      ? "bg-orange-100 text-orange-700"
-                      : project.estadoValidacionGeneral === "Rechazada"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-gray-100 text-gray-700"
-              }`}>
-                {project.estadoValidacionGeneral}
-              </span>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Columna izquierda: Datos del proyecto */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Encabezado del proyecto */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-6 bg-gradient-to-br from-brand-primary to-brand-secondary text-white">
+              <div className="text-xs font-bold uppercase tracking-wide text-white/75 mb-1">
+                Proyecto {project.code}
+              </div>
+              <h2 className="text-2xl font-bold">{project.projectName}</h2>
             </div>
           </div>
 
-          {hasObservations && (
-            <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <div className="text-sm font-medium text-orange-800">
-                ?? Este proyecto tiene observaciones que requieren correcci�n del Ejecutivo
-              </div>
-            </div>
-          )}
-
-          {hasRejections && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div className="text-sm font-medium text-red-800">
-                ? Este proyecto ha sido RECHAZADO y no puede continuar al RFQ
-              </div>
-            </div>
-          )}
-        </FormCard>
-
-        {/* �reas de Validaci�n */}
-        {project.validaciones.length > 0 ? (
-          <div className="space-y-4">
-            {/* Tabs de �reas */}
-            <div className="flex gap-2 border-b border-slate-300 overflow-x-auto">
-              {project.validaciones.map((v) => (
-                <button
-                  key={v.area}
-                  onClick={() => setActiveArea(v.area)}
-                  className={`px-4 py-2 font-medium border-b-2 transition-colors whitespace-nowrap ${activeArea === v.area
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-slate-600 hover:text-slate-800"
-                    }`}
-                >
-                  {v.area}
-                  <span
-                    className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(v.estado)}`}
-                  >
-                    {v.estado}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {/* Contenido del �rea activa */}
-            {activeValidation && (
-              <FormCard title={`Validaci�n - ${activeValidation.area}`} icon="?" color="#00395A">
-                <div className="space-y-5">
-                  {/* Estado y Validador */}
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Estado *
-                      </label>
-                      <select
-                        value={activeValidation.estado}
-                        onChange={(e) => handleChangeStatus(e.target.value as ValidationState)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                      >
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="Aprobada">Aprobada</option>
-                        <option value="Observada">Observada</option>
-                        <option value="Rechazada">Rechazada</option>
-                      </select>
-                    </div>
-                    <PreviewRow
-                      label="Validador"
-                      value={activeValidation.validador || currentUser?.fullName || "Sin asignar"}
-                    />
-                    <PreviewRow
-                      label="Fecha validaci�n"
-                      value={activeValidation.fechaValidacion ? new Date(activeValidation.fechaValidacion).toLocaleDateString() : "�"}
-                    />
-                  </div>
-
-                  {/* Mostrar campo observado si existe */}
-                  {activeValidation.campoObservado && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <div className="text-xs font-bold text-amber-800 mb-1">CAMPO OBSERVADO</div>
-                      <div className="text-sm text-amber-900">{activeValidation.campoObservado}</div>
-                    </div>
-                  )}
-
-                  {/* Mostrar acci�n requerida si existe */}
-                  {activeValidation.accionRequerida && (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="text-xs font-bold text-blue-800 mb-1">ACCI�N REQUERIDA</div>
-                      <div className="text-sm text-blue-900">{activeValidation.accionRequerida}</div>
-                    </div>
-                  )}
-
-                  {/* Hist�rico de comentarios */}
-                  {activeValidation.comentarios.length > 0 && (
-                    <div>
-                      <div className="text-sm font-semibold text-slate-700 mb-3">Historial de comentarios:</div>
-                      <div className="space-y-3 max-h-64 overflow-y-auto">
-                        {activeValidation.comentarios.map((comment) => (
-                          <div
-                            key={comment.id}
-                            className="rounded-lg bg-slate-50 p-3 border border-slate-200"
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="text-xs text-slate-600">
-                                {new Date(comment.fecha).toLocaleString()}
-                              </div>
-                              {comment.autor && (
-                                <div className="text-xs font-medium text-slate-700">
-                                  {comment.autor}
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-sm text-slate-800 mb-2">
-                              {comment.comentario}
-                            </div>
-                            {comment.campo && (
-                              <div className="text-xs text-orange-700 bg-orange-50 px-2 py-1 rounded inline-block mb-1">
-                                Campo: {comment.campo}
-                              </div>
-                            )}
-                            {comment.accionRequerida && (
-                              <div className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded inline-block ml-2">
-                                Acci�n: {comment.accionRequerida}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Agregar nuevo comentario */}
-                  <div className="border-t border-slate-200 pt-4">
-                    <div className="text-sm font-semibold text-slate-700 mb-3">Agregar comentario:</div>
-                    <div className="space-y-3">
-                      <FormInput
-                        label="Campo observado (opcional)"
-                        value={campoObservado}
-                        onChange={setCampoObservado}
-                        placeholder="ej: Gramaje, Archivo de arte, Estructura..."
-                      />
-                      <FormTextarea
-                        label="Comentario *"
-                        value={newComment}
-                        onChange={setNewComment}
-                        placeholder="Describa la observaci�n o el motivo del rechazo..."
-                        rows={3}
-                      />
-                      <FormInput
-                        label="Acci�n requerida (opcional)"
-                        value={accionRequerida}
-                        onChange={setAccionRequerida}
-                        placeholder="ej: Adjuntar archivo, Confirmar tolerancia, Corregir formato..."
-                      />
-                      <ActionButton
-                        label="Registrar comentario"
-                        onClick={handleAddComment}
-                        disabled={!newComment.trim()}
-                        variant="primary"
-                        size="sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </FormCard>
-            )}
-          </div>
-        ) : (
-          <FormCard title="Validaciones" icon="?" color="#00395A">
-            <div className="text-slate-500 text-center py-8">
-              No hay �reas de validaci�n registradas para este proyecto
+          {/* Datos generales */}
+          <FormCard title="Datos del Proyecto" icon="▦" color="#00395A">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+              <PreviewRow label="Código" value={project.code} />
+              <PreviewRow label="Cliente" value={project.clientName} />
+              <PreviewRow label="Portafolio" value={project.portfolioCode} />
+              <PreviewRow label="Ejecutivo" value={project.ejecutivoName} />
+              <PreviewRow label="Estado" value={project.status} />
+              <PreviewRow label="Completitud" value={`${project.completionPercentage || 0}%`} />
             </div>
           </FormCard>
-        )}
 
-        {/* Botones de acci�n */}
-        <div className="flex gap-3">
-          <ActionButton
-            label="Volver"
-            onClick={() => navigate("/validaciones")}
-            variant="outline"
-          />
-          <ActionButton
-            label="Ver Proyecto"
-            onClick={() => navigate(`/projects/${projectCode}`)}
-            variant="primary"
-          />
+          {/* Datos para Artes Gráficas */}
+          {isGraphicArtsStep && (
+            <FormCard title="Datos para Validación de Artes Gráficas" icon="🎨" color="#7E3FB2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                <PreviewRow label="Requiere Diseño Especial" value={project.requiresDesignWork ? "Sí" : "No"} />
+                <PreviewRow label="Tipo de Impresión" value={project.printType || "—"} />
+                <PreviewRow label="Clase de Impresión" value={project.printClass || "—"} />
+                <PreviewRow label="Tiene Diseño de Referencia" value={project.isPreviousDesign ? "Sí" : "No"} />
+                <PreviewRow label="Código EDAG" value={project.previousEdagCode || "—"} />
+                <PreviewRow label="Versión EDAG" value={project.previousEdagVersion || "—"} />
+                {project.specialDesignComments && (
+                  <div className="md:col-span-2">
+                    <div className="text-xs font-bold uppercase text-slate-600 mb-1">Comentarios de Diseño</div>
+                    <div className="text-sm text-slate-700 bg-slate-50 p-3 rounded border border-slate-200">
+                      {project.specialDesignComments}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </FormCard>
+          )}
+
+          {/* Datos para R&D / Área Técnica */}
+          {isTechnicalStep && (
+            <FormCard title="Datos para Validación Técnica" icon="⚙" color="#00A1DE">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                <PreviewRow label="Tipo de Estructura" value={project.structureType || "—"} />
+                <PreviewRow label="Formato" value={project.blueprintFormat || "—"} />
+                <PreviewRow label="Aplicación Técnica" value={project.technicalApplication || "—"} />
+                <PreviewRow label="Complejidad Técnica" value={project.technicalComplexity || "—"} />
+
+                <div className="md:col-span-2 border-t border-slate-100 pt-4 mt-2">
+                  <h4 className="font-semibold text-slate-700 mb-3">Capas y Materiales</h4>
+                </div>
+
+                {[1, 2, 3, 4].map((n) => {
+                  const materialKey = `layer${n}Material` as keyof ProjectRecord;
+                  const micronKey = `layer${n}Micron` as keyof ProjectRecord;
+                  const grammageKey = `layer${n}Grammage` as keyof ProjectRecord;
+
+                  const hasMaterial = project[materialKey];
+                  if (!hasMaterial) return null;
+
+                  return (
+                    <div key={n} className="md:col-span-2">
+                      <div className="text-xs font-semibold text-slate-600 uppercase mb-2">Capa {n}</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <PreviewRow label="Material" value={String(project[materialKey] || "—")} />
+                        <PreviewRow label="Micraje" value={String(project[micronKey] || "—")} />
+                        <PreviewRow label="Gramaje" value={String(project[grammageKey] || "—")} />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div className="md:col-span-2 border-t border-slate-100 pt-4">
+                  <PreviewRow label="Gramaje Total" value={project.grammage || "—"} />
+                </div>
+
+                <div className="md:col-span-2 border-t border-slate-100 pt-4">
+                  <h4 className="font-semibold text-slate-700 mb-3">Dimensiones y Accesorios</h4>
+                </div>
+
+                <PreviewRow label="Ancho" value={project.width || "—"} />
+                <PreviewRow label="Largo" value={project.length || "—"} />
+                <PreviewRow label="Zipper" value={project.hasZipper ? (project.zipperType || "Sí") : "No"} />
+                <PreviewRow label="Válvula" value={project.hasValve ? (project.valveType || "Sí") : "No"} />
+                <PreviewRow label="Refuerzo" value={project.hasReinforcement ? "Sí" : "No"} />
+                <PreviewRow label="Esquinas Redondeadas" value={project.hasRoundedCorners ? "Sí" : "No"} />
+              </div>
+            </FormCard>
+          )}
         </div>
+
+        {/* Columna derecha: Formulario de validación */}
+        <div className="space-y-6">
+          {/* Estado de validaciones */}
+          <FormCard title="Estado de Validaciones" icon="✓" color="#00395A">
+            <div className="space-y-3">
+              <div>
+                <div className="text-xs font-bold uppercase text-slate-600 mb-1">Artes Gráficas</div>
+                <span className={`inline-block px-3 py-2 rounded text-xs font-medium ${
+                  project.graphicArtsValidationStatus === "Validado" ? "bg-green-100 text-green-800" :
+                  project.graphicArtsValidationStatus === "Aprobado automático" ? "bg-green-100 text-green-800" :
+                  project.graphicArtsValidationStatus === "Observado" ? "bg-orange-100 text-orange-800" :
+                  project.graphicArtsValidationStatus === "Pendiente revisión manual" ? "bg-yellow-100 text-yellow-800" :
+                  "bg-gray-100 text-gray-800"
+                }`}>
+                  {project.graphicArtsValidationStatus || "Sin solicitar"}
+                </span>
+              </div>
+
+              <div>
+                <div className="text-xs font-bold uppercase text-slate-600 mb-1">Validación Técnica</div>
+                <span className={`inline-block px-3 py-2 rounded text-xs font-medium ${
+                  project.technicalValidationStatus === "Validado" ? "bg-green-100 text-green-800" :
+                  project.technicalValidationStatus === "Aprobado automático" ? "bg-green-100 text-green-800" :
+                  project.technicalValidationStatus === "Observado" ? "bg-orange-100 text-orange-800" :
+                  project.technicalValidationStatus === "Pendiente" ? "bg-yellow-100 text-yellow-800" :
+                  "bg-gray-100 text-gray-800"
+                }`}>
+                  {project.technicalValidationStatus || "Sin solicitar"}
+                </span>
+              </div>
+            </div>
+          </FormCard>
+
+          {/* Formulario de acción */}
+          {(isGraphicArtsStep || isTechnicalStep) && (
+            <FormCard title="Acción de Validación" icon="📋" color="#e74c3c">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Comentarios {isGraphicArtsStep || isTechnicalStep ? "(obligatorio al observar)" : ""}
+                  </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Escribe tus comentarios aquí..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:border-brand-primary focus:outline-none resize-none"
+                    rows={5}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="danger"
+                    onClick={handleObservar}
+                    disabled={loading}
+                    className="flex-1"
+                  >
+                    {loading ? "Procesando..." : "Observado"}
+                  </Button>
+                  <Button
+                    variant="success"
+                    onClick={handleValidar}
+                    disabled={loading}
+                    className="flex-1"
+                  >
+                    {loading ? "Procesando..." : "Validado"}
+                  </Button>
+                </div>
+              </div>
+            </FormCard>
+          )}
+
+          {!isGraphicArtsStep && !isTechnicalStep && (
+            <FormCard title="Estado" icon="ℹ️" color="#2c3e50">
+              <div className="text-sm text-slate-600">
+                Este proyecto ya ha completado todas las validaciones.
+              </div>
+            </FormCard>
+          )}
+
+          {/* Historial de observaciones */}
+          {project.lastObservationComment && (
+            <FormCard title="Última Observación" icon="⚠️" color="#f39c12">
+              <div className="space-y-2">
+                <div>
+                  <div className="text-xs font-semibold text-slate-600 uppercase">Fuente</div>
+                  <div className="text-sm text-slate-700">{project.lastObservationSource || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-slate-600 uppercase">Comentario</div>
+                  <div className="text-sm text-slate-700 bg-yellow-50 p-2 rounded">
+                    {project.lastObservationComment}
+                  </div>
+                </div>
+                {project.lastObservationAt && (
+                  <div>
+                    <div className="text-xs font-semibold text-slate-600 uppercase">Fecha</div>
+                    <div className="text-sm text-slate-700">
+                      {new Date(project.lastObservationAt).toLocaleDateString("es-AR")}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </FormCard>
+          )}
+        </div>
+      </div>
+
+      {/* Historial de validaciones - Sección completa */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h3 className="text-lg font-semibold text-slate-900 mb-6">Historial de Validaciones</h3>
+        <ValidationHistoryTimeline projectCode={project.code} />
       </div>
     </div>
   );

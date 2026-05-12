@@ -206,11 +206,11 @@ export function getClientPortfolioEligibilityMessage(status?: ClientStatus): str
   if (!status) return "";
 
   if (status === "pending_activation") {
-    return "El cliente debe completar su activación. Estado actual: Pendiente de Activación";
+    return "El cliente debe estar Activo para tener portafolios asignados. Estado actual: Pendiente de Activación";
   }
 
   if (status === "pending_validation") {
-    return "El cliente debe completar su validación. Estado actual: Pendiente de Validación";
+    return "El cliente debe estar Activo para tener portafolios asignados. Estado actual: Pendiente de Validación";
   }
 
   if (status === "blocked") {

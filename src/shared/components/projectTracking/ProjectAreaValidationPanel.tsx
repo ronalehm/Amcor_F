@@ -3,17 +3,17 @@ import { type ProjectStage, getStageConfig, PORTAL_PROJECT_STAGES, SI_PROJECT_ST
 import Button from "../ui/Button";
 
 interface ProjectAreaValidationPanelProps {
-  currentStage: ProjectStage;
+  currentStage: ProjectStage | string;
   hasOpenBlockingObservations: boolean;
-  onAdvance: (nextStage: ProjectStage) => void;
+  onAdvance: (nextStage: ProjectStage | string) => void;
 }
 
 export default function ProjectAreaValidationPanel({ currentStage, hasOpenBlockingObservations, onAdvance }: ProjectAreaValidationPanelProps) {
-  const config = getStageConfig(currentStage);
-  
+  const config = getStageConfig(currentStage as ProjectStage);
+
   if (!config) return null;
 
-  const handleAdvance = (nextStage: ProjectStage) => {
+  const handleAdvance = (nextStage: ProjectStage | string) => {
     if (hasOpenBlockingObservations) {
       alert("No se puede avanzar la etapa mientras existan observaciones bloqueantes abiertas.");
       return;

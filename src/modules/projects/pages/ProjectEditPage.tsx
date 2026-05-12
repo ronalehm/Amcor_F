@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords, TECHNICAL_APPLICATION_OPTIONS } from "../../../shared/data/portfolioStorage";
@@ -12,20 +12,18 @@ import {
   type BooleanLike,
   type YesNoPending,
 } from "../../../shared/data/projectStorage";
+import {
+  computeProjectPreparationStatus,
+  normalizeProjectStatus,
+  hasAnyEditableSection2To6Data,
+  resolveProjectStage,
+  requiresManualGraphicArtsValidation,
+  resolveTechnicalSubAreaBySubclassification,
+  resolveTechnicalSubAreaByProjectType,
+} from "../../../shared/data/projectWorkflow";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers } from "../../../shared/data/userStorage";
-import {
-  isGuidedFormatEnabled,
-  isBolsaWrapping,
-  isLaminaWrapping,
-  isPouchWrapping,
-  calculateBolsaFormatPlan,
-  calculateLaminaFormatPlan,
-  calculatePouchFormatPlan,
-  validateLaminaFormatPlan,
-  validatePouchFormatPlan,
-  inferBolsaGussetType,
-} from "../../../shared/data/formatPlanRules";
+import { isGuidedFormatEnabled, calculateBolsaFormatPlan } from "../../../shared/data/formatPlanRules";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -65,6 +63,7 @@ type ProjectEditFormData = {
   tieneFuelleSelloCentralPouch: string;
   materialSelloCentralPouch: string;
   tipoSelloEnFuellePouch: string;
+
   technicalApplication: string;
   estimatedVolume: string;
   unitOfMeasure: string;
@@ -228,74 +227,10 @@ const BOLSA_FORMAT_OPTIONS = [
   { value: "HOJAS", label: "HOJAS" },
 ];
 
-const BOLSA_PRESENTATION_TYPE_OPTIONS = [
-  { value: "Bolsa sellada", label: "Bolsa sellada" },
-  { value: "Wicket", label: "Wicket" },
-  { value: "Hojas", label: "Hojas" },
-];
-
-const BOLSA_SEAL_TYPE_OPTIONS = [
-  { value: "Sello lateral", label: "Sello lateral" },
-  { value: "Sello de fondo", label: "Sello de fondo" },
-];
-
-const BOLSA_FINISH_OPTIONS = [
-  { value: "Corte", label: "Corte" },
-  { value: "Pestaña", label: "Pestaña" },
-];
-
-const BOLSA_GUSSET_POSITION_OPTIONS = [
-  { value: "Fondo", label: "Fondo" },
-  { value: "Lateral", label: "Lateral" },
-];
-
 const LAMINA_FORMAT_OPTIONS = [
   { value: "GENERICA", label: "GENERICA" },
   { value: "TISSUE", label: "TISSUE" },
   { value: "FOOD", label: "FOOD" },
-];
-
-const POUCH_FAMILY_OPTIONS = [
-  { value: "Pouch Stand Up", label: "Pouch Stand Up" },
-  { value: "Pouch Plano", label: "Pouch Plano" },
-  { value: "Pouch con Sello Central", label: "Pouch con Sello Central" },
-  { value: "Pouch con Sello en Fuelle", label: "Pouch con Sello en Fuelle" },
-];
-
-const POUCH_STAND_UP_OPTIONS = [
-  { value: "Tipo K", label: "Tipo K" },
-  { value: "Normal", label: "Normal" },
-  { value: "Doy Pack", label: "Doy Pack" },
-];
-
-const POUCH_DOY_PACK_FORM_OPTIONS = [
-  { value: "Redondo", label: "Redondo" },
-  { value: "Cuadrado", label: "Cuadrado" },
-];
-
-const POUCH_FUELLE_STAND_UP_OPTIONS = [
-  { value: "Fuelle Propio", label: "Fuelle Propio" },
-  { value: "Fuelle Insertado", label: "Fuelle Insertado" },
-];
-
-const POUCH_PLANO_SEALS_OPTIONS = [
-  { value: "Dos sellos", label: "Dos sellos" },
-  { value: "Tres sellos", label: "Tres sellos" },
-];
-
-const POUCH_SELLO_CENTRAL_FUELLE_OPTIONS = [
-  { value: "Sí", label: "Sí" },
-  { value: "No", label: "No" },
-];
-
-const POUCH_SELLO_CENTRAL_MATERIAL_OPTIONS = [
-  { value: "PE-PE/PE", label: "PE-PE/PE" },
-  { value: "Otro", label: "Otro" },
-];
-
-const POUCH_SELLO_EN_FUELLE_OPTIONS = [
-  { value: "Tipo 4-1", label: "Tipo 4-1" },
-  { value: "Tipo 1-1", label: "Tipo 1-1" },
 ];
 
 function normalizeWrapping(value: string): string {
@@ -398,7 +333,6 @@ function getMaterialTypeForSummary(materialValue: string): string {
 
   return materialValue;
 }
-
 const UNIT_OPTIONS = [
   { value: "KGS", label: "KGS" },
   { value: "MLL", label: "MLL" },
@@ -415,7 +349,7 @@ const PRINT_CLASS_OPTIONS = [
 ];
 
 const PRINT_TYPE_OPTIONS = [
-  { value: "Nuevo", label: "Nuevo" },
+  { value: "Continuo", label: "Continuo" },
   { value: "Repetitivo", label: "Repetitivo" },
 ];
 
@@ -426,7 +360,8 @@ const STRUCTURE_TYPE_OPTIONS = [
   { value: "Tetralaminado", label: "Tetralaminado" },
 ];
 
-type MaterialEntry = {value: string; label: string; micron: string; grammage: string; isFree: boolean;
+type MaterialEntry = {
+  value: string; label: string; micron: string; grammage: string; isFree: boolean;
 };
 
 type MaterialCatalog = Record<string, MaterialEntry[]>;
@@ -629,12 +564,6 @@ const OTHER_ACCESSORIES_OPTIONS = [
   { value: "No aplica", label: "No aplica" },
 ];
 
-const LAMINA_GUIDED_FORMAT_OPTIONS = [
-  { value: "GENERICA", label: "Genérica" },
-  { value: "TISSUE", label: "Tissue" },
-  { value: "FOOD", label: "Food" },
-];
-
 const DESTINATION_COUNTRY_OPTIONS = [
   { value: "Perú", label: "Perú" },
   { value: "Chile", label: "Chile" },
@@ -652,22 +581,20 @@ const POUCH_DOY_PACK_DIMENSION_RESTRICTIONS = {
 } as const;
 
 const STEPS = [
-  { label: "Información de Producto" },
+  { label: "Proyecto" },
   { label: "Diseño" },
   { label: "Estructura" },
-  { label: "Condiciones Comerciales" },
+  { label: "Condiciones comerciales" },
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
-  // 1. Información de Producto
+  // 0. Proyecto
   0: [
     "salesforceAction",
     "projectName",
     "projectDescription",
-    "executiveId",
     "portfolioCode",
     "classification",
-    "subClassification",
     "projectType",
     "licitacion",
     "codigoRFQ",
@@ -675,10 +602,17 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "customerPackingCode",
     "customerAdditionalInfo",
     "additionalComment",
+    "deliveryAddress",
   ],
 
   // 2. Diseño
   1: [
+    "blueprintFormat",
+    "tipoPresentacionBolsa",
+    "tipoSelloBolsa",
+    "acabadoBolsa",
+    "tieneFuelleBolsa",
+    "tipoFuelleBolsa",
     "hasEdagReference",
     "edagCode",
     "edagVersion",
@@ -686,24 +620,9 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "printType",
     "specialDesignSpecs",
     "specialDesignComments",
+    "designPlanFiles",
     "peruvianProductLogo",
     "printingFooter",
-    "blueprintFormat",
-    "tipoPresentacionBolsa",
-    "tipoSelloBolsa",
-    "acabadoBolsa",
-    "tieneFuelleBolsa",
-    "tipoFuelleBolsa",
-    "tipoFormatoLamina",
-    "tipoFamiliaPouch",
-    "tipoStandUpPouch",
-    "formaDoyPackPouch",
-    "tipoFuelleStandUpPouch",
-    "cantidadSellosPouchPlano",
-    "tieneFuelleSelloCentralPouch",
-    "materialSelloCentralPouch",
-    "tipoSelloEnFuellePouch",
-    "designPlanFiles",
   ],
 
   // 3. Estructura
@@ -713,34 +632,14 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "referenceEmVersion",
     "structureType",
 
-    "layer1MaterialGroup",
-    "layer1Material",
-    "layer1Micron",
-    "layer1Grammage",
-    "layer2MaterialGroup",
-    "layer2Material",
-    "layer2Micron",
-    "layer2Grammage",
-    "layer3MaterialGroup",
-    "layer3Material",
-    "layer3Micron",
-    "layer3Grammage",
-    "layer4MaterialGroup",
-    "layer4Material",
-    "layer4Micron",
-    "layer4Grammage",
+    "layer1MaterialGroup", "layer1Material", "layer1Micron", "layer1Grammage",
+    "layer2MaterialGroup", "layer2Material", "layer2Micron", "layer2Grammage",
+    "layer3MaterialGroup", "layer3Material", "layer3Micron", "layer3Grammage",
+    "layer4MaterialGroup", "layer4Material", "layer4Micron", "layer4Grammage",
 
-    "grammage",
-    "grammageTolerance",
-    "sampleRequest",
-    "specialStructureSpecs",
+    "grammage", "grammageTolerance", "sampleRequest", "specialStructureSpecs",
 
-    "width",
-    "length",
-    "repetition",
-    "doyPackBase",
-    "gussetWidth",
-    "gussetType",
+    "width", "length", "repetition", "doyPackBase", "gussetWidth",
 
     "hasZipper", "zipperType", "hasTinTie", "hasValve", "valveType",
     "hasDieCutHandle", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
@@ -748,18 +647,13 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "hasPerforation", "pouchPerforationType", "bagPerforationType", "perforationLocation",
     "hasPreCut", "preCutType", "otherAccessories",
 
-    "hasCustomerTechnicalSpec",
-    "customerTechnicalSpecAttachment",
+    "hasCustomerTechnicalSpec", "customerTechnicalSpecAttachment",
 
-    "coreMaterial",
-    "coreDiameter",
-    "externalDiameter",
-    "externalVariationPlus",
-    "externalVariationMinus",
-    "maxRollWeight",
+    "coreMaterial", "coreDiameter", "externalDiameter",
+    "externalVariationPlus", "externalVariationMinus", "maxRollWeight",
   ],
 
-  // 4. Condiciones comerciales
+  // 3. Condiciones comerciales
   3: [
     "estimatedVolume",
     "unitOfMeasure",
@@ -768,7 +662,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "destinationCountry",
     "targetPrice",
     "currencyType",
-    "deliveryAddress",
   ],
 };
 const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
@@ -779,15 +672,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   projectDescription: "Descripción del proyecto",
 
   blueprintFormat: "Formato de plano",
-  tipoFormatoLamina: "Tipo de formato de lámina",
-  tipoFamiliaPouch: "Familia de pouch",
-  tipoStandUpPouch: "Tipo de stand up",
-  formaDoyPackPouch: "Forma doy pack",
-  tipoFuelleStandUpPouch: "Tipo de fuelle (stand up)",
-  cantidadSellosPouchPlano: "Cantidad de sellos",
-  tieneFuelleSelloCentralPouch: "¿Tiene fuelle? (sello central)",
-  materialSelloCentralPouch: "Material (sello central)",
-  tipoSelloEnFuellePouch: "Tipo de sello en fuelle",
   technicalApplication: "Aplicación técnica",
   customerPackingCode: "Código de empaque del cliente",
 
@@ -818,10 +702,8 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   hasCustomerTechnicalSpec: "¿Tiene Especificación Técnica del Cliente?",
   customerTechnicalSpecAttachment: "Especificación Técnica del Cliente Adjunto",
   customerAdditionalInfo: "Información adicional cliente",
-  deliveryAddress: "Dirección de entrega",
-  additionalComment: "Comentario",
+  additionalComment: "Comentario del Ejecutivo Comercial",
   classification: "Clasificación",
-  subClassification: "Subsección Clasificación",
   projectType: "Tipo de Proyecto",
 
   hasEdagReference: "¿Tiene Diseño de referencia?",
@@ -845,33 +727,27 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   externalVariationMinus: "Variación Externa -",
 
   layer1MaterialGroup: "Capa 1 - Grupo Material",
-layer1Material: "Capa 1 - Tipo de Material y Micraje",
-layer1Micron: "Capa 1 - Micraje",
-layer1Grammage: "Capa 1 - Gramaje",
+  layer1Material: "Capa 1 - Tipo de Material y Micraje",
+  layer1Micron: "Capa 1 - Micraje",
+  layer1Grammage: "Capa 1 - Gramaje",
 
-layer2MaterialGroup: "Capa 2 - Grupo Material",
-layer2Material: "Capa 2 - Tipo de Material y Micraje",
-layer2Micron: "Capa 2 - Micraje",
-layer2Grammage: "Capa 2 - Gramaje",
+  layer2MaterialGroup: "Capa 2 - Grupo Material",
+  layer2Material: "Capa 2 - Tipo de Material y Micraje",
+  layer2Micron: "Capa 2 - Micraje",
+  layer2Grammage: "Capa 2 - Gramaje",
 
-layer3MaterialGroup: "Capa 3 - Grupo Material",
-layer3Material: "Capa 3 - Tipo de Material y Micraje",
-layer3Micron: "Capa 3 - Micraje",
-layer3Grammage: "Capa 3 - Gramaje",
+  layer3MaterialGroup: "Capa 3 - Grupo Material",
+  layer3Material: "Capa 3 - Tipo de Material y Micraje",
+  layer3Micron: "Capa 3 - Micraje",
+  layer3Grammage: "Capa 3 - Gramaje",
 
-layer4MaterialGroup: "Capa 4 - Grupo Material",
-layer4Material: "Capa 4 - Tipo de Material y Micraje",
-layer4Micron: "Capa 4 - Micraje",
-layer4Grammage: "Capa 4 - Gramaje",
+  layer4MaterialGroup: "Capa 4 - Grupo Material",
+  layer4Material: "Capa 4 - Tipo de Material y Micraje",
+  layer4Micron: "Capa 4 - Micraje",
+  layer4Grammage: "Capa 4 - Gramaje",
 
   licitacion: "Licitación",
   codigoRFQ: "Código de Licitación",
-
-  tipoPresentacionBolsa: "Tipo de presentación (Bolsa)",
-  tipoSelloBolsa: "Tipo de sello (Bolsa)",
-  acabadoBolsa: "Acabado (Bolsa)",
-  tieneFuelleBolsa: "¿Lleva fuelle? (Bolsa)",
-  tipoFuelleBolsa: "Tipo de fuelle (Bolsa)",
 };
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Información General
@@ -914,17 +790,33 @@ function shouldShowRepetitionField(wrapping: string, blueprintFormat: string): b
   const normalizedWrapping = normalizeWrappingName(wrapping);
   const normalizedFormat = normalizeOptionValue(blueprintFormat);
 
-  const isLamina =
-    normalizedWrapping.includes("lamina") ||
-    normalizedWrapping.includes("lámina");
+  const isBolsa = normalizedWrapping.includes("bolsa");
 
   const isRepetitionFormat =
     normalizedFormat.includes("tissue") ||
     normalizedFormat.includes("generica") ||
     normalizedFormat.includes("food");
 
-  return isLamina && isRepetitionFormat;
+  return isBolsa && isRepetitionFormat;
 }
+
+const SALESFORCE_ACTION_PREFIX = "A-";
+
+function normalizeSalesforceAction(value: string): string {
+  const rawValue = String(value || "").trim();
+
+  const withoutPrefix = rawValue
+    .replace(/^A-/i, "")
+    .replace(/\D/g, "")
+    .slice(0, 6);
+
+  return withoutPrefix ? `${SALESFORCE_ACTION_PREFIX}${withoutPrefix}` : "";
+}
+
+function isValidSalesforceAction(value: string): boolean {
+  return /^A-\d{6}$/.test(String(value || "").trim());
+}
+
 type ProjectRecordWithExecutives = ProjectRecord & {
   ejecutivoIds?: Array<string | number>;
   ejecutivoNames?: string;
@@ -949,6 +841,115 @@ function getProjectExecutiveIds(project: ProjectRecord): string[] {
   }
 
   return [];
+}
+
+// Helper function to normalize form data for comparison
+function normalizeComparableProjectForm(form: ProjectEditFormData): Record<string, any> {
+  return {
+    portfolioCode: form.portfolioCode,
+    executiveId: form.executiveId.slice().sort(),
+    siUserId: form.siUserId,
+    projectName: form.projectName?.trim() || "",
+    projectDescription: form.projectDescription?.trim() || "",
+    classification: form.classification,
+    projectType: form.projectType,
+    salesforceAction: form.salesforceAction,
+    blueprintFormat: form.blueprintFormat,
+    technicalApplication: form.technicalApplication,
+    estimatedVolume: form.estimatedVolume,
+    unitOfMeasure: form.unitOfMeasure,
+    customerPackingCode: form.customerPackingCode,
+    printClass: form.printClass,
+    printType: form.printType,
+    requiresDesignWork: form.requiresDesignWork,
+    hasEdagReference: form.hasEdagReference,
+    referenceEdagCode: form.referenceEdagCode,
+    referenceEdagVersion: form.referenceEdagVersion,
+    specialDesignSpecs: form.specialDesignSpecs?.trim() || "",
+    specialDesignComments: form.specialDesignComments?.trim() || "",
+    edagCode: form.edagCode,
+    edagVersion: form.edagVersion,
+    hasReferenceStructure: form.hasReferenceStructure,
+    referenceEmCode: form.referenceEmCode,
+    referenceEmVersion: form.referenceEmVersion,
+    hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec,
+    customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
+    structureType: form.structureType,
+    layer1MaterialGroup: form.layer1MaterialGroup,
+    layer1Material: form.layer1Material,
+    layer1Micron: form.layer1Micron,
+    layer1Grammage: form.layer1Grammage,
+    layer2MaterialGroup: form.layer2MaterialGroup,
+    layer2Material: form.layer2Material,
+    layer2Micron: form.layer2Micron,
+    layer2Grammage: form.layer2Grammage,
+    layer3MaterialGroup: form.layer3MaterialGroup,
+    layer3Material: form.layer3Material,
+    layer3Micron: form.layer3Micron,
+    layer3Grammage: form.layer3Grammage,
+    layer4MaterialGroup: form.layer4MaterialGroup,
+    layer4Material: form.layer4Material,
+    layer4Micron: form.layer4Micron,
+    layer4Grammage: form.layer4Grammage,
+    specialStructureSpecs: form.specialStructureSpecs?.trim() || "",
+    grammage: form.grammage,
+    grammageTolerance: form.grammageTolerance,
+    sampleRequest: form.sampleRequest,
+    width: form.width,
+    length: form.length,
+    repetition: form.repetition,
+    doyPackBase: form.doyPackBase,
+    gussetWidth: form.gussetWidth,
+    gussetType: form.gussetType,
+    hasZipper: form.hasZipper,
+    zipperType: form.zipperType,
+    hasTinTie: form.hasTinTie,
+    hasValve: form.hasValve,
+    valveType: form.valveType,
+    hasDieCutHandle: form.hasDieCutHandle,
+    hasReinforcement: form.hasReinforcement,
+    reinforcementThickness: form.reinforcementThickness,
+    reinforcementWidth: form.reinforcementWidth,
+    hasAngularCut: form.hasAngularCut,
+    hasRoundedCorners: form.hasRoundedCorners,
+    roundedCornersType: form.roundedCornersType,
+    hasNotch: form.hasNotch,
+    hasPerforation: form.hasPerforation,
+    pouchPerforationType: form.pouchPerforationType,
+    bagPerforationType: form.bagPerforationType,
+    perforationLocation: form.perforationLocation,
+    hasPreCut: form.hasPreCut,
+    preCutType: form.preCutType,
+    otherAccessories: form.otherAccessories,
+    saleType: form.saleType,
+    incoterm: form.incoterm,
+    destinationCountry: form.destinationCountry,
+    targetPrice: form.targetPrice,
+    currencyType: form.currencyType,
+    coreMaterial: form.coreMaterial,
+    coreDiameter: form.coreDiameter,
+    externalDiameter: form.externalDiameter,
+    externalVariationPlus: form.externalVariationPlus,
+    externalVariationMinus: form.externalVariationMinus,
+    maxRollWeight: form.maxRollWeight,
+    customerAdditionalInfo: form.customerAdditionalInfo?.trim() || "",
+    peruvianProductLogo: form.peruvianProductLogo,
+    printingFooter: form.printingFooter,
+    deliveryAddress: form.deliveryAddress?.trim() || "",
+    additionalComment: form.additionalComment?.trim() || "",
+    licitacion: form.licitacion,
+    codigoRFQ: form.codigoRFQ,
+    designPlanFiles: form.designPlanFiles.slice(),
+  };
+}
+
+// Helper function to check if there are unsaved changes
+function hasUnsavedChanges(
+  initialFormState: Record<string, any>,
+  currentForm: ProjectEditFormData
+): boolean {
+  const normalized = normalizeComparableProjectForm(currentForm);
+  return JSON.stringify(initialFormState) !== JSON.stringify(normalized);
 }
 
 export default function ProjectEditPage() {
@@ -991,7 +992,7 @@ export default function ProjectEditPage() {
     hasEdagReference: "",
     referenceEdagCode: "",
     referenceEdagVersion: "",
-    specialDesignSpecs: "",
+    specialDesignSpecs: "No aplica",
     specialDesignComments: "",
     edagCode: "",
     edagVersion: "",
@@ -1075,12 +1076,15 @@ export default function ProjectEditPage() {
   const [originalProject, setOriginalProject] = useState<ProjectRecord | null>(null);
   const [showValidationSuccessModal, setShowValidationSuccessModal] = useState(false);
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
+  const [showInheritedDataModal, setShowInheritedDataModal] = useState(false);
   const [openStructureSections, setOpenStructureSections] = useState({
     specs: true,
     dimensions: true,
     documents: true,
   });
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
   const allowIncompleteSaveRef = useRef(false);
+  const initialFormStateRef = useRef<Record<string, any> | null>(null);
 
   const toggleStructureSection = (section: "specs" | "dimensions" | "documents") => {
     setOpenStructureSections((prev) => ({
@@ -1120,10 +1124,24 @@ export default function ProjectEditPage() {
       projectName: project.projectName || "",
       projectDescription: project.projectDescription || "",
       classification: project.classification || "",
-      subClassification: project.subClassification || "",
+      subClassification: (project as any).subClassification || "",
       projectType: project.projectType || "",
-      salesforceAction: project.salesforceAction || "",
+      salesforceAction: normalizeSalesforceAction(project.salesforceAction || ""),
       blueprintFormat: project.blueprintFormat || "",
+      tipoPresentacionBolsa: (project as any).tipoPresentacionBolsa || "",
+      tipoSelloBolsa: (project as any).tipoSelloBolsa || "",
+      acabadoBolsa: (project as any).acabadoBolsa || "",
+      tieneFuelleBolsa: (project as any).tieneFuelleBolsa || "",
+      tipoFuelleBolsa: (project as any).tipoFuelleBolsa || "",
+      tipoFormatoLamina: (project as any).tipoFormatoLamina || "",
+      tipoFamiliaPouch: (project as any).tipoFamiliaPouch || "",
+      tipoStandUpPouch: (project as any).tipoStandUpPouch || "",
+      formaDoyPackPouch: (project as any).formaDoyPackPouch || "",
+      tipoFuelleStandUpPouch: (project as any).tipoFuelleStandUpPouch || "",
+      cantidadSellosPouchPlano: (project as any).cantidadSellosPouchPlano || "",
+      tieneFuelleSelloCentralPouch: (project as any).tieneFuelleSelloCentralPouch || "",
+      materialSelloCentralPouch: (project as any).materialSelloCentralPouch || "",
+      tipoSelloEnFuellePouch: (project as any).tipoSelloEnFuellePouch || "",
       technicalApplication: project.technicalApplication || "",
       estimatedVolume: project.estimatedVolume || "",
       unitOfMeasure: project.unitOfMeasure || "KGS",
@@ -1134,7 +1152,7 @@ export default function ProjectEditPage() {
       hasEdagReference: toYesNo(project.isPreviousDesign),
       referenceEdagCode: project.previousEdagCode || "",
       referenceEdagVersion: project.previousEdagVersion || "",
-      specialDesignSpecs: project.specialDesignSpecs || "",
+      specialDesignSpecs: project.specialDesignSpecs || "No aplica",
       specialDesignComments: project.specialDesignComments || "",
       edagCode: project.edagCode || "",
       edagVersion: project.edagVersion || "",
@@ -1208,62 +1226,49 @@ export default function ProjectEditPage() {
       additionalComment: (project as any).additionalComment || "",
       licitacion: toYesNo((project as any).licitacion),
       codigoRFQ: (project as any).codigoRFQ || "",
-      tipoPresentacionBolsa: (project as any).tipoPresentacionBolsa || "",
-      tipoSelloBolsa: (project as any).tipoSelloBolsa || "",
-      acabadoBolsa: (project as any).acabadoBolsa || "",
-      tieneFuelleBolsa: (project as any).tieneFuelleBolsa || "",
-      tipoFuelleBolsa: (project as any).tipoFuelleBolsa || "",
-      tipoFormatoLamina: (project as any).tipoFormatoLamina || "",
-      tipoFamiliaPouch: (project as any).tipoFamiliaPouch || "",
-      tipoStandUpPouch: (project as any).tipoStandUpPouch || "",
-      formaDoyPackPouch: (project as any).formaDoyPackPouch || "",
-      tipoFuelleStandUpPouch: (project as any).tipoFuelleStandUpPouch || "",
-      cantidadSellosPouchPlano: (project as any).cantidadSellosPouchPlano || "",
-      tieneFuelleSelloCentralPouch: (project as any).tieneFuelleSelloCentralPouch || "",
-      materialSelloCentralPouch: (project as any).materialSelloCentralPouch || "",
-      tipoSelloEnFuellePouch: (project as any).tipoSelloEnFuellePouch || "",
       designPlanFiles: (project as any).designPlanFiles || [],
     };
 
     setForm(convertedForm);
+    initialFormStateRef.current = normalizeComparableProjectForm(convertedForm);
     setLoading(false);
   }, [projectCode]);
 
   useEffect(() => {
-  if (projectCode && !loading) {
-    const projectTitle = form.projectName?.trim()
-      ? `Editar Proyecto: ${form.projectName}`
-      : "Editar Proyecto";
+    if (projectCode && !loading) {
+      const projectTitle = form.projectName?.trim()
+        ? `Editar Proyecto: ${form.projectName}`
+        : "Editar Proyecto";
 
-    const projectSubtitle = form.projectDescription?.trim()
-      ? form.projectDescription
-      : "Completa y gestiona todos los detalles de tu proyecto";
+      const projectSubtitle = form.projectDescription?.trim()
+        ? form.projectDescription
+        : "Completa y gestiona todos los detalles de tu proyecto";
 
-    setHeader({
-      title: projectTitle,
-      subtitle: projectSubtitle,
-      breadcrumbs: [
-        { label: "Proyectos", href: "/projects" },
-        { label: projectCode },
-        { label: "Editar" },
-      ],
-      badges: (
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-          ID: {projectCode}
-        </span>
-      ),
-    });
-  }
+      setHeader({
+        title: projectTitle,
+        subtitle: projectSubtitle,
+        breadcrumbs: [
+          { label: "Proyectos", href: "/projects" },
+          { label: projectCode },
+          { label: "Editar" },
+        ],
+        badges: (
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+            ID: {projectCode}
+          </span>
+        ),
+      });
+    }
 
-  return () => resetHeader();
-}, [
-  setHeader,
-  resetHeader,
-  projectCode,
-  loading,
-  form.projectName,
-  form.projectDescription,
-]);
+    return () => resetHeader();
+  }, [
+    setHeader,
+    resetHeader,
+    projectCode,
+    loading,
+    form.projectName,
+    form.projectDescription,
+  ]);
 
   const selectedPortfolio = useMemo(() => {
     return (
@@ -1277,9 +1282,9 @@ export default function ProjectEditPage() {
   }, [form.portfolioCode, portfolios]);
 
   const selectedExecutives = useMemo(() => {
-  const selectedIds = new Set(form.executiveId.map(String));
-  return executives.filter((executive) => selectedIds.has(String(executive.id)));
-}, [executives, form.executiveId]);
+    const selectedIds = new Set(form.executiveId.map(String));
+    return executives.filter((executive) => selectedIds.has(String(executive.id)));
+  }, [executives, form.executiveId]);
 
   const inheritedPortfolioCode = selectedPortfolio?.id || selectedPortfolio?.codigo || selectedPortfolio?.code || "";
   const inheritedPortfolioName = selectedPortfolio?.nom || selectedPortfolio?.name || selectedPortfolio?.portfolioName || "";
@@ -1298,13 +1303,11 @@ export default function ProjectEditPage() {
   const inheritedMachine = selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || selectedPortfolio?.packingMachineName || "";
 
   const isPouchWrapping = normalizeWrapping(inheritedWrapping).includes("pouch");
-  const isBolsa = isBolsaWrapping(inheritedWrapping);
-  const isLamina = isLaminaWrapping(inheritedWrapping);
   const shouldApplyPouchDoyPackRestrictions = isPouchWrapping && form.blueprintFormat === POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO;
 
   const activeLayerCount = useMemo(() => {
-  return getLayerCountByStructureType(form.structureType);
-}, [form.structureType]);
+    return getLayerCountByStructureType(form.structureType);
+  }, [form.structureType]);
 
   const layerGrammageTotal = useMemo(() => {
     const layerGrammages = [
@@ -1346,210 +1349,62 @@ export default function ProjectEditPage() {
     });
   }, [calculatedGrammageTotal]);
   useEffect(() => {
-  setForm((prev) => {
-    const updates: Partial<ProjectEditFormData> = {};
-
-    for (let layer = 1; layer <= 4; layer++) {
-      const groupKey = `layer${layer}MaterialGroup` as keyof ProjectEditFormData;
-      const materialKey = `layer${layer}Material` as keyof ProjectEditFormData;
-
-      const micronKey = `layer${layer}Micron` as
-        | "layer1Micron"
-        | "layer2Micron"
-        | "layer3Micron"
-        | "layer4Micron";
-
-      const grammageKey = `layer${layer}Grammage` as
-        | "layer1Grammage"
-        | "layer2Grammage"
-        | "layer3Grammage"
-        | "layer4Grammage";
-
-      const group = prev[groupKey] as string;
-      const material = prev[materialKey] as string;
-
-      if (!group || !material) continue;
-
-      const entry = MATERIAL_CATALOG[group]?.find(
-        (item) => item.value === material || item.label === material
-      );
-
-      if (!entry || entry.isFree) continue;
-
-      if (prev[micronKey] !== entry.micron) {
-        updates[micronKey] = entry.micron;
-      }
-
-      if (prev[grammageKey] !== entry.grammage) {
-        updates[grammageKey] = entry.grammage;
-      }
-    }
-
-    return Object.keys(updates).length > 0
-      ? { ...prev, ...updates }
-      : prev;
-  });
-}, [
-  form.layer1MaterialGroup,
-  form.layer1Material,
-  form.layer2MaterialGroup,
-  form.layer2Material,
-  form.layer3MaterialGroup,
-  form.layer3Material,
-  form.layer4MaterialGroup,
-  form.layer4Material,
-]);
-
-  // Limpiar campos entre envolturas para evitar datos cruzados
-  useEffect(() => {
     setForm((prev) => {
-      if (isBolsa) {
-        return {
-          ...prev,
-          tipoFormatoLamina: "",
-          tipoFamiliaPouch: "",
-          tipoStandUpPouch: "",
-          formaDoyPackPouch: "",
-          tipoFuelleStandUpPouch: "",
-          cantidadSellosPouchPlano: "",
-          tieneFuelleSelloCentralPouch: "",
-          materialSelloCentralPouch: "",
-          tipoSelloEnFuellePouch: "",
-        };
+      let changed = false;
+      const next: ProjectEditFormData = { ...prev };
+
+      for (let layer = 1; layer <= 4; layer++) {
+        const groupKey = `layer${layer}MaterialGroup` as keyof ProjectEditFormData;
+        const materialKey = `layer${layer}Material` as keyof ProjectEditFormData;
+        const micronKey = `layer${layer}Micron` as keyof ProjectEditFormData;
+        const grammageKey = `layer${layer}Grammage` as keyof ProjectEditFormData;
+
+        const group = prev[groupKey] as string;
+        const material = prev[materialKey] as string;
+
+        if (!group || !material) continue;
+
+        const entry = MATERIAL_CATALOG[group]?.find(
+          (item) => item.value === material || item.label === material
+        );
+
+        if (!entry || entry.isFree) continue;
+
+        if (prev[micronKey] !== entry.micron) {
+          (next[micronKey] as string) = entry.micron;
+          changed = true;
+        }
+
+        if (prev[grammageKey] !== entry.grammage) {
+          (next[grammageKey] as string) = entry.grammage;
+          changed = true;
+        }
       }
 
-      if (isLamina) {
-        return {
-          ...prev,
-          tipoPresentacionBolsa: "",
-          tipoSelloBolsa: "",
-          acabadoBolsa: "",
-          tieneFuelleBolsa: "",
-          tipoFuelleBolsa: "",
-          gussetType: "",
-          tipoFamiliaPouch: "",
-          tipoStandUpPouch: "",
-          formaDoyPackPouch: "",
-          tipoFuelleStandUpPouch: "",
-          cantidadSellosPouchPlano: "",
-          tieneFuelleSelloCentralPouch: "",
-          materialSelloCentralPouch: "",
-          tipoSelloEnFuellePouch: "",
-        };
-      }
-
-      if (isPouchWrapping) {
-        return {
-          ...prev,
-          tipoFormatoLamina: "",
-          tipoPresentacionBolsa: "",
-          tipoSelloBolsa: "",
-          acabadoBolsa: "",
-          tieneFuelleBolsa: "",
-          tipoFuelleBolsa: "",
-        };
-      }
-
-      return {
-        ...prev,
-        tipoFormatoLamina: "",
-        tipoPresentacionBolsa: "",
-        tipoSelloBolsa: "",
-        acabadoBolsa: "",
-        tieneFuelleBolsa: "",
-        tipoFuelleBolsa: "",
-        tipoFamiliaPouch: "",
-        tipoStandUpPouch: "",
-        formaDoyPackPouch: "",
-        tipoFuelleStandUpPouch: "",
-        cantidadSellosPouchPlano: "",
-        tieneFuelleSelloCentralPouch: "",
-        materialSelloCentralPouch: "",
-        tipoSelloEnFuellePouch: "",
-      };
-    });
-  }, [isBolsa, isLamina, isPouchWrapping]);
-
-  // Calcular automáticamente blueprintFormat para LÁMINA
-  useEffect(() => {
-    if (!isLamina) return;
-
-    const calculatedFormat = calculateLaminaFormatPlan({
-      tipoFormatoLamina: form.tipoFormatoLamina,
-    });
-
-    setForm((prev) => {
-      if (prev.blueprintFormat === calculatedFormat) return prev;
-
-      return {
-        ...prev,
-        blueprintFormat: calculatedFormat,
-      };
-    });
-  }, [isLamina, form.tipoFormatoLamina]);
-
-  // Calcular automáticamente blueprintFormat para POUCH
-  useEffect(() => {
-    if (!isPouchWrapping) return;
-
-    const calculatedFormat = calculatePouchFormatPlan({
-      tipoFamiliaPouch: form.tipoFamiliaPouch,
-      tipoStandUpPouch: form.tipoStandUpPouch,
-      formaDoyPackPouch: form.formaDoyPackPouch,
-      tipoFuelleStandUpPouch: form.tipoFuelleStandUpPouch,
-      cantidadSellosPouchPlano: form.cantidadSellosPouchPlano,
-      tieneFuelleSelloCentralPouch: form.tieneFuelleSelloCentralPouch,
-      materialSelloCentralPouch: form.materialSelloCentralPouch,
-      tipoSelloEnFuellePouch: form.tipoSelloEnFuellePouch,
-    });
-
-    setForm((prev) => {
-      if (prev.blueprintFormat === calculatedFormat) return prev;
-
-      return {
-        ...prev,
-        blueprintFormat: calculatedFormat,
-      };
+      return changed ? next : prev;
     });
   }, [
-    isPouchWrapping,
-    form.tipoFamiliaPouch,
-    form.tipoStandUpPouch,
-    form.formaDoyPackPouch,
-    form.tipoFuelleStandUpPouch,
-    form.cantidadSellosPouchPlano,
-    form.tieneFuelleSelloCentralPouch,
-    form.materialSelloCentralPouch,
-    form.tipoSelloEnFuellePouch,
+    form.layer1MaterialGroup,
+    form.layer1Material,
+    form.layer2MaterialGroup,
+    form.layer2Material,
+    form.layer3MaterialGroup,
+    form.layer3Material,
+    form.layer4MaterialGroup,
+    form.layer4Material,
   ]);
 
   const projectTypeOptions = useMemo(() => {
+    if (form.classification === "Nuevo") {
+      return PROJECT_TYPE_RD_OPTIONS;
+    }
+
     if (form.classification === "Modificado") {
-      return [];
-    }
-
-    if (!form.subClassification) return [];
-
-    if (form.subClassification === "Desarrollo_RD") {
-      return PROJECT_TYPE_RD_OPTIONS;
-    }
-
-    if (form.subClassification === "Área_Técnica") {
-      return PROJECT_TYPE_TECNICA_OPTIONS;
-    }
-
-    const normalized = normalizeOptionValue(form.subClassification);
-
-    if (normalized.includes("desarrollo") || normalized.includes("rd")) {
-      return PROJECT_TYPE_RD_OPTIONS;
-    }
-
-    if (normalized.includes("area") || normalized.includes("tecnica")) {
       return PROJECT_TYPE_TECNICA_OPTIONS;
     }
 
     return [];
-  }, [form.classification, form.subClassification]);
+  }, [form.classification]);
 
   const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
     const fields = [...BASE_REQUIRED_FIELDS];
@@ -1569,13 +1424,7 @@ export default function ProjectEditPage() {
       fields.push("printType");
     }
 
-    if (form.classification) {
-      fields.push("subClassification");
-    }
-
     const isProjectTypeEnabled =
-      Boolean(form.subClassification) &&
-      form.classification !== "Modificado" &&
       projectTypeOptions.length > 0;
 
     if (isProjectTypeEnabled) {
@@ -1594,58 +1443,24 @@ export default function ProjectEditPage() {
       fields.push("designPlanFiles");
     }
 
-    if (isLamina) {
-      fields.push("tipoFormatoLamina", "blueprintFormat");
-    }
-
-    if (isPouchWrapping) {
-      fields.push("tipoFamiliaPouch", "blueprintFormat");
-
-      if (form.tipoFamiliaPouch === "Pouch Stand Up") {
-        fields.push("tipoStandUpPouch");
-        if (form.tipoStandUpPouch === "Doy Pack") {
-          fields.push("formaDoyPackPouch", "tipoFuelleStandUpPouch");
-        }
-      }
-
-      if (form.tipoFamiliaPouch === "Pouch Plano") {
-        fields.push("cantidadSellosPouchPlano");
-      }
-
-      if (form.tipoFamiliaPouch === "Pouch con Sello Central") {
-        fields.push("tieneFuelleSelloCentralPouch", "materialSelloCentralPouch");
-      }
-
-      if (form.tipoFamiliaPouch === "Pouch con Sello en Fuelle") {
-        fields.push("tipoSelloEnFuellePouch");
-      }
+    if (form.hasCustomerTechnicalSpec === "Sí") {
+      fields.push("customerTechnicalSpecAttachment");
     }
 
     return fields;
-}, [
-  inheritedWrapping,
-  form.blueprintFormat,
-  form.classification,
-  form.subClassification,
-  form.printClass,
-  form.hasReferenceStructure,
-  form.structureType,
-  activeLayerCount,
-  projectTypeOptions,
-  shouldApplyPouchDoyPackRestrictions,
-  form.hasEdagReference,
-  form.hasCustomerTechnicalSpec,
-  isLamina,
-  isPouchWrapping,
-  form.tipoFamiliaPouch,
-  form.tipoStandUpPouch,
-  form.formaDoyPackPouch,
-  form.tipoFuelleStandUpPouch,
-  form.cantidadSellosPouchPlano,
-  form.tieneFuelleSelloCentralPouch,
-  form.materialSelloCentralPouch,
-  form.tipoSelloEnFuellePouch,
-]);
+  }, [
+    inheritedWrapping,
+    form.blueprintFormat,
+    form.classification,
+    form.printClass,
+    form.hasReferenceStructure,
+    form.structureType,
+    activeLayerCount,
+    projectTypeOptions,
+    shouldApplyPouchDoyPackRestrictions,
+    form.hasEdagReference,
+    form.hasCustomerTechnicalSpec,
+  ]);
   const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -1657,13 +1472,45 @@ export default function ProjectEditPage() {
     }));
   };
 
-  const handleLaminaFormatChange = (value: string) => {
+  // Efecto para calcular Formato de Plano (Bolsa)
+  useEffect(() => {
+    if (isGuidedFormatEnabled(inheritedWrapping)) {
+      const calculatedFormat = calculateBolsaFormatPlan({
+        tipoPresentacionBolsa: form.tipoPresentacionBolsa,
+        tipoSelloBolsa: form.tipoSelloBolsa,
+        acabadoBolsa: form.acabadoBolsa,
+        tieneFuelleBolsa: form.tieneFuelleBolsa,
+      });
+
+      if (calculatedFormat) {
+        setForm(prev => {
+          if (prev.blueprintFormat === calculatedFormat) return prev;
+          return { ...prev, blueprintFormat: calculatedFormat };
+        });
+      }
+    }
+  }, [
+    inheritedWrapping,
+    form.tipoPresentacionBolsa,
+    form.tipoSelloBolsa,
+    form.acabadoBolsa,
+    form.tieneFuelleBolsa
+  ]);
+
+  const handleLicitacionChange = (value: string) => {
+    const licitacion = value as "Sí" | "No";
     setForm((prev) => ({
       ...prev,
-      tipoFormatoLamina: value,
-      blueprintFormat: "",
+      licitacion,
+      codigoRFQ: licitacion === "No" ? "" : prev.codigoRFQ,
     }));
-    markFieldAsTouched("tipoFormatoLamina");
+
+    if (licitacion === "No") {
+      setTouchedFields((prev) => ({
+        ...prev,
+        codigoRFQ: false,
+      }));
+    }
   };
 
   const validationErrors = useMemo(() => {
@@ -1699,6 +1546,14 @@ export default function ProjectEditPage() {
       errors.designPlanFiles = "Debe cargar al menos un archivo de Illustrator (.ai).";
     }
 
+    if (form.licitacion === "Sí" && !form.codigoRFQ.trim()) {
+      errors.codigoRFQ = "Ingresa el código de licitación.";
+    }
+
+    if (form.salesforceAction && !isValidSalesforceAction(form.salesforceAction)) {
+      errors.salesforceAction = "La Acción Salesforce debe tener el formato A- seguido de 6 dígitos. Ejemplo: A-123456.";
+    }
+
     return errors;
   }, [form, requiredFields, shouldApplyPouchDoyPackRestrictions]);
 
@@ -1718,6 +1573,7 @@ export default function ProjectEditPage() {
       1: [],
       2: [],
       3: [],
+      4: [],
     };
 
     missing.forEach((field) => {
@@ -1733,7 +1589,7 @@ export default function ProjectEditPage() {
   }, [form, requiredFields]);
 
   const stepsWithErrors = useMemo(() => {
-    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0 };
+    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
 
     Object.keys(validationErrors).forEach((field) => {
       for (const [step, fields] of Object.entries(STEP_FIELDS)) {
@@ -1769,86 +1625,100 @@ export default function ProjectEditPage() {
     : "Actualizar proyecto";
 
   const missingFieldCount = useMemo(() => {
-  return Object.values(missingFieldsByStep).flat().length;
-}, [missingFieldsByStep]);
+    return Object.values(missingFieldsByStep).flat().length;
+  }, [missingFieldsByStep]);
 
-const firstMissingStep = useMemo(() => {
-  const entry = Object.entries(missingFieldsByStep).find(
-    ([, fields]) => fields.length > 0
-  );
+  const firstMissingStep = useMemo(() => {
+    const entry = Object.entries(missingFieldsByStep).find(
+      ([, fields]) => fields.length > 0
+    );
 
-  return entry ? Number(entry[0]) : 0;
-}, [missingFieldsByStep]);
+    return entry ? Number(entry[0]) : 0;
+  }, [missingFieldsByStep]);
 
-const hasMissingRequiredFields = useMemo(() => {
-  return Object.values(missingFieldsByStep).some((fields) => fields.length > 0);
-}, [missingFieldsByStep]);
+  const hasMissingRequiredFields = useMemo(() => {
+    return Object.values(missingFieldsByStep).some((fields) => fields.length > 0);
+  }, [missingFieldsByStep]);
 
-const handleReviewMissingFields = () => {
-  setShowMissingFieldsModal(false);
-  setSubmitAttempted(true);
-
-  const fieldsWithErrors = Object.values(missingFieldsByStep)
-    .flat()
-    .reduce((acc, field) => {
-      acc[field as keyof ProjectEditFormData] = true;
-      return acc;
-    }, {} as Partial<Record<keyof ProjectEditFormData, boolean>>);
-
-  setTouchedFields((prev) => ({
-    ...prev,
-    ...fieldsWithErrors,
-  }));
-
-  setActiveStep(firstMissingStep);
-
-  window.setTimeout(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, 100);
-};
-
-const handleSaveProgressAnyway = () => {
-  allowIncompleteSaveRef.current = true;
-  setShowMissingFieldsModal(false);
-
-  window.setTimeout(() => {
-    const formElement = document.getElementById("project-edit-form") as HTMLFormElement | null;
-formElement?.requestSubmit();
-  }, 0);
-};
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleReviewMissingFields = () => {
+    setShowMissingFieldsModal(false);
     setSubmitAttempted(true);
 
-    const hasValidationErrors = Object.keys(validationErrors).length > 0;
+    const fieldsWithErrors = Object.values(missingFieldsByStep)
+      .flat()
+      .reduce((acc, field) => {
+        acc[field as keyof ProjectEditFormData] = true;
+        return acc;
+      }, {} as Partial<Record<keyof ProjectEditFormData, boolean>>);
 
-    if (hasValidationErrors || hasMissingRequiredFields || !projectCode) {
-      setShowMissingFieldsModal(true);
-      return;
+    setTouchedFields((prev) => ({
+      ...prev,
+      ...fieldsWithErrors,
+    }));
+
+    setActiveStep(firstMissingStep);
+
+    window.setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 100);
+  };
+
+  const handleSaveProgressAnyway = () => {
+    allowIncompleteSaveRef.current = true;
+    setShowMissingFieldsModal(false);
+
+    window.setTimeout(() => {
+      const formElement = document.getElementById("project-edit-form") as HTMLFormElement | null;
+      formElement?.requestSubmit();
+    }, 0);
+  };
+
+  const navigateToProjectList = () => {
+    navigate("/projects");
+  };
+
+  const handleCancel = () => {
+    if (initialFormStateRef.current && hasUnsavedChanges(initialFormStateRef.current, form)) {
+      setShowCancelConfirmModal(true);
+    } else {
+      navigateToProjectList();
     }
+  };
 
-    const shouldForceSaveAsDraft = allowIncompleteSaveRef.current;
+  const handleContinueEditing = () => {
+    setShowCancelConfirmModal(false);
+  };
 
-    allowIncompleteSaveRef.current = false;
+  const handleExitWithoutSaving = () => {
+    setShowCancelConfirmModal(false);
+    navigateToProjectList();
+  };
 
-    const shouldSubmitForValidation =
-      isProjectCompleteForValidation && !shouldForceSaveAsDraft;
+  const handleSaveAndExit = () => {
+    if (!projectCode || !originalProject) return;
 
     const now = new Date().toISOString();
-
-    // Ensure commercial executives are properly resolved and persisted
     const finalExecutiveIds = form.executiveId.map(String);
-
     const finalExecutiveId =
       finalExecutiveIds.length > 0
         ? Number(finalExecutiveIds[0])
         : originalProject?.ejecutivoId || undefined;
-
     const finalExecutiveName =
       selectedExecutives.length > 0
         ? selectedExecutives.map((executive) => executive.name).join(", ")
         : originalProject?.ejecutivoName || "";
+
+    const nextCompletionPercentage = Math.round(
+      (requiredFields.filter((field) => !isFieldEmpty(form[field])).length / requiredFields.length) * 100
+    );
+
+    const nextStatus = computeProjectPreparationStatus({
+      project: form,
+      completionPercentage: nextCompletionPercentage,
+      currentStatus: normalizeProjectStatus(originalProject?.status),
+    });
+
+    const nextStage = resolveProjectStage(nextStatus);
 
     updateProjectRecord(projectCode, {
       id: projectCode,
@@ -1866,12 +1736,10 @@ formElement?.requestSubmit();
       ejecutivoId: finalExecutiveId,
       ejecutivoName: finalExecutiveName,
 
-      // Campos múltiples para persistir todos los ejecutivos comerciales seleccionados
       ejecutivoIds: finalExecutiveIds,
       ejecutivoNames: finalExecutiveName,
       executiveIds: finalExecutiveIds,
       commercialExecutiveIds: finalExecutiveIds,
-      
 
       siUserId: form.siUserId,
       siUserCode: siUsers.find(u => u.id === form.siUserId)?.code,
@@ -1887,25 +1755,10 @@ formElement?.requestSubmit();
       packingMachineName: inheritedMachine,
 
       classification: form.classification,
-      subClassification: form.subClassification,
       projectType: form.projectType,
-      salesforceAction: form.salesforceAction,
+      salesforceAction: normalizeSalesforceAction(form.salesforceAction),
 
       blueprintFormat: form.blueprintFormat,
-      tipoFormatoLamina: form.tipoFormatoLamina,
-      tipoPresentacionBolsa: form.tipoPresentacionBolsa,
-      tipoSelloBolsa: form.tipoSelloBolsa,
-      acabadoBolsa: form.acabadoBolsa,
-      tieneFuelleBolsa: form.tieneFuelleBolsa,
-      tipoFuelleBolsa: form.tipoFuelleBolsa,
-      tipoFamiliaPouch: form.tipoFamiliaPouch,
-      tipoStandUpPouch: form.tipoStandUpPouch,
-      formaDoyPackPouch: form.formaDoyPackPouch,
-      tipoFuelleStandUpPouch: form.tipoFuelleStandUpPouch,
-      cantidadSellosPouchPlano: form.cantidadSellosPouchPlano,
-      tieneFuelleSelloCentralPouch: form.tieneFuelleSelloCentralPouch,
-      materialSelloCentralPouch: form.materialSelloCentralPouch,
-      tipoSelloEnFuellePouch: form.tipoSelloEnFuellePouch,
       technicalApplication: form.technicalApplication,
       estimatedVolume: form.estimatedVolume,
       unitOfMeasure: form.unitOfMeasure,
@@ -2003,75 +1856,293 @@ formElement?.requestSubmit();
       printingFooter: form.printingFooter as BooleanLike,
       deliveryAddress: form.deliveryAddress,
       additionalComment: form.additionalComment,
+      licitacion: form.licitacion as YesNoPending,
+      codigoRFQ: form.codigoRFQ,
       designPlanFiles: form.designPlanFiles,
 
-      status: shouldSubmitForValidation ? "Ficha completa" : "Ficha en curso",
-      stage: shouldSubmitForValidation ? "P1_PREPARACION_FICHA" : originalProject?.stage || "P0_REGISTRO_COMERCIAL",
+      status: nextStatus,
+      stage: nextStage,
+      completionPercentage: nextCompletionPercentage,
+      hasStartedExtendedFicha: nextStatus !== "Registrado",
+      statusUpdatedAt: originalProject?.status !== nextStatus ? now : originalProject?.statusUpdatedAt,
+      stageUpdatedAt: now,
+      updatedAt: now,
+    } as unknown as ProjectRecord);
+
+    setShowCancelConfirmModal(false);
+    navigateToProjectList();
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitAttempted(true);
+
+    if (!projectCode || !form) return;
+
+    const hasValidationErrors = Object.keys(validationErrors).length > 0;
+    const shouldForceSaveAsDraft = allowIncompleteSaveRef.current;
+
+    // If there are validation errors and user didn't click "Guardar avance", show modal
+    if ((hasValidationErrors || hasMissingRequiredFields) && !shouldForceSaveAsDraft) {
+      setShowMissingFieldsModal(true);
+      return;
+    }
+
+    // User either has no errors or clicked "Guardar avance"
+    allowIncompleteSaveRef.current = false;
+
+    const shouldSubmitForValidation =
+      isProjectCompleteForValidation && !shouldForceSaveAsDraft;
+
+    const now = new Date().toISOString();
+
+    // Calculate the preparation status based on actual form data
+    // Pass current status to avoid overriding advanced statuses
+    const calculatedStatus = computeProjectPreparationStatus({
+      project: form,
+      completionPercentage,
+      currentStatus: normalizeProjectStatus(originalProject?.status),
+    });
+
+    // Prepare validation logic for "Solicitar validación"
+    const requiresManualAG = shouldSubmitForValidation
+      ? requiresManualGraphicArtsValidation(form)
+      : false;
+
+    // Ensure commercial executives are properly resolved and persisted
+    const finalExecutiveIds = form.executiveId.map(String);
+
+    const finalExecutiveId =
+      finalExecutiveIds.length > 0
+        ? Number(finalExecutiveIds[0])
+        : originalProject?.ejecutivoId || undefined;
+
+    const finalExecutiveName =
+      selectedExecutives.length > 0
+        ? selectedExecutives.map((executive) => executive.name).join(", ")
+        : originalProject?.ejecutivoName || "";
+
+    updateProjectRecord(projectCode, {
+      id: projectCode,
+      code: projectCode,
+
+      portfolioCode: form.portfolioCode,
+      portfolioName: selectedPortfolio?.nom || selectedPortfolio?.portfolioName || "",
+
+      clientCode: selectedPortfolio?.clientCode,
+      clientName: inheritedClient,
+
+      projectName: form.projectName,
+      projectDescription: form.projectDescription,
+
+      ejecutivoId: finalExecutiveId,
+      ejecutivoName: finalExecutiveName,
+
+      // Campos múltiples para persistir todos los ejecutivos comerciales seleccionados
+      ejecutivoIds: finalExecutiveIds,
+      ejecutivoNames: finalExecutiveName,
+      executiveIds: finalExecutiveIds,
+      commercialExecutiveIds: finalExecutiveIds,
+
+
+      siUserId: form.siUserId,
+      siUserCode: siUsers.find(u => u.id === form.siUserId)?.code,
+
+      plantaName: inheritedPlant,
+      wrappingName: inheritedWrapping,
+      useFinalName: inheritedFinalUse,
+      subSegment: inheritedSubSegment,
+      segment: inheritedSegment,
+      sector: inheritedSector,
+      afMarketId: inheritedAfMarketId,
+      maquinaCliente: inheritedMachine,
+      packingMachineName: inheritedMachine,
+
+      classification: form.classification,
+      projectType: form.projectType,
+      salesforceAction: normalizeSalesforceAction(form.salesforceAction),
+
+      blueprintFormat: form.blueprintFormat,
+      technicalApplication: form.technicalApplication,
+      estimatedVolume: form.estimatedVolume,
+      unitOfMeasure: form.unitOfMeasure,
+      customerPackingCode: form.customerPackingCode,
+
+      format: form.blueprintFormat,
+      volume: form.estimatedVolume,
+      unit: form.unitOfMeasure,
+
+      printClass: form.printClass,
+      printType: form.printType,
+      specialDesignSpecs: form.specialDesignSpecs,
+      specialDesignComments: form.specialDesignComments,
+      edagCode: form.edagCode,
+      edagVersion: form.edagVersion,
+      isPreviousDesign: form.hasEdagReference as BooleanLike,
+      previousEdagCode: form.referenceEdagCode,
+      previousEdagVersion: form.referenceEdagVersion,
+      requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
+
+      hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
+      referenceEmCode: form.referenceEmCode,
+      referenceEmVersion: form.referenceEmVersion,
+      hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec as BooleanLike,
+      customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
+      structureType: form.structureType,
+
+      layer1Material: form.layer1Material,
+      layer1Micron: form.layer1Micron,
+      layer1Grammage: form.layer1Grammage,
+      layer2Material: form.layer2Material,
+      layer2Micron: form.layer2Micron,
+      layer2Grammage: form.layer2Grammage,
+      layer3Material: form.layer3Material,
+      layer3Micron: form.layer3Micron,
+      layer3Grammage: form.layer3Grammage,
+      layer4Material: form.layer4Material,
+      layer4Micron: form.layer4Micron,
+      layer4Grammage: form.layer4Grammage,
+
+      layers: form.structureType,
+      microns: [form.layer1Micron, form.layer2Micron, form.layer3Micron, form.layer4Micron]
+        .filter(Boolean)
+        .join(" / "),
+
+      specialStructureSpecs: form.specialStructureSpecs,
+      grammage: form.grammage,
+      grammageTolerance: form.grammageTolerance,
+      sampleRequest: form.sampleRequest === "Sí",
+
+      width: form.width,
+      length: form.length,
+      repetition: form.repetition,
+      doyPackBase: form.doyPackBase,
+      gussetWidth: form.gussetWidth,
+      gussetType: form.gussetType,
+      dimensions: [form.width, form.length, form.gussetWidth]
+        .filter(Boolean)
+        .join(" x "),
+
+      hasZipper: form.hasZipper as BooleanLike,
+      zipperType: form.zipperType,
+      hasTinTie: form.hasTinTie as BooleanLike,
+      hasValve: form.hasValve as BooleanLike,
+      valveType: form.valveType,
+      hasDieCutHandle: form.hasDieCutHandle as BooleanLike,
+      hasReinforcement: form.hasReinforcement as BooleanLike,
+      reinforcementThickness: form.reinforcementThickness,
+      reinforcementWidth: form.reinforcementWidth,
+      hasAngularCut: form.hasAngularCut as BooleanLike,
+      hasRoundedCorners: form.hasRoundedCorners as BooleanLike,
+      roundedCornersType: form.roundedCornersType,
+      hasNotch: form.hasNotch as BooleanLike,
+      hasPerforation: form.hasPerforation as BooleanLike,
+      pouchPerforationType: form.pouchPerforationType,
+      bagPerforationType: form.bagPerforationType,
+      perforationLocation: form.perforationLocation,
+      hasPreCut: form.hasPreCut as BooleanLike,
+      preCutType: form.preCutType,
+      otherAccessories: form.otherAccessories,
+
+      saleType: form.saleType,
+      incoterm: form.incoterm,
+      destinationCountry: form.destinationCountry,
+      targetPrice: form.targetPrice,
+      currencyType: form.currencyType,
+      coreMaterial: form.coreMaterial,
+      coreDiameter: form.coreDiameter,
+      externalDiameter: form.externalDiameter,
+      externalVariationPlus: form.externalVariationPlus,
+      externalVariationMinus: form.externalVariationMinus,
+      maxRollWeight: form.maxRollWeight,
+      customerAdditionalInfo: form.customerAdditionalInfo,
+      peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
+      printingFooter: form.printingFooter as BooleanLike,
+      deliveryAddress: form.deliveryAddress,
+      additionalComment: form.additionalComment,
+      licitacion: form.licitacion as YesNoPending,
+      codigoRFQ: form.codigoRFQ,
+      designPlanFiles: form.designPlanFiles,
+
+      status: shouldSubmitForValidation ? "En validación" : calculatedStatus,
+      stage: shouldSubmitForValidation ? "P2_VALIDACION_VIABILIDAD_TECNICA" : "P1_PREPARACION_FICHA_PROYECTO",
+      completionPercentage,
+      hasStartedExtendedFicha: (shouldSubmitForValidation ? "En validación" : calculatedStatus) !== "Registrado",
+      statusUpdatedAt: shouldSubmitForValidation || originalProject?.status !== calculatedStatus ? now : originalProject?.statusUpdatedAt,
+      stageUpdatedAt: shouldSubmitForValidation ? now : originalProject?.stageUpdatedAt,
       updatedAt: now,
 
       ...(shouldSubmitForValidation && {
         validacionSolicitada: true,
         estadoValidacionGeneral: "En validación",
-        stageUpdatedAt: now,
         fechaSolicitudValidacion: now,
-        validaciones: [
-          { area: "Artes Gráficas", estado: "Pendiente", comentarios: [] },
-          { area: "R&D Técnica", estado: "Pendiente", comentarios: [] },
-          { area: "R&D Desarrollo", estado: "Pendiente", comentarios: [] },
-        ],
+        ...(requiresManualAG ? {
+          graphicArtsValidationStatus: "Pendiente revisión manual",
+          currentValidationStep: "Artes Gráficas",
+        } : {
+          graphicArtsValidationStatus: "Aprobado automático",
+          technicalSubArea: resolveTechnicalSubAreaByProjectType(form.projectType),
+          currentValidationStep: resolveTechnicalSubAreaByProjectType(form.projectType),
+          technicalValidationStatus: resolveTechnicalSubAreaByProjectType(form.projectType) ? "Pendiente" : "Sin solicitar",
+        }),
       }),
     } as unknown as ProjectRecord);
 
-    if (shouldSubmitForValidation) {
-  setShowValidationSuccessModal(true);
-} else {
-  navigate("/projects");
-}
-}; // <-- cierra handleSubmit
+    if (shouldForceSaveAsDraft) {
+      // Close the missing fields modal after saving draft
+      setShowMissingFieldsModal(false);
+    } else if (shouldSubmitForValidation) {
+      // Show validation success modal when submitting for validation
+      setShowValidationSuccessModal(true);
+    } else {
+      // Navigate back to projects list
+      navigate("/projects");
+    }
+  }; // <-- cierra handleSubmit
 
-const CollapsibleSection = ({
-  title,
-  icon,
-  color,
-  isOpen,
-  onToggle,
-  children,
-}: {
-  title: string;
-  icon: string;
-  color: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) => (
-  <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-    <button
-      type="button"
-      onClick={onToggle}
-      className="flex w-full items-center justify-between border-b border-slate-100 px-5 py-4 text-left transition-colors hover:bg-slate-50"
-    >
-      <div className="flex items-center gap-3">
-        <span
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold"
-          style={{ backgroundColor: `${color}15`, color }}
-        >
-          {icon}
+  const CollapsibleSection = ({
+    title,
+    icon,
+    color,
+    isOpen,
+    onToggle,
+    children,
+  }: {
+    title: string;
+    icon: string;
+    color: string;
+    isOpen: boolean;
+    onToggle: () => void;
+    children: React.ReactNode;
+  }) => (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between border-b border-slate-100 px-5 py-4 text-left transition-colors hover:bg-slate-50"
+      >
+        <div className="flex items-center gap-3">
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold"
+            style={{ backgroundColor: `${color}15`, color }}
+          >
+            {icon}
+          </span>
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-900">
+            {title}
+          </h3>
+        </div>
+
+        <span className="text-lg font-bold text-slate-500">
+          {isOpen ? "▾" : "▸"}
         </span>
-        <h3 className="text-sm font-bold uppercase tracking-wide text-slate-900">
-          {title}
-        </h3>
-      </div>
+      </button>
 
-      <span className="text-lg font-bold text-slate-500">
-        {isOpen ? "▾" : "▸"}
-      </span>
-    </button>
+      {isOpen && <div className="p-5">{children}</div>}
+    </div>
+  );
 
-    {isOpen && <div className="p-5">{children}</div>}
-  </div>
-);
-
-if (loading) {
+  if (loading) {
     return <div className="p-8 text-center text-slate-500">Cargando proyecto...</div>;
   }
 
@@ -2136,24 +2207,22 @@ if (loading) {
                     className="flex min-w-0 shrink-0 items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors"
                   >
                     <span
-                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shrink-0 ${
-                        hasError
-                          ? "border-2 border-red-400 text-red-600 bg-red-50"
-                          : isActive
-                            ? "bg-[#00395A] text-white"
-                            : "bg-slate-100 text-slate-500"
-                      }`}
+                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold shrink-0 ${hasError
+                        ? "border-2 border-red-400 text-red-600 bg-red-50"
+                        : isActive
+                          ? "bg-[#00395A] text-white"
+                          : "bg-slate-100 text-slate-500"
+                        }`}
                     >
                       {index + 1}
                     </span>
                     <span
-                      className={`text-xs font-medium whitespace-nowrap hidden sm:inline ${
-                        hasError
-                          ? "text-red-600"
-                          : isActive
-                            ? "text-[#00395A]"
-                            : "text-slate-500"
-                      }`}
+                      className={`text-xs font-medium whitespace-nowrap hidden sm:inline ${hasError
+                        ? "text-red-600"
+                        : isActive
+                          ? "text-[#00395A]"
+                          : "text-slate-500"
+                        }`}
                     >
                       {step.label}
                     </span>
@@ -2174,19 +2243,44 @@ if (loading) {
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           {/* ========== COLUMNA IZQUIERDA: PASOS DEL FORMULARIO ========== */}
           <div className="space-y-5">
-            {/* PASO 1: INFORMACIÓN DE PRODUCTO */}
+            {/* PASO 0: Información de Producto */}
             {activeStep === 0 && (
               <div className="space-y-5">
-                <FormCard title="Información del Proyecto" icon="▦" color="#00395A" required>
+                <FormCard title="Información del Proyecto y Producto" icon="▦" color="#00395A" required>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormInput
-                      label="Acción Salesforce *"
-                      value={form.salesforceAction}
-                      onChange={(value) => updateField("salesforceAction", value)}
-                      onBlur={() => markFieldAsTouched("salesforceAction")}
-                      error={getError("salesforceAction")}
-                      placeholder="Ej. Nueva oportunidad / RFQ / Muestra"
-                    />
+                    <div>
+                      <label className="block">
+                        <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                          Acción Salesforce *
+                        </span>
+                      </label>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-3 text-sm font-semibold text-slate-700">A-</span>
+                        <input
+                          type="text"
+                          value={form.salesforceAction.replace(/^A-/i, "")}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+                            updateField("salesforceAction", digits ? `A-${digits}` : "");
+                          }}
+                          onBlur={() => markFieldAsTouched("salesforceAction")}
+                          placeholder="123456"
+                          maxLength={6}
+                          inputMode="numeric"
+                          pattern="\d{0,6}"
+                          className={`w-full rounded-md border px-3 py-2 pl-8 text-sm outline-none transition-colors ${
+                            getError("salesforceAction")
+                              ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                              : "border-slate-300 bg-white focus:ring-2 focus:border-slate-500 focus:ring-slate-200"
+                          }`}
+                        />
+                      </div>
+                      {getError("salesforceAction") && (
+                        <span className="mt-1 block text-xs font-normal text-red-600">
+                          {getError("salesforceAction")}
+                        </span>
+                      )}
+                    </div>
 
                     <div className="md:col-span-3">
                       <FormInput
@@ -2209,336 +2303,18 @@ if (loading) {
                         placeholder="Descripción comercial y técnica del proyecto..."
                       />
                     </div>
-
                   </div>
                 </FormCard>
 
-                <FormCard title="Datos de Producto Comercial" icon="◈" color="#27ae60" required>
+                <FormCard title="Datos adicionales del cliente" icon="📌" color="#e67e22">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="rounded-md bg-slate-50 border border-slate-200 px-3 py-2 md:col-span-3">
-                      <p className="text-xs text-slate-500 font-medium">Envoltura</p>
-                      <p className="text-sm font-semibold text-slate-800 mt-1">{inheritedWrapping || "—"}</p>
-                    </div>
-
-
-                    {/* Lógica guiada: BOLSA, LÁMINA, o selector tradicional para POUCH */}
-                    {isBolsa ? (
-                      <>
-                        {/* BOLSA: Preguntas Guiadas */}
-                        {/* Pregunta 1: Tipo de presentación */}
-                        <FormSelect
-                          label="¿Tipo de presentación de bolsa? *"
-                          value={form.tipoPresentacionBolsa}
-                          onChange={(value) => {
-                            updateField("tipoPresentacionBolsa", value);
-                            updateField("tipoSelloBolsa", "");
-                            updateField("acabadoBolsa", "");
-                            updateField("tieneFuelleBolsa", "");
-                            updateField("tipoFuelleBolsa", "");
-                            updateField("blueprintFormat", "");
-                            markFieldAsTouched("tipoPresentacionBolsa");
-                          }}
-                          onBlur={() => markFieldAsTouched("tipoPresentacionBolsa")}
-                          error={getError("tipoPresentacionBolsa")}
-                          placeholder="-- Seleccione --"
-                          options={BOLSA_PRESENTATION_TYPE_OPTIONS}
-                        />
-
-                        {/* Pregunta 2: Tipo de sello (solo si es "Bolsa sellada") */}
-                        {form.tipoPresentacionBolsa === "Bolsa sellada" && (
-                          <FormSelect
-                            label="¿Tipo de sello? *"
-                            value={form.tipoSelloBolsa}
-                            onChange={(value) => {
-                              updateField("tipoSelloBolsa", value);
-                              updateField("acabadoBolsa", "");
-                              updateField("tieneFuelleBolsa", "");
-                              updateField("tipoFuelleBolsa", "");
-                              updateField("blueprintFormat", "");
-                              markFieldAsTouched("tipoSelloBolsa");
-                            }}
-                            onBlur={() => markFieldAsTouched("tipoSelloBolsa")}
-                            error={getError("tipoSelloBolsa")}
-                            placeholder="-- Seleccione --"
-                            options={BOLSA_SEAL_TYPE_OPTIONS}
-                          />
-                        )}
-
-                        {/* Pregunta 3: Acabado (solo si es "Sello lateral") */}
-                        {form.tipoSelloBolsa === "Sello lateral" && (
-                          <FormSelect
-                            label="¿Acabado? *"
-                            value={form.acabadoBolsa}
-                            onChange={(value) => {
-                              updateField("acabadoBolsa", value);
-                              updateField("blueprintFormat", "");
-                              markFieldAsTouched("acabadoBolsa");
-                            }}
-                            onBlur={() => markFieldAsTouched("acabadoBolsa")}
-                            error={getError("acabadoBolsa")}
-                            placeholder="-- Seleccione --"
-                            options={BOLSA_FINISH_OPTIONS}
-                          />
-                        )}
-
-                        {/* Pregunta 4: ¿Tiene fuelle? (si es "Bolsa sellada") */}
-                        {form.tipoPresentacionBolsa === "Bolsa sellada" && (
-                          <FormSelect
-                            label="¿Tiene fuelle? *"
-                            value={form.tieneFuelleBolsa}
-                            onChange={(value) => {
-                              updateField("tieneFuelleBolsa", value);
-                              updateField("tipoFuelleBolsa", "");
-                              updateField("blueprintFormat", "");
-                              markFieldAsTouched("tieneFuelleBolsa");
-                            }}
-                            onBlur={() => markFieldAsTouched("tieneFuelleBolsa")}
-                            error={getError("tieneFuelleBolsa")}
-                            placeholder="-- Seleccione --"
-                            options={YES_NO_OPTIONS}
-                          />
-                        )}
-
-                        {/* Resultado: Formato de Plano Calculado */}
-                        {(() => {
-                          const calculatedFormat = calculateBolsaFormatPlan({
-                            tipoPresentacionBolsa: form.tipoPresentacionBolsa,
-                            tipoSelloBolsa: form.tipoSelloBolsa,
-                            acabadoBolsa: form.acabadoBolsa,
-                            tieneFuelleBolsa: form.tieneFuelleBolsa,
-                          });
-
-                          if (calculatedFormat && calculatedFormat !== form.blueprintFormat) {
-                            updateField("blueprintFormat", calculatedFormat);
-                          }
-
-                          const inferredGusset = inferBolsaGussetType({
-                            tipoPresentacionBolsa: form.tipoPresentacionBolsa,
-                            tipoSelloBolsa: form.tipoSelloBolsa,
-                            acabadoBolsa: form.acabadoBolsa,
-                            tieneFuelleBolsa: form.tieneFuelleBolsa,
-                          });
-
-                          if (inferredGusset && inferredGusset !== form.tipoFuelleBolsa) {
-                            updateField("tipoFuelleBolsa", inferredGusset);
-                          }
-
-                          return (
-                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 md:col-span-3">
-                              <p className="text-xs font-bold uppercase text-blue-800 mb-2">
-                                Formato de Plano (Calculado)
-                              </p>
-                              <p className="text-sm font-semibold text-blue-900">
-                                {calculatedFormat || "—"}
-                              </p>
-                            </div>
-                          );
-                        })()}
-                      </>
-                    ) : isLamina ? (
-                      <>
-                        {/* LÁMINA: Bloque guiado */}
-                        <FormSelect
-                          label="¿Qué tipo de lámina requiere el proyecto? *"
-                          value={form.tipoFormatoLamina}
-                          onChange={handleLaminaFormatChange}
-                          onBlur={() => markFieldAsTouched("tipoFormatoLamina")}
-                          error={getError("tipoFormatoLamina")}
-                          placeholder="-- Seleccione --"
-                          options={LAMINA_GUIDED_FORMAT_OPTIONS}
-                        />
-
-                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 md:col-span-3">
-                          <p className="text-xs font-bold uppercase text-blue-800 mb-2">
-                            Formato de Plano (Calculado)
-                          </p>
-                          <p className="text-sm font-semibold text-blue-900">
-                            {form.blueprintFormat || "—"}
-                          </p>
-                        </div>
-
-                        <p className="text-xs text-slate-500 md:col-span-3">
-                          El formato de plano se calcula automáticamente según el tipo de lámina seleccionado.
-                        </p>
-                      </>
-                    ) : isPouchWrapping ? (
-                      <>
-                        {/* POUCH: Bloque guiado */}
-                        {/* Pregunta 1: Familia de Pouch */}
-                        <FormSelect
-                          label="¿Qué tipo de familia de pouch requiere? *"
-                          value={form.tipoFamiliaPouch}
-                          onChange={(value) => {
-                            updateField("tipoFamiliaPouch", value);
-                            updateField("tipoStandUpPouch", "");
-                            updateField("formaDoyPackPouch", "");
-                            updateField("tipoFuelleStandUpPouch", "");
-                            updateField("cantidadSellosPouchPlano", "");
-                            updateField("tieneFuelleSelloCentralPouch", "");
-                            updateField("materialSelloCentralPouch", "");
-                            updateField("tipoSelloEnFuellePouch", "");
-                            updateField("blueprintFormat", "");
-                            markFieldAsTouched("tipoFamiliaPouch");
-                          }}
-                          onBlur={() => markFieldAsTouched("tipoFamiliaPouch")}
-                          error={getError("tipoFamiliaPouch")}
-                          placeholder="-- Seleccione --"
-                          options={POUCH_FAMILY_OPTIONS}
-                        />
-
-                        {/* Stand Up: Tipo */}
-                        {form.tipoFamiliaPouch === "Pouch Stand Up" && (
-                          <FormSelect
-                            label="¿Qué tipo de Stand Up? *"
-                            value={form.tipoStandUpPouch}
-                            onChange={(value) => {
-                              updateField("tipoStandUpPouch", value);
-                              updateField("formaDoyPackPouch", "");
-                              updateField("tipoFuelleStandUpPouch", "");
-                              updateField("blueprintFormat", "");
-                              markFieldAsTouched("tipoStandUpPouch");
-                            }}
-                            onBlur={() => markFieldAsTouched("tipoStandUpPouch")}
-                            error={getError("tipoStandUpPouch")}
-                            placeholder="-- Seleccione --"
-                            options={POUCH_STAND_UP_OPTIONS}
-                          />
-                        )}
-
-                        {/* Stand Up Doy Pack: Forma */}
-                        {form.tipoStandUpPouch === "Doy Pack" && (
-                          <FormSelect
-                            label="¿Forma del Doy Pack? *"
-                            value={form.formaDoyPackPouch}
-                            onChange={(value) => {
-                              updateField("formaDoyPackPouch", value);
-                              updateField("blueprintFormat", "");
-                              markFieldAsTouched("formaDoyPackPouch");
-                            }}
-                            onBlur={() => markFieldAsTouched("formaDoyPackPouch")}
-                            error={getError("formaDoyPackPouch")}
-                            placeholder="-- Seleccione --"
-                            options={POUCH_DOY_PACK_FORM_OPTIONS}
-                          />
-                        )}
-
-                        {/* Stand Up Doy Pack: Tipo de Fuelle */}
-                        {form.tipoStandUpPouch === "Doy Pack" && (
-                          <FormSelect
-                            label="¿Tipo de fuelle? *"
-                            value={form.tipoFuelleStandUpPouch}
-                            onChange={(value) => {
-                              updateField("tipoFuelleStandUpPouch", value);
-                              updateField("blueprintFormat", "");
-                              markFieldAsTouched("tipoFuelleStandUpPouch");
-                            }}
-                            onBlur={() => markFieldAsTouched("tipoFuelleStandUpPouch")}
-                            error={getError("tipoFuelleStandUpPouch")}
-                            placeholder="-- Seleccione --"
-                            options={POUCH_FUELLE_STAND_UP_OPTIONS}
-                          />
-                        )}
-
-                        {/* Pouch Plano: Cantidad de sellos */}
-                        {form.tipoFamiliaPouch === "Pouch Plano" && (
-                          <FormSelect
-                            label="¿Cantidad de sellos? *"
-                            value={form.cantidadSellosPouchPlano}
-                            onChange={(value) => {
-                              updateField("cantidadSellosPouchPlano", value);
-                              updateField("blueprintFormat", "");
-                              markFieldAsTouched("cantidadSellosPouchPlano");
-                            }}
-                            onBlur={() => markFieldAsTouched("cantidadSellosPouchPlano")}
-                            error={getError("cantidadSellosPouchPlano")}
-                            placeholder="-- Seleccione --"
-                            options={POUCH_PLANO_SEALS_OPTIONS}
-                          />
-                        )}
-
-                        {/* Pouch Sello Central: ¿Tiene fuelle? */}
-                        {form.tipoFamiliaPouch === "Pouch con Sello Central" && (
-                          <FormSelect
-                            label="¿Tiene fuelle? *"
-                            value={form.tieneFuelleSelloCentralPouch}
-                            onChange={(value) => {
-                              updateField("tieneFuelleSelloCentralPouch", value);
-                              updateField("blueprintFormat", "");
-                              markFieldAsTouched("tieneFuelleSelloCentralPouch");
-                            }}
-                            onBlur={() => markFieldAsTouched("tieneFuelleSelloCentralPouch")}
-                            error={getError("tieneFuelleSelloCentralPouch")}
-                            placeholder="-- Seleccione --"
-                            options={POUCH_SELLO_CENTRAL_FUELLE_OPTIONS}
-                          />
-                        )}
-
-                        {/* Pouch Sello Central: Material */}
-                        {form.tipoFamiliaPouch === "Pouch con Sello Central" && (
-                          <FormSelect
-                            label="¿Material especificado? *"
-                            value={form.materialSelloCentralPouch}
-                            onChange={(value) => {
-                              updateField("materialSelloCentralPouch", value);
-                              updateField("blueprintFormat", "");
-                              markFieldAsTouched("materialSelloCentralPouch");
-                            }}
-                            onBlur={() => markFieldAsTouched("materialSelloCentralPouch")}
-                            error={getError("materialSelloCentralPouch")}
-                            placeholder="-- Seleccione --"
-                            options={POUCH_SELLO_CENTRAL_MATERIAL_OPTIONS}
-                          />
-                        )}
-
-                        {/* Pouch Sello en Fuelle: Tipo */}
-                        {form.tipoFamiliaPouch === "Pouch con Sello en Fuelle" && (
-                          <FormSelect
-                            label="¿Tipo de sello en fuelle? *"
-                            value={form.tipoSelloEnFuellePouch}
-                            onChange={(value) => {
-                              updateField("tipoSelloEnFuellePouch", value);
-                              updateField("blueprintFormat", "");
-                              markFieldAsTouched("tipoSelloEnFuellePouch");
-                            }}
-                            onBlur={() => markFieldAsTouched("tipoSelloEnFuellePouch")}
-                            error={getError("tipoSelloEnFuellePouch")}
-                            placeholder="-- Seleccione --"
-                            options={POUCH_SELLO_EN_FUELLE_OPTIONS}
-                          />
-                        )}
-
-                        {/* Resultado: Formato de Plano Calculado */}
-                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 md:col-span-3">
-                          <p className="text-xs font-bold uppercase text-blue-800 mb-2">
-                            Formato de Plano (Calculado)
-                          </p>
-                          <p className="text-sm font-semibold text-blue-900">
-                            {form.blueprintFormat || "—"}
-                          </p>
-                        </div>
-
-                        <p className="text-xs text-slate-500 md:col-span-3">
-                          El formato de plano se calcula automáticamente según tus respuestas.
-                        </p>
-                      </>
-                    ) : (
-                      /* Otros tipos de envoltura: Selector tradicional */
-                      <FormSelect
-                        label="Formato de Plano *"
-                        value={form.blueprintFormat}
-                        onChange={(value) => updateField("blueprintFormat", value)}
-                        onBlur={() => markFieldAsTouched("blueprintFormat")}
-                        error={getError("blueprintFormat")}
-                        placeholder={!inheritedWrapping ? "Seleccione un portafolio primero" : "-- Seleccione --"}
-                        options={getBlueprintFormatOptions(inheritedWrapping)}
-                        disabled={!inheritedWrapping}
-                      />
-                    )}
-
                     <FormSelect
                       label="Aplicación Técnica *"
                       value={form.technicalApplication}
-                      onChange={(value) => updateField("technicalApplication", value)}
+                      onChange={(value) => {
+                        updateField("technicalApplication", value);
+                        markFieldAsTouched("technicalApplication");
+                      }}
                       onBlur={() => markFieldAsTouched("technicalApplication")}
                       error={getError("technicalApplication")}
                       placeholder="-- Seleccione --"
@@ -2551,26 +2327,25 @@ if (loading) {
                       onChange={(value) => updateField("customerPackingCode", value)}
                       placeholder="Ej. COD-CLI-001"
                     />
-                  </div>
-                </FormCard>
 
-                <FormCard title="Datos del cliente / producto" icon="👤" color="#2c3e50">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="md:col-span-3">
+                    <div className="md:col-span-2">
                       <FormTextarea
                         label="Información adicional cliente"
                         value={form.customerAdditionalInfo}
                         onChange={(value) => updateField("customerAdditionalInfo", value)}
-                        placeholder="Información adicional del cliente..."
+                        onBlur={() => markFieldAsTouched("customerAdditionalInfo")}
+                        error={getError("customerAdditionalInfo")}
+                        placeholder="Información adicional proporcionada por el cliente..."
                       />
                     </div>
-
                     <div className="md:col-span-3">
                       <FormTextarea
-                        label="Comentario"
+                        label="Comentario Ejecutivo Comercial"
                         value={form.additionalComment}
                         onChange={(value) => updateField("additionalComment", value)}
-                        placeholder="Comentario general..."
+                        onBlur={() => markFieldAsTouched("additionalComment")}
+                        error={getError("additionalComment")}
+                        placeholder="Comentarios adicionales..."
                       />
                     </div>
                   </div>
@@ -2578,7 +2353,7 @@ if (loading) {
               </div>
             )}
 
-            {/* PASO 2: DISEÑO */}
+            {/* PASO 1: DISEÑO */}
             {activeStep === 1 && (
               <div className="space-y-5">
                 <FormCard title="Especificaciones de diseño" icon="🎨" color="#8e44ad">
@@ -2671,11 +2446,153 @@ if (loading) {
                           <FormSelect
                             label="¿Requiere trabajo de diseño?"
                             value={form.printClass === "Sin impresión" ? "No" : "Sí"}
-                            onChange={() => {}}
+                            onChange={() => { }}
                             options={YES_NO_OPTIONS}
                             disabled={true}
                           />
                         )}
+                        {/* Línea 0: Formato de Plano */}
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                            Configuración de Formato
+                          </h4>
+
+                          {isGuidedFormatEnabled(inheritedWrapping) ? (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <FormSelect
+                                  label="Tipo de presentación *"
+                                  value={form.tipoPresentacionBolsa}
+                                  onChange={(value) => {
+                                    updateField("tipoPresentacionBolsa", value);
+                                    updateField("tipoSelloBolsa", "");
+                                    updateField("acabadoBolsa", "");
+                                    updateField("tieneFuelleBolsa", "");
+                                    updateField("tipoFuelleBolsa", "");
+                                  }}
+                                  options={[
+                                    { value: "Bolsa sellada", label: "Bolsa sellada" },
+                                    { value: "Wicket", label: "Wicket" },
+                                    { value: "Hojas", label: "Hojas" },
+                                  ]}
+                                  placeholder="-- Seleccione --"
+                                />
+
+                                {form.tipoPresentacionBolsa === "Bolsa sellada" && (
+                                  <FormSelect
+                                    label="Tipo de Sello *"
+                                    value={form.tipoSelloBolsa}
+                                    onChange={(value) => {
+                                      updateField("tipoSelloBolsa", value);
+                                      updateField("acabadoBolsa", "");
+                                      updateField("tieneFuelleBolsa", "");
+                                      updateField("tipoFuelleBolsa", "");
+                                    }}
+                                    options={[
+                                      { value: "Sello lateral", label: "Sello lateral" },
+                                      { value: "Sello de fondo", label: "Sello de fondo" },
+                                    ]}
+                                    placeholder="-- Seleccione --"
+                                  />
+                                )}
+
+                                {form.tipoSelloBolsa === "Sello lateral" && (
+                                  <FormSelect
+                                    label="Acabado *"
+                                    value={form.acabadoBolsa}
+                                    onChange={(value) => {
+                                      updateField("acabadoBolsa", value);
+                                    }}
+                                    options={[
+                                      { value: "Corte", label: "Corte" },
+                                      { value: "Pestaña", label: "Pestaña" },
+                                    ]}
+                                    placeholder="-- Seleccione --"
+                                  />
+                                )}
+
+                                {form.tipoPresentacionBolsa === "Bolsa sellada" && (
+                                  <>
+                                    <FormSelect
+                                      label="¿Lleva Fuelle? *"
+                                      value={form.tieneFuelleBolsa}
+                                      onChange={(value) => {
+                                        updateField("tieneFuelleBolsa", value);
+                                        updateField("tipoFuelleBolsa", "");
+                                      }}
+                                      options={YES_NO_OPTIONS}
+                                      placeholder="-- Seleccione --"
+                                    />
+                                    {form.tieneFuelleBolsa === "Sí" && (
+                                      <FormSelect
+                                        label="Tipo de Fuelle *"
+                                        value={form.tipoFuelleBolsa}
+                                        onChange={(value) => updateField("tipoFuelleBolsa", value)}
+                                        options={[
+                                          { value: "Fondo", label: "Fondo" },
+                                          { value: "Lateral", label: "Lateral" },
+                                        ]}
+                                        placeholder="-- Seleccione --"
+                                      />
+                                    )}
+                                  </>
+                                )}
+                              </div>
+
+                              <div className="mt-4 border-t border-slate-200 pt-4">
+                                <FormInput
+                                  label="Formato de Plano Calculado *"
+                                  value={form.blueprintFormat}
+                                  onChange={() => {}}
+                                  error={getError("blueprintFormat")}
+                                  disabled={true}
+                                  placeholder="Se calculará automáticamente..."
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                              <FormSelect
+                                label="Formato de Plano *"
+                                value={form.blueprintFormat}
+                                onChange={(value) => updateField("blueprintFormat", value)}
+                                onBlur={() => markFieldAsTouched("blueprintFormat")}
+                                error={getError("blueprintFormat")}
+                                placeholder={!inheritedWrapping ? "Seleccione un portafolio primero" : "-- Seleccione --"}
+                                options={getBlueprintFormatOptions(inheritedWrapping)}
+                                disabled={!inheritedWrapping}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <FormSelect
+                            label='Logo "Producto Peruano"'
+                            value={form.peruvianProductLogo}
+                            onChange={(value) => {
+                              updateField("peruvianProductLogo", value);
+                              markFieldAsTouched("peruvianProductLogo");
+                            }}
+                            onBlur={() => markFieldAsTouched("peruvianProductLogo")}
+                            error={getError("peruvianProductLogo")}
+                            placeholder="-- Seleccione --"
+                            options={YES_NO_OPTIONS}
+                          />
+
+                          <FormSelect
+                            label="Pie de Imprenta"
+                            value={form.printingFooter}
+                            onChange={(value) => {
+                              updateField("printingFooter", value);
+                              markFieldAsTouched("printingFooter");
+                            }}
+                            onBlur={() => markFieldAsTouched("printingFooter")}
+                            error={getError("printingFooter")}
+                            placeholder="-- Seleccione --"
+                            options={YES_NO_OPTIONS}
+                          />
+                        </div>
                       </div>
                     );
                   })()}
@@ -2691,40 +2608,10 @@ if (loading) {
                     markFieldAsTouched("designPlanFiles");
                   }}
                 />
-
-                <FormCard title="Datos adicionales de Artes Gráficas" icon="📌" color="#8e44ad">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormSelect
-                      label='Logo "Producto Peruano"'
-                      value={form.peruvianProductLogo}
-                      onChange={(value) => {
-                        updateField("peruvianProductLogo", value);
-                        markFieldAsTouched("peruvianProductLogo");
-                      }}
-                      onBlur={() => markFieldAsTouched("peruvianProductLogo")}
-                      error={getError("peruvianProductLogo")}
-                      placeholder="-- Seleccione --"
-                      options={YES_NO_OPTIONS}
-                    />
-
-                    <FormSelect
-                      label="Pie de Imprenta"
-                      value={form.printingFooter}
-                      onChange={(value) => {
-                        updateField("printingFooter", value);
-                        markFieldAsTouched("printingFooter");
-                      }}
-                      onBlur={() => markFieldAsTouched("printingFooter")}
-                      error={getError("printingFooter")}
-                      placeholder="-- Seleccione --"
-                      options={YES_NO_OPTIONS}
-                    />
-                  </div>
-                </FormCard>
               </div>
             )}
 
-            {/* PASO 3: ESTRUCTURA */}
+            {/* PASO 2: ESTRUCTURA */}
             {activeStep === 2 && (
               <div className="space-y-5">
                 <CollapsibleSection
@@ -2770,195 +2657,195 @@ if (loading) {
                   </div>
 
                   {form.hasReferenceStructure !== "Sí" && (
-                  <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600">
-                      Capas de estructura
-                    </p>
+                    <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600">
+                        Capas de estructura
+                      </p>
 
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        {(() => {
+                          const maxLayers = activeLayerCount;
+                          return [1, 2, 3, 4].filter(layer => layer <= maxLayers).map((layer) => {
+                            const groupKey = `layer${layer}MaterialGroup` as keyof ProjectEditFormData;
+                            const materialKey = `layer${layer}Material` as keyof ProjectEditFormData;
+                            const micronKey = `layer${layer}Micron` as keyof ProjectEditFormData;
+                            const grammageKey = `layer${layer}Grammage` as keyof ProjectEditFormData;
+
+                            const group = form[groupKey] as string;
+                            const groupOptions = group ? MATERIAL_CATALOG[group] : [];
+                            const selectedMaterial = group ? MATERIAL_CATALOG[group]?.find(m => m.value === form[materialKey]) : null;
+                            const isMicronFree = selectedMaterial?.isFree ?? false;
+
+                            return (
+                              <div key={layer} className="rounded-lg border border-slate-200 bg-white p-4">
+                                <p className="mb-3 text-xs font-bold uppercase text-brand-primary">
+                                  Capa {layer}
+                                </p>
+                                <div className="space-y-3">
+                                  <FormSelect
+                                    label="Grupo Materia Prima *"
+                                    value={group}
+                                    onChange={(value) => {
+                                      updateField(groupKey, value);
+                                      updateField(materialKey, "");
+                                      updateField(micronKey, "");
+                                      updateField(grammageKey, "");
+                                      markFieldAsTouched(groupKey);
+                                    }}
+                                    onBlur={() => markFieldAsTouched(groupKey)}
+                                    error={getError(groupKey)}
+                                    placeholder="-- Seleccione grupo --"
+                                    options={MATERIAL_GROUP_OPTIONS}
+                                  />
+                                  <FormSelect
+                                    label="Tipo de Materia Prima *"
+                                    value={form[materialKey] as string}
+                                    onChange={(value) => {
+                                      updateField(materialKey, value);
+
+                                      const entry = MATERIAL_CATALOG[group]?.find((m) => m.value === value);
+
+                                      if (entry && !entry.isFree) {
+                                        updateField(micronKey, entry.micron);
+                                        updateField(grammageKey, entry.grammage);
+                                      } else {
+                                        updateField(micronKey, "");
+                                        updateField(grammageKey, "");
+                                      }
+
+                                      markFieldAsTouched(materialKey);
+                                      markFieldAsTouched(micronKey);
+                                      markFieldAsTouched(grammageKey);
+                                    }}
+                                    onBlur={() => markFieldAsTouched(materialKey)}
+                                    error={getError(materialKey)}
+                                    options={groupOptions}
+                                    disabled={!group}
+                                    placeholder="-- Seleccione tipo --"
+                                  />
+                                  <FormInput
+                                    label="Micraje *"
+                                    value={form[micronKey] as string}
+                                    onChange={(value) => updateField(micronKey, value)}
+                                    onBlur={() => markFieldAsTouched(micronKey)}
+                                    error={getError(micronKey)}
+                                    disabled={!isMicronFree}
+                                    placeholder={isMicronFree ? "Ingrese micraje" : "Auto"}
+                                  />
+                                  <FormInput
+                                    label="Gramaje *"
+                                    value={form[grammageKey] as string}
+                                    onChange={(value) => updateField(grammageKey, value)}
+                                    onBlur={() => markFieldAsTouched(grammageKey)}
+                                    error={getError(grammageKey)}
+                                    disabled={!isMicronFree}
+                                    placeholder={isMicronFree ? "Ingrese gramaje" : "Auto"}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+
                       {(() => {
-                        const maxLayers = activeLayerCount;
-                        return [1, 2, 3, 4].filter(layer => layer <= maxLayers).map((layer) => {
-                        const groupKey = `layer${layer}MaterialGroup` as keyof ProjectEditFormData;
-                        const materialKey = `layer${layer}Material` as keyof ProjectEditFormData;
-                        const micronKey = `layer${layer}Micron` as keyof ProjectEditFormData;
-                        const grammageKey = `layer${layer}Grammage` as keyof ProjectEditFormData;
+                        const completedLayers: string[] = [];
+                        const missingLayers: string[] = [];
 
-                        const group = form[groupKey] as string;
-                        const groupOptions = group ? MATERIAL_CATALOG[group] : [];
-                        const selectedMaterial = group ? MATERIAL_CATALOG[group]?.find(m => m.value === form[materialKey]) : null;
-                        const isMicronFree = selectedMaterial?.isFree ?? false;
+                        for (let i = 1; i <= activeLayerCount; i++) {
+                          const material = form[`layer${i}Material` as keyof ProjectEditFormData] as string;
+                          const micron = form[`layer${i}Micron` as keyof ProjectEditFormData] as string;
+                          const grammage = form[`layer${i}Grammage` as keyof ProjectEditFormData] as string;
+
+                          const isLayerComplete = material && micron && grammage;
+
+                          if (isLayerComplete) {
+                            const materialDisplay = getMaterialTypeForSummary(material);
+                            completedLayers.push(`${materialDisplay}, ${micron}`);
+                          } else {
+                            missingLayers.push(`Capa ${i}`);
+                          }
+                        }
 
                         return (
-                          <div key={layer} className="rounded-lg border border-slate-200 bg-white p-4">
-                            <p className="mb-3 text-xs font-bold uppercase text-brand-primary">
-                              Capa {layer}
+                          <div className="mt-4 rounded-lg bg-white border border-slate-200 p-3">
+                            <p className="text-xs font-semibold text-slate-600 mb-2">
+                              Materia Prima General:
                             </p>
-                            <div className="space-y-3">
-                              <FormSelect
-                                label="Grupo Materia Prima *"
-                                value={group}
-                                onChange={(value) => {
-                                  updateField(groupKey, value);
-                                  updateField(materialKey, "");
-                                  updateField(micronKey, "");
-                                  updateField(grammageKey, "");
-                                  markFieldAsTouched(groupKey);
-                                }}
-                                onBlur={() => markFieldAsTouched(groupKey)}
-                                error={getError(groupKey)}
-                                placeholder="-- Seleccione grupo --"
-                                options={MATERIAL_GROUP_OPTIONS}
-                              />
-                              <FormSelect
-                                label="Tipo de Materia Prima *"
-                                value={form[materialKey] as string}
-                                onChange={(value) => {
-                                  updateField(materialKey, value);
 
-                                  const entry = MATERIAL_CATALOG[group]?.find((m) => m.value === value);
+                            {completedLayers.length > 0 ? (
+                              <p className="text-sm text-slate-700 font-medium break-words">
+                                {completedLayers.join(" | ")}
+                              </p>
+                            ) : (
+                              <p className="text-sm text-slate-500">
+                                Aún no hay capas completas.
+                              </p>
+                            )}
 
-                                  if (entry && !entry.isFree) {
-                                    updateField(micronKey, entry.micron);
-                                    updateField(grammageKey, entry.grammage);
-                                  } else {
-                                    updateField(micronKey, "");
-                                    updateField(grammageKey, "");
-                                  }
-
-                                  markFieldAsTouched(materialKey);
-                                  markFieldAsTouched(micronKey);
-                                  markFieldAsTouched(grammageKey);
-                                }}
-                                onBlur={() => markFieldAsTouched(materialKey)}
-                                error={getError(materialKey)}
-                                options={groupOptions}
-                                disabled={!group}
-                                placeholder="-- Seleccione tipo --"
-                              />
-                              <FormInput
-                                label="Micraje *"
-                                value={form[micronKey] as string}
-                                onChange={(value) => updateField(micronKey, value)}
-                                onBlur={() => markFieldAsTouched(micronKey)}
-                                error={getError(micronKey)}
-                                disabled={!isMicronFree}
-                                placeholder={isMicronFree ? "Ingrese micraje" : "Auto"}
-                              />
-                              <FormInput
-                                label="Gramaje *"
-                                value={form[grammageKey] as string}
-                                onChange={(value) => updateField(grammageKey, value)}
-                                onBlur={() => markFieldAsTouched(grammageKey)}
-                                error={getError(grammageKey)}
-                                disabled={!isMicronFree}
-                                placeholder={isMicronFree ? "Ingrese gramaje" : "Auto"}
-                              />
-                            </div>
+                            {missingLayers.length > 0 && (
+                              <p className="mt-2 text-xs font-medium text-red-600">
+                                Falta completar: {missingLayers.join(", ")}.
+                              </p>
+                            )}
                           </div>
                         );
-                      });
                       })()}
                     </div>
-
-                    {(() => {
-                      const completedLayers: string[] = [];
-                      const missingLayers: string[] = [];
-
-                      for (let i = 1; i <= activeLayerCount; i++) {
-                        const material = form[`layer${i}Material` as keyof ProjectEditFormData] as string;
-                        const micron = form[`layer${i}Micron` as keyof ProjectEditFormData] as string;
-                        const grammage = form[`layer${i}Grammage` as keyof ProjectEditFormData] as string;
-
-                        const isLayerComplete = material && micron && grammage;
-
-                        if (isLayerComplete) {
-                          const materialDisplay = getMaterialTypeForSummary(material);
-                          completedLayers.push(`${materialDisplay}, ${micron}`);
-                        } else {
-                          missingLayers.push(`Capa ${i}`);
-                        }
-                      }
-
-                      return (
-                        <div className="mt-4 rounded-lg bg-white border border-slate-200 p-3">
-                          <p className="text-xs font-semibold text-slate-600 mb-2">
-                            Materia Prima General:
-                          </p>
-
-                          {completedLayers.length > 0 ? (
-                            <p className="text-sm text-slate-700 font-medium break-words">
-                              {completedLayers.join(" | ")}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-slate-500">
-                              Aún no hay capas completas.
-                            </p>
-                          )}
-
-                          {missingLayers.length > 0 && (
-                            <p className="mt-2 text-xs font-medium text-red-600">
-                              Falta completar: {missingLayers.join(", ")}.
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
                   )}
-                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormInput
-                      label="Gramaje general (g/m2) *"
-                      value={form.grammage}
-                      onChange={() => {}}
-                      onBlur={() => markFieldAsTouched("grammage")}
-                      error={getError("grammage")}
-                      placeholder="Calculado automáticamente"
-                      disabled={true}
-                    />
-
-                    <FormInput
-                      label="Tolerancia de Gramaje *"
-                      value={form.grammageTolerance}
-                      onChange={(value) => updateField("grammageTolerance", value)}
-                      onBlur={() => markFieldAsTouched("grammageTolerance")}
-                      error={getError("grammageTolerance")}
-                      placeholder="Ej. ±5%"
-                    />
-
-                    <FormSelect
-                      label="¿Solicitud de muestra? *"
-                      value={form.sampleRequest}
-                      onChange={(value) => {
-                        updateField("sampleRequest", value);
-                        markFieldAsTouched("sampleRequest");
-                      }}
-                      onBlur={() => markFieldAsTouched("sampleRequest")}
-                      error={getError("sampleRequest")}
-                      placeholder="-- Seleccione --"
-                      options={YES_NO_OPTIONS}
-                    />
-
-                    <p className="md:col-span-3 text-xs text-slate-500">
-                      Cálculo del gramaje general: suma de gramajes de capas (
-                      {formatGrammageValue(layerGrammageTotal)} g/m2) + Tintas y Adhesivos{" "}
-                      {form.structureType
-                        ? `(${form.structureType}: ${formatGrammageValue(fixedInkAdhesiveGrammage)} g/m2)`
-                        : "(según tipo de estructura)"}
-                      {" "} = {form.grammage || "0"} g/m2.
-                    </p>
-
-                    <div className="md:col-span-3">
-                      <FormTextarea
-                        label="Comentarios"
-                        value={form.specialStructureSpecs}
-                        onChange={(value) => updateField("specialStructureSpecs", value)}
-                        placeholder="Restricciones, barreras, sellabilidad, resistencia, OTR/WVTR..."
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <FormInput
+                        label="Gramaje general (g/m2) *"
+                        value={form.grammage}
+                        onChange={() => { }}
+                        onBlur={() => markFieldAsTouched("grammage")}
+                        error={getError("grammage")}
+                        placeholder="Calculado automáticamente"
+                        disabled={true}
                       />
+
+                      <FormInput
+                        label="Tolerancia de Gramaje *"
+                        value={form.grammageTolerance}
+                        onChange={(value) => updateField("grammageTolerance", value)}
+                        onBlur={() => markFieldAsTouched("grammageTolerance")}
+                        error={getError("grammageTolerance")}
+                        placeholder="Ej. ±5%"
+                      />
+
+                      <FormSelect
+                        label="¿Solicitud de muestra? *"
+                        value={form.sampleRequest}
+                        onChange={(value) => {
+                          updateField("sampleRequest", value);
+                          markFieldAsTouched("sampleRequest");
+                        }}
+                        onBlur={() => markFieldAsTouched("sampleRequest")}
+                        error={getError("sampleRequest")}
+                        placeholder="-- Seleccione --"
+                        options={YES_NO_OPTIONS}
+                      />
+
+                      <p className="md:col-span-3 text-xs text-slate-500">
+                        Cálculo del gramaje general: suma de gramajes de capas (
+                        {formatGrammageValue(layerGrammageTotal)} g/m2) + Tintas y Adhesivos{" "}
+                        {form.structureType
+                          ? `(${form.structureType}: ${formatGrammageValue(fixedInkAdhesiveGrammage)} g/m2)`
+                          : "(según tipo de estructura)"}
+                        {" "} = {form.grammage || "0"} g/m2.
+                      </p>
+
+                      <div className="md:col-span-3">
+                        <FormTextarea
+                          label="Comentarios"
+                          value={form.specialStructureSpecs}
+                          onChange={(value) => updateField("specialStructureSpecs", value)}
+                          placeholder="Restricciones, barreras, sellabilidad, resistencia, OTR/WVTR..."
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
                 </CollapsibleSection>
 
                 <CollapsibleSection
@@ -2972,7 +2859,7 @@ if (loading) {
                     {(() => {
                       const wrapping = inheritedWrapping?.toLowerCase() || "";
                       const showRepetition = shouldShowRepetitionField(inheritedWrapping, form.blueprintFormat);
-const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
+                      const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       return (
                         <>
                           {isPouchOrBolsa && (
@@ -3023,17 +2910,6 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                             onBlur={() => markFieldAsTouched("gussetWidth")}
                             error={getError("gussetWidth")}
                             placeholder={shouldApplyPouchDoyPackRestrictions ? "0 - 3 mm" : "mm"}
-                          />
-                          <FormSelect
-                            label={shouldApplyPouchDoyPackRestrictions ? "Tipo de Fuelle *" : "Tipo de Fuelle"}
-                            value={form.gussetType}
-                            onChange={(value) => {
-                              updateField("gussetType", value);
-                              markFieldAsTouched("gussetType");
-                            }}
-                            error={getError("gussetType")}
-                            placeholder="-- Seleccione --"
-                            options={GUSSET_TYPE_OPTIONS}
                           />
                         </>
                       );
@@ -3172,15 +3048,14 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                           updateField("customerTechnicalSpecAttachment", "");
                         }
 
-                          markFieldAsTouched("hasCustomerTechnicalSpec");
-                        }}
-                        onBlur={() => markFieldAsTouched("hasCustomerTechnicalSpec")}
-                        error={getError("hasCustomerTechnicalSpec")}
-                        placeholder="-- Seleccione --"
-                        options={YES_NO_OPTIONS}
-                      />
-
-                    </div>
+                        markFieldAsTouched("hasCustomerTechnicalSpec");
+                      }}
+                      onBlur={() => markFieldAsTouched("hasCustomerTechnicalSpec")}
+                      error={getError("hasCustomerTechnicalSpec")}
+                      placeholder="-- Seleccione --"
+                      options={YES_NO_OPTIONS}
+                    />
+                  </div>
 
                   {form.hasCustomerTechnicalSpec === "Sí" && (
                     <ProjectDocumentsSection
@@ -3191,6 +3066,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                   )}
                 </div>
 
+                {/* Especificaciones de Core en Estructura */}
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <div className="mb-4 flex items-center gap-3">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-sm">
@@ -3263,14 +3139,14 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                     />
                   </div>
                 </div>
-                
+
               </div>
             )}
 
-            {/* PASO 4: CONDICIONES COMERCIALES */}
+            {/* PASO 3: CONDICIONES COMERCIALES */}
             {activeStep === 3 && (
               <div className="space-y-5">
-                <FormCard title="Condiciones comerciales" icon="💰" color="#0d4c5c">
+                <FormCard title="4. Condiciones comerciales" icon="💰" color="#0d4c5c">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <FormInput
                       label="Cantidad / Volumen estimado *"
@@ -3291,26 +3167,34 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                       placeholder="-- Seleccione --"
                     />
 
-                    <FormSelect label="Venta Nacional / Internacional *" value={form.saleType} onChange={(value) => updateField("saleType", value)} options={SALE_TYPE_OPTIONS} />
-                    <FormSelect label="Incoterm" value={form.incoterm} onChange={(value) => updateField("incoterm", value)} options={INCOTERM_OPTIONS} />
-                    <FormSelect label="País Destino" value={form.destinationCountry} onChange={(value) => updateField("destinationCountry", value)} options={DESTINATION_COUNTRY_OPTIONS} />
+                    <FormSelect
+                      label="Incoterm"
+                      value={form.incoterm}
+                      onChange={(value) => updateField("incoterm", value)}
+                      options={INCOTERM_OPTIONS}
+                      placeholder="-- Seleccione --"
+                    />
 
-                    <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(value) => updateField("targetPrice", value)} placeholder="Ej. 45" />
-                    <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={CURRENCY_OPTIONS} />
+                    <FormInput
+                      label="Precio Objetivo"
+                      value={form.targetPrice}
+                      onChange={(value) => updateField("targetPrice", value)}
+                      placeholder="Ej. 45"
+                    />
 
-                    <div className="md:col-span-3">
-                      <FormTextarea
-                        label="Dirección de entrega"
-                        value={form.deliveryAddress}
-                        onChange={(value) => updateField("deliveryAddress", value)}
-                        onBlur={() => markFieldAsTouched("deliveryAddress")}
-                        error={getError("deliveryAddress")}
-                        placeholder="Ingrese la dirección de entrega..."
-                      />
-                    </div>
+                    <FormSelect
+                      label="Tipo de Moneda"
+                      value={form.currencyType}
+                      onChange={(value) => updateField("currencyType", value)}
+                      options={[
+                        { value: "USD", label: "USD" },
+                        { value: "PEN", label: "PEN" },
+                        { value: "EUR", label: "EUR" },
+                      ]}
+                      placeholder="-- Seleccione --"
+                    />
                   </div>
                 </FormCard>
-
               </div>
             )}
 
@@ -3318,94 +3202,62 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
 
           {/* ========== COLUMNA DERECHA: PANEL DE CONTEXTO (STICKY) ========== */}
           <div className="space-y-5">
-            {/* TARJETA 1: PROYECTO CORE */}
+            {/* TARJETA: PROYECTO CORE */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="font-semibold text-sm text-slate-900 mb-4">Proyecto Core</h3>
-              <div className="space-y-3">
+              <h3 className="font-semibold text-sm text-slate-900 mb-3">Proyecto Core</h3>
+              <div className="space-y-4">
                 <FormSelect
                   label="Clasificación *"
                   value={form.classification}
-                  onChange={(value) => {
-                    updateField("classification", value);
-                    updateField("subClassification", "");
-                    updateField("projectType", "");
-                  }}
-                  onBlur={() => markFieldAsTouched("classification")}
-                  error={getError("classification")}
+                  onChange={() => {}}
                   options={CLASSIFICATION_OPTIONS}
                   placeholder="-- Seleccione --"
+                  disabled={true}
                 />
 
-                <FormSelect
-                  label={form.classification ? "Subsección Clasificación *" : "Subsección Clasificación"}
-                  value={form.subClassification}
-                  onChange={(value) => {
-                    updateField("subClassification", value);
-                    updateField("projectType", "");
-                  }}
-                  onBlur={() => markFieldAsTouched("subClassification")}
-                  error={getError("subClassification")}
-                  options={
-                    form.classification === "Nuevo"
-                      ? SUBCLASSIFICATION_NUEVO_OPTIONS
-                      : form.classification === "Modificado"
-                        ? SUBCLASSIFICATION_MODIFICADO_OPTIONS
-                        : []
-                  }
-                  placeholder="-- Seleccione --"
-                  disabled={!form.classification}
-                />
-
-                <FormSelect
-                  label={
-                    form.subClassification &&
-                    form.classification !== "Modificado" &&
-                    projectTypeOptions.length > 0
-                      ? "Tipo de Proyecto *"
-                      : "Tipo de Proyecto"
-                  }
-                  value={form.projectType}
-                  onChange={(value) => updateField("projectType", value)}
-                  onBlur={() => markFieldAsTouched("projectType")}
-                  error={getError("projectType")}
-                  options={projectTypeOptions}
-                  placeholder={
-                    form.classification === "Modificado"
-                      ? "No aplica para modificado"
-                      : !form.subClassification
-                        ? "-- Seleccione subsección primero --"
-                        : "-- Seleccione --"
-                  }
-                  disabled={
-                    form.classification === "Modificado" ||
-                    !form.subClassification ||
-                    projectTypeOptions.length === 0
-                  }
-                />
-
-                <FormSelect
-                  label="Licitación"
-                  value={form.licitacion}
-                  onChange={(value) => updateField("licitacion", value)}
-                  placeholder="-- Seleccione --"
-                  options={[
-                    { value: "Sí", label: "Sí" },
-                    { value: "No", label: "No" },
-                  ]}
-                />
-
-                {form.licitacion === "Sí" && (
-                  <FormInput
-                    label="Código de Licitación"
-                    value={form.codigoRFQ}
-                    onChange={(value) => updateField("codigoRFQ", value)}
-                    placeholder="Ej. RFQ-000001"
+                {form.classification && (
+                  <FormSelect
+                    label={
+                      projectTypeOptions.length > 0
+                        ? "Tipo de Proyecto *"
+                        : "Tipo de Proyecto"
+                    }
+                    value={form.projectType}
+                    onChange={() => {}}
+                    options={projectTypeOptions}
+                    placeholder="-- Seleccione --"
+                    disabled={true}
                   />
+                )}
+
+                {form.classification === "Nuevo" && (
+                  <>
+                    <FormSelect
+                      label="Licitación *"
+                      value={form.licitacion}
+                      onChange={() => {}}
+                      options={[
+                        { value: "Sí", label: "Sí" },
+                        { value: "No", label: "No" },
+                      ]}
+                      disabled={true}
+                    />
+
+                    {form.licitacion === "Sí" && (
+                      <FormInput
+                        label="Código de Licitación *"
+                        value={form.codigoRFQ}
+                        onChange={() => {}}
+                        placeholder="Ej. LIC-2026-001"
+                        disabled={true}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             </div>
 
-            {/* TARJETA 2: PORTAFOLIO BASE */}
+            {/* TARJETA A: PORTAFOLIO BASE */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <h3 className="font-semibold text-sm text-slate-900 mb-3">Portafolio base</h3>
               <PortfolioSearch
@@ -3425,7 +3277,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
               )}
             </div>
 
-            {/* TARJETA 3: HERENCIA DEL PORTAFOLIO */}
+            {/* TARJETA B: HERENCIA DEL PORTAFOLIO */}
             {selectedPortfolio && (
               <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <h3 className="font-semibold text-sm text-slate-900 mb-3">Herencia del portafolio</h3>
@@ -3463,39 +3315,39 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
             )}
           </div>
         </div>
-            {/* BOTONES DE NAVEGACIÓN ENTRE PASOS */}
-            {activeStep < STEPS.length && (
-              <div className="flex justify-between items-center pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
-                  disabled={activeStep === 0}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  ← Anterior
-                </button>
+        {/* BOTONES DE NAVEGACIÓN ENTRE PASOS */}
+        {activeStep < STEPS.length && (
+          <div className="flex justify-between items-center pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
+              disabled={activeStep === 0}
+              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              ← Anterior
+            </button>
 
-                <div className="text-xs text-slate-500">
-                  Paso {activeStep + 1} de {STEPS.length}
-                </div>
+            <div className="text-xs text-slate-500">
+              Paso {activeStep + 1} de {STEPS.length}
+            </div>
 
-                {activeStep < STEPS.length - 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => setActiveStep((s) => Math.min(STEPS.length - 1, s + 1))}
-                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
-                  >
-                    Siguiente →
-                  </button>
-                ) : (
-                  <div className="w-[80px]" />
-                )}
-              </div>
+            {activeStep < STEPS.length - 1 ? (
+              <button
+                type="button"
+                onClick={() => setActiveStep((s) => Math.min(STEPS.length - 1, s + 1))}
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+              >
+                Siguiente →
+              </button>
+            ) : (
+              <div className="w-[80px]" />
             )}
+          </div>
+        )}
         {/* ========== FOOTER STICKY: BOTONES DE ACCIÓN ========== */}
-<div className="sticky bottom-0 z-40 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
+        <div className="sticky bottom-0 z-40 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
           <FormActionButtons
-            onCancel={() => navigate("/projects")}
+            onCancel={handleCancel}
             validationErrorList={Object.values(validationErrors).filter(
               (error): error is string => Boolean(error)
             )}
@@ -3612,6 +3464,54 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                 className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded font-medium hover:bg-slate-300 transition-colors text-sm"
               >
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========== CANCEL CONFIRMATION MODAL ========== */}
+      {showCancelConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="border-b border-slate-200 bg-slate-50 px-6 py-5">
+              <h3 className="text-lg font-bold text-slate-900">
+                ¿Descartar cambios?
+              </h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Tienes cambios sin guardar en este proyecto.
+              </p>
+            </div>
+
+            <div className="px-6 py-5">
+              <p className="text-sm text-slate-700">
+                Puedes continuar editando, salir sin guardar los cambios, o guardar y luego salir.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-5">
+              <button
+                type="button"
+                onClick={handleContinueEditing}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100"
+              >
+                Seguir editando
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExitWithoutSaving}
+                className="rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 active:bg-red-200"
+              >
+                Salir sin guardar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveAndExit}
+                className="rounded-lg bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-primary/90 active:bg-brand-primary/80"
+              >
+                Guardar cambios
               </button>
             </div>
           </div>

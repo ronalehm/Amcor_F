@@ -13,6 +13,7 @@ import {
 import type { BooleanLike, YesNoPending } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers } from "../../../shared/data/userStorage";
+import { computeProjectPreparationStatus } from "../../../shared/data/projectWorkflow";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -122,6 +123,9 @@ type ProjectFormData = {
   customerAdditionalInfo: string;
   peruvianProductLogo: string;
   printingFooter: string;
+
+  licitacion: string;
+  codigoLict: string;
 };
 
 const YES_NO_OPTIONS = [
@@ -453,6 +457,27 @@ const DESTINATION_COUNTRY_OPTIONS = [
 const DIMENSION_MIN_MM = 38;
 const DIMENSION_MAX_MM = 2390;
 
+const getPortfolioStatus = (portfolio: any): "active" | "inactive" => {
+  const rawStatus = String(
+    portfolio.status ||
+    portfolio.est ||
+    portfolio.estado ||
+    (portfolio.isActive === false ? "inactive" : "") ||
+    (portfolio.active === false ? "inactive" : "") ||
+    "active"
+  ).toLowerCase();
+
+  if (
+    rawStatus.includes("inactivo") ||
+    rawStatus.includes("inactive") ||
+    rawStatus === "false"
+  ) {
+    return "inactive";
+  }
+
+  return "active";
+};
+
 const initialForm = (portfolioCode: string): ProjectFormData => ({
   portfolioCode,
   executiveId: [],
@@ -551,6 +576,8 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   customerAdditionalInfo: "",
   peruvianProductLogo: "",
   printingFooter: "",
+  licitacion: "",
+  codigoLict: "",
 });
 
 // STEPPER CONFIGURATION
@@ -705,6 +732,8 @@ export default function ProjectCreatePage() {
           customerAdditionalInfo: original.customerAdditionalInfo || "",
           peruvianProductLogo: original.peruvianProductLogo || "No",
           printingFooter: original.printingFooter || "No",
+          licitacion: (original as any).licitacion ? "Sí" : "No",
+          codigoLict: (original as any).codigoLict || "",
         });
       }
     }
@@ -782,6 +811,22 @@ export default function ProjectCreatePage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleLicitacionChange = (value: string) => {
+    const licitacion = value as "Sí" | "No";
+    setForm((prev) => ({
+      ...prev,
+      licitacion,
+      codigoLict: licitacion === "No" ? "" : prev.codigoLict,
+    }));
+
+    if (licitacion === "No") {
+      setTouchedFields((prev) => ({
+        ...prev,
+        codigoLict: false,
+      }));
+    }
+  };
+
   const projectTypeOptions = useMemo(() => {
     // Para "Modificado", no hay tipos de proyecto asociados
     if (form.classification === "Modificado") {
@@ -834,6 +879,10 @@ export default function ProjectCreatePage() {
     if (!form.projectName.trim()) errors.projectName = "Ingrese el nombre del proyecto.";
     if (!form.projectDescription.trim()) errors.projectDescription = "Ingrese la descripción del proyecto.";
     if (!form.salesforceAction.trim()) errors.salesforceAction = "Ingrese la acción Salesforce.";
+
+    if (form.licitacion === "Sí" && !form.codigoLict.trim()) {
+      errors.codigoLict = "Ingresa el código de licitación.";
+    }
 
     if (form.blueprintFormat && inheritedWrapping) {
       const validOptions = getBlueprintFormatOptions(inheritedWrapping);
@@ -959,6 +1008,12 @@ export default function ProjectCreatePage() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitAttempted(true);
+
+    // Check if selected portfolio is inactive
+    if (selectedPortfolio && getPortfolioStatus(selectedPortfolio) === "inactive") {
+      alert("No se puede crear un proyecto desde un portafolio inactivo.");
+      return;
+    }
 
     // Only validate CREATE_REQUIRED fields - other sections are optional
     if (Object.keys(createRequiredErrors).length > 0) {
@@ -1129,9 +1184,15 @@ export default function ProjectCreatePage() {
       customerAdditionalInfo: form.customerAdditionalInfo,
       peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
       printingFooter: form.printingFooter,
+      licitacion: form.licitacion as YesNoPending,
+      codigoLict: form.codigoLict,
 
-      status: isFormCompleteForValidation ? "Ficha completa" : "Registrado",
-      stage: isFormCompleteForValidation ? "P1_PREPARACION_FICHA" : "P0_REGISTRO_COMERCIAL",
+      status: "Registrado",
+      stage: "P1_PREPARACION_FICHA_PROYECTO",
+      completionPercentage: 0,
+      hasStartedExtendedFicha: false,
+      statusUpdatedAt: now,
+      stageUpdatedAt: now,
       createdAt: now,
       updatedAt: now,
 
@@ -1277,6 +1338,32 @@ export default function ProjectCreatePage() {
                     error={getError("executiveId")}
                   />
                 </div>
+
+                <FormSelect
+                  label="Licitación *"
+                  value={form.licitacion}
+                  onChange={handleLicitacionChange}
+                  options={[
+                    { value: "Sí", label: "Sí" },
+                    { value: "No", label: "No" },
+                  ]}
+                />
+
+                {form.licitacion === "Sí" && (
+                  <FormInput
+                    label="Código de Licitación *"
+                    value={form.codigoLict}
+                    onChange={(value) => updateField("codigoLict", value)}
+                    onBlur={() => markFieldAsTouched("codigoLict")}
+                    error={
+                      shouldShowFieldError("codigoLict")
+                        ? validationErrors.codigoLict
+                        : ""
+                    }
+                    placeholder="Ej. LIC-2026-001"
+                    helper="Obligatorio cuando el proyecto corresponde a una licitación."
+                  />
+                )}
               </div>
             </FormCard>
           </div>

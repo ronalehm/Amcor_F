@@ -64,7 +64,7 @@ export const SLA_RULES: ProjectSlaRule[] = [
   },
   {
     id: "SLA-002",
-    projectStatus: "En evaluación",
+    projectStatus: "En validación",
     responsibleArea: "R&D",
     priority: "Alta",
     slaHours: 24,
@@ -73,7 +73,7 @@ export const SLA_RULES: ProjectSlaRule[] = [
   },
   {
     id: "SLA-003",
-    projectStatus: "En evaluación",
+    projectStatus: "En validación",
     responsibleArea: "Artes Gráficas",
     priority: "Alta",
     slaHours: 24,
@@ -91,7 +91,7 @@ export const SLA_RULES: ProjectSlaRule[] = [
   },
   {
     id: "SLA-005",
-    projectStatus: "Lista para RFQ",
+    projectStatus: "Validado",
     responsibleArea: "Commercial Finance",
     priority: "Alta",
     slaHours: 24,

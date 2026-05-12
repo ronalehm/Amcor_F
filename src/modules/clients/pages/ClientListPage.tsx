@@ -75,7 +75,7 @@ export default function ClientListPage() {
 
   useEffect(() => {
     setHeader({
-      title: "GestiÛn de Clientes",
+      title: "Gesti√≥n de Clientes",
       breadcrumbs: [{ label: "Clientes" }, { label: "Lista de Clientes" }],
     });
     return () => resetHeader();
@@ -248,13 +248,13 @@ export default function ClientListPage() {
         </div>
         <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-amber-600">Pend. ActivaciÛn</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{pendingActivationClients.length}</p></div>
+            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-amber-600">Pend. Activaci√≥n</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{pendingActivationClients.length}</p></div>
             <div className="rounded-lg bg-amber-50 p-2 text-amber-600"><Mail size={18} /></div>
           </div>
         </div>
         <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-blue-600">Pend. ValidaciÛn</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{pendingValidationClients.length}</p></div>
+            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-blue-600">Pend. Validaci√≥n</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{pendingValidationClients.length}</p></div>
             <div className="rounded-lg bg-blue-50 p-2 text-blue-600"><ShieldCheck size={18} /></div>
           </div>
         </div>
@@ -301,7 +301,7 @@ export default function ClientListPage() {
           <div><label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Buscar</label>
             <div className="relative">
               <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por nombre, email, RUC, cÛdigo o rubro..."
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar por nombre, email, RUC, c√≥digo o rubro..."
                 className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary" />
             </div>
           </div>
@@ -326,8 +326,8 @@ export default function ClientListPage() {
           <table className="w-full min-w-[1200px] border-collapse text-sm">
             <thead>
               <tr className="bg-brand-primary text-white">
-                <SortableHeader label="CÛdigo" sortKey="code" />
-                <SortableHeader label="RazÛn Social" sortKey="businessName" />
+                <SortableHeader label="C√≥digo" sortKey="code" />
+                <SortableHeader label="Raz√≥n Social" sortKey="businessName" />
                 <SortableHeader label="Email" sortKey="email" />
                 <SortableHeader label="RUC" sortKey="ruc" />
                 <SortableHeader label="Rubro" sortKey="industry" />
@@ -338,11 +338,11 @@ export default function ClientListPage() {
             <tbody className="divide-y divide-slate-100">
               {paginatedClients.map((client, index) => (
                 <tr key={client.id} className={`transition-colors hover:bg-brand-secondary-soft ${index % 2 === 0 ? "bg-white" : "bg-slate-50/70"}`}>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">{client.code || "ó"}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">{client.code || "ÔøΩ"}</td>
                   <td className="px-4 py-3 text-sm"><div className="font-bold text-slate-800">{client.businessName}</div></td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{client.email || "ó"}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{client.ruc || "ó"}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{client.industry || "ó"}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{client.email || "ÔøΩ"}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{client.ruc || "ÔøΩ"}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600">{client.industry || "ÔøΩ"}</td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[client.status]}`}>
                       {STATUS_LABELS[client.status]}
@@ -364,7 +364,7 @@ export default function ClientListPage() {
                         <Users size={26} className="text-slate-400" />
                       </div>
                       <p className="text-sm font-bold text-slate-700">No se encontraron clientes</p>
-                      <p className="mt-1 text-xs text-slate-400">Intenta limpiar filtros o cambiar el criterio de b˙squeda.</p>
+                      <p className="mt-1 text-xs text-slate-400">Intenta limpiar filtros o cambiar el criterio de b√∫squeda.</p>
                     </div>
                   </td>
                 </tr>
@@ -381,7 +381,7 @@ export default function ClientListPage() {
               <option value={50}>50</option>
               <option value={100}>100</option>
             </select>
-            <span>N∞</span>
+            <span>No</span>
             <span className="ml-3 text-xs text-slate-500">
               Mostrando <strong className="text-slate-700">{startRecord}</strong> - <strong className="text-slate-700">{endRecord}</strong> de <strong className="text-slate-700">{totalRecords}</strong> registros
             </span>
@@ -389,7 +389,7 @@ export default function ClientListPage() {
 
           <div className="flex items-center justify-end gap-1">
             <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-brand-primary hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-50">
-              ã Previous
+              ‚Üê Previous
             </button>
 
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
@@ -399,7 +399,7 @@ export default function ClientListPage() {
             ))}
 
             <button type="button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-brand-primary hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-50">
-              Next õ
+              Next ‚Üí
             </button>
           </div>
         </div>
