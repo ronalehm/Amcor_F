@@ -54,6 +54,15 @@ type ProjectEditFormData = {
   acabadoBolsa: string;
   tieneFuelleBolsa: string;
   tipoFuelleBolsa: string;
+  tipoFormatoLamina: string;
+  tipoFamiliaPouch: string;
+  tipoStandUpPouch: string;
+  formaDoyPackPouch: string;
+  tipoFuelleStandUpPouch: string;
+  cantidadSellosPouchPlano: string;
+  tieneFuelleSelloCentralPouch: string;
+  materialSelloCentralPouch: string;
+  tipoSelloEnFuellePouch: string;
 
   technicalApplication: string;
   estimatedVolume: string;
@@ -586,7 +595,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "portfolioCode",
     "classification",
     "projectType",
-    "approvedProductCode",
     "licitacion",
     "codigoRFQ",
     "technicalApplication",
@@ -934,9 +942,24 @@ export default function ProjectEditPage() {
     projectName: "",
     projectDescription: "",
     classification: "",
+    subClassification: "",
     projectType: "",
     salesforceAction: "",
     blueprintFormat: "",
+    tipoPresentacionBolsa: "",
+    tipoSelloBolsa: "",
+    acabadoBolsa: "",
+    tieneFuelleBolsa: "",
+    tipoFuelleBolsa: "",
+    tipoFormatoLamina: "",
+    tipoFamiliaPouch: "",
+    tipoStandUpPouch: "",
+    formaDoyPackPouch: "",
+    tipoFuelleStandUpPouch: "",
+    cantidadSellosPouchPlano: "",
+    tieneFuelleSelloCentralPouch: "",
+    materialSelloCentralPouch: "",
+    tipoSelloEnFuellePouch: "",
     technicalApplication: "",
     estimatedVolume: "",
     unitOfMeasure: "",
@@ -1079,9 +1102,24 @@ export default function ProjectEditPage() {
       projectName: project.projectName || "",
       projectDescription: project.projectDescription || "",
       classification: project.classification || "",
+      subClassification: (project as any).subClassification || "",
       projectType: project.projectType || "",
       salesforceAction: project.salesforceAction || "",
       blueprintFormat: project.blueprintFormat || "",
+      tipoPresentacionBolsa: (project as any).tipoPresentacionBolsa || "",
+      tipoSelloBolsa: (project as any).tipoSelloBolsa || "",
+      acabadoBolsa: (project as any).acabadoBolsa || "",
+      tieneFuelleBolsa: (project as any).tieneFuelleBolsa || "",
+      tipoFuelleBolsa: (project as any).tipoFuelleBolsa || "",
+      tipoFormatoLamina: (project as any).tipoFormatoLamina || "",
+      tipoFamiliaPouch: (project as any).tipoFamiliaPouch || "",
+      tipoStandUpPouch: (project as any).tipoStandUpPouch || "",
+      formaDoyPackPouch: (project as any).formaDoyPackPouch || "",
+      tipoFuelleStandUpPouch: (project as any).tipoFuelleStandUpPouch || "",
+      cantidadSellosPouchPlano: (project as any).cantidadSellosPouchPlano || "",
+      tieneFuelleSelloCentralPouch: (project as any).tieneFuelleSelloCentralPouch || "",
+      materialSelloCentralPouch: (project as any).materialSelloCentralPouch || "",
+      tipoSelloEnFuellePouch: (project as any).tipoSelloEnFuellePouch || "",
       technicalApplication: project.technicalApplication || "",
       estimatedVolume: project.estimatedVolume || "",
       unitOfMeasure: project.unitOfMeasure || "KGS",
@@ -2234,7 +2272,7 @@ export default function ProjectEditPage() {
                       onChange={(value) => updateField("unitOfMeasure", value)}
                       onBlur={() => markFieldAsTouched("unitOfMeasure")}
                       error={getError("unitOfMeasure")}
-                      options={UNIT_OF_MEASURE_OPTIONS}
+                      options={UNIT_OPTIONS}
                       placeholder="-- Seleccione --"
                     />
 
@@ -2249,17 +2287,18 @@ export default function ProjectEditPage() {
 
                 <FormCard title="Datos adicionales del cliente" icon="📌" color="#e67e22">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="md:col-span-3">
-                      <ApplicationSearch
-                        label="Aplicación Técnica *"
-                        value={form.technicalApplication}
-                        onChange={(value) => {
-                          updateField("technicalApplication", value);
-                          markFieldAsTouched("technicalApplication");
-                        }}
-                        error={getError("technicalApplication")}
-                      />
-                    </div>
+                    <FormSelect
+                      label="Aplicación Técnica *"
+                      value={form.technicalApplication}
+                      onChange={(value) => {
+                        updateField("technicalApplication", value);
+                        markFieldAsTouched("technicalApplication");
+                      }}
+                      onBlur={() => markFieldAsTouched("technicalApplication")}
+                      error={getError("technicalApplication")}
+                      placeholder="-- Seleccione --"
+                      options={TECHNICAL_APPLICATION_OPTIONS}
+                    />
 
                     <FormInput
                       label="Código de Empaque del Cliente"
@@ -2863,7 +2902,7 @@ export default function ProjectEditPage() {
                             error={getError("gussetWidth")}
                             placeholder={shouldApplyPouchDoyPackRestrictions ? "0 - 3 mm" : "mm"}
                           />
-
+                        </>
                       );
                     })()}
                   </div>
@@ -3112,16 +3151,6 @@ export default function ProjectEditPage() {
                   placeholder="-- Seleccione --"
                   disabled={true}
                 />
-
-                {form.classification === "Modificado" && (
-                  <FormInput
-                    label="Cód Producto aprobado *"
-                    value={form.approvedProductCode || ""}
-                    onChange={() => {}}
-                    placeholder="Ej. PROD-123"
-                    disabled={true}
-                  />
-                )}
 
                 {form.classification && (
                   <FormSelect

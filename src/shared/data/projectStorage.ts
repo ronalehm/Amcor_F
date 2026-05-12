@@ -1038,8 +1038,7 @@ export function createProjectFromPortfolio(params: {
     status: "Registrado",
     stage: "P1_PREPARACION_FICHA_PROYECTO",
     completionPercentage: 0,
-    hasStartedExtendedFicha: false,
-    
+
     requiereValidacion: true,
     validacionSolicitada: false,
     estadoValidacionGeneral: "Sin solicitar",
