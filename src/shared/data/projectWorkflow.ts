@@ -296,11 +296,50 @@ export function normalizeProjectStatus(rawStatus?: string): ProjectStatus {
  * Normaliza currentValidationStep a los valores estándar
  */
 function normalizeCurrentValidationStep(value: any): CurrentValidationStep {
+  if (!value) return null;
   if (value === "Artes Gráficas") return "Artes Gráficas";
-  if (value === "Área Técnica") return "R&D Técnica";
-  if (value === "R&D Técnica") return "R&D Técnica";
-  if (value === "Desarrollo R&D") return "R&D Desarrollo";
-  if (value === "R&D Desarrollo") return "R&D Desarrollo";
+  if (
+    value === "Área Técnica" ||
+    value === "Area Técnica" ||
+    value === "Área_Técnica" ||
+    value === "Area_Tecnica" ||
+    value === "R&D Técnica"
+  ) {
+    return "R&D Técnica";
+  }
+  if (
+    value === "Desarrollo R&D" ||
+    value === "Desarrollo_RD" ||
+    value === "Desarrollo RD" ||
+    value === "R&D Desarrollo"
+  ) {
+    return "R&D Desarrollo";
+  }
+  return null;
+}
+
+/**
+ * Normaliza technicalSubArea a los valores estándar
+ */
+function normalizeTechnicalSubArea(value: any): TechnicalSubArea | null {
+  if (!value) return null;
+  if (
+    value === "Área Técnica" ||
+    value === "Area Técnica" ||
+    value === "Área_Técnica" ||
+    value === "Area_Tecnica" ||
+    value === "R&D Técnica"
+  ) {
+    return "R&D Técnica";
+  }
+  if (
+    value === "Desarrollo R&D" ||
+    value === "Desarrollo_RD" ||
+    value === "Desarrollo RD" ||
+    value === "R&D Desarrollo"
+  ) {
+    return "R&D Desarrollo";
+  }
   return null;
 }
 
@@ -337,11 +376,75 @@ export function resolveTechnicalSubAreaBySubclassification(
 /**
  * Normaliza los campos de workflow de un proyecto
  * Asegura que todos los campos requeridos tengan valores por defecto
+ * INCLUYE LÓGICA DEFENSIVA para corregir proyectos mal guardados
  */
 export function normalizeProjectWorkflow(project: any): any {
   const rawStatus = project.status || "Registrado";
-  const status = normalizeProjectStatus(rawStatus);
-  const stage = project.stage || resolveProjectStage(status);
+  let status = normalizeProjectStatus(rawStatus);
+
+  // Detectar y normalizar technicalSubArea desde varios campos posibles
+  let technicalSubArea: TechnicalSubArea | null =
+    normalizeTechnicalSubArea(project.technicalSubArea) ||
+    resolveTechnicalSubAreaBySubclassification(
+      project.subClassification ||
+        project.subseccionClasificacion ||
+        project.subsectionClassification ||
+        project.technicalSubclassification
+    );
+
+  let technicalValidationStatus =
+    project.technicalValidationStatus || "Sin solicitar";
+
+  let currentValidationStep = normalizeCurrentValidationStep(
+    project.currentValidationStep
+  );
+
+  // LÓGICA DEFENSIVA 1: Si R&D tiene "Aprobado automático", corregir a "Pendiente"
+  const hasTechnicalArea =
+    technicalSubArea === "R&D Técnica" ||
+    technicalSubArea === "R&D Desarrollo";
+
+  if (
+    hasTechnicalArea &&
+    technicalValidationStatus === "Aprobado automático"
+  ) {
+    technicalValidationStatus = "Pendiente";
+  }
+
+  // LÓGICA DEFENSIVA 2: Si status es "Validado" pero R&D no está validado, corregir
+  if (
+    status === "Validado" &&
+    hasTechnicalArea &&
+    technicalValidationStatus !== "Validado"
+  ) {
+    status = "En validación";
+    currentValidationStep = technicalSubArea;
+    technicalValidationStatus = "Pendiente";
+  }
+
+  // LÓGICA DEFENSIVA 3: Si está en validación sin currentValidationStep pero tiene R&D pendiente
+  if (
+    status === "En validación" &&
+    !currentValidationStep &&
+    hasTechnicalArea &&
+    technicalValidationStatus !== "Validado"
+  ) {
+    currentValidationStep = technicalSubArea;
+  }
+
+  // LÓGICA DEFENSIVA 4: Si está en validación sin currentValidationStep pero AG está pendiente
+  if (
+    status === "En validación" &&
+    !currentValidationStep &&
+    (
+      project.graphicArtsValidationStatus === "Pendiente revisión manual" ||
+      project.graphicArtsValidationStatus === "En revisión"
+    )
+  ) {
+    currentValidationStep = "Artes Gráficas";
+  }
+
+  const stage = resolveProjectStage(status);
 
   return {
     ...project,
@@ -350,10 +453,9 @@ export function normalizeProjectWorkflow(project: any): any {
     completionPercentage: project.completionPercentage ?? 0,
     graphicArtsValidationStatus:
       project.graphicArtsValidationStatus || "Sin solicitar",
-    technicalValidationStatus:
-      project.technicalValidationStatus || "Sin solicitar",
-    currentValidationStep: normalizeCurrentValidationStep(project.currentValidationStep),
-    technicalSubArea: project.technicalSubArea || null,
+    technicalValidationStatus,
+    currentValidationStep,
+    technicalSubArea,
     validationRound: project.validationRound ?? 0,
     hasBasePreliminaryProduct: project.hasBasePreliminaryProduct ?? false,
     preliminaryProductIds: project.preliminaryProductIds ?? [],
@@ -378,6 +480,7 @@ export type ProjectResponsibleArea =
 
 /**
  * Determina el área responsable de un proyecto basada en su estado actual
+ * REGLA CRÍTICA: Proyectos en "En validación" NUNCA devuelven "Comercial"
  */
 export function getResponsibleAreaForProject(
   project: any
@@ -385,65 +488,49 @@ export function getResponsibleAreaForProject(
   const normalizedProject = normalizeProjectWorkflow(project);
   const { status, currentValidationStep, graphicArtsValidationStatus, technicalSubArea, technicalValidationStatus } = normalizedProject;
 
-  switch (status) {
-    case "Registrado":
-    case "En Preparación":
-    case "Ficha Completa":
-    case "Observado":
-    case "Validado":
-    case "En Cotización":
-    case "Cotización Completa":
-    case "Aprobado por Cliente":
-    case "Desestimado":
-      return "Comercial";
-
-    case "En validación": {
-      // Durante validación, mostrar el área específica en validación
-      if (currentValidationStep === "Artes Gráficas") {
-        return "Artes Gráficas";
-      }
-
-      if (
-        currentValidationStep === "R&D Técnica" ||
-        technicalSubArea === "R&D Técnica"
-      ) {
-        return "R&D Técnica";
-      }
-
-      if (
-        currentValidationStep === "R&D Desarrollo" ||
-        technicalSubArea === "R&D Desarrollo"
-      ) {
-        return "R&D Desarrollo";
-      }
-
-      // Fallback logic
-      if (
-        graphicArtsValidationStatus === "Pendiente revisión manual" ||
-        graphicArtsValidationStatus === "En revisión"
-      ) {
-        return "Artes Gráficas";
-      }
-
-      if (
-        technicalValidationStatus === "Pendiente" ||
-        technicalValidationStatus === "En revisión"
-      ) {
-        if (technicalSubArea === "R&D Técnica") {
-          return "R&D Técnica";
-        }
-
-        if (technicalSubArea === "R&D Desarrollo") {
-          return "R&D Desarrollo";
-        }
-      }
-
-      return "Comercial";
-    }
-
-    default:
-      return "Comercial";
+  // No-validation statuses return "Comercial"
+  if (status !== "En validación") {
+    return "Comercial";
   }
+
+  // Durante validación: Usa currentValidationStep como fuente de verdad
+  if (currentValidationStep === "Artes Gráficas") {
+    return "Artes Gráficas";
+  }
+
+  if (currentValidationStep === "R&D Técnica") {
+    return "R&D Técnica";
+  }
+
+  if (currentValidationStep === "R&D Desarrollo") {
+    return "R&D Desarrollo";
+  }
+
+  // Si no hay currentValidationStep, inferir del estado de AG
+  if (
+    graphicArtsValidationStatus === "Pendiente revisión manual" ||
+    graphicArtsValidationStatus === "En revisión"
+  ) {
+    return "Artes Gráficas";
+  }
+
+  // Si AG está completo y hay área técnica, usar esa
+  if (
+    technicalSubArea === "R&D Técnica" &&
+    technicalValidationStatus !== "Validado"
+  ) {
+    return "R&D Técnica";
+  }
+
+  if (
+    technicalSubArea === "R&D Desarrollo" &&
+    technicalValidationStatus !== "Validado"
+  ) {
+    return "R&D Desarrollo";
+  }
+
+  // Última opción: si está en validación sin determinación clara, usar Artes Gráficas
+  return "Artes Gráficas";
 }
 
 /**

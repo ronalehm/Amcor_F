@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { ProjectRecord } from "../../../shared/data/projectStorage";
-import { PROJECT_STAGE_LABELS } from "../../../shared/data/projectWorkflow";
+import { PROJECT_STAGE_LABELS, normalizeProjectWorkflow } from "../../../shared/data/projectWorkflow";
 import FormCard from "../../../shared/components/forms/FormCard";
 
 type ViewMode = "visible" | "internal";
@@ -11,6 +11,7 @@ interface ProjectStatusPanelProps {
 
 export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("visible");
+  const normalizedProject = useMemo(() => normalizeProjectWorkflow(project), [project]);
 
   const getStatusBadgeColor = (status?: string): string => {
     if (!status) return "bg-gray-100 text-gray-800";
@@ -54,7 +55,7 @@ export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps)
   };
 
   const getNextAction = (): string => {
-    const status = project.status;
+    const status = normalizedProject.status;
     switch (status) {
       case "Registrado":
       case "En Preparación":
@@ -80,7 +81,7 @@ export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps)
     }
   };
 
-  const stageLabel = project.stage ? PROJECT_STAGE_LABELS[project.stage] : "—";
+  const stageLabel = normalizedProject.stage ? PROJECT_STAGE_LABELS[normalizedProject.stage] : "—";
 
   return (
     <FormCard title="Estado del Proyecto" icon="📊" color="#27ae60">
@@ -125,10 +126,10 @@ export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps)
             <div className="mt-2">
               <span
                 className={`inline-block px-3 py-2 rounded font-medium text-sm ${getStatusBadgeColor(
-                  project.status
+                  normalizedProject.status
                 )}`}
               >
-                {project.status || "—"}
+                {normalizedProject.status || "—"}
               </span>
             </div>
           </div>
@@ -143,24 +144,24 @@ export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps)
                 <div
                   className="bg-green-500 h-full transition-all"
                   style={{
-                    width: `${Math.min(project.completionPercentage || 0, 100)}%`,
+                    width: `${Math.min(normalizedProject.completionPercentage || 0, 100)}%`,
                   }}
                 />
               </div>
               <span className="text-sm font-medium text-gray-700 w-12">
-                {project.completionPercentage || 0}%
+                {normalizedProject.completionPercentage || 0}%
               </span>
             </div>
           </div>
 
           {/* Fecha de actualización */}
-          {project.statusUpdatedAt && (
+          {normalizedProject.statusUpdatedAt && (
             <div>
               <label className="text-xs font-semibold text-gray-600 uppercase">
                 Actualizado
               </label>
               <div className="mt-1 text-sm text-gray-600">
-                {new Date(project.statusUpdatedAt).toLocaleDateString("es-AR")}
+                {new Date(normalizedProject.statusUpdatedAt).toLocaleDateString("es-AR")}
               </div>
             </div>
           )}
@@ -185,10 +186,10 @@ export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps)
             </div>
             <span
               className={`inline-block px-2 py-1 rounded text-xs font-medium ${getValidationBadgeColor(
-                project.graphicArtsValidationStatus
+                normalizedProject.graphicArtsValidationStatus
               )}`}
             >
-              {project.graphicArtsValidationStatus || "Sin solicitar"}
+              {normalizedProject.graphicArtsValidationStatus || "Sin solicitar"}
             </span>
           </div>
 
@@ -200,31 +201,31 @@ export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps)
             <div className="space-y-2">
               <span
                 className={`inline-block px-2 py-1 rounded text-xs font-medium ${getValidationBadgeColor(
-                  project.technicalValidationStatus
+                  normalizedProject.technicalValidationStatus
                 )}`}
               >
-                {project.technicalValidationStatus || "Sin solicitar"}
+                {normalizedProject.technicalValidationStatus || "Sin solicitar"}
               </span>
-              {project.technicalComplexity && (
+              {normalizedProject.technicalComplexity && (
                 <div className="text-sm text-gray-600">
-                  Complejidad: <span className="font-medium">{project.technicalComplexity}</span>
+                  Complejidad: <span className="font-medium">{normalizedProject.technicalComplexity}</span>
                 </div>
               )}
-              {project.technicalSubArea && (
+              {normalizedProject.technicalSubArea && (
                 <div className="text-sm text-gray-600">
-                  Área técnica: <span className="font-medium">{project.technicalSubArea}</span>
+                  Área técnica: <span className="font-medium">{normalizedProject.technicalSubArea}</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Paso actual */}
-          {project.currentValidationStep && (
+          {normalizedProject.currentValidationStep && (
             <div className="border border-gray-200 rounded p-3">
               <div className="text-xs font-semibold text-gray-600 uppercase mb-2">
                 Paso actual
               </div>
-              <div className="text-sm font-medium text-blue-700">{project.currentValidationStep}</div>
+              <div className="text-sm font-medium text-blue-700">{normalizedProject.currentValidationStep}</div>
             </div>
           )}
 
@@ -233,38 +234,38 @@ export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps)
             <div className="text-xs font-semibold text-gray-600 uppercase mb-2">
               Ronda de validación
             </div>
-            <div className="text-sm font-medium">{project.validationRound || 0}</div>
+            <div className="text-sm font-medium">{normalizedProject.validationRound || 0}</div>
           </div>
 
           {/* Última observación */}
-          {project.lastObservationComment && (
+          {normalizedProject.lastObservationComment && (
             <div className="border border-orange-200 bg-orange-50 rounded p-3">
               <div className="text-xs font-semibold text-orange-900 uppercase mb-2">
                 Última observación
               </div>
-              <div className="text-sm text-orange-900">{project.lastObservationComment}</div>
-              {project.lastObservationSource && (
+              <div className="text-sm text-orange-900">{normalizedProject.lastObservationComment}</div>
+              {normalizedProject.lastObservationSource && (
                 <div className="text-xs text-orange-700 mt-2">
-                  Fuente: {project.lastObservationSource}
+                  Fuente: {normalizedProject.lastObservationSource}
                 </div>
               )}
-              {project.lastObservationAt && (
+              {normalizedProject.lastObservationAt && (
                 <div className="text-xs text-orange-700">
                   Fecha:{" "}
-                  {new Date(project.lastObservationAt).toLocaleDateString("es-AR")}
+                  {new Date(normalizedProject.lastObservationAt).toLocaleDateString("es-AR")}
                 </div>
               )}
             </div>
           )}
 
           {/* Fecha de validación */}
-          {project.lastValidatedAt && (
+          {normalizedProject.lastValidatedAt && (
             <div className="border border-gray-200 rounded p-3">
               <div className="text-xs font-semibold text-gray-600 uppercase mb-2">
                 Última validación
               </div>
               <div className="text-sm text-gray-600">
-                {new Date(project.lastValidatedAt).toLocaleDateString("es-AR")}
+                {new Date(normalizedProject.lastValidatedAt).toLocaleDateString("es-AR")}
               </div>
             </div>
           )}
