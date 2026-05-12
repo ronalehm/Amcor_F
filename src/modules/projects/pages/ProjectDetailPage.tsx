@@ -24,6 +24,7 @@ import ProjectObservationPanel from "../../../shared/components/projectTracking/
 import ProjectSlaPanel from "../../../shared/components/projectTracking/ProjectSlaPanel";
 import ProjectTrackingTimeline from "../../../shared/components/projectTracking/ProjectTrackingTimeline";
 import ProjectProductsPanel from "../components/ProjectProductsPanel";
+import { getPortfolioByCode } from "../../../shared/data/portfolioStorage";
 
 export default function ProjectDetailPage() {
   const navigate = useNavigate();
@@ -342,13 +343,15 @@ export default function ProjectDetailPage() {
           <ProjectTrackingTimeline history={history} />
 
           {/* Productos Asociados */}
-          <ProjectProductsPanel
-            projectCode={projectCode || ""}
-            projectStatus={(project.status as any)}
-            onCreateNew={() => {}}
-            onCreateFromApproved={() => {}}
-            onViewProduct={() => {}}
-          />
+          {project && (
+            <ProjectProductsPanel
+              project={project}
+              portfolio={project.portfolioCode ? getPortfolioByCode(project.portfolioCode) : null}
+              onProjectUpdated={() => {
+                setProject(getProjectByCode(projectCode!));
+              }}
+            />
+          )}
 
         </div>
       </div>

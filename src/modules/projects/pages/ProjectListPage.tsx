@@ -23,6 +23,7 @@ import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorag
 
 import SlaStatusBadge from "../../../shared/components/sla/SlaStatusBadge";
 import ActionButton from "../../../shared/components/buttons/ActionButton";
+import ProjectInitialCreateModal from "../../../shared/components/modals/ProjectInitialCreateModal";
 
 type ProjectBusinessStatus =
   | "Registrado"
@@ -295,6 +296,7 @@ export default function ProjectListPage() {
 
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<ProjectTab>("all");
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const [sortConfig, setSortConfig] = useState<{
     key: SortKey;
@@ -709,7 +711,7 @@ export default function ProjectListPage() {
 
               <ActionButton
                 label="Nuevo Proyecto"
-                onClick={() => navigate("/projects/new")}
+                onClick={() => setShowCreateModal(true)}
                 variant="primary"
                 icon={<Plus size={16} />}
               />
@@ -953,6 +955,11 @@ export default function ProjectListPage() {
           </div>
         </div>
       </div>
+
+      <ProjectInitialCreateModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+      />
     </div>
   );
 }

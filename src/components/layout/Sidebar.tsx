@@ -24,10 +24,10 @@ interface SidebarProps {
 
 const MENU_ITEMS: MenuItem[] = [
   { path: "/dashboard", label: "Inicio", icon: LayoutDashboard },
+  { path: "/clients", label: "Clientes", icon: Building2 },
   { path: "/portfolio", label: "Portafolio", icon: FolderKanban },
   { path: "/projects", label: "Proyectos", icon: BriefcaseBusiness },
   { path: "/validaciones", label: "Validaciones", icon: ClipboardCheck },
-  { path: "/clients", label: "Clientes", icon: Building2 },
   { path: "/datasheets", label: "Fichas de Producto", icon: ScanBarcode },
   { path: "/users", label: "Usuarios", icon: Users },
 ];

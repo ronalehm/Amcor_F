@@ -14,6 +14,7 @@ import {
 } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers } from "../../../shared/data/userStorage";
+import { isGuidedFormatEnabled, calculateBolsaFormatPlan, inferBolsaGussetType } from "../../../shared/data/formatPlanRules";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -39,6 +40,11 @@ type ProjectEditFormData = {
   salesforceAction: string;
 
   blueprintFormat: string;
+  tipoPresentacionBolsa: string;
+  tipoSelloBolsa: string;
+  acabadoBolsa: string;
+  tieneFuelleBolsa: string;
+  tipoFuelleBolsa: string;
   technicalApplication: string;
   estimatedVolume: string;
   unitOfMeasure: string;
@@ -129,6 +135,9 @@ type ProjectEditFormData = {
   deliveryAddress: string;
   additionalComment: string;
 
+  licitacion: string;
+  codigoRFQ: string;
+
   designPlanFiles: string[];
 };
 
@@ -197,6 +206,27 @@ const BOLSA_FORMAT_OPTIONS = [
   { value: "SELLO DE FONDO\\SIN FUELLE LATERAL", label: "SELLO DE FONDO\\SIN FUELLE LATERAL" },
   { value: "WICKET", label: "WICKET" },
   { value: "HOJAS", label: "HOJAS" },
+];
+
+const BOLSA_PRESENTATION_TYPE_OPTIONS = [
+  { value: "Bolsa sellada", label: "Bolsa sellada" },
+  { value: "Wicket", label: "Wicket" },
+  { value: "Hojas", label: "Hojas" },
+];
+
+const BOLSA_SEAL_TYPE_OPTIONS = [
+  { value: "Sello lateral", label: "Sello lateral" },
+  { value: "Sello de fondo", label: "Sello de fondo" },
+];
+
+const BOLSA_FINISH_OPTIONS = [
+  { value: "Corte", label: "Corte" },
+  { value: "Pestaña", label: "Pestaña" },
+];
+
+const BOLSA_GUSSET_POSITION_OPTIONS = [
+  { value: "Fondo", label: "Fondo" },
+  { value: "Lateral", label: "Lateral" },
 ];
 
 const LAMINA_FORMAT_OPTIONS = [
@@ -305,6 +335,7 @@ function getMaterialTypeForSummary(materialValue: string): string {
 
   return materialValue;
 }
+
 const UNIT_OPTIONS = [
   { value: "KGS", label: "KGS" },
   { value: "MLL", label: "MLL" },
@@ -552,36 +583,34 @@ const POUCH_DOY_PACK_DIMENSION_RESTRICTIONS = {
 } as const;
 
 const STEPS = [
-  { label: "Información General" },
-  { label: "Producto Comercial" },
+  { label: "Información de Producto" },
   { label: "Diseño" },
   { label: "Estructura" },
-  { label: "Condiciones comerciales" },
-  { label: "Información adicional" },
+  { label: "Condiciones Comerciales" },
+  { label: "Información Adicional" },
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
-  // 1. Información General
+  // 1. Información de Producto
   0: [
     "salesforceAction",
     "projectName",
     "projectDescription",
     "executiveId",
     "portfolioCode",
-  ],
-
-  // 2. Producto Comercial
-  1: [
     "classification",
     "subClassification",
     "projectType",
-    "blueprintFormat",
+    "licitacion",
+    "codigoRFQ",
     "technicalApplication",
     "customerPackingCode",
+    "customerAdditionalInfo",
+    "additionalComment",
   ],
 
-  // 3. Diseño
-  2: [
+  // 2. Diseño
+  1: [
     "hasEdagReference",
     "edagCode",
     "edagVersion",
@@ -589,11 +618,19 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "printType",
     "specialDesignSpecs",
     "specialDesignComments",
+    "peruvianProductLogo",
+    "printingFooter",
+    "blueprintFormat",
+    "tipoPresentacionBolsa",
+    "tipoSelloBolsa",
+    "acabadoBolsa",
+    "tieneFuelleBolsa",
+    "tipoFuelleBolsa",
     "designPlanFiles",
   ],
 
-  // 4. Estructura
-  3: [
+  // 3. Estructura
+  2: [
     "hasReferenceStructure",
     "referenceEmCode",
     "referenceEmVersion",
@@ -628,12 +665,25 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "gussetWidth",
     "gussetType",
 
+    "hasZipper", "zipperType", "hasTinTie", "hasValve", "valveType",
+    "hasDieCutHandle", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
+    "hasAngularCut", "hasRoundedCorners", "roundedCornersType", "hasNotch",
+    "hasPerforation", "pouchPerforationType", "bagPerforationType", "perforationLocation",
+    "hasPreCut", "preCutType", "otherAccessories",
+
     "hasCustomerTechnicalSpec",
     "customerTechnicalSpecAttachment",
+
+    "coreMaterial",
+    "coreDiameter",
+    "externalDiameter",
+    "externalVariationPlus",
+    "externalVariationMinus",
+    "maxRollWeight",
   ],
 
-  // 5. Condiciones comerciales
-  4: [
+  // 4. Condiciones comerciales
+  3: [
     "estimatedVolume",
     "unitOfMeasure",
     "saleType",
@@ -641,22 +691,11 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "destinationCountry",
     "targetPrice",
     "currencyType",
+    "deliveryAddress",
   ],
 
-  // 6. Información adicional
-  5: [
-    "coreMaterial",
-    "coreDiameter",
-    "externalDiameter",
-    "externalVariationPlus",
-    "externalVariationMinus",
-    "maxRollWeight",
-    "customerAdditionalInfo",
-    "peruvianProductLogo",
-    "printingFooter",
-    "deliveryAddress",
-    "additionalComment",
-  ],
+  // 5. Información adicional
+  4: [],
 };
 const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   portfolioCode: "Portafolio base",
@@ -741,6 +780,15 @@ layer4MaterialGroup: "Capa 4 - Grupo Material",
 layer4Material: "Capa 4 - Tipo de Material y Micraje",
 layer4Micron: "Capa 4 - Micraje",
 layer4Grammage: "Capa 4 - Gramaje",
+
+  licitacion: "Licitación",
+  codigoRFQ: "Código de Licitación",
+
+  tipoPresentacionBolsa: "Tipo de presentación (Bolsa)",
+  tipoSelloBolsa: "Tipo de sello (Bolsa)",
+  acabadoBolsa: "Acabado (Bolsa)",
+  tieneFuelleBolsa: "¿Lleva fuelle? (Bolsa)",
+  tipoFuelleBolsa: "Tipo de fuelle (Bolsa)",
 };
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Información General
@@ -834,6 +882,11 @@ export default function ProjectEditPage() {
     projectType: "",
     salesforceAction: "",
     blueprintFormat: "",
+    tipoPresentacionBolsa: "",
+    tipoSelloBolsa: "",
+    acabadoBolsa: "",
+    tieneFuelleBolsa: "",
+    tipoFuelleBolsa: "",
     technicalApplication: "",
     estimatedVolume: "",
     unitOfMeasure: "",
@@ -916,6 +969,8 @@ export default function ProjectEditPage() {
     printingFooter: "",
     deliveryAddress: "",
     additionalComment: "",
+    licitacion: "",
+    codigoRFQ: "",
     designPlanFiles: [],
   });
 
@@ -1057,6 +1112,13 @@ export default function ProjectEditPage() {
       printingFooter: toYesNo(project.printingFooter),
       deliveryAddress: (project as any).deliveryAddress || "",
       additionalComment: (project as any).additionalComment || "",
+      licitacion: toYesNo((project as any).licitacion),
+      codigoRFQ: (project as any).codigoRFQ || "",
+      tipoPresentacionBolsa: (project as any).tipoPresentacionBolsa || "",
+      tipoSelloBolsa: (project as any).tipoSelloBolsa || "",
+      acabadoBolsa: (project as any).acabadoBolsa || "",
+      tieneFuelleBolsa: (project as any).tieneFuelleBolsa || "",
+      tipoFuelleBolsa: (project as any).tipoFuelleBolsa || "",
       designPlanFiles: (project as any).designPlanFiles || [],
     };
 
@@ -1383,7 +1445,6 @@ export default function ProjectEditPage() {
       2: [],
       3: [],
       4: [],
-      5: [],
     };
 
     missing.forEach((field) => {
@@ -1399,7 +1460,7 @@ export default function ProjectEditPage() {
   }, [form, requiredFields]);
 
   const stepsWithErrors = useMemo(() => {
-    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    const result: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
 
     Object.keys(validationErrors).forEach((field) => {
       for (const [step, fields] of Object.entries(STEP_FIELDS)) {
@@ -1949,16 +2010,132 @@ if (loading) {
                       }
                     />
 
-                    <FormSelect
-                      label="Formato de Plano *"
-                      value={form.blueprintFormat}
-                      onChange={(value) => updateField("blueprintFormat", value)}
-                      onBlur={() => markFieldAsTouched("blueprintFormat")}
-                      error={getError("blueprintFormat")}
-                      placeholder={!inheritedWrapping ? "Seleccione un portafolio primero" : "-- Seleccione --"}
-                      options={getBlueprintFormatOptions(inheritedWrapping)}
-                      disabled={!inheritedWrapping}
-                    />
+                    {/* BOLSA: Preguntas Guiadas */}
+                    {inheritedWrapping && normalizeWrapping(inheritedWrapping) === "bolsa" ? (
+                      <>
+                        {/* Pregunta 1: Tipo de presentación */}
+                        <FormSelect
+                          label="¿Tipo de presentación de bolsa? *"
+                          value={form.tipoPresentacionBolsa}
+                          onChange={(value) => {
+                            updateField("tipoPresentacionBolsa", value);
+                            updateField("tipoSelloBolsa", "");
+                            updateField("acabadoBolsa", "");
+                            updateField("tieneFuelleBolsa", "");
+                            updateField("tipoFuelleBolsa", "");
+                            updateField("blueprintFormat", "");
+                            markFieldAsTouched("tipoPresentacionBolsa");
+                          }}
+                          onBlur={() => markFieldAsTouched("tipoPresentacionBolsa")}
+                          error={getError("tipoPresentacionBolsa")}
+                          placeholder="-- Seleccione --"
+                          options={BOLSA_PRESENTATION_TYPE_OPTIONS}
+                        />
+
+                        {/* Pregunta 2: Tipo de sello (solo si es "Bolsa sellada") */}
+                        {form.tipoPresentacionBolsa === "Bolsa sellada" && (
+                          <FormSelect
+                            label="¿Tipo de sello? *"
+                            value={form.tipoSelloBolsa}
+                            onChange={(value) => {
+                              updateField("tipoSelloBolsa", value);
+                              updateField("acabadoBolsa", "");
+                              updateField("tieneFuelleBolsa", "");
+                              updateField("tipoFuelleBolsa", "");
+                              updateField("blueprintFormat", "");
+                              markFieldAsTouched("tipoSelloBolsa");
+                            }}
+                            onBlur={() => markFieldAsTouched("tipoSelloBolsa")}
+                            error={getError("tipoSelloBolsa")}
+                            placeholder="-- Seleccione --"
+                            options={BOLSA_SEAL_TYPE_OPTIONS}
+                          />
+                        )}
+
+                        {/* Pregunta 3: Acabado (solo si es "Sello lateral") */}
+                        {form.tipoSelloBolsa === "Sello lateral" && (
+                          <FormSelect
+                            label="¿Acabado? *"
+                            value={form.acabadoBolsa}
+                            onChange={(value) => {
+                              updateField("acabadoBolsa", value);
+                              updateField("blueprintFormat", "");
+                              markFieldAsTouched("acabadoBolsa");
+                            }}
+                            onBlur={() => markFieldAsTouched("acabadoBolsa")}
+                            error={getError("acabadoBolsa")}
+                            placeholder="-- Seleccione --"
+                            options={BOLSA_FINISH_OPTIONS}
+                          />
+                        )}
+
+                        {/* Pregunta 4: ¿Tiene fuelle? (si es "Bolsa sellada") */}
+                        {form.tipoPresentacionBolsa === "Bolsa sellada" && (
+                          <FormSelect
+                            label="¿Tiene fuelle? *"
+                            value={form.tieneFuelleBolsa}
+                            onChange={(value) => {
+                              updateField("tieneFuelleBolsa", value);
+                              updateField("tipoFuelleBolsa", "");
+                              updateField("blueprintFormat", "");
+                              markFieldAsTouched("tieneFuelleBolsa");
+                            }}
+                            onBlur={() => markFieldAsTouched("tieneFuelleBolsa")}
+                            error={getError("tieneFuelleBolsa")}
+                            placeholder="-- Seleccione --"
+                            options={YES_NO_OPTIONS}
+                          />
+                        )}
+
+                        {/* Resultado: Formato de Plano Calculado */}
+                        {(() => {
+                          const calculatedFormat = calculateBolsaFormatPlan({
+                            tipoPresentacionBolsa: form.tipoPresentacionBolsa,
+                            tipoSelloBolsa: form.tipoSelloBolsa,
+                            acabadoBolsa: form.acabadoBolsa,
+                            tieneFuelleBolsa: form.tieneFuelleBolsa,
+                          });
+
+                          if (calculatedFormat && calculatedFormat !== form.blueprintFormat) {
+                            updateField("blueprintFormat", calculatedFormat);
+                          }
+
+                          const inferredGusset = inferBolsaGussetType({
+                            tipoPresentacionBolsa: form.tipoPresentacionBolsa,
+                            tipoSelloBolsa: form.tipoSelloBolsa,
+                            acabadoBolsa: form.acabadoBolsa,
+                            tieneFuelleBolsa: form.tieneFuelleBolsa,
+                          });
+
+                          if (inferredGusset && inferredGusset !== form.tipoFuelleBolsa) {
+                            updateField("tipoFuelleBolsa", inferredGusset);
+                          }
+
+                          return (
+                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 md:col-span-3">
+                              <p className="text-xs font-bold uppercase text-blue-800 mb-2">
+                                Formato de Plano (Calculado)
+                              </p>
+                              <p className="text-sm font-semibold text-blue-900">
+                                {calculatedFormat || "—"}
+                              </p>
+                            </div>
+                          );
+                        })()}
+                      </>
+                    ) : (
+                      /* NO BOLSA: Selector tradicional */
+                      <FormSelect
+                        label="Formato de Plano *"
+                        value={form.blueprintFormat}
+                        onChange={(value) => updateField("blueprintFormat", value)}
+                        onBlur={() => markFieldAsTouched("blueprintFormat")}
+                        error={getError("blueprintFormat")}
+                        placeholder={!inheritedWrapping ? "Seleccione un portafolio primero" : "-- Seleccione --"}
+                        options={getBlueprintFormatOptions(inheritedWrapping)}
+                        disabled={!inheritedWrapping}
+                      />
+                    )}
 
                     <FormSelect
                       label="Aplicación Técnica *"
