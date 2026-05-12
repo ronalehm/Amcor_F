@@ -1,310 +1,675 @@
-import type { ProjectProductStatus, ProjectProductType } from "./projectWorkflow";
-import { getProductStateDefinition, getProductStateMeaning } from "./projectProductSemantics";
+/**
+ * ALMACENAMIENTO DE PRODUCTOS PRELIMINARES - MÓDULO DE PROYECTOS ODISEO
+ *
+ * Este archivo gestiona el ciclo de vida de los Productos Preliminares:
+ * - Productos Base: creados desde un proyecto validado (P2), con toda la estructura técnica
+ * - Variaciones: derivadas de un producto base, con campos técnicos bloqueados
+ *
+ * Estados: Registrado, En Cotización, Aprobado, Desestimado, Alta (5 estados simples de negocio)
+ * NO incluye estados del Sistema Integral (SI).
+ */
+
+import type {
+  PreliminaryProductStatus,
+  PreliminaryProductType,
+} from "./projectProductWorkflow";
 
 const STORAGE_KEY = "odiseo_project_products";
 
-export type ProjectProductRecord = {
+/**
+ * Producto Preliminar: ficha técnica de producto antes de envío a SI
+ */
+export type ProjectPreliminaryProductRecord = {
   id: string;
   projectCode: string;
+  preliminaryProductCode: string; // PP-{projectCode}-{000}
 
-  productRequestCode: string;
-  productName: string;
-  productDescription?: string;
+  name: string;
+  description?: string;
 
-  productType: ProjectProductType;
-  status: ProjectProductStatus;
+  productType: PreliminaryProductType; // "Base" | "Variación"
+  status: PreliminaryProductStatus; // Registrado | En Cotización | Aprobado | Desestimado | Alta
 
-  // Relación con producto base
-  baseProductId?: string;
-  baseProductSku?: string;
-  baseProductName?: string;
-  createdFromApprovedProduct?: boolean;
+  // Indicadores de tipo
+  isBaseProduct?: boolean;
+  isDerived?: boolean;
 
-  // Jerarquía de productos derivados
+  // Jerarquía
   parentProductId?: string;
   rootProductId?: string;
   generationLevel?: number;
+  baseProductId?: string;
+  baseProductName?: string;
 
-  // Indicadores funcionales
-  requiresDesign?: boolean;
-  requiresSample?: boolean;
-  requiresNewStructure?: boolean;
+  // Bloqueos por tipo
+  structureLocked?: boolean;
+  formatLocked?: boolean;
+  printTypeLocked?: boolean;
+  layersLocked?: boolean;
 
-  // Seguimiento Sistema Integral
-  siRequestId?: string;
-  siPreliminarySheetCode?: string;
-  siProductCode?: string;
-  siSku?: string;
+  // Estructura técnica (bloqueada en variaciones)
+  structureType?: string;
+  blueprintFormat?: string;
+  printType?: string;
+  printClass?: string;
 
-  siStatus?: string;
-  siLastSyncAt?: string;
-  siObservation?: string;
+  // Capas (bloqueadas en variaciones)
+  layer1Material?: string;
+  layer1Micron?: string | number;
+  layer1Grammage?: string | number;
 
+  layer2Material?: string;
+  layer2Micron?: string | number;
+  layer2Grammage?: string | number;
+
+  layer3Material?: string;
+  layer3Micron?: string | number;
+  layer3Grammage?: string | number;
+
+  layer4Material?: string;
+  layer4Micron?: string | number;
+  layer4Grammage?: string | number;
+
+  grammage?: string | number;
+  grammageTolerance?: string | number;
+  referenceEmCode?: string;
+  referenceEmVersion?: string;
+
+  // Editables en variaciones
+  width?: string | number;
+  customerPackingCode?: string;
+  estimatedVolume?: string | number;
+  unitOfMeasure?: string;
+
+  hasZipper?: string;
+  zipperType?: string;
+
+  hasValve?: string;
+  valveType?: string;
+
+  hasReinforcement?: string;
+  reinforcementThickness?: string | number;
+  reinforcementWidth?: string | number;
+
+  hasRoundedCorners?: string;
+  roundedCornersType?: string;
+
+  hasPerforation?: string;
+  perforationLocation?: string;
+
+  hasPreCut?: string;
+  preCutType?: string;
+
+  accessories?: string[];
+  targetPrice?: string | number;
+  currencyType?: string;
+  commercialComments?: string;
+
+  // Indicadores de selección para cotización
+  selectedForQuote?: boolean;
+  selectedForQuoteAt?: string;
+
+  // Timestamps de transición
+  quoteCompletedAt?: string;
+  clientApprovedAt?: string;
+  quoteRequestedAt?: string;
+
+  // Auditoría
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
+
+  // === COMPATIBILIDAD LEGACY (serán removidos en PASO 6-7) ===
+  // Aliases de campo para componentes antiguos
+  productName?: string; // alias de 'name'
+  productDescription?: string; // alias de 'description'
+  productRequestCode?: string; // alias de 'preliminaryProductCode'
+  format?: string; // alias de 'blueprintFormat'
+  structure?: string; // alias de 'structureType'
+  micron?: string | number; // alias de 'layer1Micron' o principal
+  gusset?: string | number; // no existe en nuevo modelo
+  length?: string | number; // no existe en nuevo modelo
+  requiresDesign?: boolean; // no existe en nuevo modelo
+  requiresSample?: boolean; // no existe en nuevo modelo
+  requiresNewStructure?: boolean; // no existe en nuevo modelo
+  targetPriceMin?: string | number; // parte de 'targetPrice' (mín)
+  targetPriceMax?: string | number; // parte de 'targetPrice' (máx)
+  commercialFinanceComment?: string; // alias de 'commercialComments'
+  agValidationStatus?: string; // no aplica en nuevo modelo
+  rdValidationStatus?: string; // no aplica en nuevo modelo
+  agObservation?: string; // no aplica en nuevo modelo
+  rdObservation?: string; // no aplica en nuevo modelo
+  siProductCode?: string; // no aplica en ODISEO
+  siSku?: string; // no aplica en ODISEO
 };
+
+// ============================================================================
+// UTILITARIOS
+// ============================================================================
 
 function isBrowser() {
   return typeof window !== "undefined" && typeof localStorage !== "undefined";
 }
 
-function safeParseArray<T>(value: string | null): T[] {
+function readStorageArray<T>(key: string): T[] {
+  if (!isBrowser()) return [];
   try {
-    const parsed = JSON.parse(value || "[]");
-    return Array.isArray(parsed) ? parsed : [];
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : [];
   } catch {
     return [];
   }
 }
 
-function readStorage(): ProjectProductRecord[] {
-  if (!isBrowser()) return [];
-  return safeParseArray<ProjectProductRecord>(localStorage.getItem(STORAGE_KEY));
-}
-
-function writeStorage(records: ProjectProductRecord[]) {
+function writeStorageArray<T>(key: string, records: T[]) {
   if (!isBrowser()) return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  localStorage.setItem(key, JSON.stringify(records));
 }
 
-export function getProjectProducts(projectCode: string): ProjectProductRecord[] {
-  return readStorage().filter((p) => p.projectCode === projectCode);
+// ============================================================================
+// GENERACIÓN DE CÓDIGOS
+// ============================================================================
+
+/**
+ * Genera código de Producto Preliminar: PP-{projectCode}-{numero}
+ * Busca el siguiente número disponible para el proyecto
+ */
+export function generatePreliminaryProductCode(projectCode: string): string {
+  const products = getPreliminaryProducts(projectCode);
+  const codes = products
+    .map((p) => {
+      const match = p.preliminaryProductCode.match(/-(\d+)$/);
+      return match ? parseInt(match[1], 10) : 0;
+    })
+    .filter((num) => !isNaN(num));
+
+  const nextNumber = (Math.max(0, ...codes) + 1).toString().padStart(3, "0");
+  return `PP-${projectCode}-${nextNumber}`;
 }
 
-export function getProjectProductById(id: string): ProjectProductRecord | null {
-  const products = readStorage();
-  return products.find((p) => p.id === id) || null;
-}
+// ============================================================================
+// CREACIÓN DE PRODUCTOS
+// ============================================================================
 
-export function getProjectProductByRequestCode(
+/**
+ * Crea el Producto Preliminar Base desde un proyecto validado
+ * Copia toda la estructura técnica del proyecto
+ * Status="Registrado", ProductType="Base", todos los locks=true
+ */
+export function createBasePreliminaryProduct(
   projectCode: string,
-  requestCode: string
-): ProjectProductRecord | null {
-  return (
-    readStorage().find(
-      (p) => p.projectCode === projectCode && p.productRequestCode === requestCode
-    ) || null
-  );
-}
+  project: any
+): ProjectPreliminaryProductRecord {
+  const now = new Date().toISOString();
 
-export function saveProjectProduct(product: ProjectProductRecord): ProjectProductRecord {
-  const products = readStorage();
-  const existing = products.findIndex((p) => p.id === product.id);
+  const product: ProjectPreliminaryProductRecord = {
+    id: `PPB-${projectCode}-${Date.now()}`,
+    projectCode,
+    preliminaryProductCode: generatePreliminaryProductCode(projectCode),
 
-  const normalized: ProjectProductRecord = {
-    ...product,
-    updatedAt: new Date().toISOString(),
+    name: project.projectName || `Producto Base ${projectCode}`,
+    description: `Producto preliminar base para proyecto ${projectCode}`,
+
+    productType: "Base",
+    status: "Registrado",
+
+    isBaseProduct: true,
+    isDerived: false,
+
+    // Copiar estructura técnica del proyecto
+    structureType: project.structureType,
+    blueprintFormat: project.blueprintFormat,
+    printType: project.printType,
+    printClass: project.printClass,
+
+    // Copiar capas
+    layer1Material: project.layer1Material,
+    layer1Micron: project.layer1Micron,
+    layer1Grammage: project.layer1Grammage,
+
+    layer2Material: project.layer2Material,
+    layer2Micron: project.layer2Micron,
+    layer2Grammage: project.layer2Grammage,
+
+    layer3Material: project.layer3Material,
+    layer3Micron: project.layer3Micron,
+    layer3Grammage: project.layer3Grammage,
+
+    layer4Material: project.layer4Material,
+    layer4Micron: project.layer4Micron,
+    layer4Grammage: project.layer4Grammage,
+
+    grammage: project.grammage,
+    grammageTolerance: project.grammageTolerance,
+    referenceEmCode: project.referenceEmCode,
+    referenceEmVersion: project.referenceEmVersion,
+
+    // Copiar dimensiones y accesorios
+    width: project.width,
+    customerPackingCode: project.customerPackingCode,
+    estimatedVolume: project.estimatedVolume,
+    unitOfMeasure: project.unitOfMeasure,
+
+    hasZipper: project.hasZipper,
+    zipperType: project.zipperType,
+
+    hasValve: project.hasValve,
+    valveType: project.valveType,
+
+    hasReinforcement: project.hasReinforcement,
+    reinforcementThickness: project.reinforcementThickness,
+    reinforcementWidth: project.reinforcementWidth,
+
+    hasRoundedCorners: project.hasRoundedCorners,
+    roundedCornersType: project.roundedCornersType,
+
+    hasPerforation: project.hasPerforation,
+    perforationLocation: project.perforationLocation,
+
+    hasPreCut: project.hasPreCut,
+    preCutType: project.preCutType,
+
+    // Bloqueos activados para producto base
+    structureLocked: true,
+    formatLocked: true,
+    printTypeLocked: true,
+    layersLocked: true,
+
+    createdAt: now,
+    updatedAt: now,
   };
 
-  if (existing >= 0) {
-    products[existing] = normalized;
-  } else {
-    products.push(normalized);
+  // Compatibilidad legacy - asignar después de crear el objeto
+  product.productName = product.name;
+  product.productDescription = product.description;
+  product.productRequestCode = product.preliminaryProductCode;
+  product.format = product.blueprintFormat;
+  product.structure = product.structureType;
+  product.commercialFinanceComment = product.commercialComments;
+
+  return savePreliminaryProduct(product);
+}
+
+/**
+ * Crea una variación desde un producto base
+ * Copia estructura técnica, bloquea campos técnicos
+ */
+export function createVariationFromProduct(
+  baseProductId: string,
+  data: Partial<ProjectPreliminaryProductRecord>
+): ProjectPreliminaryProductRecord {
+  const baseProduct = getPreliminaryProductById(baseProductId);
+  if (!baseProduct) {
+    throw new Error(`Base product ${baseProductId} not found`);
   }
 
-  writeStorage(products);
+  const now = new Date().toISOString();
+  const projectCode = baseProduct.projectCode;
+
+  const variation: ProjectPreliminaryProductRecord = {
+    id: `PPV-${projectCode}-${Date.now()}`,
+    projectCode,
+    preliminaryProductCode: generatePreliminaryProductCode(projectCode),
+
+    name: data.name || `Variación de ${baseProduct.name}`,
+    description:
+      data.description || `Variación del producto base ${baseProduct.preliminaryProductCode}`,
+
+    productType: "Variación",
+    status: "Registrado",
+
+    isBaseProduct: false,
+    isDerived: true,
+
+    // Jerarquía
+    parentProductId: baseProductId,
+    rootProductId: baseProduct.rootProductId || baseProductId,
+    generationLevel: (baseProduct.generationLevel || 1) + 1,
+    baseProductId,
+    baseProductName: baseProduct.name,
+
+    // Copiar estructura técnica bloqueada del producto base
+    structureType: baseProduct.structureType,
+    blueprintFormat: baseProduct.blueprintFormat,
+    printType: baseProduct.printType,
+    printClass: baseProduct.printClass,
+
+    layer1Material: baseProduct.layer1Material,
+    layer1Micron: baseProduct.layer1Micron,
+    layer1Grammage: baseProduct.layer1Grammage,
+
+    layer2Material: baseProduct.layer2Material,
+    layer2Micron: baseProduct.layer2Micron,
+    layer2Grammage: baseProduct.layer2Grammage,
+
+    layer3Material: baseProduct.layer3Material,
+    layer3Micron: baseProduct.layer3Micron,
+    layer3Grammage: baseProduct.layer3Grammage,
+
+    layer4Material: baseProduct.layer4Material,
+    layer4Micron: baseProduct.layer4Micron,
+    layer4Grammage: baseProduct.layer4Grammage,
+
+    grammage: baseProduct.grammage,
+    grammageTolerance: baseProduct.grammageTolerance,
+    referenceEmCode: baseProduct.referenceEmCode,
+    referenceEmVersion: baseProduct.referenceEmVersion,
+
+    // Permitir sobrescribir campos editables
+    width: data.width !== undefined ? data.width : baseProduct.width,
+    customerPackingCode:
+      data.customerPackingCode || baseProduct.customerPackingCode,
+    estimatedVolume:
+      data.estimatedVolume !== undefined
+        ? data.estimatedVolume
+        : baseProduct.estimatedVolume,
+    unitOfMeasure: data.unitOfMeasure || baseProduct.unitOfMeasure,
+
+    hasZipper: data.hasZipper !== undefined ? data.hasZipper : baseProduct.hasZipper,
+    zipperType: data.zipperType || baseProduct.zipperType,
+
+    hasValve: data.hasValve !== undefined ? data.hasValve : baseProduct.hasValve,
+    valveType: data.valveType || baseProduct.valveType,
+
+    hasReinforcement:
+      data.hasReinforcement !== undefined
+        ? data.hasReinforcement
+        : baseProduct.hasReinforcement,
+    reinforcementThickness:
+      data.reinforcementThickness || baseProduct.reinforcementThickness,
+    reinforcementWidth:
+      data.reinforcementWidth || baseProduct.reinforcementWidth,
+
+    hasRoundedCorners:
+      data.hasRoundedCorners !== undefined
+        ? data.hasRoundedCorners
+        : baseProduct.hasRoundedCorners,
+    roundedCornersType:
+      data.roundedCornersType || baseProduct.roundedCornersType,
+
+    hasPerforation:
+      data.hasPerforation !== undefined
+        ? data.hasPerforation
+        : baseProduct.hasPerforation,
+    perforationLocation:
+      data.perforationLocation || baseProduct.perforationLocation,
+
+    hasPreCut:
+      data.hasPreCut !== undefined ? data.hasPreCut : baseProduct.hasPreCut,
+    preCutType: data.preCutType || baseProduct.preCutType,
+
+    accessories: data.accessories || baseProduct.accessories,
+    targetPrice:
+      data.targetPrice !== undefined ? data.targetPrice : baseProduct.targetPrice,
+    currencyType: data.currencyType || baseProduct.currencyType,
+    commercialComments:
+      data.commercialComments || baseProduct.commercialComments,
+
+    // Bloqueos activados para variación
+    structureLocked: true,
+    formatLocked: true,
+    printTypeLocked: true,
+    layersLocked: true,
+
+    createdAt: now,
+    updatedAt: now,
+    createdBy: data.createdBy,
+  };
+
+  // Compatibilidad legacy - asignar después de crear el objeto
+  variation.productName = variation.name;
+  variation.productDescription = variation.description;
+  variation.productRequestCode = variation.preliminaryProductCode;
+  variation.format = variation.blueprintFormat;
+  variation.structure = variation.structureType;
+  variation.commercialFinanceComment = variation.commercialComments;
+
+  return savePreliminaryProduct(variation);
+}
+
+// ============================================================================
+// VALIDACIÓN
+// ============================================================================
+
+/**
+ * Campos que están bloqueados en variaciones (no pueden cambiar del producto base)
+ */
+const LOCKED_FIELDS = [
+  "structureType",
+  "blueprintFormat",
+  "printType",
+  "printClass",
+  "layer1Material",
+  "layer1Micron",
+  "layer1Grammage",
+  "layer2Material",
+  "layer2Micron",
+  "layer2Grammage",
+  "layer3Material",
+  "layer3Micron",
+  "layer3Grammage",
+  "layer4Material",
+  "layer4Micron",
+  "layer4Grammage",
+  "grammage",
+  "grammageTolerance",
+  "referenceEmCode",
+  "referenceEmVersion",
+];
+
+/**
+ * Valida que una variación no cambia campos bloqueados
+ * Retorna lista de campos violados (vacía = OK)
+ */
+export function validateVariationLockedFields(
+  original: ProjectPreliminaryProductRecord,
+  proposed: Partial<ProjectPreliminaryProductRecord>
+): string[] {
+  const violations: string[] = [];
+
+  for (const field of LOCKED_FIELDS) {
+    const key = field as keyof ProjectPreliminaryProductRecord;
+    const originalValue = original[key];
+    const proposedValue = proposed[key];
+
+    if (proposedValue !== undefined && originalValue !== proposedValue) {
+      violations.push(field);
+    }
+  }
+
+  return violations;
+}
+
+// ============================================================================
+// CRUD BÁSICO
+// ============================================================================
+
+export function getPreliminaryProducts(
+  projectCode: string
+): ProjectPreliminaryProductRecord[] {
+  const all = readStorageArray<ProjectPreliminaryProductRecord>(STORAGE_KEY);
+  return all.filter((p) => p.projectCode === projectCode);
+}
+
+export function getPreliminaryProductById(
+  id: string
+): ProjectPreliminaryProductRecord | null {
+  const all = readStorageArray<ProjectPreliminaryProductRecord>(STORAGE_KEY);
+  return all.find((p) => p.id === id) || null;
+}
+
+export function getBasePreliminaryProduct(
+  projectCode: string
+): ProjectPreliminaryProductRecord | null {
+  const products = getPreliminaryProducts(projectCode);
+  return products.find((p) => p.isBaseProduct) || null;
+}
+
+export function savePreliminaryProduct(
+  product: ProjectPreliminaryProductRecord
+): ProjectPreliminaryProductRecord {
+  const all = readStorageArray<ProjectPreliminaryProductRecord>(STORAGE_KEY);
+  const filtered = all.filter((p) => p.id !== product.id);
+
+  const normalized: ProjectPreliminaryProductRecord = {
+    ...product,
+    updatedAt: new Date().toISOString(),
+    // Mantener sincronizados los campos legacy
+    productName: product.productName || product.name,
+    productDescription: product.productDescription || product.description,
+    productRequestCode: product.productRequestCode || product.preliminaryProductCode,
+    format: product.format || product.blueprintFormat,
+    structure: product.structure || product.structureType,
+    commercialFinanceComment: product.commercialFinanceComment || product.commercialComments,
+  };
+
+  writeStorageArray(STORAGE_KEY, [normalized, ...filtered]);
   return normalized;
 }
 
-export function createProjectProductFromProject(
-  projectCode: string,
-  data: Partial<ProjectProductRecord>
-): ProjectProductRecord {
-  const product: ProjectProductRecord = {
-    id: `PP-${projectCode}-${Date.now()}`,
-    projectCode,
-    productRequestCode: generateProductRequestCode(projectCode),
-    productName: data.productName || "",
-    productDescription: data.productDescription,
-    productType: data.productType || "Nuevo",
-    status: "Solicitado",
-    requiresDesign: data.requiresDesign,
-    requiresSample: data.requiresSample,
-    requiresNewStructure: data.requiresNewStructure,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    createdBy: data.createdBy,
-  };
+export function updatePreliminaryProductStatus(
+  id: string,
+  status: PreliminaryProductStatus
+): ProjectPreliminaryProductRecord {
+  const product = getPreliminaryProductById(id);
+  if (!product) {
+    throw new Error(`Product ${id} not found`);
+  }
 
-  return saveProjectProduct(product);
+  return savePreliminaryProduct({
+    ...product,
+    status,
+  });
 }
 
+export function destimarPreliminaryProduct(
+  id: string,
+  reason?: string
+): ProjectPreliminaryProductRecord {
+  const product = getPreliminaryProductById(id);
+  if (!product) {
+    throw new Error(`Product ${id} not found`);
+  }
+
+  return savePreliminaryProduct({
+    ...product,
+    status: "Desestimado",
+  });
+}
+
+// ============================================================================
+// UTILIDADES LEGACY (para compatibilidad temporal)
+// ============================================================================
+
+/**
+ * @deprecated Será reemplazado cuando migremos completamente a ProjectPreliminaryProductRecord
+ * Obtiene todos los productos de un proyecto (compat. con código antiguo)
+ */
+export function getProjectProducts(
+  projectCode: string
+): ProjectPreliminaryProductRecord[] {
+  return getPreliminaryProducts(projectCode);
+}
+
+/**
+ * @deprecated Será reemplazado en PASO 6
+ * Para compatibilidad con ProjectProductsPanel
+ */
+export type ProjectProductRecord = ProjectPreliminaryProductRecord;
+
+/**
+ * @deprecated Será reemplazado en PASO 6
+ */
+export function createProjectProductFromProject(
+  projectCode: string,
+  data: Partial<ProjectPreliminaryProductRecord>
+): ProjectPreliminaryProductRecord {
+  return createBasePreliminaryProduct(projectCode, data);
+}
+
+/**
+ * @deprecated Será reemplazado en PASO 6
+ */
 export function createProjectProductFromApprovedProduct(
   projectCode: string,
   baseProductId: string,
-  data: Partial<ProjectProductRecord>
-): ProjectProductRecord {
-  const baseProduct = getProjectProductById(baseProductId);
-  if (!baseProduct) throw new Error(`Base product ${baseProductId} not found`);
-
-  // Calcular jerarquía: si el producto base tiene parentProductId, usar ese como root
-  const rootProductId = baseProduct.rootProductId || baseProductId;
-  const generationLevel = (baseProduct.generationLevel || 1) + 1;
-
-  const product: ProjectProductRecord = {
-    id: `PP-${projectCode}-${Date.now()}`,
-    projectCode,
-    productRequestCode: generateProductRequestCode(projectCode),
-    productName: data.productName || baseProduct.productName,
-    productDescription: data.productDescription || baseProduct.productDescription,
-    productType: data.productType || "Variante",
-    status: data.status || "Solicitado",
-
-    // Relación con producto base
-    baseProductId: baseProductId,
-    baseProductSku: baseProduct.siSku || baseProduct.baseProductSku,
-    baseProductName: baseProduct.productName,
-    createdFromApprovedProduct: true,
-
-    // Jerarquía de productos derivados
-    parentProductId: baseProductId,
-    rootProductId: rootProductId,
-    generationLevel: generationLevel,
-
-    // Indicadores funcionales
-    requiresDesign: data.requiresDesign !== undefined ? data.requiresDesign : baseProduct.requiresDesign,
-    requiresSample: data.requiresSample !== undefined ? data.requiresSample : baseProduct.requiresSample,
-    requiresNewStructure: data.requiresNewStructure !== undefined ? data.requiresNewStructure : baseProduct.requiresNewStructure,
-
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    createdBy: data.createdBy,
-  };
-
-  return saveProjectProduct(product);
+  data: Partial<ProjectPreliminaryProductRecord>
+): ProjectPreliminaryProductRecord {
+  return createVariationFromProduct(baseProductId, data);
 }
 
-export function updateProjectProductStatus(
-  id: string,
-  status: ProjectProductStatus
-): ProjectProductRecord {
-  const product = getProjectProductById(id);
-  if (!product) throw new Error(`Product ${id} not found`);
-
-  return saveProjectProduct({
-    ...product,
-    status,
-    updatedAt: new Date().toISOString(),
-  });
+/**
+ * @deprecated Será reemplazado en PASO 6
+ */
+export function saveProjectProduct(
+  product: ProjectPreliminaryProductRecord
+): ProjectPreliminaryProductRecord {
+  return savePreliminaryProduct(product);
 }
 
+/**
+ * @deprecated Será reemplazado en PASO 6
+ */
+export function getProjectProductById(
+  id: string
+): ProjectPreliminaryProductRecord | null {
+  return getPreliminaryProductById(id);
+}
+
+/**
+ * @deprecated Será reemplazado en PASO 6
+ */
 export function destimarProjectProduct(
   id: string,
   reason?: string
-): ProjectProductRecord {
-  const product = getProjectProductById(id);
-  if (!product) throw new Error(`Product ${id} not found`);
+): ProjectPreliminaryProductRecord {
+  return destimarPreliminaryProduct(id, reason);
+}
 
-  return saveProjectProduct({
+/**
+ * @deprecated Será reemplazado en PASO 6
+ */
+export function toggleProductSelectedForQuote(
+  id: string
+): ProjectPreliminaryProductRecord {
+  const product = getPreliminaryProductById(id);
+  if (!product) {
+    throw new Error(`Product ${id} not found`);
+  }
+
+  return savePreliminaryProduct({
     ...product,
-    status: "Desestimado",
-    updatedAt: new Date().toISOString(),
+    selectedForQuote: !product.selectedForQuote,
+    selectedForQuoteAt: !product.selectedForQuote
+      ? new Date().toISOString()
+      : undefined,
   });
 }
 
-export function deleteProjectProduct(id: string): void {
-  const products = readStorage();
-  const filtered = products.filter((p) => p.id !== id);
-  writeStorage(filtered);
-}
-
-export function getNextProjectNumber(): number {
-  const products = readStorage();
-  const numbers = products
-    .map((p) => {
-      const match = p.productRequestCode.match(/PP-PR-(\w+)-(\d+)/);
-      return match ? Number(match[2]) : 0;
-    })
-    .filter((n) => !Number.isNaN(n));
-
-  return Math.max(0, ...numbers) + 1;
-}
-
-export function generateProductRequestCode(projectCode: string): string {
-  const products = getProjectProducts(projectCode);
-  const count = products.length + 1;
-  return `PP-PR-${projectCode}-${String(count).padStart(3, "0")}`;
-}
-
-export function getProjectProductsSummary(projectCode: string) {
-  const products = getProjectProducts(projectCode);
-  const byStatus = products.reduce<Record<string, number>>((acc, p) => {
-    const status = p.status || "Sin estado";
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {});
-
-  const inSi = products.filter(
-    (p) =>
-      p.status === "Enviado a SI" ||
-      p.status === "Recibido por SI" ||
-      p.status === "Ficha Preliminar Creada en SI" ||
-      p.status === "En Proceso SI" ||
-      p.status === "Dado de Alta"
-  ).length;
-
-  const approved = products.filter((p) => p.status === "Dado de Alta").length;
-
-  return {
-    total: products.length,
-    byStatus,
-    inSi,
-    approved,
+/**
+ * @deprecated Será reemplazado en PASO 3
+ */
+export function getProductStatusMeaning(status: PreliminaryProductStatus): string {
+  const meanings: Record<PreliminaryProductStatus, string> = {
+    Registrado: "Producto registrado en el proyecto",
+    "En Cotización": "Incluido en solicitud de cotización",
+    Aprobado: "Aprobado por cliente",
+    Desestimado: "Desestimado",
+    Alta: "Dado de alta en el sistema",
   };
+  return meanings[status] || "Estado desconocido";
 }
 
-export function getProductDerivatives(productId: string): ProjectProductRecord[] {
-  return readStorage().filter((p) => p.parentProductId === productId);
+/**
+ * @deprecated Será reemplazado en PASO 3
+ */
+export function getProductStatusDefinition(status: PreliminaryProductStatus) {
+  return null; // Placeholder
 }
 
-export function getProductHierarchy(
-  productId: string
-): { root: ProjectProductRecord | null; ancestors: ProjectProductRecord[]; descendants: ProjectProductRecord[] } {
-  const product = getProjectProductById(productId);
-  if (!product) return { root: null, ancestors: [], descendants: [] };
-
-  const products = readStorage();
-  const ancestors: ProjectProductRecord[] = [];
-  let current = product;
-
-  // Rastrear hacia arriba hasta el producto raíz
-  while (current.parentProductId) {
-    const parent = products.find((p) => p.id === current.parentProductId);
-    if (!parent) break;
-    ancestors.unshift(parent);
-    current = parent;
-  }
-
-  // Obtener todos los descendientes
-  const descendants: ProjectProductRecord[] = [];
-  const queue: ProjectProductRecord[] = [product];
-
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current) continue;
-
-    const children = products.filter((p) => p.parentProductId === current.id);
-    descendants.push(...children);
-    queue.push(...children);
-  }
-
-  return {
-    root: current,
-    ancestors,
-    descendants,
-  };
-}
-
-// Funciones de acceso a semántica de estados (para UI)
-export function getProductStatusMeaning(status: ProjectProductStatus): string {
-  return getProductStateMeaning(status);
-}
-
-export function getProductStatusDefinition(status: ProjectProductStatus) {
-  return getProductStateDefinition(status);
-}
-
+/**
+ * @deprecated Limpia el almacenamiento de productos
+ */
 export function clearProjectProductStorage(): void {
   if (!isBrowser()) return;
   localStorage.removeItem(STORAGE_KEY);
