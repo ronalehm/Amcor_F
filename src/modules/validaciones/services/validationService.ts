@@ -587,7 +587,28 @@ export function returnObservedProjectToComplete(
     currentValidationStep: null,
   };
 
-  return persistProject(updated);
+  const saved = persistProject(updated);
+
+  recordValidationEvent({
+    projectCode: getProjectCode(project),
+    timestamp: now,
+    eventType: "returned_to_edit",
+    fromStatus: project.status,
+    toStatus: "Ficha Completa",
+    comment: "Proyecto devuelto al Ejecutivo para correcciones",
+  });
+
+  recordValidationEvent({
+    projectCode: getProjectCode(project),
+    timestamp: now,
+    eventType: "validation_restarted",
+    fromStatus: "Ficha Completa",
+    toStatus: "Ficha Completa",
+    validationRound: Number(project.validationRound || 0) + 1,
+    comment: "Nueva ronda de validación disponible",
+  });
+
+  return saved;
 }
 
 /* ============================================================================
