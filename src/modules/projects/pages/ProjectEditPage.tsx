@@ -775,7 +775,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Información General
   "portfolioCode",
-  "executiveId",
   "salesforceAction",
   "projectName",
   "projectDescription",

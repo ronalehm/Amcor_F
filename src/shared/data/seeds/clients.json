@@ -138,10 +138,23 @@
     "email": "j.huaman@cafeandino.com",
     "ruc": "20547896321",
     "industry": "Manufactura",
-    "status": "pending_validation",
+    "status": "active",
     "siClientId": "CMI-012",
     "siClientCode": "CL-SI-012",
     "createdAt": "2026-05-12T06:08:09.536Z",
-    "updatedAt": "2026-05-12T06:08:09.536Z"
+    "updatedAt": "2026-05-12T06:08:24.076Z"
+  },
+  {
+    "id": "CLI-000014",
+    "code": "CL-000014",
+    "businessName": "Belleza Natural S.A.C.",
+    "email": "d.reyes@bellezanatural.com",
+    "ruc": "20574125896",
+    "industry": "Cuidado personal",
+    "status": "pending_validation",
+    "siClientId": "CMI-018",
+    "siClientCode": "CL-SI-018",
+    "createdAt": "2026-05-12T17:59:39.187Z",
+    "updatedAt": "2026-05-12T17:59:39.187Z"
   }
 ]
