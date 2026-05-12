@@ -26,6 +26,7 @@ import { getActiveUsers } from "../../../shared/data/userStorage";
 import {
   isGuidedFormatEnabled,
   calculateBolsaFormatPlan,
+  calculateLaminaFormatPlan,
   isPouchWrapping,
   isBolsaWrapping,
   isLaminaWrapping,
@@ -625,6 +626,7 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
   // 2. Diseño
   1: [
     "blueprintFormat",
+    "tipoFormatoLamina",
     "tipoPresentacionBolsa",
     "tipoSelloBolsa",
     "acabadoBolsa",
@@ -741,9 +743,10 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   colorObjective: "Objetivo de color",
   colorObjectiveComment: "Comentar Objetivo de color",
   designWorkInstructions: "Instrucciones de trabajo para diseño",
+  tipoFormatoLamina: "Tipo de Lámina",
   tipoFamiliaPouch: "Familia de pouch",
   tipoStandUpPouch: "Tipo de Stand Up",
-  formaDoyPackPouch: "Forma Doy Pack",
+  formaDoyPackPouch: "Base Doy Pack",
   tipoFuelleStandUpPouch: "Tipo de fuelle Stand Up",
   cantidadSellosPouchPlano: "Cantidad de sellos del pouch plano",
   tieneFuelleSelloCentralPouch: "¿Tiene fuelle?",
@@ -1577,6 +1580,22 @@ export default function ProjectEditPage() {
     form.tipoSelloEnFuellePouch,
   ]);
 
+  // Efecto para calcular Formato de Plano (Lámina)
+  useEffect(() => {
+    if (!isLaminaWrapping(inheritedWrapping)) return;
+
+    const calculatedFormat = calculateLaminaFormatPlan({
+      tipoFormatoLamina: form.tipoFormatoLamina,
+    });
+
+    if (calculatedFormat) {
+      setForm((prev) => {
+        if (prev.blueprintFormat === calculatedFormat) return prev;
+        return { ...prev, blueprintFormat: calculatedFormat };
+      });
+    }
+  }, [inheritedWrapping, form.tipoFormatoLamina]);
+
   const handleLicitacionChange = (value: string) => {
     const licitacion = value as "Sí" | "No";
     setForm((prev) => ({
@@ -2003,6 +2022,16 @@ export default function ProjectEditPage() {
       unitOfMeasure: form.unitOfMeasure,
       customerPackingCode: form.customerPackingCode,
 
+      // LÁMINA guided format fields
+      tipoFormatoLamina: form.tipoFormatoLamina || "",
+
+      // BOLSA guided format fields
+      tipoPresentacionBolsa: form.tipoPresentacionBolsa || "",
+      tipoSelloBolsa: form.tipoSelloBolsa || "",
+      acabadoBolsa: form.acabadoBolsa || "",
+      tieneFuelleBolsa: form.tieneFuelleBolsa || "",
+      tipoFuelleBolsa: form.tipoFuelleBolsa || "",
+
       // POUCH guided format fields
       tipoFamiliaPouch: form.tipoFamiliaPouch || "",
       tipoStandUpPouch: form.tipoStandUpPouch || "",
@@ -2229,6 +2258,16 @@ export default function ProjectEditPage() {
       estimatedVolume: form.estimatedVolume,
       unitOfMeasure: form.unitOfMeasure,
       customerPackingCode: form.customerPackingCode,
+
+      // LÁMINA guided format fields
+      tipoFormatoLamina: form.tipoFormatoLamina || "",
+
+      // BOLSA guided format fields
+      tipoPresentacionBolsa: form.tipoPresentacionBolsa || "",
+      tipoSelloBolsa: form.tipoSelloBolsa || "",
+      acabadoBolsa: form.acabadoBolsa || "",
+      tieneFuelleBolsa: form.tieneFuelleBolsa || "",
+      tipoFuelleBolsa: form.tipoFuelleBolsa || "",
 
       // POUCH guided format fields
       tipoFamiliaPouch: form.tipoFamiliaPouch || "",
@@ -2851,7 +2890,7 @@ export default function ProjectEditPage() {
                                   {form.tipoStandUpPouch === "Doy Pack" && (
                                     <>
                                       <FormSelect
-                                        label="Forma del Doy Pack *"
+                                        label="Base Doy Pack *"
                                         value={form.formaDoyPackPouch}
                                         onChange={handlePouchDoyPackShapeChange}
                                         onBlur={() => markFieldAsTouched("formaDoyPackPouch")}
@@ -2874,19 +2913,6 @@ export default function ProjectEditPage() {
                                           { value: "Fuelle Insertado", label: "Fuelle Insertado" },
                                         ]}
                                         placeholder="-- Seleccione --"
-                                      />
-
-                                      <FormSelect
-                                        label="Base Doy Pack *"
-                                        value={form.doyPackBase}
-                                        onChange={(value) => {
-                                          updateField("doyPackBase", value);
-                                          markFieldAsTouched("doyPackBase");
-                                        }}
-                                        onBlur={() => markFieldAsTouched("doyPackBase")}
-                                        error={getError("doyPackBase")}
-                                        placeholder="-- Seleccione --"
-                                        options={DOY_PACK_BASE_OPTIONS}
                                       />
                                     </>
                                   )}
@@ -3056,10 +3082,32 @@ export default function ProjectEditPage() {
                             </div>
                           ) : isLaminaWrapping(inheritedWrapping) ? (
                             <div className="space-y-4">
-                              <div className="rounded-lg border border-slate-300 bg-blue-50 p-3">
-                                <p className="text-sm text-slate-700">
-                                  La configuración de formato para Lámina se define en la sección de Especificaciones de Lámina.
-                                </p>
+                              <FormSelect
+                                label="Tipo de Lámina *"
+                                value={form.tipoFormatoLamina}
+                                onChange={(value) => {
+                                  updateField("tipoFormatoLamina", value);
+                                  markFieldAsTouched("tipoFormatoLamina");
+                                }}
+                                onBlur={() => markFieldAsTouched("tipoFormatoLamina")}
+                                error={getError("tipoFormatoLamina")}
+                                options={[
+                                  { value: "Genérica", label: "Genérica" },
+                                  { value: "Tissue", label: "Tissue" },
+                                  { value: "Food", label: "Food" },
+                                ]}
+                                placeholder="-- Seleccione --"
+                              />
+
+                              <div className="mt-4 border-t border-slate-200 pt-4">
+                                <FormInput
+                                  label="Formato de Plano Calculado *"
+                                  value={form.blueprintFormat}
+                                  onChange={() => {}}
+                                  error={getError("blueprintFormat")}
+                                  disabled={true}
+                                  placeholder="Se calculará automáticamente..."
+                                />
                               </div>
                             </div>
                           ) : (

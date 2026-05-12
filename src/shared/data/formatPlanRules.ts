@@ -96,6 +96,12 @@ export function calculateBolsaFormatPlan(params: BolsaParams): string {
 }
 
 export function calculateLaminaFormatPlan(params: any): string {
+  const tipoLamina = String(params.tipoFormatoLamina || "").trim();
+
+  if (tipoLamina === "Genérica") return "GENERICA";
+  if (tipoLamina === "Tissue") return "TISSUE";
+  if (tipoLamina === "Food") return "FOOD";
+
   return "";
 }
 
