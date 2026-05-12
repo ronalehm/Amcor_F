@@ -815,7 +815,10 @@ export function getRejectedProjects(): ProjectRecord[] {
 }
 
 export function getProjectsInValidation(): ProjectRecord[] {
-  return getProjectRecords().filter((p) => p.validacionSolicitada && p.requiereValidacion);
+  return getProjectRecords().filter((project) => {
+    const normalizedProject = normalizeProjectWorkflow(project);
+    return normalizedProject.status === "En validación";
+  });
 }
 
 export function saveProjectRecord(record: ProjectRecord) {

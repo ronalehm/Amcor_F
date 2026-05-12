@@ -2,16 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getProjectRecords } from "../../../shared/data/projectStorage";
-import { normalizeProjectWorkflow } from "../../../shared/data/projectWorkflow";
+import { normalizeProjectWorkflow, getResponsibleAreaForProject } from "../../../shared/data/projectWorkflow";
 import FormInput from "../../../shared/components/forms/FormInput";
 
-type ValidationArea = "todas" | "artesGraficas" | "rdTecnica" | "rdDesarrollo"
+type ValidationAreaFilter = "todas" | "artesGraficas" | "rdTecnica" | "rdDesarrollo";
 
 export default function ValidationListPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
   const [searchText, setSearchText] = useState("");
-  const [areaFilter, setAreaFilter] = useState<ValidationArea>("todas");
+  const [areaFilter, setAreaFilter] = useState<ValidationAreaFilter>("todas");
 
   useEffect(() => {
     setHeader({
@@ -21,80 +21,53 @@ export default function ValidationListPage() {
     return () => resetHeader();
   }, [setHeader, resetHeader]);
 
-  // Obtener todos los proyectos
-  const allProjects = useMemo(() => getProjectRecords(), []);
+  // Obtener todos los proyectos normalizados
+  const allProjects = useMemo(() => {
+    return getProjectRecords().map(normalizeProjectWorkflow);
+  }, []);
 
-  // Filtrar proyectos en validación según currentValidationStep y validador asignado
-  const projectsNeedingValidation = useMemo(() => {
-    return allProjects.filter(p => {
-      const project = normalizeProjectWorkflow(p);
-
-      // Solo proyectos en validación (no Observado, que vuelve al Ejecutivo)
-      if (project.status !== "En validación") return false;
-
-      // Artes Gráficas: solo si currentStep es "Artes Gráficas"
-      if (project.currentValidationStep === "Artes Gráficas") {
-        return (
-          project.graphicArtsValidationStatus === "Pendiente revisión manual" ||
-          project.graphicArtsValidationStatus === "En revisión"
-        );
-      }
-
-      // R&D Técnica: solo si currentStep es "R&D Técnica" Y está asignado a esta subárea
-      if (project.currentValidationStep === "R&D Técnica") {
-        return (
-          project.technicalSubArea === "R&D Técnica" &&
-          (project.technicalValidationStatus === "Pendiente" ||
-           project.technicalValidationStatus === "En revisión")
-        );
-      }
-
-      // R&D Desarrollo: solo si currentStep es "R&D Desarrollo" Y está asignado a esta subárea
-      if (project.currentValidationStep === "R&D Desarrollo") {
-        return (
-          project.technicalSubArea === "R&D Desarrollo" &&
-          (project.technicalValidationStatus === "Pendiente" ||
-           project.technicalValidationStatus === "En revisión")
-        );
-      }
-
-      return false;
-    });
+  // FILTRO PRINCIPAL: Proyectos con status === "En validación"
+  const projectsInValidation = useMemo(() => {
+    return allProjects.filter((project) => project.status === "En validación");
   }, [allProjects]);
 
-  // Determinar qué área valida cada proyecto
+  // Agregar área responsable a cada proyecto
   const projectsWithArea = useMemo(() => {
-    return projectsNeedingValidation.map(p => {
-      let validatingArea = "Artes Gráficas";
+    return projectsInValidation.map((project) => ({
+      project,
+      responsibleArea: getResponsibleAreaForProject(project),
+    }));
+  }, [projectsInValidation]);
 
-      if (p.currentValidationStep === "R&D Técnica") {
-        validatingArea = "R&D Técnica";
-      } else if (p.currentValidationStep === "R&D Desarrollo") {
-        validatingArea = "R&D Desarrollo";
-      }
-
-      return { project: p, validatingArea };
-    });
-  }, [projectsNeedingValidation]);
-
-  // Filtrar por área
+  // FILTRAR POR ÁREA SELECCIONADA
   const filteredByArea = useMemo(() => {
-    if (areaFilter === "todas") return projectsWithArea;
-    if (areaFilter === "artesGraficas") return projectsWithArea.filter(x => x.validatingArea === "Artes Gráficas");
-    if (areaFilter === "rdTecnica") return projectsWithArea.filter(x => x.validatingArea === "R&D Técnica");
-    if (areaFilter === "rdDesarrollo") return projectsWithArea.filter(x => x.validatingArea === "R&D Desarrollo");
-    return projectsWithArea;
+    if (areaFilter === "todas") {
+      return projectsWithArea;
+    }
+
+    return projectsWithArea.filter(({ project, responsibleArea }) => {
+      if (areaFilter === "artesGraficas") {
+        return responsibleArea === "Artes Gráficas";
+      }
+      if (areaFilter === "rdTecnica") {
+        return responsibleArea === "R&D Técnica";
+      }
+      if (areaFilter === "rdDesarrollo") {
+        return responsibleArea === "R&D Desarrollo";
+      }
+      return false;
+    });
   }, [projectsWithArea, areaFilter]);
 
-  // Filtrar por búsqueda
+  // FILTRAR POR BÚSQUEDA
   const filteredBySearch = useMemo(() => {
     if (!searchText) return filteredByArea;
     const lower = searchText.toLowerCase();
     return filteredByArea.filter(
-      x =>
-        x.project.code.toLowerCase().includes(lower) ||
-        x.project.projectName?.toLowerCase().includes(lower) ||
-        x.project.clientName?.toLowerCase().includes(lower)
+      ({ project }) =>
+        project.code.toLowerCase().includes(lower) ||
+        project.projectName?.toLowerCase().includes(lower) ||
+        project.clientName?.toLowerCase().includes(lower)
     );
   }, [filteredByArea, searchText]);
 
@@ -150,7 +123,7 @@ export default function ValidationListPage() {
             </label>
             <select
               value={areaFilter}
-              onChange={(e) => setAreaFilter(e.target.value as ValidationArea)}
+              onChange={(e) => setAreaFilter(e.target.value as ValidationAreaFilter)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             >
               <option value="todas">Todas las áreas</option>
@@ -165,7 +138,7 @@ export default function ValidationListPage() {
         {filteredBySearch.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 py-12">
             <div className="text-slate-500 font-medium">
-              {projectsNeedingValidation.length === 0
+              {projectsInValidation.length === 0
                 ? "No hay proyectos pendientes de validación"
                 : "No hay proyectos que coincidan con los filtros"}
             </div>
@@ -191,7 +164,7 @@ export default function ValidationListPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredBySearch.map(({ project, validatingArea }) => (
+                  {filteredBySearch.map(({ project, responsibleArea }) => (
                     <tr
                       key={project.code}
                       className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
@@ -208,10 +181,10 @@ export default function ValidationListPage() {
                           {project.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{validatingArea}</td>
+                      <td className="px-4 py-3 text-slate-700">{responsibleArea}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getValidationStatusBadge(validatingArea, getValidationStatus(validatingArea, project))}`}>
-                          {getValidationStatus(validatingArea, project)}
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getValidationStatusBadge(responsibleArea, getValidationStatus(responsibleArea, project))}`}>
+                          {getValidationStatus(responsibleArea, project)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-600">
