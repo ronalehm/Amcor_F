@@ -26,9 +26,12 @@ export default function ValidationListPage() {
     return getProjectRecords().map(normalizeProjectWorkflow);
   }, []);
 
-  // FILTRO PRINCIPAL: Proyectos con status === "En validación"
+  // FILTRO PRINCIPAL: Proyectos con status === "En validación" O que han sido observados por Artes Gráficas
   const projectsInValidation = useMemo(() => {
-    return allProjects.filter((project) => project.status === "En validación");
+    return allProjects.filter((project) =>
+      project.status === "En validación" ||
+      (project.status === "Observado" && project.lastObservationSource === "Artes Gráficas")
+    );
   }, [allProjects]);
 
   // Agregar área responsable a cada proyecto
@@ -139,14 +142,14 @@ export default function ValidationListPage() {
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 py-12">
             <div className="text-slate-500 font-medium">
               {projectsInValidation.length === 0
-                ? "No hay proyectos pendientes de validación"
+                ? "No hay proyectos en validación ni observados por Artes Gráficas"
                 : "No hay proyectos que coincidan con los filtros"}
             </div>
           </div>
         ) : (
           <div className="space-y-3">
             <div className="text-sm text-slate-600 font-medium">
-              {filteredBySearch.length} proyecto{filteredBySearch.length !== 1 ? "s" : ""} pendiente{filteredBySearch.length !== 1 ? "s" : ""}
+              {filteredBySearch.length} proyecto{filteredBySearch.length !== 1 ? "s" : ""} en validación u observado{filteredBySearch.length !== 1 ? "s" : ""}
             </div>
 
             <div className="overflow-x-auto bg-white rounded-lg border border-slate-200">
