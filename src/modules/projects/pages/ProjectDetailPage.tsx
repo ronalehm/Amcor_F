@@ -27,6 +27,7 @@ import ProjectObservationPanel from "../../../shared/components/projectTracking/
 import ProjectSlaPanel from "../../../shared/components/projectTracking/ProjectSlaPanel";
 import ProjectTrackingTimeline from "../../../shared/components/projectTracking/ProjectTrackingTimeline";
 import ProjectProductsPanel from "../components/ProjectProductsPanel";
+import ValidationHistoryTimeline from "../../../modules/validaciones/components/ValidationHistoryTimeline";
 
 export default function ProjectDetailPage() {
   const navigate = useNavigate();
@@ -412,6 +413,13 @@ export default function ProjectDetailPage() {
           <ProjectTrackingTimeline history={history} />
 
           <ProjectChangeHistory history={history} />
+
+          {project.status === "En validación" && (
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-6">Historial de Validaciones</h3>
+              <ValidationHistoryTimeline projectCode={project.code} />
+            </div>
+          )}
 
         </div>
       </div>
