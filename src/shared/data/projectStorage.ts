@@ -109,6 +109,11 @@ export type ProjectRecord = {
   lastObservationComment?: string;
   lastObservationAt?: string;
   lastValidatedAt?: string;
+  graphicArtsValidatedAt?: string;
+  graphicArtsValidationComment?: string;
+  technicalValidatedAt?: string;
+  technicalValidationComment?: string;
+  validationComment?: string;
 
   // Workflow v2: Productos Preliminares
   hasBasePreliminaryProduct?: boolean;

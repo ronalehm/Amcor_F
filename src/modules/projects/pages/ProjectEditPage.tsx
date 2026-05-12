@@ -12,7 +12,14 @@ import {
   type BooleanLike,
   type YesNoPending,
 } from "../../../shared/data/projectStorage";
-import { computeProjectPreparationStatus, normalizeProjectStatus } from "../../../shared/data/projectWorkflow";
+import {
+  computeProjectPreparationStatus,
+  normalizeProjectStatus,
+  hasAnyEditableSection2To6Data,
+  resolveProjectStage,
+  requiresManualGraphicArtsValidation,
+  resolveTechnicalSubAreaBySubclassification,
+} from "../../../shared/data/projectWorkflow";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers } from "../../../shared/data/userStorage";
 
@@ -747,7 +754,7 @@ layer4Micron: "Capa 4 - Micraje",
 layer4Grammage: "Capa 4 - Gramaje",
 
 licitacion: "Licitación",
-codigoRFQ: "Código RFQ",
+codigoRFQ: "Código de Licitación",
 };
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Información General
@@ -825,6 +832,116 @@ function getProjectExecutiveIds(project: ProjectRecord): string[] {
   return [];
 }
 
+// Helper function to normalize form data for comparison
+function normalizeComparableProjectForm(form: ProjectEditFormData): Record<string, any> {
+  return {
+    portfolioCode: form.portfolioCode,
+    executiveId: form.executiveId.slice().sort(),
+    siUserId: form.siUserId,
+    projectName: form.projectName?.trim() || "",
+    projectDescription: form.projectDescription?.trim() || "",
+    classification: form.classification,
+    subClassification: form.subClassification,
+    projectType: form.projectType,
+    salesforceAction: form.salesforceAction,
+    blueprintFormat: form.blueprintFormat,
+    technicalApplication: form.technicalApplication,
+    estimatedVolume: form.estimatedVolume,
+    unitOfMeasure: form.unitOfMeasure,
+    customerPackingCode: form.customerPackingCode,
+    printClass: form.printClass,
+    printType: form.printType,
+    requiresDesignWork: form.requiresDesignWork,
+    hasEdagReference: form.hasEdagReference,
+    referenceEdagCode: form.referenceEdagCode,
+    referenceEdagVersion: form.referenceEdagVersion,
+    specialDesignSpecs: form.specialDesignSpecs?.trim() || "",
+    specialDesignComments: form.specialDesignComments?.trim() || "",
+    edagCode: form.edagCode,
+    edagVersion: form.edagVersion,
+    hasReferenceStructure: form.hasReferenceStructure,
+    referenceEmCode: form.referenceEmCode,
+    referenceEmVersion: form.referenceEmVersion,
+    hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec,
+    customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
+    structureType: form.structureType,
+    layer1MaterialGroup: form.layer1MaterialGroup,
+    layer1Material: form.layer1Material,
+    layer1Micron: form.layer1Micron,
+    layer1Grammage: form.layer1Grammage,
+    layer2MaterialGroup: form.layer2MaterialGroup,
+    layer2Material: form.layer2Material,
+    layer2Micron: form.layer2Micron,
+    layer2Grammage: form.layer2Grammage,
+    layer3MaterialGroup: form.layer3MaterialGroup,
+    layer3Material: form.layer3Material,
+    layer3Micron: form.layer3Micron,
+    layer3Grammage: form.layer3Grammage,
+    layer4MaterialGroup: form.layer4MaterialGroup,
+    layer4Material: form.layer4Material,
+    layer4Micron: form.layer4Micron,
+    layer4Grammage: form.layer4Grammage,
+    specialStructureSpecs: form.specialStructureSpecs?.trim() || "",
+    grammage: form.grammage,
+    grammageTolerance: form.grammageTolerance,
+    sampleRequest: form.sampleRequest,
+    width: form.width,
+    length: form.length,
+    repetition: form.repetition,
+    doyPackBase: form.doyPackBase,
+    gussetWidth: form.gussetWidth,
+    gussetType: form.gussetType,
+    hasZipper: form.hasZipper,
+    zipperType: form.zipperType,
+    hasTinTie: form.hasTinTie,
+    hasValve: form.hasValve,
+    valveType: form.valveType,
+    hasDieCutHandle: form.hasDieCutHandle,
+    hasReinforcement: form.hasReinforcement,
+    reinforcementThickness: form.reinforcementThickness,
+    reinforcementWidth: form.reinforcementWidth,
+    hasAngularCut: form.hasAngularCut,
+    hasRoundedCorners: form.hasRoundedCorners,
+    roundedCornersType: form.roundedCornersType,
+    hasNotch: form.hasNotch,
+    hasPerforation: form.hasPerforation,
+    pouchPerforationType: form.pouchPerforationType,
+    bagPerforationType: form.bagPerforationType,
+    perforationLocation: form.perforationLocation,
+    hasPreCut: form.hasPreCut,
+    preCutType: form.preCutType,
+    otherAccessories: form.otherAccessories,
+    saleType: form.saleType,
+    incoterm: form.incoterm,
+    destinationCountry: form.destinationCountry,
+    targetPrice: form.targetPrice,
+    currencyType: form.currencyType,
+    coreMaterial: form.coreMaterial,
+    coreDiameter: form.coreDiameter,
+    externalDiameter: form.externalDiameter,
+    externalVariationPlus: form.externalVariationPlus,
+    externalVariationMinus: form.externalVariationMinus,
+    maxRollWeight: form.maxRollWeight,
+    customerAdditionalInfo: form.customerAdditionalInfo?.trim() || "",
+    peruvianProductLogo: form.peruvianProductLogo,
+    printingFooter: form.printingFooter,
+    deliveryAddress: form.deliveryAddress?.trim() || "",
+    additionalComment: form.additionalComment?.trim() || "",
+    licitacion: form.licitacion,
+    codigoRFQ: form.codigoRFQ,
+    designPlanFiles: form.designPlanFiles.slice(),
+  };
+}
+
+// Helper function to check if there are unsaved changes
+function hasUnsavedChanges(
+  initialFormState: Record<string, any>,
+  currentForm: ProjectEditFormData
+): boolean {
+  const normalized = normalizeComparableProjectForm(currentForm);
+  return JSON.stringify(initialFormState) !== JSON.stringify(normalized);
+}
+
 export default function ProjectEditPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
@@ -851,7 +968,7 @@ export default function ProjectEditPage() {
     hasEdagReference: "",
     referenceEdagCode: "",
     referenceEdagVersion: "",
-    specialDesignSpecs: "",
+    specialDesignSpecs: "No aplica",
     specialDesignComments: "",
     edagCode: "",
     edagVersion: "",
@@ -941,7 +1058,9 @@ export default function ProjectEditPage() {
     dimensions: true,
     documents: true,
   });
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
   const allowIncompleteSaveRef = useRef(false);
+  const initialFormStateRef = useRef<Record<string, any> | null>(null);
 
   const toggleStructureSection = (section: "specs" | "dimensions" | "documents") => {
     setOpenStructureSections((prev) => ({
@@ -995,7 +1114,7 @@ export default function ProjectEditPage() {
       hasEdagReference: toYesNo(project.isPreviousDesign),
       referenceEdagCode: project.previousEdagCode || "",
       referenceEdagVersion: project.previousEdagVersion || "",
-      specialDesignSpecs: project.specialDesignSpecs || "",
+      specialDesignSpecs: project.specialDesignSpecs || "No aplica",
       specialDesignComments: project.specialDesignComments || "",
       edagCode: project.edagCode || "",
       edagVersion: project.edagVersion || "",
@@ -1073,6 +1192,7 @@ export default function ProjectEditPage() {
     };
 
     setForm(convertedForm);
+    initialFormStateRef.current = normalizeComparableProjectForm(convertedForm);
     setLoading(false);
   }, [projectCode]);
 
@@ -1344,6 +1464,13 @@ export default function ProjectEditPage() {
       licitacion,
       codigoRFQ: licitacion === "No" ? "" : prev.codigoRFQ,
     }));
+
+    if (licitacion === "No") {
+      setTouchedFields((prev) => ({
+        ...prev,
+        codigoRFQ: false,
+      }));
+    }
   };
 
   const validationErrors = useMemo(() => {
@@ -1377,6 +1504,10 @@ export default function ProjectEditPage() {
 
     if (form.hasEdagReference === "Sí" && !hasIllustratorFile(form.designPlanFiles)) {
       errors.designPlanFiles = "Debe cargar al menos un archivo de Illustrator (.ai).";
+    }
+
+    if (form.licitacion === "Sí" && !form.codigoRFQ.trim()) {
+      errors.codigoRFQ = "Ingresa el código de licitación.";
     }
 
     return errors;
@@ -1499,6 +1630,207 @@ formElement?.requestSubmit();
   }, 0);
 };
 
+const navigateToProjectList = () => {
+  navigate("/projects");
+};
+
+const handleCancel = () => {
+  if (initialFormStateRef.current && hasUnsavedChanges(initialFormStateRef.current, form)) {
+    setShowCancelConfirmModal(true);
+  } else {
+    navigateToProjectList();
+  }
+};
+
+const handleContinueEditing = () => {
+  setShowCancelConfirmModal(false);
+};
+
+const handleExitWithoutSaving = () => {
+  setShowCancelConfirmModal(false);
+  navigateToProjectList();
+};
+
+const handleSaveAndExit = () => {
+  if (!projectCode || !originalProject) return;
+
+  const now = new Date().toISOString();
+  const finalExecutiveIds = form.executiveId.map(String);
+  const finalExecutiveId =
+    finalExecutiveIds.length > 0
+      ? Number(finalExecutiveIds[0])
+      : originalProject?.ejecutivoId || undefined;
+  const finalExecutiveName =
+    selectedExecutives.length > 0
+      ? selectedExecutives.map((executive) => executive.name).join(", ")
+      : originalProject?.ejecutivoName || "";
+
+  const nextCompletionPercentage = Math.round(
+    (requiredFields.filter((field) => !isFieldEmpty(form[field])).length / requiredFields.length) * 100
+  );
+
+  const nextStatus = computeProjectPreparationStatus({
+    project: form,
+    completionPercentage: nextCompletionPercentage,
+    currentStatus: normalizeProjectStatus(originalProject?.status),
+  });
+
+  const nextStage = resolveProjectStage(nextStatus);
+
+  updateProjectRecord(projectCode, {
+    id: projectCode,
+    code: projectCode,
+
+    portfolioCode: form.portfolioCode,
+    portfolioName: selectedPortfolio?.nom || selectedPortfolio?.portfolioName || "",
+
+    clientCode: selectedPortfolio?.clientCode,
+    clientName: inheritedClient,
+
+    projectName: form.projectName,
+    projectDescription: form.projectDescription,
+
+    ejecutivoId: finalExecutiveId,
+    ejecutivoName: finalExecutiveName,
+
+    ejecutivoIds: finalExecutiveIds,
+    ejecutivoNames: finalExecutiveName,
+    executiveIds: finalExecutiveIds,
+    commercialExecutiveIds: finalExecutiveIds,
+
+    siUserId: form.siUserId,
+    siUserCode: siUsers.find(u => u.id === form.siUserId)?.code,
+
+    plantaName: inheritedPlant,
+    wrappingName: inheritedWrapping,
+    useFinalName: inheritedFinalUse,
+    subSegment: inheritedSubSegment,
+    segment: inheritedSegment,
+    sector: inheritedSector,
+    afMarketId: inheritedAfMarketId,
+    maquinaCliente: inheritedMachine,
+    packingMachineName: inheritedMachine,
+
+    classification: form.classification,
+    subClassification: form.subClassification,
+    projectType: form.projectType,
+    salesforceAction: form.salesforceAction,
+
+    blueprintFormat: form.blueprintFormat,
+    technicalApplication: form.technicalApplication,
+    estimatedVolume: form.estimatedVolume,
+    unitOfMeasure: form.unitOfMeasure,
+    customerPackingCode: form.customerPackingCode,
+
+    format: form.blueprintFormat,
+    volume: form.estimatedVolume,
+    unit: form.unitOfMeasure,
+
+    printClass: form.printClass,
+    printType: form.printType,
+    specialDesignSpecs: form.specialDesignSpecs,
+    specialDesignComments: form.specialDesignComments,
+    edagCode: form.edagCode,
+    edagVersion: form.edagVersion,
+    isPreviousDesign: form.hasEdagReference as BooleanLike,
+    previousEdagCode: form.referenceEdagCode,
+    previousEdagVersion: form.referenceEdagVersion,
+    requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
+
+    hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
+    referenceEmCode: form.referenceEmCode,
+    referenceEmVersion: form.referenceEmVersion,
+    hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec as BooleanLike,
+    customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
+    structureType: form.structureType,
+
+    layer1Material: form.layer1Material,
+    layer1Micron: form.layer1Micron,
+    layer1Grammage: form.layer1Grammage,
+    layer2Material: form.layer2Material,
+    layer2Micron: form.layer2Micron,
+    layer2Grammage: form.layer2Grammage,
+    layer3Material: form.layer3Material,
+    layer3Micron: form.layer3Micron,
+    layer3Grammage: form.layer3Grammage,
+    layer4Material: form.layer4Material,
+    layer4Micron: form.layer4Micron,
+    layer4Grammage: form.layer4Grammage,
+
+    layers: form.structureType,
+    microns: [form.layer1Micron, form.layer2Micron, form.layer3Micron, form.layer4Micron]
+      .filter(Boolean)
+      .join(" / "),
+
+    specialStructureSpecs: form.specialStructureSpecs,
+    grammage: form.grammage,
+    grammageTolerance: form.grammageTolerance,
+    sampleRequest: form.sampleRequest === "Sí",
+
+    width: form.width,
+    length: form.length,
+    repetition: form.repetition,
+    doyPackBase: form.doyPackBase,
+    gussetWidth: form.gussetWidth,
+    gussetType: form.gussetType,
+    dimensions: [form.width, form.length, form.gussetWidth]
+      .filter(Boolean)
+      .join(" x "),
+
+    hasZipper: form.hasZipper as BooleanLike,
+    zipperType: form.zipperType,
+    hasTinTie: form.hasTinTie as BooleanLike,
+    hasValve: form.hasValve as BooleanLike,
+    valveType: form.valveType,
+    hasDieCutHandle: form.hasDieCutHandle as BooleanLike,
+    hasReinforcement: form.hasReinforcement as BooleanLike,
+    reinforcementThickness: form.reinforcementThickness,
+    reinforcementWidth: form.reinforcementWidth,
+    hasAngularCut: form.hasAngularCut as BooleanLike,
+    hasRoundedCorners: form.hasRoundedCorners as BooleanLike,
+    roundedCornersType: form.roundedCornersType,
+    hasNotch: form.hasNotch as BooleanLike,
+    hasPerforation: form.hasPerforation as BooleanLike,
+    pouchPerforationType: form.pouchPerforationType,
+    bagPerforationType: form.bagPerforationType,
+    perforationLocation: form.perforationLocation,
+    hasPreCut: form.hasPreCut as BooleanLike,
+    preCutType: form.preCutType,
+    otherAccessories: form.otherAccessories,
+
+    saleType: form.saleType,
+    incoterm: form.incoterm,
+    destinationCountry: form.destinationCountry,
+    targetPrice: form.targetPrice,
+    currencyType: form.currencyType,
+    coreMaterial: form.coreMaterial,
+    coreDiameter: form.coreDiameter,
+    externalDiameter: form.externalDiameter,
+    externalVariationPlus: form.externalVariationPlus,
+    externalVariationMinus: form.externalVariationMinus,
+    maxRollWeight: form.maxRollWeight,
+    customerAdditionalInfo: form.customerAdditionalInfo,
+    peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
+    printingFooter: form.printingFooter as BooleanLike,
+    deliveryAddress: form.deliveryAddress,
+    additionalComment: form.additionalComment,
+    licitacion: form.licitacion as YesNoPending,
+    codigoRFQ: form.codigoRFQ,
+    designPlanFiles: form.designPlanFiles,
+
+    status: nextStatus,
+    stage: nextStage,
+    completionPercentage: nextCompletionPercentage,
+    hasStartedExtendedFicha: nextStatus !== "Registrado",
+    statusUpdatedAt: originalProject?.status !== nextStatus ? now : originalProject?.statusUpdatedAt,
+    stageUpdatedAt: now,
+    updatedAt: now,
+  } as unknown as ProjectRecord);
+
+  setShowCancelConfirmModal(false);
+  navigateToProjectList();
+};
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitAttempted(true);
@@ -1529,6 +1861,11 @@ formElement?.requestSubmit();
       completionPercentage,
       currentStatus: normalizeProjectStatus(originalProject?.status),
     });
+
+    // Prepare validation logic for "Solicitar validación"
+    const requiresManualAG = shouldSubmitForValidation
+      ? requiresManualGraphicArtsValidation(form)
+      : false;
 
     // Ensure commercial executives are properly resolved and persisted
     const finalExecutiveIds = form.executiveId.map(String);
@@ -1686,22 +2023,27 @@ formElement?.requestSubmit();
       codigoRFQ: form.codigoRFQ,
       designPlanFiles: form.designPlanFiles,
 
-      status: calculatedStatus,
-      stage: "P1_PREPARACION_FICHA_PROYECTO",
+      status: shouldSubmitForValidation ? "En validación" : calculatedStatus,
+      stage: shouldSubmitForValidation ? "P2_VALIDACION_VIABILIDAD_TECNICA" : "P1_PREPARACION_FICHA_PROYECTO",
       completionPercentage,
-      statusUpdatedAt: originalProject?.status !== calculatedStatus ? now : originalProject?.statusUpdatedAt,
-      stageUpdatedAt: now,
+      hasStartedExtendedFicha: (shouldSubmitForValidation ? "En validación" : calculatedStatus) !== "Registrado",
+      statusUpdatedAt: shouldSubmitForValidation || originalProject?.status !== calculatedStatus ? now : originalProject?.statusUpdatedAt,
+      stageUpdatedAt: shouldSubmitForValidation ? now : originalProject?.stageUpdatedAt,
       updatedAt: now,
 
       ...(shouldSubmitForValidation && {
         validacionSolicitada: true,
         estadoValidacionGeneral: "En validación",
         fechaSolicitudValidacion: now,
-        validaciones: [
-          { area: "Artes Gráficas", estado: "Pendiente", comentarios: [] },
-          { area: "R&D Técnica", estado: "Pendiente", comentarios: [] },
-          { area: "R&D Desarrollo", estado: "Pendiente", comentarios: [] },
-        ],
+        ...(requiresManualAG ? {
+          graphicArtsValidationStatus: "Pendiente revisión manual",
+          currentValidationStep: "Artes Gráficas",
+        } : {
+          graphicArtsValidationStatus: "Aprobado automático",
+          technicalSubArea: resolveTechnicalSubAreaBySubclassification(form.subClassification),
+          currentValidationStep: resolveTechnicalSubAreaBySubclassification(form.subClassification),
+          technicalValidationStatus: resolveTechnicalSubAreaBySubclassification(form.subClassification) ? "Pendiente" : "Sin solicitar",
+        }),
       }),
     } as unknown as ProjectRecord);
 
@@ -1920,20 +2262,21 @@ if (loading) {
                       ]}
                     />
 
-                    <FormInput
-                      label={form.licitacion === "Sí" ? "Código RFQ *" : "Código RFQ"}
-                      value={form.licitacion === "No" ? "" : form.codigoRFQ}
-                      onChange={(value) => updateField("codigoRFQ", value)}
-                      onBlur={() => markFieldAsTouched("codigoRFQ")}
-                      error={
-                        form.licitacion === "Sí" && shouldShowFieldError("codigoRFQ")
-                          ? validationErrors.codigoRFQ
-                          : ""
-                      }
-                      placeholder={form.licitacion === "No" ? "No aplica" : "Ej. RFQ-093456"}
-                      disabled={form.licitacion === "No" || !["En Cotización", "Cotización Enviada", "Aprobado por Cliente", "Cliente Validado", "Preparación SI", "Enviado a SI"].includes(originalProject?.status || "")}
-                      helper={form.licitacion === "Sí" ? "Se habilitará cuando el proyecto esté en cotización/aprobado" : undefined}
-                    />
+                    {form.licitacion === "Sí" && (
+                      <FormInput
+                        label="Código de Licitación *"
+                        value={form.codigoRFQ}
+                        onChange={(value) => updateField("codigoRFQ", value)}
+                        onBlur={() => markFieldAsTouched("codigoRFQ")}
+                        error={
+                          shouldShowFieldError("codigoRFQ")
+                            ? validationErrors.codigoRFQ
+                            : ""
+                        }
+                        placeholder="Ej. LIC-2026-001"
+                        helper="Obligatorio cuando el proyecto corresponde a una licitación."
+                      />
+                    )}
                   </div>
                 </FormCard>
               </div>
@@ -2914,7 +3257,7 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
         {/* ========== FOOTER STICKY: BOTONES DE ACCIÓN ========== */}
 <div className="sticky bottom-0 z-40 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
           <FormActionButtons
-            onCancel={() => navigate("/projects")}
+            onCancel={handleCancel}
             validationErrorList={Object.values(validationErrors).filter(
               (error): error is string => Boolean(error)
             )}
@@ -3031,6 +3374,54 @@ const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
                 className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded font-medium hover:bg-slate-300 transition-colors text-sm"
               >
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========== CANCEL CONFIRMATION MODAL ========== */}
+      {showCancelConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="border-b border-slate-200 bg-slate-50 px-6 py-5">
+              <h3 className="text-lg font-bold text-slate-900">
+                ¿Descartar cambios?
+              </h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Tienes cambios sin guardar en este proyecto.
+              </p>
+            </div>
+
+            <div className="px-6 py-5">
+              <p className="text-sm text-slate-700">
+                Puedes continuar editando, salir sin guardar los cambios, o guardar y luego salir.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-5">
+              <button
+                type="button"
+                onClick={handleContinueEditing}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 active:bg-slate-100"
+              >
+                Seguir editando
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExitWithoutSaving}
+                className="rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 active:bg-red-200"
+              >
+                Salir sin guardar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveAndExit}
+                className="rounded-lg bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-primary/90 active:bg-brand-primary/80"
+              >
+                Guardar cambios
               </button>
             </div>
           </div>

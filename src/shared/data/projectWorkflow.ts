@@ -447,6 +447,20 @@ export function getResponsibleAreaForProject(
 }
 
 /**
+ * Verifica si un proyecto puede avanzar a estado "Validado"
+ * Requiere que AMBAS validaciones (AG y R&D) estén completas
+ */
+export function canProjectBeValidated(project: any): boolean {
+  const graphicArtsOk =
+    project.graphicArtsValidationStatus === "Validado" ||
+    project.graphicArtsValidationStatus === "Aprobado automático";
+
+  const technicalOk = project.technicalValidationStatus === "Validado";
+
+  return graphicArtsOk && technicalOk;
+}
+
+/**
  * Verifica si un valor es significativo (no vacío, no null, no undefined)
  */
 function hasValue(value: any): boolean {
@@ -455,6 +469,92 @@ function hasValue(value: any): boolean {
   if (Array.isArray(value)) return value.length > 0;
   if (typeof value === "object") return Object.keys(value).length > 0;
   return true;
+}
+
+/**
+ * Verifica si existe al menos un dato EDITABLE en las secciones 2-6
+ * Excluye campos heredados del portafolio y campos de solo lectura
+ *
+ * Solo considera campos que el usuario puede editar directamente
+ */
+export function hasAnyEditableSection2To6Data(project: any): boolean {
+  // Campos editables de Sección 2: Producto Comercial
+  const section2EditableFields = [
+    "classification",
+    "subClassification",
+    "projectType",
+    "blueprintFormat",
+    "technicalApplication",
+    "customerPackingCode",
+  ];
+
+  // Campos editables de Sección 3: Diseño
+  const section3EditableFields = [
+    "hasEdagReference",
+    "requiresDesignWork",
+    "printType",
+    "printClass",
+    "specialDesignComments",
+    "designPlanFiles",
+    "edagCode",
+    "edagVersion",
+    "referenceEdagCode",
+    "referenceEdagVersion",
+  ];
+
+  // Campos editables de Sección 4: Estructura
+  const section4EditableFields = [
+    "hasReferenceStructure",
+    "referenceEmCode",
+    "referenceEmVersion",
+    "structureType",
+    "layer1Material",
+    "layer1Micron",
+    "layer1Grammage",
+    "layer2Material",
+    "layer2Micron",
+    "layer2Grammage",
+    "layer3Material",
+    "layer3Micron",
+    "layer3Grammage",
+    "layer4Material",
+    "layer4Micron",
+    "layer4Grammage",
+    "grammageTolerance",
+    "grammage",
+    "specialStructureSpecs",
+  ];
+
+  // Campos editables de Sección 5: Condiciones Comerciales
+  const section5EditableFields = [
+    "estimatedVolume",
+    "unitOfMeasure",
+    "targetPrice",
+    "currencyType",
+    "saleType",
+    "incoterm",
+    "destinationCountry",
+    "customerAdditionalInfo",
+  ];
+
+  // Campos editables de Sección 6: Información Adicional
+  const section6EditableFields = [
+    "designPlanFiles",
+    "deliveryAddress",
+    "additionalComment",
+    "licitacion",
+    "codigoRFQ",
+  ];
+
+  const allEditableFields = [
+    ...section2EditableFields,
+    ...section3EditableFields,
+    ...section4EditableFields,
+    ...section5EditableFields,
+    ...section6EditableFields,
+  ];
+
+  return allEditableFields.some((field) => hasValue(project[field]));
 }
 
 /**
@@ -536,10 +636,11 @@ export function hasAnySection2To6Data(project: any): boolean {
  * Calcula el estado de preparación correcto basado en los datos completados
  *
  * - Registrado: Solo sección 1 (datos básicos) completada
- * - En Preparación: Al menos un campo de secciones 2-6, pero incompleto
+ * - En Preparación: Al menos un campo EDITABLE de secciones 2-6, pero incompleto
  * - Ficha Completa: Todos los campos obligatorios de secciones 1-6 completados
  *
  * NO modifica estados avanzados (En validación, Observado, Validado, etc.)
+ * NO considera campos heredados del portafolio como avance de secciones 2-6
  */
 export function computeProjectPreparationStatus(params: {
   project: any;
@@ -569,13 +670,41 @@ export function computeProjectPreparationStatus(params: {
     return "Ficha Completa";
   }
 
-  // Si tiene datos en secciones 2-6, está en preparación
-  if (hasAnySection2To6Data(project)) {
+  // Si tiene datos EDITABLES en secciones 2-6, está en preparación
+  // (excluye campos heredados y de solo lectura)
+  if (hasAnyEditableSection2To6Data(project)) {
     return "En Preparación";
   }
 
   // Si solo tiene datos básicos (sección 1), es Registrado
   return "Registrado";
+}
+
+// ============================================================================
+// VALIDACIÓN DE ARTES GRÁFICAS
+// ============================================================================
+
+/**
+ * Helper para comparar "No aplica" ignorando mayúsculas y espacios
+ */
+function isNoAplica(value: unknown): boolean {
+  return String(value || "").trim().toLowerCase() === "no aplica";
+}
+
+/**
+ * Determina si la validación de Artes Gráficas debe ser manual
+ * Retorna true si requiere validación manual (especificaciones != "No aplica")
+ * Retorna false si puede ser automática (especificaciones = "No aplica")
+ */
+export function requiresManualGraphicArtsValidation(project: any): boolean {
+  const specialSpecs =
+    project.especificacionesEspeciales ||
+    project.specialSpecifications ||
+    project.specialDesignSpecs ||
+    project.designSpecialSpecs ||
+    "";
+
+  return !isNoAplica(specialSpecs);
 }
 
 // Re-exportar funciones y tipos de producto desde projectProductWorkflow.ts

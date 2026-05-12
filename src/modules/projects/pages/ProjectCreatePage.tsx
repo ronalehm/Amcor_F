@@ -125,7 +125,7 @@ type ProjectFormData = {
   printingFooter: string;
 
   licitacion: string;
-  codigoRFQ: string;
+  codigoLict: string;
 };
 
 const YES_NO_OPTIONS = [
@@ -556,7 +556,7 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   peruvianProductLogo: "",
   printingFooter: "",
   licitacion: "",
-  codigoRFQ: "",
+  codigoLict: "",
 });
 
 // STEPPER CONFIGURATION
@@ -712,7 +712,7 @@ export default function ProjectCreatePage() {
           peruvianProductLogo: original.peruvianProductLogo || "No",
           printingFooter: original.printingFooter || "No",
           licitacion: (original as any).licitacion ? "Sí" : "No",
-          codigoRFQ: (original as any).codigoRFQ || "",
+          codigoLict: (original as any).codigoLict || "",
         });
       }
     }
@@ -795,8 +795,15 @@ export default function ProjectCreatePage() {
     setForm((prev) => ({
       ...prev,
       licitacion,
-      codigoRFQ: licitacion === "No" ? "" : prev.codigoRFQ,
+      codigoLict: licitacion === "No" ? "" : prev.codigoLict,
     }));
+
+    if (licitacion === "No") {
+      setTouchedFields((prev) => ({
+        ...prev,
+        codigoLict: false,
+      }));
+    }
   };
 
   const projectTypeOptions = useMemo(() => {
@@ -851,6 +858,10 @@ export default function ProjectCreatePage() {
     if (!form.projectName.trim()) errors.projectName = "Ingrese el nombre del proyecto.";
     if (!form.projectDescription.trim()) errors.projectDescription = "Ingrese la descripción del proyecto.";
     if (!form.salesforceAction.trim()) errors.salesforceAction = "Ingrese la acción Salesforce.";
+
+    if (form.licitacion === "Sí" && !form.codigoLict.trim()) {
+      errors.codigoLict = "Ingresa el código de licitación.";
+    }
 
     if (form.blueprintFormat && inheritedWrapping) {
       const validOptions = getBlueprintFormatOptions(inheritedWrapping);
@@ -1147,11 +1158,12 @@ export default function ProjectCreatePage() {
       peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
       printingFooter: form.printingFooter,
       licitacion: form.licitacion as YesNoPending,
-      codigoRFQ: form.codigoRFQ,
+      codigoLict: form.codigoLict,
 
       status: "Registrado",
       stage: "P1_PREPARACION_FICHA_PROYECTO",
       completionPercentage: 0,
+      hasStartedExtendedFicha: false,
       statusUpdatedAt: now,
       stageUpdatedAt: now,
       createdAt: now,
@@ -1310,20 +1322,21 @@ export default function ProjectCreatePage() {
                   ]}
                 />
 
-                <FormInput
-                  label={form.licitacion === "Sí" ? "Código RFQ *" : "Código RFQ"}
-                  value={form.licitacion === "No" ? "" : form.codigoRFQ}
-                  onChange={(value) => updateField("codigoRFQ", value)}
-                  onBlur={() => markFieldAsTouched("codigoRFQ")}
-                  error={
-                    form.licitacion === "Sí" && shouldShowFieldError("codigoRFQ")
-                      ? validationErrors.codigoRFQ
-                      : ""
-                  }
-                  placeholder={form.licitacion === "No" ? "No aplica" : "Se habilita cuando el proyecto está aprobado"}
-                  disabled={true}
-                  helper={form.licitacion === "Sí" ? "Se habilitará cuando el proyecto esté en cotización/aprobado" : undefined}
-                />
+                {form.licitacion === "Sí" && (
+                  <FormInput
+                    label="Código de Licitación *"
+                    value={form.codigoLict}
+                    onChange={(value) => updateField("codigoLict", value)}
+                    onBlur={() => markFieldAsTouched("codigoLict")}
+                    error={
+                      shouldShowFieldError("codigoLict")
+                        ? validationErrors.codigoLict
+                        : ""
+                    }
+                    placeholder="Ej. LIC-2026-001"
+                    helper="Obligatorio cuando el proyecto corresponde a una licitación."
+                  />
+                )}
               </div>
             </FormCard>
           </div>
