@@ -146,26 +146,205 @@ export default function ValidationDetailPage() {
           </FormCard>
 
           {/* Datos para Artes Gráficas */}
-          {isGraphicArtsStep && (
-            <FormCard title="Datos para Validación de Artes Gráficas" icon="🎨" color="#7E3FB2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-                <PreviewRow label="Requiere Diseño Especial" value={project.requiresDesignWork ? "Sí" : "No"} />
-                <PreviewRow label="Tipo de Impresión" value={project.printType || "—"} />
-                <PreviewRow label="Clase de Impresión" value={project.printClass || "—"} />
-                <PreviewRow label="Tiene Diseño de Referencia" value={project.isPreviousDesign ? "Sí" : "No"} />
-                <PreviewRow label="Código EDAG" value={project.previousEdagCode || "—"} />
-                <PreviewRow label="Versión EDAG" value={project.previousEdagVersion || "—"} />
-                {project.specialDesignComments && (
-                  <div className="md:col-span-2">
-                    <div className="text-xs font-bold uppercase text-slate-600 mb-1">Comentarios de Diseño</div>
-                    <div className="text-sm text-slate-700 bg-slate-50 p-3 rounded border border-slate-200">
-                      {project.specialDesignComments}
+          {isGraphicArtsStep && (() => {
+            const projectAny = project as any;
+
+            const displayYesNo = (value: any) => {
+              if (value === true || value === "Sí" || value === "Si") return "Sí";
+              if (value === false || value === "No") return "No";
+              return value || "—";
+            };
+
+            const requiresDesignWorkValue = projectAny.requiresDesignWork;
+
+            const hasDesignReferenceValue =
+              projectAny.isPreviousDesign ??
+              projectAny.hasEdagReference ??
+              projectAny.tieneDisenoReferencia;
+
+            const hasDesignPlanValue =
+              projectAny.hasDesignPlan ??
+              projectAny.tienePlanoDiseno;
+
+            const edagCodeValue =
+              projectAny.previousEdagCode ||
+              projectAny.edagCode ||
+              "—";
+
+            const edagVersionValue =
+              projectAny.previousEdagVersion ||
+              projectAny.edagVersion ||
+              "—";
+
+            return (
+              <FormCard title="Datos para Validación de Artes Gráficas" icon="🎨" color="#7E3FB2">
+                <div className="space-y-6">
+                  {/* Bloque A: Impresión y diseño */}
+                  <div>
+                    <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Impresión y diseño
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-4 gap-x-8 md:grid-cols-2">
+                      <PreviewRow
+                        label="Requiere trabajo de diseño"
+                        value={displayYesNo(requiresDesignWorkValue)}
+                      />
+                      <PreviewRow label="Clase de impresión" value={project.printClass || "—"} />
+                      <PreviewRow label="Tipo de impresión" value={project.printType || "—"} />
+                      <PreviewRow
+                        label="Especificaciones Especiales"
+                        value={projectAny.specialDesignSpecs || "—"}
+                      />
+                      {projectAny.specialDesignComments && (
+                        <div className="md:col-span-2">
+                          <div className="text-xs font-bold uppercase text-slate-600 mb-1">
+                            Comentarios de diseños especiales
+                          </div>
+                          <div className="text-sm text-slate-700 bg-slate-50 p-3 rounded border border-slate-200">
+                            {projectAny.specialDesignComments}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
+
+                  {/* Bloque B: Diseño de referencia y planos */}
+                  <div>
+                    <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Diseño de referencia y planos
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-4 gap-x-8 md:grid-cols-2">
+                      <PreviewRow
+                        label="Tiene diseño de referencia"
+                        value={displayYesNo(hasDesignReferenceValue)}
+                      />
+                      <PreviewRow
+                        label="Código EDAG"
+                        value={edagCodeValue}
+                      />
+                      <PreviewRow
+                        label="Versión EDAG"
+                        value={edagVersionValue}
+                      />
+                      <PreviewRow
+                        label="Tiene plano de diseño"
+                        value={displayYesNo(hasDesignPlanValue)}
+                      />
+                    </div>
+
+                    {/* Planos cargados */}
+                  <div className="mt-4">
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Planos cargados
+                    </p>
+                    {Array.isArray((project as any).designPlanFiles) && (project as any).designPlanFiles.length > 0 ? (
+                      <ul className="space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                        {(project as any).designPlanFiles.map((fileName: string, index: number) => (
+                          <li key={`${fileName}-${index}`}>• {fileName}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
+                        —
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bloque C: Color */}
+                <div>
+                  <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Color
+                  </h4>
+                  <div className="grid grid-cols-1 gap-y-4 gap-x-8 md:grid-cols-2">
+                    <PreviewRow
+                      label="Objetivo de color"
+                      value={
+                        Array.isArray((project as any).colorObjective)
+                          ? (project as any).colorObjective.join(", ")
+                          : Array.isArray((project as any).objetivoColor)
+                            ? (project as any).objetivoColor.join(", ")
+                            : "—"
+                      }
+                    />
+                    <PreviewRow
+                      label="Comentarios de objetivo de color"
+                      value={
+                        (project as any).colorObjectiveComment ||
+                        (project as any).comentarioObjetivoColor ||
+                        "—"
+                      }
+                    />
+                    <div className="md:col-span-2">
+                      <PreviewRow
+                        label="Instrucciones de trabajo para diseño"
+                        value={
+                          (project as any).designWorkInstructions ||
+                          (project as any).instruccionesTrabajoDiseno ||
+                          "—"
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloque D: Formato y datos legales */}
+                <div>
+                  <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Formato y datos legales
+                  </h4>
+                  <div className="grid grid-cols-1 gap-y-4 gap-x-8 md:grid-cols-2">
+                    <PreviewRow
+                      label="Formato de Plano Calculado"
+                      value={project.blueprintFormat || (project as any).formatoPlano || (project as any).format || "—"}
+                    />
+                    <PreviewRow
+                      label='Logo "Producto Peruano"'
+                      value={(project as any).peruvianProductLogo || "—"}
+                    />
+                    <PreviewRow
+                      label="Pie de Imprenta"
+                      value={(project as any).printingFooter || "—"}
+                    />
+                  </div>
+                </div>
+
+                {/* Bloque E: Dimensiones del producto */}
+                <div>
+                  <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Dimensiones del producto
+                  </h4>
+                  <div className="grid grid-cols-1 gap-y-4 gap-x-8 md:grid-cols-3">
+                    <PreviewRow
+                      label="Ancho *"
+                      value={
+                        projectAny.width || projectAny.ancho
+                          ? `${projectAny.width || projectAny.ancho} mm`
+                          : "—"
+                      }
+                    />
+                    <PreviewRow
+                      label="Largo *"
+                      value={
+                        projectAny.length || projectAny.largo
+                          ? `${projectAny.length || projectAny.largo} mm`
+                          : "—"
+                      }
+                    />
+                    <PreviewRow
+                      label="Ancho Fuelle *"
+                      value={
+                        projectAny.gussetWidth || projectAny.anchoFuelle
+                          ? `${projectAny.gussetWidth || projectAny.anchoFuelle} mm`
+                          : "—"
+                      }
+                    />
+                  </div>
+                </div>
               </div>
-            </FormCard>
-          )}
+              </FormCard>
+            );
+          })()}
 
           {/* Datos para R&D / Área Técnica */}
           {isTechnicalStep && (
