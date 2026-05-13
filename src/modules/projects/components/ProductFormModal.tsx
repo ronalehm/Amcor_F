@@ -21,8 +21,26 @@ interface ProductFormModalProps {
   onCancel: () => void;
 }
 
-type PreliminaryProductType = "Base" | "Variación";
 type FormData = Partial<ProjectProductRecord>;
+
+// ============================================================================
+// COMPONENTE: CAMPO SOLO LECTURA
+// ============================================================================
+
+const ReadOnlyField = ({ label, value }: { label: string; value?: string | number | null }) => (
+  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+    <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+      {label}
+    </div>
+    <div className="mt-1 text-sm font-semibold text-slate-700">
+      {value || "—"}
+    </div>
+  </div>
+);
+
+// ============================================================================
+// MODAL PRINCIPAL
+// ============================================================================
 
 export default function ProductFormModal({
   projectCode,
@@ -33,61 +51,52 @@ export default function ProductFormModal({
   onCancel,
 }: ProductFormModalProps) {
   const isEditMode = !!initialData?.id;
+  const isBaseProduct = !initialData?.baseProductId;
 
   const [form, setForm] = useState<FormData>({
-    productName: initialData?.productName || "",
-    productType: (initialData?.productType || "Base") as PreliminaryProductType,
-    productDescription: initialData?.productDescription || "",
-    requiresDesign: initialData?.requiresDesign || false,
-    requiresSample: initialData?.requiresSample || false,
-    requiresNewStructure: initialData?.requiresNewStructure || false,
-    format: initialData?.format || project.blueprintFormat || "",
-    structure: initialData?.structure || project.structureType || "",
-    width: initialData?.width ?? (project.width ? Number(project.width) : undefined),
-    length: initialData?.length ?? (project.length ? Number(project.length) : undefined),
-    gusset: initialData?.gusset ?? (project.gussetWidth ? Number(project.gussetWidth) : undefined),
-    micron: initialData?.micron,
-    grammage: initialData?.grammage ?? (project.grammage ? Number(project.grammage) : undefined),
-    estimatedVolume: initialData?.estimatedVolume ?? (project.estimatedVolume ? Number(project.estimatedVolume) : undefined),
-    unitOfMeasure: initialData?.unitOfMeasure || project.unitOfMeasure || "",
-    targetPriceMin: initialData?.targetPriceMin,
-    targetPriceMax: initialData?.targetPriceMax,
-    commercialFinanceComment: initialData?.commercialFinanceComment || "",
+    name: initialData?.name || initialData?.productName || "",
+    productName: initialData?.productName || initialData?.name || "",
+    description: initialData?.description || initialData?.productDescription || "",
+    productDescription: initialData?.productDescription || initialData?.description || "",
+    customerPackingCode: initialData?.customerPackingCode || "",
+    estimatedVolume: initialData?.estimatedVolume
+      ? Number(initialData.estimatedVolume)
+      : undefined,
+    unitOfMeasure: initialData?.unitOfMeasure || "",
+    currencyType: initialData?.currencyType || "",
+    targetPrice: initialData?.targetPrice
+      ? Number(initialData.targetPrice)
+      : undefined,
+    commercialComments: initialData?.commercialComments || initialData?.commercialFinanceComment || "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [changedSensitiveFields, setChangedSensitiveFields] = useState(new Set<string>());
-
-  const sensitiveFields = [
-    "format",
-    "structure",
-    "width",
-    "length",
-    "gusset",
-    "micron",
-    "grammage",
-    "requiresDesign",
-    "requiresNewStructure",
-  ];
 
   const updateField = (key: string, value: any) => {
-    if (isEditMode && sensitiveFields.includes(key)) {
-      const oldValue = initialData?.[key as keyof ProjectProductRecord];
-      if (oldValue !== value) {
-        setChangedSensitiveFields((prev) => new Set([...prev, key]));
-      }
-    }
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const validate = useMemo(() => {
     const errs: Record<string, string> = {};
-    if (!form.productName?.trim()) {
-      errs.productName = "El nombre del producto es obligatorio";
+
+    // Campos obligatorios básicos
+    if (!form.name?.trim()) {
+      errs.name = "El nombre del producto es obligatorio";
     }
-    if (form.targetPriceMin && form.targetPriceMax && form.targetPriceMin > form.targetPriceMax) {
-      errs.targetPrice = "Precio mínimo no puede ser mayor que máximo";
+
+    if (!form.estimatedVolume || Number(form.estimatedVolume) <= 0) {
+      errs.estimatedVolume = "El volumen estimado es obligatorio y debe ser mayor a 0";
     }
+
+    if (!form.unitOfMeasure?.trim()) {
+      errs.unitOfMeasure = "La unidad de medida es obligatoria";
+    }
+
+    // Si hay precio, moneda es obligatoria
+    if (form.targetPrice && !form.currencyType?.trim()) {
+      errs.currencyType = "Moneda es obligatoria cuando se ingresa un precio";
+    }
+
     return errs;
   }, [form]);
 
@@ -99,18 +108,24 @@ export default function ProductFormModal({
       let saved: ProjectProductRecord;
 
       if (isEditMode) {
+        // Edición: solo guardar campos editables
         const toSave: ProjectProductRecord = {
           ...(initialData as ProjectProductRecord),
-          ...form,
+          name: form.name?.trim() || "",
+          productName: form.name?.trim() || "",
+          description: form.description || "",
+          productDescription: form.description || "",
+          customerPackingCode: form.customerPackingCode || "",
+          estimatedVolume: form.estimatedVolume ? Number(form.estimatedVolume) : undefined,
+          unitOfMeasure: form.unitOfMeasure || "",
+          currencyType: form.currencyType || "",
+          targetPrice: form.targetPrice ? Number(form.targetPrice) : undefined,
+          commercialComments: form.commercialComments || "",
+          commercialFinanceComment: form.commercialComments || "",
           updatedAt: new Date().toISOString(),
         };
 
-        // Reset validations if sensitive fields changed
-        if (changedSensitiveFields.size > 0) {
-          toSave.agValidationStatus = "Sin solicitar";
-          toSave.rdValidationStatus = "Sin solicitar";
-        }
-
+        // NO incluir campos técnicos: format, structure, width, length, gusset, micron, grammage, etc.
         saved = saveProjectProduct(toSave);
       } else if (baseProductId) {
         saved = createProjectProductFromApprovedProduct(projectCode, baseProductId, form);
@@ -128,9 +143,10 @@ export default function ProductFormModal({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* ENCABEZADO */}
         <div className="sticky top-0 flex items-center justify-between p-6 border-b border-slate-200 bg-white">
           <h2 className="text-xl font-bold text-slate-900">
-            {isEditMode ? "Editar Producto" : "Crear Producto Preliminar"}
+            {isEditMode ? "Editar Producto Preliminar" : "Crear Producto Preliminar"}
           </h2>
           <button
             onClick={onCancel}
@@ -141,168 +157,189 @@ export default function ProductFormModal({
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Info básica */}
+          {/* SECCIÓN 1: INFORMACIÓN DEL PRODUCTO */}
           <fieldset className="space-y-4 pb-6 border-b border-slate-200">
-            <legend className="text-sm font-semibold text-slate-700 uppercase">
-              Información General
+            <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+              1. Información del Producto
             </legend>
+
             <FormInput
               label="Nombre del Producto *"
-              value={form.productName || ""}
-              onChange={(value) => updateField("productName", value)}
-              error={errors.productName}
-              placeholder="Ej. Bolsa de polietileno blanca"
+              value={form.name || ""}
+              onChange={(value) => {
+                updateField("name", value);
+                updateField("productName", value);
+              }}
+              error={errors.name}
+              placeholder="Ej. Bolsa de polietileno blanca 250ml"
             />
-            <FormSelect
-              label="Tipo de Producto"
-              value={form.productType || "Base"}
-              onChange={(value) => updateField("productType", value as PreliminaryProductType)}
-              options={[
-                { value: "Base", label: "Producto Base" },
-                { value: "Variación", label: "Variación" },
-              ]}
-            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Tipo de Producto
+                </label>
+                <div className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700">
+                  {isEditMode ? (
+                    isBaseProduct ? "Producto Base" : "Variación"
+                  ) : (
+                    <select
+                      value={form.productType === "Variación" ? "Variación" : "Base"}
+                      onChange={(e) => updateField("productType", e.target.value === "Variación" ? "Variación" : "Base")}
+                      className="w-full bg-white border border-slate-300 rounded px-2 py-1"
+                    >
+                      <option value="Base">Producto Base</option>
+                      <option value="Variación">Variación</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">
+                  Código Producto
+                </label>
+                <div className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700">
+                  {initialData?.preliminaryProductCode || "Se generará automáticamente"}
+                </div>
+              </div>
+            </div>
+
             <FormTextarea
               label="Descripción"
-              value={form.productDescription || ""}
-              onChange={(value) => updateField("productDescription", value)}
+              value={form.description || ""}
+              onChange={(value) => {
+                updateField("description", value);
+                updateField("productDescription", value);
+              }}
               placeholder="Detalles adicionales del producto"
               rows={3}
             />
-          </fieldset>
 
-          {/* Indicadores */}
-          <fieldset className="space-y-3 pb-6 border-b border-slate-200">
-            <legend className="text-sm font-semibold text-slate-700 uppercase">
-              Requerimientos
-            </legend>
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={form.requiresDesign || false}
-                onChange={(e) => updateField("requiresDesign", e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300"
-              />
-              <span className="text-sm text-slate-700">Requiere Diseño Especial</span>
-            </label>
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={form.requiresSample || false}
-                onChange={(e) => updateField("requiresSample", e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300"
-              />
-              <span className="text-sm text-slate-700">Requiere Muestra</span>
-            </label>
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={form.requiresNewStructure || false}
-                onChange={(e) => updateField("requiresNewStructure", e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300"
-              />
-              <span className="text-sm text-slate-700">Requiere Nueva Estructura</span>
-            </label>
-          </fieldset>
-
-          {/* Dimensiones */}
-          <fieldset className="space-y-4 pb-6 border-b border-slate-200">
-            <legend className="text-sm font-semibold text-slate-700 uppercase">
-              Especificaciones Técnicas
-            </legend>
             <div className="grid grid-cols-2 gap-4">
               <FormInput
-                label="Formato"
-                value={form.format || ""}
-                onChange={(value) => updateField("format", value)}
+                label="Código de Empaque del Cliente"
+                value={form.customerPackingCode || ""}
+                onChange={(value) => updateField("customerPackingCode", value)}
+                placeholder="Ej. SKU-001"
               />
+
+              <div />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <FormInput
-                label="Estructura"
-                value={form.structure || ""}
-                onChange={(value) => updateField("structure", value)}
-              />
-              <FormInput
-                label="Ancho (mm)"
-                type="number"
-                value={String(form.width ?? "")}
-                onChange={(value) => updateField("width", value ? Number(value) : undefined)}
-              />
-              <FormInput
-                label="Largo (mm)"
-                type="number"
-                value={String(form.length ?? "")}
-                onChange={(value) => updateField("length", value ? Number(value) : undefined)}
-              />
-              <FormInput
-                label="Fuelle (mm)"
-                type="number"
-                value={String(form.gusset ?? "")}
-                onChange={(value) => updateField("gusset", value ? Number(value) : undefined)}
-              />
-              <FormInput
-                label="Espesor/Micraje"
-                type="number"
-                value={String(form.micron ?? "")}
-                onChange={(value) => updateField("micron", value ? Number(value) : undefined)}
-              />
-              <FormInput
-                label="Gramaje (g/m²)"
-                type="number"
-                value={String(form.grammage ?? "")}
-                onChange={(value) => updateField("grammage", value ? Number(value) : undefined)}
-              />
-              <FormInput
-                label="Volumen Estimado"
+                label="Volumen Estimado *"
                 type="number"
                 value={String(form.estimatedVolume ?? "")}
                 onChange={(value) => updateField("estimatedVolume", value ? Number(value) : undefined)}
+                error={errors.estimatedVolume}
+                placeholder="Ej. 1000"
               />
+
               <FormInput
-                label="Unidad de Medida"
+                label="Unidad de Medida *"
                 value={form.unitOfMeasure || ""}
                 onChange={(value) => updateField("unitOfMeasure", value)}
+                error={errors.unitOfMeasure}
+                placeholder="Ej. Unidades"
               />
             </div>
           </fieldset>
 
-          {/* Cotización */}
-          <fieldset className="space-y-4 pb-6">
-            <legend className="text-sm font-semibold text-slate-700 uppercase">
-              Cotización
+          {/* SECCIÓN 2: COTIZACIÓN */}
+          <fieldset className="space-y-4 pb-6 border-b border-slate-200">
+            <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+              2. Cotización
             </legend>
-            <div className="grid grid-cols-2 gap-4">
-              <FormInput
-                label="Precio Mínimo"
-                type="number"
-                value={String(form.targetPriceMin ?? "")}
-                onChange={(value) => updateField("targetPriceMin", value ? Number(value) : undefined)}
-              />
-              <FormInput
-                label="Precio Máximo"
-                type="number"
-                value={String(form.targetPriceMax ?? "")}
-                onChange={(value) => updateField("targetPriceMax", value ? Number(value) : undefined)}
-              />
-            </div>
-            {errors.targetPrice && (
-              <p className="text-sm text-red-600">{errors.targetPrice}</p>
-            )}
+
+            <FormSelect
+              label="Moneda"
+              value={form.currencyType || ""}
+              onChange={(value) => updateField("currencyType", value)}
+              error={errors.currencyType}
+              options={[
+                { value: "", label: "Seleccionar moneda" },
+                { value: "USD", label: "USD - Dólar Americano" },
+                { value: "PEN", label: "PEN - Sol Peruano" },
+                { value: "COP", label: "COP - Peso Colombiano" },
+                { value: "BRL", label: "BRL - Real Brasileño" },
+                { value: "EUR", label: "EUR - Euro" },
+              ]}
+            />
+
+            <FormInput
+              label="Precio Objetivo"
+              type="number"
+              value={String(form.targetPrice ?? "")}
+              onChange={(value) => updateField("targetPrice", value ? Number(value) : undefined)}
+              placeholder="Ej. 0.75"
+            />
+
             <FormTextarea
-              label="Comentario Comercial Finance"
-              value={form.commercialFinanceComment || ""}
-              onChange={(value) => updateField("commercialFinanceComment", value)}
+              label="Comentario Commercial Finance"
+              value={form.commercialComments || ""}
+              onChange={(value) => updateField("commercialComments", value)}
+              placeholder="Notas para el equipo de finanzas"
               rows={3}
             />
           </fieldset>
 
-          {/* Resumen de cambios sensibles */}
-          {isEditMode && changedSensitiveFields.size > 0 && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
-              ⚠️ Los cambios en dimensiones o requerimientos resetearán las validaciones de AG y R&D
-            </div>
-          )}
+          {/* SECCIÓN 3: RESUMEN TÉCNICO HEREDADO (SOLO LECTURA) */}
+          <fieldset className="space-y-4 pb-6">
+            <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+              3. Resumen técnico heredado (Solo lectura)
+            </legend>
 
-          {/* Errores generales */}
+            <div className="grid grid-cols-2 gap-3">
+              <ReadOnlyField
+                label="Proyecto"
+                value={project.projectName || project.code}
+              />
+              <ReadOnlyField
+                label="Cliente"
+                value={project.clientName}
+              />
+
+              <ReadOnlyField
+                label="Portafolio"
+                value={project.portfolioName}
+              />
+              <ReadOnlyField
+                label="Envoltura"
+                value={project.wrappingName}
+              />
+
+              <ReadOnlyField
+                label="Formato de plano"
+                value={project.blueprintFormat}
+              />
+              <ReadOnlyField
+                label="Estructura"
+                value={project.structureType}
+              />
+
+              <ReadOnlyField
+                label="Ancho (mm)"
+                value={project.width}
+              />
+              <ReadOnlyField
+                label="Fuelle (mm)"
+                value={project.gussetWidth}
+              />
+
+              <ReadOnlyField
+                label="Gramaje (g/m²)"
+                value={project.grammage}
+              />
+              <ReadOnlyField
+                label="Clasificación"
+                value={project.classification}
+              />
+            </div>
+          </fieldset>
+
+          {/* ERRORES GENERALES */}
           {errors.submit && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               {errors.submit}
@@ -310,6 +347,7 @@ export default function ProductFormModal({
           )}
         </div>
 
+        {/* PIE DE MODAL */}
         <div className="sticky bottom-0 flex gap-3 justify-end p-6 border-t border-slate-200 bg-slate-50">
           <Button variant="outline" onClick={onCancel}>
             Cancelar
