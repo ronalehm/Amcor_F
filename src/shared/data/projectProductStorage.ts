@@ -105,6 +105,11 @@ export type ProjectPreliminaryProductRecord = {
   currencyType?: string;
   commercialComments?: string;
 
+  // Cotización extendida
+  saleScope?: "Nacional" | "Internacional";
+  incoterm?: string;
+  destinationCountry?: string;
+
   // Indicadores de selección para cotización
   selectedForQuote?: boolean;
   selectedForQuoteAt?: string;

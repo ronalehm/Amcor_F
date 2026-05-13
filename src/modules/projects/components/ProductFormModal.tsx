@@ -54,19 +54,31 @@ export default function ProductFormModal({
   const isBaseProduct = !initialData?.baseProductId;
 
   const [form, setForm] = useState<FormData>({
+    // Info básica
     name: initialData?.name || initialData?.productName || "",
     productName: initialData?.productName || initialData?.name || "",
     description: initialData?.description || initialData?.productDescription || "",
     productDescription: initialData?.productDescription || initialData?.description || "",
     customerPackingCode: initialData?.customerPackingCode || "",
-    estimatedVolume: initialData?.estimatedVolume
-      ? Number(initialData.estimatedVolume)
-      : undefined,
+
+    // Requerimientos
+    requiresDesign: initialData?.requiresDesign || false,
+    requiresSample: initialData?.requiresSample || false,
+
+    // Dimensiones
+    width: initialData?.width ? Number(initialData.width) : undefined,
+    length: initialData?.length ? Number(initialData.length) : undefined,
+    gusset: initialData?.gusset ? Number(initialData.gusset) : undefined,
+    estimatedVolume: initialData?.estimatedVolume ? Number(initialData.estimatedVolume) : undefined,
     unitOfMeasure: initialData?.unitOfMeasure || "",
+
+    // Cotización
+    saleScope: initialData?.saleScope || "Nacional",
+    incoterm: initialData?.incoterm || "",
+    destinationCountry: initialData?.destinationCountry || "",
     currencyType: initialData?.currencyType || "",
-    targetPrice: initialData?.targetPrice
-      ? Number(initialData.targetPrice)
-      : undefined,
+    targetPriceMin: initialData?.targetPriceMin ? Number(initialData.targetPriceMin) : undefined,
+    targetPriceMax: initialData?.targetPriceMax ? Number(initialData.targetPriceMax) : undefined,
     commercialComments: initialData?.commercialComments || initialData?.commercialFinanceComment || "",
   });
 
@@ -92,9 +104,41 @@ export default function ProductFormModal({
       errs.unitOfMeasure = "La unidad de medida es obligatoria";
     }
 
-    // Si hay precio, moneda es obligatoria
-    if (form.targetPrice && !form.currencyType?.trim()) {
-      errs.currencyType = "Moneda es obligatoria cuando se ingresa un precio";
+    // Validaciones de dimensiones
+    if (form.width && Number(form.width) <= 0) {
+      errs.width = "El ancho debe ser mayor a 0";
+    }
+
+    if (form.length && Number(form.length) <= 0) {
+      errs.length = "El largo debe ser mayor a 0";
+    }
+
+    if (form.gusset != null && Number(form.gusset) < 0) {
+      errs.gusset = "El fuelle no puede ser negativo";
+    }
+
+    // Validaciones de Cotización
+    if (form.saleScope === "Internacional") {
+      if (!form.destinationCountry?.trim()) {
+        errs.destinationCountry = "País destino es obligatorio para venta internacional";
+      }
+      if (!form.incoterm?.trim()) {
+        errs.incoterm = "Incoterm es obligatorio para venta internacional";
+      }
+    }
+
+    // Si hay precios, moneda es obligatoria y precios válidos
+    if ((form.targetPriceMin || form.targetPriceMax) && !form.currencyType?.trim()) {
+      errs.currencyType = "Moneda es obligatoria cuando se ingresan precios";
+    }
+
+    // Validar que precio máximo >= precio mínimo
+    if (
+      form.targetPriceMin &&
+      form.targetPriceMax &&
+      Number(form.targetPriceMin) > Number(form.targetPriceMax)
+    ) {
+      errs.targetPrice = "Precio máximo debe ser mayor o igual al precio mínimo";
     }
 
     return errs;
@@ -111,21 +155,38 @@ export default function ProductFormModal({
         // Edición: solo guardar campos editables
         const toSave: ProjectProductRecord = {
           ...(initialData as ProjectProductRecord),
+          // Info básica
           name: form.name?.trim() || "",
           productName: form.name?.trim() || "",
           description: form.description || "",
           productDescription: form.description || "",
           customerPackingCode: form.customerPackingCode || "",
+
+          // Requerimientos
+          requiresDesign: form.requiresDesign || false,
+          requiresSample: form.requiresSample || false,
+
+          // Dimensiones
+          width: form.width ? Number(form.width) : undefined,
+          length: form.length ? Number(form.length) : undefined,
+          gusset: form.gusset != null ? Number(form.gusset) : undefined,
           estimatedVolume: form.estimatedVolume ? Number(form.estimatedVolume) : undefined,
           unitOfMeasure: form.unitOfMeasure || "",
+
+          // Cotización
+          saleScope: form.saleScope || "Nacional",
+          incoterm: form.incoterm || "",
+          destinationCountry: form.destinationCountry || "",
           currencyType: form.currencyType || "",
-          targetPrice: form.targetPrice ? Number(form.targetPrice) : undefined,
+          targetPriceMin: form.targetPriceMin ? Number(form.targetPriceMin) : undefined,
+          targetPriceMax: form.targetPriceMax ? Number(form.targetPriceMax) : undefined,
           commercialComments: form.commercialComments || "",
           commercialFinanceComment: form.commercialComments || "",
+
           updatedAt: new Date().toISOString(),
         };
 
-        // NO incluir campos técnicos: format, structure, width, length, gusset, micron, grammage, etc.
+        // NO incluir campos técnicos: structureType, blueprintFormat, printType, layer*, grammage, etc.
         saved = saveProjectProduct(toSave);
       } else if (baseProductId) {
         saved = createProjectProductFromApprovedProduct(projectCode, baseProductId, form);
@@ -142,7 +203,7 @@ export default function ProductFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         {/* ENCABEZADO */}
         <div className="sticky top-0 flex items-center justify-between p-6 border-b border-slate-200 bg-white">
           <h2 className="text-xl font-bold text-slate-900">
@@ -216,15 +277,74 @@ export default function ProductFormModal({
               rows={3}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <FormInput
+              label="Código de Empaque del Cliente"
+              value={form.customerPackingCode || ""}
+              onChange={(value) => updateField("customerPackingCode", value)}
+              placeholder="Ej. SKU-001"
+            />
+          </fieldset>
+
+          {/* SECCIÓN 2: REQUERIMIENTOS */}
+          <fieldset className="space-y-3 pb-6 border-b border-slate-200">
+            <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+              2. Requerimientos
+            </legend>
+
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={form.requiresDesign || false}
+                onChange={(e) => updateField("requiresDesign", e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300"
+              />
+              <span className="text-sm text-slate-700">Requiere Diseño Especial</span>
+            </label>
+
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={form.requiresSample || false}
+                onChange={(e) => updateField("requiresSample", e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300"
+              />
+              <span className="text-sm text-slate-700">Requiere Muestra</span>
+            </label>
+          </fieldset>
+
+          {/* SECCIÓN 3: DIMENSIONES Y VOLUMEN */}
+          <fieldset className="space-y-4 pb-6 border-b border-slate-200">
+            <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
+              3. Dimensiones y Volumen
+            </legend>
+
+            <div className="grid grid-cols-3 gap-4">
               <FormInput
-                label="Código de Empaque del Cliente"
-                value={form.customerPackingCode || ""}
-                onChange={(value) => updateField("customerPackingCode", value)}
-                placeholder="Ej. SKU-001"
+                label="Ancho (mm)"
+                type="number"
+                value={String(form.width ?? "")}
+                onChange={(value) => updateField("width", value ? Number(value) : undefined)}
+                error={errors.width}
+                placeholder="Ej. 150"
               />
 
-              <div />
+              <FormInput
+                label="Largo (mm)"
+                type="number"
+                value={String(form.length ?? "")}
+                onChange={(value) => updateField("length", value ? Number(value) : undefined)}
+                error={errors.length}
+                placeholder="Ej. 200"
+              />
+
+              <FormInput
+                label="Fuelle (mm)"
+                type="number"
+                value={String(form.gusset ?? "")}
+                onChange={(value) => updateField("gusset", value ? Number(value) : undefined)}
+                error={errors.gusset}
+                placeholder="Ej. 50"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -247,11 +367,41 @@ export default function ProductFormModal({
             </div>
           </fieldset>
 
-          {/* SECCIÓN 2: COTIZACIÓN */}
+          {/* SECCIÓN 4: COTIZACIÓN */}
           <fieldset className="space-y-4 pb-6 border-b border-slate-200">
             <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-              2. Cotización
+              4. Cotización
             </legend>
+
+            <FormSelect
+              label="Venta"
+              value={form.saleScope || "Nacional"}
+              onChange={(value) => updateField("saleScope", value as "Nacional" | "Internacional")}
+              options={[
+                { value: "Nacional", label: "Nacional" },
+                { value: "Internacional", label: "Internacional" },
+              ]}
+            />
+
+            {form.saleScope === "Internacional" && (
+              <div className="grid grid-cols-2 gap-4">
+                <FormInput
+                  label="Incoterm *"
+                  value={form.incoterm || ""}
+                  onChange={(value) => updateField("incoterm", value)}
+                  error={errors.incoterm}
+                  placeholder="Ej. FOB, CIF"
+                />
+
+                <FormInput
+                  label="País Destino *"
+                  value={form.destinationCountry || ""}
+                  onChange={(value) => updateField("destinationCountry", value)}
+                  error={errors.destinationCountry}
+                  placeholder="Ej. Colombia"
+                />
+              </div>
+            )}
 
             <FormSelect
               label="Moneda"
@@ -268,13 +418,24 @@ export default function ProductFormModal({
               ]}
             />
 
-            <FormInput
-              label="Precio Objetivo"
-              type="number"
-              value={String(form.targetPrice ?? "")}
-              onChange={(value) => updateField("targetPrice", value ? Number(value) : undefined)}
-              placeholder="Ej. 0.75"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormInput
+                label="Precio Mínimo"
+                type="number"
+                value={String(form.targetPriceMin ?? "")}
+                onChange={(value) => updateField("targetPriceMin", value ? Number(value) : undefined)}
+                placeholder="Ej. 0.50"
+              />
+
+              <FormInput
+                label="Precio Máximo"
+                type="number"
+                value={String(form.targetPriceMax ?? "")}
+                onChange={(value) => updateField("targetPriceMax", value ? Number(value) : undefined)}
+                error={errors.targetPrice}
+                placeholder="Ej. 1.00"
+              />
+            </div>
 
             <FormTextarea
               label="Comentario Commercial Finance"
@@ -285,25 +446,25 @@ export default function ProductFormModal({
             />
           </fieldset>
 
-          {/* SECCIÓN 3: RESUMEN TÉCNICO HEREDADO (SOLO LECTURA) */}
+          {/* SECCIÓN 5: RESUMEN TÉCNICO HEREDADO (SOLO LECTURA) */}
           <fieldset className="space-y-4 pb-6">
             <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-              3. Resumen técnico heredado (Solo lectura)
+              5. Resumen técnico heredado (Solo lectura)
             </legend>
 
             <div className="grid grid-cols-2 gap-3">
               <ReadOnlyField
-                label="Proyecto"
-                value={project.projectName || project.code}
-              />
-              <ReadOnlyField
                 label="Cliente"
                 value={project.clientName}
               />
-
               <ReadOnlyField
                 label="Portafolio"
                 value={project.portfolioName}
+              />
+
+              <ReadOnlyField
+                label="Planta"
+                value={project.plantaName}
               />
               <ReadOnlyField
                 label="Envoltura"
@@ -315,16 +476,52 @@ export default function ProductFormModal({
                 value={project.blueprintFormat}
               />
               <ReadOnlyField
-                label="Estructura"
-                value={project.structureType}
+                label="Aplicación técnica"
+                value={project.technicalApplication}
               />
 
               <ReadOnlyField
-                label="Ancho (mm)"
+                label="Uso final"
+                value={project.useFinalName || project.usoFinal}
+              />
+              <ReadOnlyField
+                label="Sector"
+                value={project.sector}
+              />
+
+              <ReadOnlyField
+                label="Segmento"
+                value={project.segment}
+              />
+              <ReadOnlyField
+                label="Subsegmento"
+                value={project.subSegment}
+              />
+            </div>
+
+            {/* Estructura con ayuda */}
+            <div className="mt-4 p-4 rounded-lg border border-slate-200 bg-slate-50">
+              <div className="mb-3">
+                <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                  Estructura
+                </div>
+                <div className="mt-1 text-sm font-semibold text-slate-700">
+                  {project.structureType || "—"}
+                </div>
+              </div>
+              <div className="text-xs text-slate-600 italic border-t border-slate-200 pt-3">
+                ℹ️ La estructura proviene del proyecto validado. Para modificarla, el proyecto debe volver a validación técnica.
+              </div>
+            </div>
+
+            {/* Otros datos técnicos */}
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              <ReadOnlyField
+                label="Ancho proyecto (mm)"
                 value={project.width}
               />
               <ReadOnlyField
-                label="Fuelle (mm)"
+                label="Fuelle proyecto (mm)"
                 value={project.gussetWidth}
               />
 
@@ -333,8 +530,8 @@ export default function ProductFormModal({
                 value={project.grammage}
               />
               <ReadOnlyField
-                label="Clasificación"
-                value={project.classification}
+                label="AFMarketID"
+                value={project.afMarketId}
               />
             </div>
           </fieldset>
