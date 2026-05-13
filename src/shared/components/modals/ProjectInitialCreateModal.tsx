@@ -17,7 +17,7 @@ import {
 interface ProjectInitialCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onProjectCreated?: () => void;
+  onProjectCreated?: (projectId: string) => void;
   initialPortfolioCode?: string;
 }
 
@@ -222,13 +222,14 @@ useEffect(() => {
 
     // Save "Nuevo" badge indicator to localStorage
     const RECENT_NEW_PROJECT_KEY = "odiseo_recent_new_project";
+    const projectId = createdProject.code || createdProject.id;
     localStorage.setItem(RECENT_NEW_PROJECT_KEY, JSON.stringify({
-      projectId: createdProject.code || createdProject.id,
+      projectId,
       expiresAt: Date.now() + 25000,
     }));
 
-    // Notify parent component that project was created
-    onProjectCreated?.();
+    // Notify parent component that project was created (pass projectId for badge)
+    onProjectCreated?.(projectId);
 
     onClose();
     navigate("/projects");

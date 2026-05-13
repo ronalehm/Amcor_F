@@ -982,7 +982,18 @@ export default function ProjectListPage() {
       <ProjectInitialCreateModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onProjectCreated={() => setRefreshKey((prev) => prev + 1)}
+        onProjectCreated={(projectId) => {
+          setRefreshKey((prev) => prev + 1);
+          setRecentNewProjectId(projectId);
+
+          // Auto-clear badge after 25 seconds
+          const timer = window.setTimeout(() => {
+            setRecentNewProjectId(null);
+            localStorage.removeItem(RECENT_NEW_PROJECT_KEY);
+          }, 25000);
+
+          return () => window.clearTimeout(timer);
+        }}
       />
     </div>
   );
