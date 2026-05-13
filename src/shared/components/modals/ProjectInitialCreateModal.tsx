@@ -45,6 +45,12 @@ const TIPO_PROYECTO_BAJA_OPTIONS = [
   { value: "ICO (Intercompany), BCP (Business Continous Production)", label: "ICO (Intercompany), BCP (Business Continous Production)" },
 ];
 
+const MODIFICATION_REASON_OPTIONS = [
+  { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
+  { value: "Estructura", label: "Estructura" },
+  { value: "Diseño y Estructura", label: "Diseño y Estructura" },
+];
+
 export default function ProjectInitialCreateModal({
   isOpen,
   onClose,
@@ -58,6 +64,7 @@ export default function ProjectInitialCreateModal({
   const [complejidad, setComplejidad] = useState<"ALTA" | "BAJA" | "">("");
   const [tipoProyecto, setTipoProyecto] = useState("");
   const [approvedProductCode, setApprovedProductCode] = useState("");
+  const [motivoModificacion, setMotivoModificacion] = useState("");
   const [licitacion, setLicitacion] = useState<"Sí" | "No">("No");
   const [numeroItemsLicitacion, setNumeroItemsLicitacion] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -73,6 +80,7 @@ export default function ProjectInitialCreateModal({
       setComplejidad("");
       setTipoProyecto("");
       setApprovedProductCode("");
+      setMotivoModificacion("");
       setLicitacion("No");
       setNumeroItemsLicitacion("");
       setErrors({});
@@ -84,6 +92,7 @@ export default function ProjectInitialCreateModal({
   setComplejidad("");
   setTipoProyecto("");
   setApprovedProductCode("");
+  setMotivoModificacion("");
   setLicitacion("No");
   setNumeroItemsLicitacion("");
 }, [clasificacion]);
@@ -132,6 +141,10 @@ useEffect(() => {
       newErrors.approvedProductCode = "Ingresa el código del producto aprobado.";
     }
 
+    if (clasificacion === "Modificado" && !motivoModificacion) {
+      newErrors.motivoModificacion = "Selecciona el motivo de modificación.";
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -144,6 +157,7 @@ useEffect(() => {
         complejidad: clasificacion === "Nuevo" ? complejidad : "",
         tipoProyecto: clasificacion === "Nuevo" ? tipoProyecto : "",
         approvedProductCode: clasificacion === "Modificado" ? approvedProductCode.trim() : "",
+        motivoModificacion: clasificacion === "Modificado" ? motivoModificacion : "",
         licitacion: clasificacion === "Nuevo" ? licitacion : "No",
         numeroItemsLicitacion: clasificacion === "Nuevo" && licitacion === "Sí" ? Number(numeroItemsLicitacion) : null,
       },
@@ -227,16 +241,30 @@ useEffect(() => {
             )}
 
               {clasificacion === "Modificado" && (
-                <FormInput
-                  label="Cód Producto aprobado"
-                  value={approvedProductCode}
-                  onChange={(val) => {
-                    setApprovedProductCode(val);
-                    setErrors((prev) => ({ ...prev, approvedProductCode: "" }));
-                  }}
-                  error={errors.approvedProductCode}
-                  placeholder="Ingrese el código"
-                />
+                <>
+                  <FormInput
+                    label="Cód Producto aprobado"
+                    value={approvedProductCode}
+                    onChange={(val) => {
+                      setApprovedProductCode(val);
+                      setErrors((prev) => ({ ...prev, approvedProductCode: "" }));
+                    }}
+                    error={errors.approvedProductCode}
+                    placeholder="Ingrese el código"
+                  />
+                  <FormSelect
+                    label="Motivo *"
+                    value={motivoModificacion}
+                    onChange={(val) => {
+                      setMotivoModificacion(val);
+                      setErrors((prev) => ({ ...prev, motivoModificacion: "" }));
+                    }}
+                    options={MODIFICATION_REASON_OPTIONS}
+                    error={errors.motivoModificacion}
+                    placeholder="-- Seleccione --"
+                    disabled={!portfolioCode}
+                  />
+                </>
               )}
 
               {clasificacion === "Nuevo" && complejidad && (

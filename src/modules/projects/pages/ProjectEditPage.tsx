@@ -13,6 +13,7 @@ import {
   type YesNoPending,
 } from "../../../shared/data/projectStorage";
 import { getDocumentsByProject } from "../../../shared/data/projectDocumentStorage";
+import { getPreliminaryProducts } from "../../../shared/data/projectProductStorage";
 import {
   computeProjectPreparationStatus,
   normalizeProjectStatus,
@@ -1931,8 +1932,21 @@ export default function ProjectEditPage() {
       errors.designPlanFiles = "Debe cargar al menos un plano de diseño.";
     }
 
-    if (form.licitacion === "Sí" && (!form.numeroItemsLicitacion || Number(form.numeroItemsLicitacion) <= 0)) {
-      errors.numeroItemsLicitacion = "Ingresa un número válido de ítems.";
+    if (form.licitacion === "Sí") {
+      const itemCount = Number(form.numeroItemsLicitacion || 0);
+
+      if (!itemCount || itemCount <= 0) {
+        errors.numeroItemsLicitacion = "Ingresa el N° de ítems de la licitación.";
+      } else if (projectCode) {
+        const activePreliminaryProducts = getPreliminaryProducts(projectCode).filter(
+          (product) => product.status !== "Desestimado"
+        );
+
+        if (itemCount < activePreliminaryProducts.length) {
+          errors.numeroItemsLicitacion =
+            `No puedes configurar ${itemCount} ítems porque ya existen ${activePreliminaryProducts.length} productos preliminares activos. Desestima productos o configura un número igual o mayor a ${activePreliminaryProducts.length}.`;
+        }
+      }
     }
 
     if (form.salesforceAction && !isValidSalesforceAction(form.salesforceAction)) {
@@ -4001,24 +4015,34 @@ export default function ProjectEditPage() {
                 {form.classification === "Nuevo" && (
                   <>
                     <FormSelect
-                      label="Licitación *"
+                      label="¿Licitación? *"
                       value={form.licitacion}
-                      onChange={() => {}}
+                      onChange={(value) => {
+                        handleLicitacionChange(value);
+                        markFieldAsTouched("licitacion");
+                      }}
+                      onBlur={() => markFieldAsTouched("licitacion")}
+                      error={getError("licitacion")}
                       options={[
                         { value: "Sí", label: "Sí" },
                         { value: "No", label: "No" },
                       ]}
-                      disabled={true}
+                      placeholder="-- Seleccione --"
                     />
 
                     {form.licitacion === "Sí" && (
                       <FormInput
-                        label="N° de ítems *"
+                        label="N° de ítems de Licitación *"
                         type="number"
                         value={form.numeroItemsLicitacion}
-                        onChange={() => {}}
+                        onChange={(value) => {
+                          const onlyNumbers = value.replace(/\D/g, "");
+                          updateField("numeroItemsLicitacion", onlyNumbers);
+                          markFieldAsTouched("numeroItemsLicitacion");
+                        }}
+                        onBlur={() => markFieldAsTouched("numeroItemsLicitacion")}
+                        error={getError("numeroItemsLicitacion")}
                         placeholder="Ej: 5, 10, 15..."
-                        disabled={true}
                       />
                     )}
                   </>

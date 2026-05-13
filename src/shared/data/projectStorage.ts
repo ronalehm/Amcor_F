@@ -163,6 +163,7 @@ export type ProjectRecord = {
   projectType?: string;
   tipoProyecto?: string;
   approvedProductCode?: string;
+  motivoModificacion?: string;
   salesforceAction?: string;
 
   graphicResponsible?: string;
@@ -1069,6 +1070,7 @@ export function createProjectFromPortfolio(params: {
     complejidad?: "ALTA" | "BAJA" | string;
     tipoProyecto: string;
     approvedProductCode?: string;
+    motivoModificacion?: string;
     licitacion: "Sí" | "No";
     numeroItemsLicitacion?: number | null;
   };
@@ -1108,6 +1110,7 @@ export function createProjectFromPortfolio(params: {
     projectType: params.initialData.tipoProyecto || "",
     tipoProyecto: params.initialData.tipoProyecto || "",
     approvedProductCode: params.initialData.approvedProductCode || "",
+    motivoModificacion: params.initialData.motivoModificacion || "",
     licitacion: params.initialData.licitacion,
     numeroItemsLicitacion: params.initialData.licitacion === "Sí" ? params.initialData.numeroItemsLicitacion || null : null,
     projectName: "", // To be filled in the full form

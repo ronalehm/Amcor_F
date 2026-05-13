@@ -185,3 +185,168 @@ export function getActionsForProductStatus(
       return [];
   }
 }
+
+// ============================================================================
+// FUNCIONES DE VALIDACIÓN PARA LICITACIÓN
+// ============================================================================
+
+/**
+ * Verifica si se puede crear un nuevo producto preliminar basado en la licitación
+ * Si es licitación (LICITACIÓN = Sí), verifica que no se excedan los N ítems
+ */
+export function canCreatePreliminaryProduct(
+  project: any,
+  products: any[]
+): {
+  allowed: boolean;
+  message: string;
+} {
+  const activeProducts = products.filter(
+    (product) => product.status !== "Desestimado"
+  );
+
+  if (
+    project.status !== "Validado" &&
+    project.status !== "Productos preliminares"
+  ) {
+    return {
+      allowed: false,
+      message:
+        "Solo se pueden crear productos preliminares cuando el proyecto está validado.",
+    };
+  }
+
+  if (project.licitacion === "Sí") {
+    const requiredItems = Number(project.numeroItemsLicitacion || 0);
+
+    if (requiredItems <= 0) {
+      return {
+        allowed: false,
+        message:
+          "La licitación no tiene configurado el N° de ítems.",
+      };
+    }
+
+    if (activeProducts.length >= requiredItems) {
+      return {
+        allowed: false,
+        message:
+          `Esta licitación tiene ${requiredItems} ítems. Ya se registraron todos los productos preliminares permitidos.`,
+      };
+    }
+  }
+
+  return {
+    allowed: true,
+    message: "",
+  };
+}
+
+/**
+ * Verifica si se pueden enviar productos preliminares a cotización
+ * Si es licitación, todos los productos activos deben enviarse (no permite selección parcial)
+ * Si no es licitación, se envían solo los seleccionados
+ */
+export function canSendProductsToQuote(
+  project: any,
+  products: any[]
+): {
+  allowed: boolean;
+  message: string;
+  productsToQuote: any[];
+} {
+  const activeProducts = products.filter(
+    (product) => product.status !== "Desestimado"
+  );
+
+  if (activeProducts.length === 0) {
+    return {
+      allowed: false,
+      message:
+        "Debe existir al menos un producto preliminar para enviar a cotizar.",
+      productsToQuote: [],
+    };
+  }
+
+  if (project.licitacion === "Sí") {
+    const requiredItems = Number(project.numeroItemsLicitacion || 0);
+
+    if (requiredItems <= 0) {
+      return {
+        allowed: false,
+        message:
+          "La licitación no tiene configurado el N° de ítems.",
+        productsToQuote: [],
+      };
+    }
+
+    if (activeProducts.length < requiredItems) {
+      return {
+        allowed: false,
+        message:
+          `La licitación requiere ${requiredItems} ítems. Actualmente hay ${activeProducts.length} productos preliminares registrados. Debe registrar los ${requiredItems} productos antes de solicitar cotización.`,
+        productsToQuote: [],
+      };
+    }
+
+    if (activeProducts.length > requiredItems) {
+      return {
+        allowed: false,
+        message:
+          `La licitación tiene configurados ${requiredItems} ítems, pero existen ${activeProducts.length} productos preliminares activos. Ajuste la cantidad antes de solicitar cotización.`,
+        productsToQuote: [],
+      };
+    }
+
+    const notReady = activeProducts.filter(
+      (product) => product.status !== "Registrado"
+    );
+
+    if (notReady.length > 0) {
+      return {
+        allowed: false,
+        message:
+          "Todos los productos preliminares de la licitación deben estar registrados y listos para cotizar.",
+        productsToQuote: [],
+      };
+    }
+
+    return {
+      allowed: true,
+      message: "",
+      productsToQuote: activeProducts,
+    };
+  }
+
+  const selectedProducts = activeProducts.filter(
+    (product) => (product as any).selectedForQuote
+  );
+
+  if (selectedProducts.length === 0) {
+    return {
+      allowed: false,
+      message:
+        "Selecciona al menos un producto preliminar para cotizar.",
+      productsToQuote: [],
+    };
+  }
+
+  const notReadySelected = selectedProducts.filter(
+    (product) => product.status !== "Registrado"
+  );
+
+  if (notReadySelected.length > 0) {
+    return {
+      allowed: false,
+      message:
+        "Los productos seleccionados deben estar registrados y listos para cotizar.",
+      productsToQuote: [],
+    };
+  }
+
+  return {
+    allowed: true,
+    message: "",
+    productsToQuote: selectedProducts,
+  };
+}
