@@ -62,6 +62,7 @@ type ProjectEditFormData = {
   classification: string;
   subClassification: string;
   projectType: string;
+  motivoModificacion: string;
   salesforceAction: string;
 
   blueprintFormat: string;
@@ -283,6 +284,18 @@ function parseNumberInput(value: string): number | null {
   const normalizedValue = value.replace(",", ".").trim();
   const parsedValue = Number(normalizedValue);
   return Number.isFinite(parsedValue) ? parsedValue : null;
+}
+
+function canEditDesign(motivoModificacion: string): boolean {
+  return motivoModificacion === "Diseño y Dimensiones" || motivoModificacion === "Diseño y Estructura";
+}
+
+function canEditDimensions(motivoModificacion: string): boolean {
+  return motivoModificacion === "Diseño y Dimensiones" || motivoModificacion === "Diseño y Estructura";
+}
+
+function canEditStructure(motivoModificacion: string): boolean {
+  return motivoModificacion === "Estructura" || motivoModificacion === "Diseño y Estructura";
 }
 
 function getBlueprintFormatOptions(wrapping: string | undefined): Array<{ value: string; label: string }> {
@@ -1019,6 +1032,7 @@ export default function ProjectEditPage() {
     classification: "",
     subClassification: "",
     projectType: "",
+    motivoModificacion: "",
     salesforceAction: "",
     blueprintFormat: "",
     tipoPresentacionBolsa: "",
@@ -1182,6 +1196,7 @@ export default function ProjectEditPage() {
       classification: project.classification || "",
       subClassification: (project as any).subClassification || "",
       projectType: project.projectType || "",
+      motivoModificacion: (project as any).motivoModificacion || "",
       salesforceAction: normalizeSalesforceAction(project.salesforceAction || ""),
       blueprintFormat: project.blueprintFormat || "",
       tipoPresentacionBolsa: (project as any).tipoPresentacionBolsa || "",
@@ -2202,6 +2217,7 @@ export default function ProjectEditPage() {
 
       classification: form.classification,
       projectType: form.projectType,
+      motivoModificacion: form.motivoModificacion,
       salesforceAction: normalizeSalesforceAction(form.salesforceAction),
 
       blueprintFormat: form.blueprintFormat,
@@ -2439,6 +2455,7 @@ export default function ProjectEditPage() {
 
       classification: form.classification,
       projectType: form.projectType,
+      motivoModificacion: form.motivoModificacion,
       salesforceAction: normalizeSalesforceAction(form.salesforceAction),
 
       blueprintFormat: form.blueprintFormat,
@@ -4008,6 +4025,16 @@ export default function ProjectEditPage() {
                     onChange={() => {}}
                     options={projectTypeOptions}
                     placeholder="-- Seleccione --"
+                    disabled={true}
+                  />
+                )}
+
+                {form.classification === "Modificado" && (
+                  <FormInput
+                    label="Motivo de Modificación *"
+                    value={form.motivoModificacion}
+                    onChange={() => {}}
+                    placeholder="Motivo"
                     disabled={true}
                   />
                 )}
