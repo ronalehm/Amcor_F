@@ -1492,6 +1492,34 @@ export default function ProjectEditPage() {
     return getDimensionRestrictionsByFormat(form.blueprintFormat || "");
   }, [form.blueprintFormat]);
 
+  const isModifiedProject =
+    form.classification === "Modificado" ||
+    originalProject?.classification === "Modificado";
+
+  const motivoModificacion =
+    form.motivoModificacion ||
+    originalProject?.motivoModificacion ||
+    originalProject?.modificationReason ||
+    "";
+
+  const canEditDesign =
+    !isModifiedProject ||
+    motivoModificacion === "Diseño y Dimensiones" ||
+    motivoModificacion === "Diseño y Estructura";
+
+  const canEditDimensions =
+    !isModifiedProject ||
+    motivoModificacion === "Diseño y Dimensiones";
+
+  const canEditStructure =
+    !isModifiedProject ||
+    motivoModificacion === "Estructura" ||
+    motivoModificacion === "Diseño y Estructura";
+
+  const canEditCommercial = !isModifiedProject;
+
+  const canEditAdditionalCustomerData = !isModifiedProject;
+
   const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
     const fields = [...BASE_REQUIRED_FIELDS];
     if (form.hasReferenceStructure !== "Sí") {

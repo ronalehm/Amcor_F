@@ -290,7 +290,7 @@ useEffect(() => {
                 <>
                   <div className="relative">
                     <label className="block mb-1 text-xs font-bold uppercase tracking-wide text-slate-600">
-                      Cód Producto aprobado *
+                      Producto Aprobado (SKU)
                     </label>
                     <input
                       type="text"
