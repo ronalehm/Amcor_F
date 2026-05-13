@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Trash2, Eye, Edit2 } from "lucide-react";
 import {
   getPreliminaryProducts,
@@ -18,6 +18,31 @@ import { exportProjectQuotationExcel } from "../../../shared/utils/exportProject
 import FormCard from "../../../shared/components/forms/FormCard";
 import Button from "../../../shared/components/ui/Button";
 import ProductFormModal from "./ProductFormModal";
+
+// Helper to determine if project is a bidding/tender project
+const isBiddingProject = (project: ProjectRecord, portfolio?: PortfolioRecord): boolean => {
+  const biddingValue = [
+    (project as any).isBidding,
+    (project as any).bidding,
+    project.licitacion,
+    (project as any).hasBidding,
+    (project as any).isTender,
+    (portfolio as any)?.isBidding,
+    (portfolio as any)?.bidding,
+    (portfolio as any)?.licitacion,
+  ].find((v) => v !== undefined && v !== null && v !== "");
+
+  const normalized = String(biddingValue ?? "").trim().toLowerCase();
+  return (
+    biddingValue === true ||
+    normalized === "sí" ||
+    normalized === "si" ||
+    normalized === "true" ||
+    normalized === "1" ||
+    normalized === "licitación" ||
+    normalized === "licitacion"
+  );
+};
 
 interface ProjectProductsPanelProps {
   project: ProjectRecord;
@@ -42,6 +67,16 @@ export default function ProjectProductsPanel({
   useEffect(() => {
     refreshProducts();
   }, [project.code]);
+
+  // Auto-select all products if project is a bidding/tender project
+  useEffect(() => {
+    if (isBiddingProject(project, portfolio)) {
+      const selectableProductIds = products
+        .filter(canSelect)
+        .map((p) => p.id);
+      setSelectedIds(new Set(selectableProductIds));
+    }
+  }, [isBiddingProject(project, portfolio), products]);
 
   const refreshProducts = () => {
     setProducts(getPreliminaryProducts(project.code));
@@ -100,9 +135,15 @@ export default function ProjectProductsPanel({
       return;
     }
 
-    const selectedProducts = project.licitacion === "Sí"
-      ? validation.productsToQuote
+    const projectIsBidding = isBiddingProject(project, portfolio);
+    const selectedProducts = projectIsBidding
+      ? products.filter(canSelect)
       : products.filter((p) => selectedIds.has(p.id));
+
+    if (!selectedProducts.length) {
+      alert("Selecciona al menos un producto para exportar.");
+      return;
+    }
 
     try {
       // Export to Excel
@@ -112,18 +153,18 @@ export default function ProjectProductsPanel({
         products: selectedProducts,
       });
 
-      // Update products to "En Cotización" if they're "Registrado"
+      // Update products to "En Cotización" and set quoteRequestedAt
       const now = new Date().toISOString();
       selectedProducts.forEach((product) => {
-        if (product.status === "Registrado") {
-          const updated = {
-            ...product,
-            status: "En Cotización" as const,
-            quoteRequestedAt: now,
-            updatedAt: now,
-          };
-          savePreliminaryProduct(updated);
-        }
+        const updated = {
+          ...product,
+          // Only change status if currently "Registrado"
+          ...(product.status === "Registrado" ? { status: "En Cotización" as const } : {}),
+          // Always set quoteRequestedAt if not already set
+          quoteRequestedAt: product.quoteRequestedAt || now,
+          updatedAt: now,
+        };
+        savePreliminaryProduct(updated);
       });
 
       // Update project if needed
@@ -223,6 +264,13 @@ export default function ProjectProductsPanel({
                   <Plus className="w-4 h-4" />
                   Generar Producto Preliminar
                 </Button>
+              </div>
+            )}
+
+            {/* Bidding project message */}
+            {isBiddingProject(project, portfolio) && (
+              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                Este proyecto es una licitación. Todos los productos preliminares serán considerados automáticamente en la exportación.
               </div>
             )}
 

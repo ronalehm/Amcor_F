@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { X } from "lucide-react";
 import type { ProjectProductRecord } from "../../../shared/data/projectProductStorage";
 import {
@@ -7,6 +7,7 @@ import {
   saveProjectProduct,
 } from "../../../shared/data/projectProductStorage";
 import type { ProjectRecord } from "../../../shared/data/projectStorage";
+import { UNITS_OF_MEASURE } from "../../../shared/data/unitOfMeasureStorage";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
@@ -53,13 +54,33 @@ export default function ProductFormModal({
   const isEditMode = !!initialData?.id;
   const isBaseProduct = !initialData?.baseProductId;
 
+  // Quotation is enabled only if product has been exported for quote (quoteRequestedAt is set)
+  const isQuotationEnabled = !!(
+    initialData?.quoteRequestedAt ||
+    initialData?.status === "En Cotización" ||
+    initialData?.status === "Cotizado" ||
+    initialData?.status === "Aprobado por Cliente"
+  );
+
+  const inheritedProjectName =
+    initialData?.name ||
+    initialData?.productName ||
+    project?.projectName ||
+    (project as any)?.projectNameLabel ||
+    "Producto preliminar";
+
+  const inheritedCustomerPackingCode =
+    initialData?.customerPackingCode ||
+    project?.customerPackingCode ||
+    "";
+
   const [form, setForm] = useState<FormData>({
     // Info básica
-    name: initialData?.name || initialData?.productName || "",
-    productName: initialData?.productName || initialData?.name || "",
+    name: inheritedProjectName,
+    productName: inheritedProjectName,
     description: initialData?.description || initialData?.productDescription || "",
     productDescription: initialData?.productDescription || initialData?.description || "",
-    customerPackingCode: initialData?.customerPackingCode || "",
+    customerPackingCode: inheritedCustomerPackingCode,
 
     // Requerimientos
     requiresDesign: initialData?.requiresDesign || false,
@@ -83,6 +104,15 @@ export default function ProductFormModal({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      name: inheritedProjectName,
+      productName: inheritedProjectName,
+      customerPackingCode: inheritedCustomerPackingCode,
+    }));
+  }, [inheritedProjectName, inheritedCustomerPackingCode]);
 
   const updateField = (key: string, value: any) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -117,32 +147,34 @@ export default function ProductFormModal({
       errs.gusset = "El fuelle no puede ser negativo";
     }
 
-    // Validaciones de Cotización
-    if (form.saleScope === "Internacional") {
-      if (!form.destinationCountry?.trim()) {
-        errs.destinationCountry = "País destino es obligatorio para venta internacional";
+    // Validaciones de Cotización (solo si está habilitada)
+    if (isQuotationEnabled) {
+      if (form.saleScope === "Internacional") {
+        if (!form.destinationCountry?.trim()) {
+          errs.destinationCountry = "País destino es obligatorio para venta internacional";
+        }
+        if (!form.incoterm?.trim()) {
+          errs.incoterm = "Incoterm es obligatorio para venta internacional";
+        }
       }
-      if (!form.incoterm?.trim()) {
-        errs.incoterm = "Incoterm es obligatorio para venta internacional";
+
+      // Si hay precios, moneda es obligatoria y precios válidos
+      if ((form.targetPriceMin || form.targetPriceMax) && !form.currencyType?.trim()) {
+        errs.currencyType = "Moneda es obligatoria cuando se ingresan precios";
       }
-    }
 
-    // Si hay precios, moneda es obligatoria y precios válidos
-    if ((form.targetPriceMin || form.targetPriceMax) && !form.currencyType?.trim()) {
-      errs.currencyType = "Moneda es obligatoria cuando se ingresan precios";
-    }
-
-    // Validar que precio máximo >= precio mínimo
-    if (
-      form.targetPriceMin &&
-      form.targetPriceMax &&
-      Number(form.targetPriceMin) > Number(form.targetPriceMax)
-    ) {
-      errs.targetPrice = "Precio máximo debe ser mayor o igual al precio mínimo";
+      // Validar que precio máximo >= precio mínimo
+      if (
+        form.targetPriceMin &&
+        form.targetPriceMax &&
+        Number(form.targetPriceMin) > Number(form.targetPriceMax)
+      ) {
+        errs.targetPrice = "Precio máximo debe ser mayor o igual al precio mínimo";
+      }
     }
 
     return errs;
-  }, [form]);
+  }, [form, isQuotationEnabled]);
 
   const handleSave = () => {
     setErrors(validate);
@@ -162,10 +194,6 @@ export default function ProductFormModal({
           productDescription: form.description || "",
           customerPackingCode: form.customerPackingCode || "",
 
-          // Requerimientos
-          requiresDesign: form.requiresDesign || false,
-          requiresSample: form.requiresSample || false,
-
           // Dimensiones
           width: form.width ? Number(form.width) : undefined,
           length: form.length ? Number(form.length) : undefined,
@@ -173,15 +201,15 @@ export default function ProductFormModal({
           estimatedVolume: form.estimatedVolume ? Number(form.estimatedVolume) : undefined,
           unitOfMeasure: form.unitOfMeasure || "",
 
-          // Cotización
-          saleScope: form.saleScope || "Nacional",
-          incoterm: form.incoterm || "",
-          destinationCountry: form.destinationCountry || "",
-          currencyType: form.currencyType || "",
-          targetPriceMin: form.targetPriceMin ? Number(form.targetPriceMin) : undefined,
-          targetPriceMax: form.targetPriceMax ? Number(form.targetPriceMax) : undefined,
-          commercialComments: form.commercialComments || "",
-          commercialFinanceComment: form.commercialComments || "",
+          // Cotización (solo si está habilitada)
+          saleScope: isQuotationEnabled ? (form.saleScope || "Nacional") : "Nacional",
+          incoterm: isQuotationEnabled ? (form.incoterm || "") : "",
+          destinationCountry: isQuotationEnabled ? (form.destinationCountry || "") : "",
+          currencyType: isQuotationEnabled ? (form.currencyType || "") : "",
+          targetPriceMin: isQuotationEnabled && form.targetPriceMin ? Number(form.targetPriceMin) : undefined,
+          targetPriceMax: isQuotationEnabled && form.targetPriceMax ? Number(form.targetPriceMax) : undefined,
+          commercialComments: isQuotationEnabled ? (form.commercialComments || "") : "",
+          commercialFinanceComment: isQuotationEnabled ? (form.commercialComments || "") : "",
 
           updatedAt: new Date().toISOString(),
         };
@@ -189,9 +217,24 @@ export default function ProductFormModal({
         // NO incluir campos técnicos: structureType, blueprintFormat, printType, layer*, grammage, etc.
         saved = saveProjectProduct(toSave);
       } else if (baseProductId) {
+        // Creación desde producto aprobado
+        saved = createProjectProductFromApprovedProduct(projectCode, baseProductId, form);
+      } else if (baseProductId) {
+        // Creación desde producto aprobado
         saved = createProjectProductFromApprovedProduct(projectCode, baseProductId, form);
       } else {
-        saved = createProjectProductFromProject(projectCode, form);
+        // Creación desde proyecto: asegurar que cotización está vacía
+        const creationForm: FormData = {
+          ...form,
+          saleScope: "Nacional",
+          incoterm: "",
+          destinationCountry: "",
+          currencyType: "",
+          targetPriceMin: undefined,
+          targetPriceMax: undefined,
+          commercialComments: "",
+        };
+        saved = createProjectProductFromProject(projectCode, creationForm);
       }
 
       onSave(saved);
@@ -285,37 +328,10 @@ export default function ProductFormModal({
             />
           </fieldset>
 
-          {/* SECCIÓN 2: REQUERIMIENTOS */}
-          <fieldset className="space-y-3 pb-6 border-b border-slate-200">
-            <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-              2. Requerimientos
-            </legend>
-
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={form.requiresDesign || false}
-                onChange={(e) => updateField("requiresDesign", e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300"
-              />
-              <span className="text-sm text-slate-700">Requiere Diseño Especial</span>
-            </label>
-
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={form.requiresSample || false}
-                onChange={(e) => updateField("requiresSample", e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300"
-              />
-              <span className="text-sm text-slate-700">Requiere Muestra</span>
-            </label>
-          </fieldset>
-
-          {/* SECCIÓN 3: DIMENSIONES Y VOLUMEN */}
+          {/* SECCIÓN 2: DIMENSIONES Y VOLUMEN */}
           <fieldset className="space-y-4 pb-6 border-b border-slate-200">
             <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-              3. Dimensiones y Volumen
+              2. Dimensiones y Volumen
             </legend>
 
             <div className="grid grid-cols-3 gap-4">
@@ -357,57 +373,54 @@ export default function ProductFormModal({
                 placeholder="Ej. 1000"
               />
 
-              <FormInput
+              <FormSelect
                 label="Unidad de Medida *"
                 value={form.unitOfMeasure || ""}
                 onChange={(value) => updateField("unitOfMeasure", value)}
                 error={errors.unitOfMeasure}
-                placeholder="Ej. Unidades"
+                options={[
+                  { value: "", label: "Seleccionar unidad" },
+                  ...UNITS_OF_MEASURE.map((unit) => ({
+                    value: unit,
+                    label: unit === "g" ? "Gramos (g)" :
+                           unit === "kg" ? "Kilogramos (kg)" :
+                           unit === "ml" ? "Mililitros (ml)" :
+                           unit === "L" ? "Litros (L)" :
+                           unit === "un" ? "Unidades (un)" :
+                           unit === "m" ? "Metros (m)" :
+                           unit === "cm" ? "Centímetros (cm)" :
+                           unit === "mm" ? "Milímetros (mm)" :
+                           unit,
+                  })),
+                ]}
               />
             </div>
           </fieldset>
 
-          {/* SECCIÓN 4: COTIZACIÓN */}
+          {/* SECCIÓN 3: COTIZACIÓN */}
           <fieldset className="space-y-4 pb-6 border-b border-slate-200">
             <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-              4. Cotización
+              3. Cotización
             </legend>
 
-            <FormSelect
-              label="Venta"
-              value={form.saleScope || "Nacional"}
-              onChange={(value) => updateField("saleScope", value as "Nacional" | "Internacional")}
-              options={[
-                { value: "Nacional", label: "Nacional" },
-                { value: "Internacional", label: "Internacional" },
-              ]}
-            />
+            {!isQuotationEnabled && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                La cotización se habilitará cuando este producto sea exportado para cotizar.
+              </div>
+            )}
 
-            {form.saleScope === "Internacional" && (
-              <div className="grid grid-cols-2 gap-4">
-                <FormInput
-                  label="Incoterm *"
-                  value={form.incoterm || ""}
-                  onChange={(value) => updateField("incoterm", value)}
-                  error={errors.incoterm}
-                  placeholder="Ej. FOB, CIF"
-                />
-
-                <FormInput
-                  label="País Destino *"
-                  value={form.destinationCountry || ""}
-                  onChange={(value) => updateField("destinationCountry", value)}
-                  error={errors.destinationCountry}
-                  placeholder="Ej. Colombia"
-                />
+            {isQuotationEnabled && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                Producto exportado para cotización. Commercial Finance puede completar moneda, precios y comentarios.
               </div>
             )}
 
             <FormSelect
               label="Moneda"
               value={form.currencyType || ""}
-              onChange={(value) => updateField("currencyType", value)}
+              onChange={(value) => isQuotationEnabled && updateField("currencyType", value)}
               error={errors.currencyType}
+              disabled={!isQuotationEnabled}
               options={[
                 { value: "", label: "Seleccionar moneda" },
                 { value: "USD", label: "USD - Dólar Americano" },
@@ -423,7 +436,8 @@ export default function ProductFormModal({
                 label="Precio Mínimo"
                 type="number"
                 value={String(form.targetPriceMin ?? "")}
-                onChange={(value) => updateField("targetPriceMin", value ? Number(value) : undefined)}
+                onChange={(value) => isQuotationEnabled && updateField("targetPriceMin", value ? Number(value) : undefined)}
+                disabled={!isQuotationEnabled}
                 placeholder="Ej. 0.50"
               />
 
@@ -431,8 +445,9 @@ export default function ProductFormModal({
                 label="Precio Máximo"
                 type="number"
                 value={String(form.targetPriceMax ?? "")}
-                onChange={(value) => updateField("targetPriceMax", value ? Number(value) : undefined)}
+                onChange={(value) => isQuotationEnabled && updateField("targetPriceMax", value ? Number(value) : undefined)}
                 error={errors.targetPrice}
+                disabled={!isQuotationEnabled}
                 placeholder="Ej. 1.00"
               />
             </div>
@@ -440,16 +455,17 @@ export default function ProductFormModal({
             <FormTextarea
               label="Comentario Commercial Finance"
               value={form.commercialComments || ""}
-              onChange={(value) => updateField("commercialComments", value)}
+              onChange={(value) => isQuotationEnabled && updateField("commercialComments", value)}
+              disabled={!isQuotationEnabled}
               placeholder="Notas para el equipo de finanzas"
               rows={3}
             />
           </fieldset>
 
-          {/* SECCIÓN 5: RESUMEN TÉCNICO HEREDADO (SOLO LECTURA) */}
+          {/* SECCIÓN 4: RESUMEN TÉCNICO HEREDADO (SOLO LECTURA) */}
           <fieldset className="space-y-4 pb-6">
             <legend className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-              5. Resumen técnico heredado (Solo lectura)
+              4. Resumen técnico heredado (Solo lectura)
             </legend>
 
             <div className="grid grid-cols-2 gap-3">
