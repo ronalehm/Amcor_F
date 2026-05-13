@@ -101,7 +101,22 @@ useEffect(() => {
   setTipoProyecto("");
 }, [complejidad]);
 
+useEffect(() => {
+  if (clasificacion !== "Modificado") {
+    setApprovedProductCode("");
+    setMotivoModificacion("");
+    return;
+  }
+
+  if (!approvedProductCode.trim()) {
+    setMotivoModificacion("");
+  }
+}, [clasificacion, approvedProductCode]);
+
   if (!isOpen) return null;
+
+  const shouldShowModificationReason =
+    clasificacion === "Modificado" && approvedProductCode.trim().length > 0;
 
   const tipoProyectoOptions =
   complejidad === "ALTA"
@@ -141,7 +156,11 @@ useEffect(() => {
       newErrors.approvedProductCode = "Ingresa el código del producto aprobado.";
     }
 
-    if (clasificacion === "Modificado" && !motivoModificacion) {
+    if (
+      clasificacion === "Modificado" &&
+      approvedProductCode.trim() &&
+      !motivoModificacion
+    ) {
       newErrors.motivoModificacion = "Selecciona el motivo de modificación.";
     }
 
@@ -156,8 +175,14 @@ useEffect(() => {
         clasificacion,
         complejidad: clasificacion === "Nuevo" ? complejidad : "",
         tipoProyecto: clasificacion === "Nuevo" ? tipoProyecto : "",
-        approvedProductCode: clasificacion === "Modificado" ? approvedProductCode.trim() : "",
-        motivoModificacion: clasificacion === "Modificado" ? motivoModificacion : "",
+        approvedProductCode:
+          clasificacion === "Modificado"
+            ? approvedProductCode.trim()
+            : "",
+        motivoModificacion:
+          clasificacion === "Modificado" && approvedProductCode.trim()
+            ? motivoModificacion
+            : "",
         licitacion: clasificacion === "Nuevo" ? licitacion : "No",
         numeroItemsLicitacion: clasificacion === "Nuevo" && licitacion === "Sí" ? Number(numeroItemsLicitacion) : null,
       },
@@ -243,7 +268,7 @@ useEffect(() => {
               {clasificacion === "Modificado" && (
                 <>
                   <FormInput
-                    label="Cód Producto aprobado"
+                    label="Cód Producto aprobado *"
                     value={approvedProductCode}
                     onChange={(val) => {
                       setApprovedProductCode(val);
@@ -252,18 +277,20 @@ useEffect(() => {
                     error={errors.approvedProductCode}
                     placeholder="Ingrese el código"
                   />
-                  <FormSelect
-                    label="Motivo *"
-                    value={motivoModificacion}
-                    onChange={(val) => {
-                      setMotivoModificacion(val);
-                      setErrors((prev) => ({ ...prev, motivoModificacion: "" }));
-                    }}
-                    options={MODIFICATION_REASON_OPTIONS}
-                    error={errors.motivoModificacion}
-                    placeholder="-- Seleccione --"
-                    disabled={!portfolioCode}
-                  />
+                  {shouldShowModificationReason && (
+                    <FormSelect
+                      label="Motivo *"
+                      value={motivoModificacion}
+                      onChange={(val) => {
+                        setMotivoModificacion(val);
+                        setErrors((prev) => ({ ...prev, motivoModificacion: "" }));
+                      }}
+                      options={MODIFICATION_REASON_OPTIONS}
+                      error={errors.motivoModificacion}
+                      placeholder="-- Seleccione --"
+                      disabled={!portfolioCode}
+                    />
+                  )}
                 </>
               )}
 
