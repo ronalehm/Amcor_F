@@ -982,6 +982,7 @@ export default function ProjectListPage() {
       <ProjectInitialCreateModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+        onProjectCreated={() => setRefreshKey((prev) => prev + 1)}
       />
     </div>
   );

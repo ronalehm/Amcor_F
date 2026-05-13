@@ -17,6 +17,7 @@ import {
 interface ProjectInitialCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onProjectCreated?: () => void;
   initialPortfolioCode?: string;
 }
 
@@ -58,6 +59,7 @@ const MODIFICATION_REASON_OPTIONS = [
 export default function ProjectInitialCreateModal({
   isOpen,
   onClose,
+  onProjectCreated,
   initialPortfolioCode,
 }: ProjectInitialCreateModalProps) {
   const navigate = useNavigate();
@@ -225,10 +227,8 @@ useEffect(() => {
       expiresAt: Date.now() + 25000,
     }));
 
-    // Dispara custom event para notificar que se creó un nuevo proyecto
-    window.dispatchEvent(new CustomEvent("newProjectCreated", {
-      detail: { projectId: createdProject.code || createdProject.id }
-    }));
+    // Notify parent component that project was created
+    onProjectCreated?.();
 
     onClose();
     navigate("/projects");
