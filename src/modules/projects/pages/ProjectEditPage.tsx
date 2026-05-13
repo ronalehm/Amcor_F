@@ -1891,10 +1891,34 @@ export default function ProjectEditPage() {
     markFieldAsTouched("tipoSelloEnFuellePouch");
   };
 
+  const shouldValidateField = (field: keyof ProjectEditFormData): boolean => {
+    if (!isModifiedProject) return true;
+
+    const designFields = ["hasEdagReference", "printClass", "printType", "specialDesignSpecs", "designPlanFiles"];
+    const dimensionFields = ["width", "length", "gussetWidth"];
+    const structureFields = ["hasReferenceStructure", "structureType", "doyPackBase", "gussetType", "coreMaterial", "coreDiameter", "externalDiameter", "maxRollWeight"];
+    const commercialFields = ["estimatedVolume", "unitOfMeasure", "incoterm", "targetPrice", "currencyType"];
+    const customerDataFields = ["technicalApplication", "customerPackingCode", "customerAdditionalInfo", "additionalComment"];
+
+    // Check if field is in a locked section
+    if (designFields.includes(field as string) && !canEditDesign) return false;
+    if (dimensionFields.includes(field as string) && !canEditDimensions) return false;
+    if (structureFields.includes(field as string) && !canEditStructure) return false;
+    if (commercialFields.includes(field as string) && !canEditCommercial) return false;
+    if (customerDataFields.includes(field as string) && !canEditAdditionalCustomerData) return false;
+
+    return true;
+  };
+
   const validationErrors = useMemo(() => {
     const errors: Partial<Record<keyof ProjectEditFormData, string>> = {};
 
     requiredFields.forEach((field) => {
+      // Skip validation for fields that shouldn't be editable in modified projects
+      if (!shouldValidateField(field)) {
+        return;
+      }
+
       // Skip doyPackBase if it's not POUCH Stand Up Doy Pack
       if (field === "doyPackBase") {
         if (
@@ -1948,31 +1972,33 @@ export default function ProjectEditPage() {
       }
     };
 
-    // Validar ancho si tiene restricción
+    // Validar ancho si tiene restricción y es editable
     const widthRestriction = dimensionRestrictions.width;
-    if (widthRestriction) {
+    if (widthRestriction && canEditDimensions) {
       validateDimensionRange("width", "Ancho", widthRestriction);
     }
 
-    // Validar largo/repetición si tiene restricción
+    // Validar largo/repetición si tiene restricción y es editable
     const lengthRestriction = dimensionRestrictions.length;
-    if (lengthRestriction) {
+    if (lengthRestriction && canEditDimensions) {
       const isLamina = isLaminaWrapping(inheritedWrapping);
       validateDimensionRange("length", isLamina ? "Repetición / Largo" : "Largo", lengthRestriction);
     }
 
-    // Validar ancho fuelle si tiene restricción
+    // Validar ancho fuelle si tiene restricción y es editable
     const gussetRestriction = dimensionRestrictions.gussetWidth;
-    if (gussetRestriction) {
+    if (gussetRestriction && canEditDimensions) {
       validateDimensionRange("gussetWidth", "Ancho Fuelle", gussetRestriction);
     }
 
-    if (form.hasEdagReference === "Sí" && !hasIllustratorFile(form.designPlanFiles)) {
-      errors.designPlanFiles = "Debe cargar al menos un archivo de Illustrator (.ai).";
-    }
+    if (canEditDesign) {
+      if (form.hasEdagReference === "Sí" && !hasIllustratorFile(form.designPlanFiles)) {
+        errors.designPlanFiles = "Debe cargar al menos un archivo de Illustrator (.ai).";
+      }
 
-    if (form.hasDesignPlan === "Sí" && (!form.designPlanFiles || form.designPlanFiles.length === 0)) {
-      errors.designPlanFiles = "Debe cargar al menos un plano de diseño.";
+      if (form.hasDesignPlan === "Sí" && (!form.designPlanFiles || form.designPlanFiles.length === 0)) {
+        errors.designPlanFiles = "Debe cargar al menos un plano de diseño.";
+      }
     }
 
     if (form.licitacion === "Sí") {
@@ -2856,6 +2882,64 @@ export default function ProjectEditPage() {
                   </div>
                 </FormCard>
 
+                {isModifiedProject && originalProject?.approvedProductSnapshot && (
+                  <div className="rounded-xl border-2 border-orange-200 bg-orange-50 p-5">
+                    <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-orange-900">
+                      <span>⚠️</span>
+                      Producto Aprobado Base (Proyecto Modificado)
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <PreviewRow
+                        label="SKU"
+                        value={originalProject.approvedProductSnapshot.sku}
+                      />
+                      <PreviewRow
+                        label="Versión"
+                        value={originalProject.approvedProductSnapshot.version}
+                      />
+                      <PreviewRow
+                        label="Producto"
+                        value={originalProject.approvedProductSnapshot.productName}
+                      />
+                      <PreviewRow
+                        label="Cliente"
+                        value={originalProject.approvedProductSnapshot.clientName}
+                      />
+                      <PreviewRow
+                        label="Envoltura"
+                        value={originalProject.approvedProductSnapshot.envoltura}
+                      />
+                      <PreviewRow
+                        label="Formato de Plano"
+                        value={originalProject.approvedProductSnapshot.formatoPlano}
+                      />
+                      <PreviewRow
+                        label="Tipo de Estructura"
+                        value={originalProject.approvedProductSnapshot.structureType}
+                      />
+                      <PreviewRow
+                        label="Materiales"
+                        value={originalProject.approvedProductSnapshot.materialDescription || "—"}
+                      />
+                      <PreviewRow
+                        label="Dimensiones"
+                        value={
+                          originalProject.approvedProductSnapshot.width || originalProject.approvedProductSnapshot.length
+                            ? `${originalProject.approvedProductSnapshot.width || "—"} × ${originalProject.approvedProductSnapshot.length || "—"} × ${originalProject.approvedProductSnapshot.gussetWidth || "—"} mm`
+                            : "—"
+                        }
+                      />
+                      <PreviewRow
+                        label="Motivo de Modificación"
+                        value={motivoModificacion || "—"}
+                      />
+                    </div>
+                    <p className="mt-4 text-xs text-orange-700">
+                      Este producto es la base para crear el nuevo proyecto modificado. Solo podrás editar las secciones permitidas según el motivo seleccionado.
+                    </p>
+                  </div>
+                )}
+
                 <FormCard title="Datos adicionales del cliente" icon="📌" color="#e67e22">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <FormSelect
@@ -2869,6 +2953,7 @@ export default function ProjectEditPage() {
                       error={getError("technicalApplication")}
                       placeholder="-- Seleccione --"
                       options={TECHNICAL_APPLICATION_OPTIONS}
+                      disabled={!canEditAdditionalCustomerData}
                     />
 
                     <FormInput
@@ -2876,6 +2961,7 @@ export default function ProjectEditPage() {
                       value={form.customerPackingCode}
                       onChange={(value) => updateField("customerPackingCode", value)}
                       placeholder="Ej. COD-CLI-001"
+                      disabled={!canEditAdditionalCustomerData}
                     />
 
                     <div className="md:col-span-2">
@@ -2886,6 +2972,7 @@ export default function ProjectEditPage() {
                         onBlur={() => markFieldAsTouched("customerAdditionalInfo")}
                         error={getError("customerAdditionalInfo")}
                         placeholder="Información adicional proporcionada por el cliente..."
+                        disabled={!canEditAdditionalCustomerData}
                       />
                     </div>
                     <div className="md:col-span-3">
@@ -2896,6 +2983,7 @@ export default function ProjectEditPage() {
                         onBlur={() => markFieldAsTouched("additionalComment")}
                         error={getError("additionalComment")}
                         placeholder="Comentarios adicionales..."
+                        disabled={!canEditAdditionalCustomerData}
                       />
                     </div>
                   </div>
@@ -3987,6 +4075,7 @@ export default function ProjectEditPage() {
                       onBlur={() => markFieldAsTouched("estimatedVolume")}
                       error={getError("estimatedVolume")}
                       placeholder="Ej. 500"
+                      disabled={!canEditCommercial}
                     />
 
                     <FormSelect
@@ -3997,6 +4086,7 @@ export default function ProjectEditPage() {
                       error={getError("unitOfMeasure")}
                       options={UNIT_OPTIONS}
                       placeholder="-- Seleccione --"
+                      disabled={!canEditCommercial}
                     />
 
                     <FormSelect
@@ -4005,6 +4095,7 @@ export default function ProjectEditPage() {
                       onChange={(value) => updateField("incoterm", value)}
                       options={INCOTERM_OPTIONS}
                       placeholder="-- Seleccione --"
+                      disabled={!canEditCommercial}
                     />
 
                     <FormInput
@@ -4012,6 +4103,7 @@ export default function ProjectEditPage() {
                       value={form.targetPrice}
                       onChange={(value) => updateField("targetPrice", value)}
                       placeholder="Ej. 45"
+                      disabled={!canEditCommercial}
                     />
 
                     <FormSelect
@@ -4024,6 +4116,7 @@ export default function ProjectEditPage() {
                         { value: "EUR", label: "EUR" },
                       ]}
                       placeholder="-- Seleccione --"
+                      disabled={!canEditCommercial}
                     />
                   </div>
                 </FormCard>

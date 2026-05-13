@@ -119,6 +119,15 @@ export type ProjectPreliminaryProductRecord = {
   updatedAt: string;
   createdBy?: string;
 
+  // Trazabilidad de Productos Modificados
+  sourceProjectClassification?: "Nuevo" | "Modificado";
+  approvedProductId?: string;
+  approvedProductSku?: string;
+  approvedProductVersion?: string;
+  approvedProductName?: string;
+  motivoModificacion?: string;
+  baseApprovedProductSnapshot?: any;
+
   // === COMPATIBILIDAD LEGACY (serán removidos en PASO 6-7) ===
   // Aliases de campo para componentes antiguos
   productName?: string; // alias de 'name'
@@ -275,6 +284,15 @@ export function createBasePreliminaryProduct(
     printTypeLocked: true,
     layersLocked: true,
 
+    // Trazabilidad si es proyecto modificado
+    sourceProjectClassification: project.classification,
+    approvedProductId: project.approvedProductId,
+    approvedProductSku: project.approvedProductCode || project.approvedProductSku,
+    approvedProductVersion: project.approvedProductVersion,
+    approvedProductName: project.approvedProductName,
+    motivoModificacion: project.motivoModificacion || project.modificationReason,
+    baseApprovedProductSnapshot: project.approvedProductSnapshot,
+
     createdAt: now,
     updatedAt: now,
   };
@@ -410,6 +428,15 @@ export function createVariationFromProduct(
     formatLocked: true,
     printTypeLocked: true,
     layersLocked: true,
+
+    // Heredar trazabilidad de producto modificado si aplica
+    sourceProjectClassification: baseProduct.sourceProjectClassification,
+    approvedProductId: baseProduct.approvedProductId,
+    approvedProductSku: baseProduct.approvedProductSku,
+    approvedProductVersion: baseProduct.approvedProductVersion,
+    approvedProductName: baseProduct.approvedProductName,
+    motivoModificacion: baseProduct.motivoModificacion,
+    baseApprovedProductSnapshot: baseProduct.baseApprovedProductSnapshot,
 
     createdAt: now,
     updatedAt: now,
