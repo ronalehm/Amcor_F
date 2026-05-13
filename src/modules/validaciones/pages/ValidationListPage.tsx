@@ -17,6 +17,10 @@ export default function ValidationListPage() {
     setHeader({
       title: "Bandeja de Validaciones",
       subtitle: "Proyectos pendientes de validación por áreas",
+      breadcrumbs: [
+        { label: "Validaciones" },
+        { label: "Bandeja de Validaciones" },
+      ],
     });
     return () => resetHeader();
   }, [setHeader, resetHeader]);

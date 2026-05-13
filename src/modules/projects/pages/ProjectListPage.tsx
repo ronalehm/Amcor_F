@@ -38,13 +38,14 @@ type SortKey =
   | "projectName"
   | "clientName"
   | "portfolio"
+  | "classification"
   | "status"
   | "stage"
   | "responsibleArea"
+  | "currentAction"
   | "sla"
   | "openObs"
-  | "createdAt"
-  | "createdBy";
+  | "updatedAt";
 
 const PROJECT_STATUSES: ProjectStatus[] = [
   "Registrado",
@@ -117,6 +118,31 @@ const getSlaRemainingLabel = (sla: any) => {
   return `Vencido hace ${Math.abs(days)} días`;
 };
 
+const getCurrentActionLabel = (project: any): string => {
+  const status = project.status;
+  const area = project.responsibleArea;
+
+  if (status === "Registrado") return "Completar ficha";
+  if (status === "En Preparación") return "Completar información";
+  if (status === "Ficha Completa") return "Solicitar validación";
+
+  if (status === "En validación") {
+    if (area?.includes("Artes")) return "Pendiente Artes Gráficas";
+    if (area?.includes("R&D Desarrollo")) return "Pendiente R&D Desarrollo";
+    if (area?.includes("R&D Técnica") || area?.includes("R&D Área Técnica")) {
+      return "Pendiente R&D Área Técnica";
+    }
+    return "Pendiente validación";
+  }
+
+  if (status === "Observado") return "Corregir observaciones";
+  if (status === "Validado") return "Listo para producto preliminar";
+  if (status === "En Cotización") return "Cotización en curso";
+  if (status === "Cotización Completa") return "Cotización completa";
+  if (status === "Aprobado por Cliente") return "Listo para siguiente etapa";
+
+  return "—";
+};
 
 const getSortValue = (project: any, key: SortKey): string | number => {
   switch (key) {
@@ -132,6 +158,9 @@ const getSortValue = (project: any, key: SortKey): string | number => {
     case "portfolio":
       return getText(project.portfolioCode, project.portfolioName).toLowerCase();
 
+    case "classification":
+      return getText(project.classification).toLowerCase();
+
     case "status":
       return getText(project.status).toLowerCase();
 
@@ -141,6 +170,9 @@ const getSortValue = (project: any, key: SortKey): string | number => {
     case "responsibleArea":
       return getText(project.responsibleArea).toLowerCase();
 
+    case "currentAction":
+      return getText(project.currentAction).toLowerCase();
+
     case "sla":
       return typeof project.slaDaysRemaining === "number"
         ? project.slaDaysRemaining
@@ -149,27 +181,20 @@ const getSortValue = (project: any, key: SortKey): string | number => {
     case "openObs":
       return Number(project.openObs || 0);
 
-    case "createdAt": {
+    case "updatedAt": {
       const dateValue = getText(
+        project.updatedAtLabel,
+        project.updatedAt,
+        project.updatedDate,
+        project.lastUpdatedAt,
         project.createdAt,
-        project.createdDate,
-        project.fechaCreacion,
-        project.fecha_creacion
+        project.createdDate
       );
 
       const time = new Date(dateValue).getTime();
 
       return Number.isNaN(time) ? 0 : time;
     }
-
-    case "createdBy":
-      return getText(
-        project.createdByName,
-        project.createdBy,
-        project.userName,
-        project.username,
-        project.usuario
-      ).toLowerCase();
 
     default:
       return "";
@@ -188,7 +213,7 @@ export default function ProjectListPage() {
     key: SortKey;
     direction: SortDirection;
   }>({
-    key: "createdAt",
+    key: "updatedAt",
     direction: "desc",
   });
 
@@ -264,6 +289,48 @@ export default function ProjectListPage() {
 
       const stageName = PROJECT_STAGE_LABELS[normalizedProject.stage];
       const responsibleArea = getResponsibleAreaForProject(normalizedProject);
+      const classification = getText(
+        project.classification,
+        (project as any).clasificacion
+      );
+      const complejidad = getText(
+        project.complejidad,
+        (project as any).complexity
+      );
+      const wrappingName = getText(
+        project.envoltura,
+        project.wrappingName,
+        (project as any).wrapping
+      );
+      const blueprintFormat = getText(
+        project.blueprintFormat,
+        (project as any).formatoPlano,
+        (project as any).format
+      );
+
+      const updatedAtLabel = formatDate(
+        project.updatedAt,
+        (project as any).lastUpdatedAt,
+        (project as any).updatedDate,
+        (project as any).lastUpdatedDate,
+        project.createdAt,
+        (project as any).createdDate,
+        (project as any).fechaCreacion,
+        (project as any).fecha_creacion
+      );
+
+      const updatedByLabel =
+        getText(
+          (project as any).updatedBy,
+          (project as any).lastUpdatedBy,
+          (project as any).updatedByName,
+          (project as any).lastUpdatedByName,
+          (project as any).createdByName,
+          (project as any).createdBy,
+          (project as any).userName,
+          (project as any).username,
+          (project as any).usuario
+        ) || "—";
 
       return {
         ...normalizedProject,
@@ -272,14 +339,21 @@ export default function ProjectListPage() {
         clientNameLabel: getText(project.clientName, (project as any).cli),
         portfolioCodeLabel: portfolioCode,
         portfolioNameLabel: portfolioName,
+        classification,
+        complejidad,
+        wrappingName,
+        blueprintFormat,
         stageName,
         responsibleArea,
+        currentAction: getCurrentActionLabel(normalizedProject),
         activeSla,
         slaStatus,
         slaDaysRemaining,
         isSlaOverdue,
         isSlaDueSoon,
         openObs,
+        updatedAtLabel,
+        updatedByLabel,
         createdAtLabel: formatDate(
           project.createdAt,
           (project as any).createdDate,
@@ -362,7 +436,7 @@ export default function ProjectListPage() {
   const clearFilters = () => {
     setQuery("");
     setActiveTab("all");
-    setSortConfig({ key: "createdAt", direction: "desc" });
+    setSortConfig({ key: "updatedAt", direction: "desc" });
     setCurrentPage(1);
   };
 
@@ -377,7 +451,7 @@ export default function ProjectListPage() {
 
       return {
         key,
-        direction: key === "createdAt" ? "desc" : "asc",
+        direction: key === "updatedAt" ? "desc" : "asc",
       };
     });
   };
@@ -589,13 +663,14 @@ export default function ProjectListPage() {
                 <SortableHeader label="Proyecto" sortKey="projectName" />
                 <SortableHeader label="Cliente" sortKey="clientName" />
                 <SortableHeader label="Portafolio" sortKey="portfolio" />
-                <SortableHeader label="Estado Proyecto" sortKey="status" />
+                <SortableHeader label="Tipo / Complejidad" sortKey="classification" />
+                <SortableHeader label="Estado" sortKey="status" />
                 <SortableHeader label="Etapa Actual" sortKey="stage" />
-                <SortableHeader label="Área Resp." sortKey="responsibleArea" />
+                <SortableHeader label="Área Responsable" sortKey="responsibleArea" />
+                <SortableHeader label="Validación / Acción Actual" sortKey="currentAction" />
                 <SortableHeader label="SLA" sortKey="sla" />
                 <SortableHeader label="Obs." sortKey="openObs" />
-                <SortableHeader label="Fecha creación" sortKey="createdAt" />
-                <SortableHeader label="Usuario" sortKey="createdBy" />
+                <SortableHeader label="Última Actualización" sortKey="updatedAt" />
 
                 <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
                   Acciones
@@ -617,18 +692,16 @@ export default function ProjectListPage() {
 
                   <td className="px-4 py-3 text-sm">
                     <div className="font-bold text-slate-800">
-                      {item.projectNameLabel || "—"}
+                      {item.projectNameLabel || "Proyecto sin nombre"}
                     </div>
 
                     <div className="mt-0.5 text-xs text-slate-500">
-                      {getText(item.envoltura, item.wrappingName) || "Sin envoltura"} ·{" "}
-                      {getText(item.maquinaCliente, item.packingMachineName) ||
-                        "Sin máquina"}
+                      {item.wrappingName || "Sin envoltura"} · {item.blueprintFormat || "Sin formato"}
                     </div>
                   </td>
 
                   <td className="px-4 py-3 text-sm font-medium text-slate-700">
-                    {item.clientNameLabel || "Cliente no asignado"}
+                    {item.clientNameLabel || "—"}
                   </td>
 
                   <td className="px-4 py-3 text-sm text-slate-600">
@@ -641,19 +714,34 @@ export default function ProjectListPage() {
                     </div>
                   </td>
 
+                  <td className="px-4 py-3 text-sm text-slate-700">
+                    <span className="text-xs font-medium text-slate-600">
+                      {item.classification || "—"} · {item.complejidad || "—"}
+                    </span>
+                  </td>
+
                   <td className="px-4 py-3 text-sm">
                     <ProjectStatusBadge status={item.status} />
                   </td>
 
-                  <td className="px-4 py-3 text-sm">
-                    <div className="font-bold text-brand-primary">
-                      {item.stageName}
+                  <td className="px-4 py-3 text-sm text-slate-700">
+                    <div className="font-semibold text-brand-primary text-xs">
+                      {item.stageName?.split(/\s+/)[0] || "—"}
+                    </div>
+                    <div className="mt-0.5 text-xs text-slate-500">
+                      {item.stageName?.replace(/^[^\s]+\s+/, "") || "—"}
                     </div>
                   </td>
 
                   <td className="px-4 py-3 text-sm">
-                    <span className="rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
-                      {item.responsibleArea}
+                    <span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
+                      {item.responsibleArea || "—"}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3 text-sm">
+                    <span className="inline-flex items-center rounded-md border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700">
+                      {item.currentAction || "—"}
                     </span>
                   </td>
 
@@ -682,22 +770,23 @@ export default function ProjectListPage() {
                     )}
                   </td>
 
-                  <td className="px-4 py-3 text-sm">
+                  <td className="px-4 py-3 text-sm text-center">
                     {item.openObs > 0 ? (
                       <span className="inline-flex items-center justify-center rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
                         {item.openObs}
                       </span>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-slate-600 font-medium">0</span>
                     )}
                   </td>
 
                   <td className="px-4 py-3 text-sm text-slate-600">
-                    {item.createdAtLabel}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    {item.createdByLabel}
+                    <div className="font-semibold text-slate-700">
+                      {item.updatedAtLabel}
+                    </div>
+                    <div className="mt-0.5 text-xs text-slate-500">
+                      {item.updatedByLabel}
+                    </div>
                   </td>
 
                   <td className="px-4 py-3 text-right text-sm">
@@ -732,7 +821,7 @@ export default function ProjectListPage() {
 
               {filteredProjects.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-6 py-14 text-center">
+                  <td colSpan={13} className="px-6 py-14 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <BriefcaseBusiness size={26} className="text-slate-400" />

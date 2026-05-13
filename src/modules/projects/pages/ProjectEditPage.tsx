@@ -33,6 +33,13 @@ import {
   isLaminaWrapping,
   calculatePouchFormatPlan,
 } from "../../../shared/data/formatPlanRules";
+import {
+  getDimensionRestrictionsByFormat,
+  formatDimensionRange,
+  isDimensionValueInRange,
+  normalizeFormatPlan,
+  type DimensionRange,
+} from "../../../shared/data/dimensionRestrictionRules";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -1465,6 +1472,10 @@ export default function ProjectEditPage() {
     return [];
   }, [form.classification]);
 
+  const dimensionRestrictions = useMemo(() => {
+    return getDimensionRestrictionsByFormat(form.blueprintFormat || "");
+  }, [form.blueprintFormat]);
+
   const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
     const fields = [...BASE_REQUIRED_FIELDS];
     if (form.hasReferenceStructure !== "Sí") {
@@ -1622,6 +1633,42 @@ export default function ProjectEditPage() {
       });
     }
   }, [inheritedWrapping, form.tipoFormatoLamina]);
+
+  // Efecto para auto-completar campos con 0 cuando el rango sea 0 a 0
+  useEffect(() => {
+    setForm((prev) => {
+      let changed = false;
+      const next = { ...prev };
+
+      const widthRestriction = dimensionRestrictions.width;
+      const lengthRestriction = dimensionRestrictions.length;
+      const gussetRestriction = dimensionRestrictions.gussetWidth;
+
+      if (gussetRestriction?.min === 0 && gussetRestriction?.max === 0 && prev.gussetWidth !== "0") {
+        next.gussetWidth = "0";
+        changed = true;
+      }
+
+      if (widthRestriction?.min === 0 && widthRestriction?.max === 0 && prev.width !== "0") {
+        next.width = "0";
+        changed = true;
+      }
+
+      if (lengthRestriction?.min === 0 && lengthRestriction?.max === 0 && prev.length !== "0") {
+        next.length = "0";
+        changed = true;
+      }
+
+      return changed ? next : prev;
+    });
+  }, [
+    dimensionRestrictions.width?.min,
+    dimensionRestrictions.width?.max,
+    dimensionRestrictions.length?.min,
+    dimensionRestrictions.length?.max,
+    dimensionRestrictions.gussetWidth?.min,
+    dimensionRestrictions.gussetWidth?.max,
+  ]);
 
   // Clean up perforation types based on wrapping type and hasPerforation checkbox
   useEffect(() => {
@@ -1833,23 +1880,47 @@ export default function ProjectEditPage() {
       }
     });
 
-    if (shouldApplyPouchDoyPackRestrictions) {
-      const dimensionFields = ["width", "length", "gussetWidth"] as const;
+    // Validar restricciones de dimensiones por formato de plano
+    const validateDimensionRange = (
+      field: "width" | "length" | "gussetWidth",
+      label: string,
+      range?: DimensionRange
+    ) => {
+      if (!range) return;
 
-      dimensionFields.forEach((field) => {
-        const value = form[field];
-        const restriction = POUCH_DOY_PACK_DIMENSION_RESTRICTIONS[field];
+      const value = form[field];
 
-        if (value && value.trim()) {
-          const parsedValue = parseNumberInput(value);
+      if (!value || String(value).trim() === "") {
+        // El campo ya está validado como requerido en otra parte
+        return;
+      }
 
-          if (parsedValue === null) {
-            errors[field] = `${restriction.label} debe ser un número válido.`;
-          } else if (parsedValue < restriction.min || parsedValue > restriction.max) {
-            errors[field] = `${restriction.label} debe estar entre ${restriction.min} y ${restriction.max} mm.`;
-          }
-        }
-      });
+      const parsedValue = parseNumberInput(value);
+
+      if (parsedValue === null) {
+        errors[field] = `${label} debe ser un número válido.`;
+      } else if (!isDimensionValueInRange(value, range)) {
+        errors[field] = `${label} debe estar entre ${range.min} mm y ${range.max} mm.`;
+      }
+    };
+
+    // Validar ancho si tiene restricción
+    const widthRestriction = dimensionRestrictions.width;
+    if (widthRestriction) {
+      validateDimensionRange("width", "Ancho", widthRestriction);
+    }
+
+    // Validar largo/repetición si tiene restricción
+    const lengthRestriction = dimensionRestrictions.length;
+    if (lengthRestriction) {
+      const isLamina = isLaminaWrapping(inheritedWrapping);
+      validateDimensionRange("length", isLamina ? "Repetición / Largo" : "Largo", lengthRestriction);
+    }
+
+    // Validar ancho fuelle si tiene restricción
+    const gussetRestriction = dimensionRestrictions.gussetWidth;
+    if (gussetRestriction) {
+      validateDimensionRange("gussetWidth", "Ancho Fuelle", gussetRestriction);
     }
 
     if (form.hasEdagReference === "Sí" && !hasIllustratorFile(form.designPlanFiles)) {
@@ -1909,7 +1980,7 @@ export default function ProjectEditPage() {
     }
 
     return errors;
-  }, [form, requiredFields, shouldApplyPouchDoyPackRestrictions, inheritedWrapping, projectCode, shouldShowInternalAccessories, hasPerforation, isPouch, isBolsa]);
+  }, [form, requiredFields, shouldApplyPouchDoyPackRestrictions, inheritedWrapping, projectCode, shouldShowInternalAccessories, hasPerforation, isPouch, isBolsa, dimensionRestrictions]);
 
   const shouldShowFieldError = (field: keyof ProjectEditFormData) => {
     return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
@@ -3477,7 +3548,7 @@ export default function ProjectEditPage() {
                   isOpen={openStructureSections.dimensions}
                   onToggle={() => toggleStructureSection("dimensions")}
                 >
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
                     {(() => {
                       const wrapping = inheritedWrapping?.toLowerCase() || "";
                       const showRepetition = shouldShowRepetitionField(inheritedWrapping, form.blueprintFormat);
@@ -3495,27 +3566,51 @@ export default function ProjectEditPage() {
                         shouldShowWidth = normalizedBlueprintFormat === "TISSUE" || normalizedBlueprintFormat === "GENERICA";
                       }
 
+                      const widthRestriction = dimensionRestrictions.width;
+                      const lengthRestriction = dimensionRestrictions.length;
+                      const gussetRestriction = dimensionRestrictions.gussetWidth;
+
+                      const isWidthDisabled = !widthRestriction || (widthRestriction.min === 0 && widthRestriction.max === 0);
+                      const isLengthDisabled = !lengthRestriction || (lengthRestriction.min === 0 && lengthRestriction.max === 0);
+                      const isGussetDisabled = !gussetRestriction || (gussetRestriction.min === 0 && gussetRestriction.max === 0);
+
                       return (
                         <>
                           {shouldShowWidth && (
-                            <FormInput
-                              label="Ancho *"
-                              value={form.width}
-                              onChange={(value) => updateField("width", value)}
-                              onBlur={() => markFieldAsTouched("width")}
-                              error={getError("width")}
-                              placeholder={shouldApplyPouchDoyPackRestrictions ? "80 - 230 mm" : "mm"}
-                            />
+                            <div>
+                              <FormInput
+                                label="Ancho *"
+                                value={form.width}
+                                onChange={(value) => updateField("width", value)}
+                                onBlur={() => markFieldAsTouched("width")}
+                                error={getError("width")}
+                                placeholder={widthRestriction ? `${widthRestriction.min} - ${widthRestriction.max} mm` : "mm"}
+                                disabled={isWidthDisabled}
+                              />
+                              {widthRestriction && (
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {formatDimensionRange(widthRestriction)}
+                                </p>
+                              )}
+                            </div>
                           )}
                           {!isLaminaFood && (
-                            <FormInput
-                              label="Largo *"
-                              value={form.length}
-                              onChange={(value) => updateField("length", value)}
-                              onBlur={() => markFieldAsTouched("length")}
-                              error={getError("length")}
-                              placeholder={shouldApplyPouchDoyPackRestrictions ? "134 - 340 mm" : "mm"}
-                            />
+                            <div>
+                              <FormInput
+                                label={isLamina ? "Repetición / Largo *" : "Largo *"}
+                                value={form.length}
+                                onChange={(value) => updateField("length", value)}
+                                onBlur={() => markFieldAsTouched("length")}
+                                error={getError("length")}
+                                placeholder={lengthRestriction ? `${lengthRestriction.min} - ${lengthRestriction.max} mm` : "mm"}
+                                disabled={isLengthDisabled}
+                              />
+                              {lengthRestriction && (
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {formatDimensionRange(lengthRestriction)}
+                                </p>
+                              )}
+                            </div>
                           )}
                           {showRepetition && (
                             <FormInput
@@ -3528,14 +3623,22 @@ export default function ProjectEditPage() {
                             />
                           )}
                           {!isLaminaFood && (
-                            <FormInput
-                              label="Ancho Fuelle *"
-                              value={form.gussetWidth}
-                              onChange={(value) => updateField("gussetWidth", value)}
-                              onBlur={() => markFieldAsTouched("gussetWidth")}
-                              error={getError("gussetWidth")}
-                              placeholder={shouldApplyPouchDoyPackRestrictions ? "0 - 3 mm" : "mm"}
-                            />
+                            <div>
+                              <FormInput
+                                label="Ancho Fuelle *"
+                                value={form.gussetWidth}
+                                onChange={(value) => updateField("gussetWidth", value)}
+                                onBlur={() => markFieldAsTouched("gussetWidth")}
+                                error={getError("gussetWidth")}
+                                placeholder={gussetRestriction ? `${gussetRestriction.min} - ${gussetRestriction.max} mm` : "mm"}
+                                disabled={isGussetDisabled}
+                              />
+                              {gussetRestriction && (
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {formatDimensionRange(gussetRestriction)}
+                                </p>
+                              )}
+                            </div>
                           )}
                         </>
                       );

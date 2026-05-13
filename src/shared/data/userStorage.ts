@@ -267,9 +267,15 @@ function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
 }
 
-function normalizeUser(user: User): User {
+function normalizeUser(user: any): User {
+  const password =
+    user.password ||
+    user["Revisión manual"] ||
+    DEFAULT_DEMO_PASSWORD;
+
   return {
     ...user,
+    password,
     email: normalizeEmail(user.email),
     fullName: user.fullName || `${user.firstName} ${user.lastName}`.trim(),
   };
@@ -346,9 +352,21 @@ export function authenticateUser(
   email: string,
   password: string
 ): UserPublic | null {
-  const user = getUserByEmail(email);
+  const normalizedEmail = normalizeEmail(email);
+  const user = getAllUsers().find(
+    (u) => normalizeEmail(u.email) === normalizedEmail
+  );
 
-  if (!user || user.password !== password) {
+  if (!user) {
+    return null;
+  }
+
+  const storedPassword =
+    (user as any).password ||
+    (user as any)["Revisión manual"] ||
+    DEFAULT_DEMO_PASSWORD;
+
+  if (storedPassword !== password) {
     return null;
   }
 
@@ -356,7 +374,12 @@ export function authenticateUser(
     return null;
   }
 
-  const updatedUser = { ...user, lastLoginAt: new Date().toISOString() };
+  const updatedUser = {
+    ...user,
+    password: storedPassword,
+    lastLoginAt: new Date().toISOString(),
+  };
+
   saveUserRecord(updatedUser);
 
   const { password: _, ...publicUser } = updatedUser;
