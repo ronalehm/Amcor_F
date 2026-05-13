@@ -1,6 +1,9 @@
 import { useState, useMemo } from "react";
 import type { ProjectRecord } from "../../../shared/data/projectStorage";
-import { PROJECT_STAGE_LABELS, normalizeProjectWorkflow } from "../../../shared/data/projectWorkflow";
+import {
+  normalizeProjectWorkflow,
+  PROJECT_STAGE_LABELS,
+} from "../../../shared/data/projectWorkflow";
 import FormCard from "../../../shared/components/forms/FormCard";
 
 type ViewMode = "visible" | "internal";
@@ -45,7 +48,7 @@ export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps)
     if (!status) return "bg-gray-100 text-gray-800";
     if (status === "Sin solicitar" || status === "No solicitado")
       return "bg-gray-100 text-gray-800";
-    if (status === "Pendiente" || status === "En revisión" || status === "Revisión manual")
+    if (status === "En Revisión")
       return "bg-yellow-100 text-yellow-800";
     if (status === "Validado" || status === "Aprobado automático")
       return "bg-green-100 text-green-800";

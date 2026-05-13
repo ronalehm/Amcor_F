@@ -72,6 +72,7 @@ export default function ProjectInitialCreateModal({
   const [motivoModificacion, setMotivoModificacion] = useState("");
   const [licitacion, setLicitacion] = useState<"Sí" | "No">("No");
   const [numeroItemsLicitacion, setNumeroItemsLicitacion] = useState("");
+  const [projectName, setProjectName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showApprovedProductDropdown, setShowApprovedProductDropdown] = useState(false);
 
@@ -90,6 +91,7 @@ export default function ProjectInitialCreateModal({
       setMotivoModificacion("");
       setLicitacion("No");
       setNumeroItemsLicitacion("");
+      setProjectName("");
       setErrors({});
       setShowApprovedProductDropdown(false);
     }
@@ -143,6 +145,11 @@ useEffect(() => {
 
   const handleCreate = () => {
     const newErrors: Record<string, string> = {};
+    const normalizedProjectName = projectName.trim();
+
+    if (!normalizedProjectName) {
+      newErrors.projectName = "Ingresa el nombre del proyecto.";
+    }
 
     if (!portfolioCode || !portfolio) {
       newErrors.portfolioCode = "Selecciona un portafolio base.";
@@ -185,7 +192,7 @@ useEffect(() => {
       return;
     }
 
-    const project = createProjectFromPortfolio({
+    const createdProject = createProjectFromPortfolio({
       portfolio: portfolio!,
       initialData: {
         clasificacion,
@@ -206,12 +213,25 @@ useEffect(() => {
             : "",
         licitacion: clasificacion === "Nuevo" ? licitacion : "No",
         numeroItemsLicitacion: clasificacion === "Nuevo" && licitacion === "Sí" ? Number(numeroItemsLicitacion) : null,
+        projectName: normalizedProjectName,
       },
       createdBy: currentUser?.id,
     });
 
+    // Save "Nuevo" badge indicator to localStorage
+    const RECENT_NEW_PROJECT_KEY = "odiseo_recent_new_project";
+    localStorage.setItem(RECENT_NEW_PROJECT_KEY, JSON.stringify({
+      projectId: createdProject.code || createdProject.id,
+      expiresAt: Date.now() + 25000,
+    }));
+
+    // Dispara custom event para notificar que se creó un nuevo proyecto
+    window.dispatchEvent(new CustomEvent("newProjectCreated", {
+      detail: { projectId: createdProject.code || createdProject.id }
+    }));
+
     onClose();
-    navigate(`/projects/${project.code}/edit`);
+    navigate("/projects");
   };
 
   return (
@@ -256,6 +276,29 @@ useEffect(() => {
                   )}
                 </div>
               )}
+
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                  Nombre del Proyecto *
+                </label>
+
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(event) => {
+                    setProjectName(event.target.value);
+                    setErrors((prev) => ({ ...prev, projectName: "" }));
+                  }}
+                  placeholder="Ej. Doypack Mayonesa 250 ml"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                />
+
+                {errors.projectName && (
+                  <span className="block mt-1 text-xs font-normal text-red-600">
+                    {errors.projectName}
+                  </span>
+                )}
+              </div>
 
               {portfolioCode && (
                 <FormSelect
@@ -545,7 +588,7 @@ useEffect(() => {
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button variant="primary" onClick={handleCreate} disabled={!portfolio}>
+          <Button variant="primary" onClick={handleCreate} disabled={!portfolio || !projectName.trim()}>
             Crear Proyecto
           </Button>
         </div>

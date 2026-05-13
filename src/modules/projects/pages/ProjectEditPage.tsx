@@ -849,9 +849,6 @@ const isFieldEmpty = (value: unknown) => {
   return value === undefined || value === null || String(value).trim() === "";
 };
 
-function hasIllustratorFile(files: string[]): boolean {
-  return files.some((file) => file.toLowerCase().endsWith(".ai"));
-}
 
 function shouldShowRepetitionField(wrapping: string, blueprintFormat: string): boolean {
   const normalizedWrapping = normalizeWrappingName(wrapping);
@@ -1568,7 +1565,62 @@ export default function ProjectEditPage() {
       fields.push("doyPackBase", "gussetType");
     }
 
-    if (form.hasEdagReference === "Sí") {
+    // BOLSA fields - all required when BOLSA wrapping is selected
+    if (isBolsaWrapping(inheritedWrapping)) {
+      fields.push("tipoPresentacionBolsa");
+
+      // Fields dependent on tipoPresentacionBolsa
+      if (form.tipoPresentacionBolsa === "Bolsa sellada") {
+        fields.push("tipoSelloBolsa", "tieneFuelleBolsa");
+      }
+
+      // Fields dependent on tipoSelloBolsa
+      if (form.tipoSelloBolsa === "Sello lateral") {
+        fields.push("acabadoBolsa");
+      }
+
+      // Fields dependent on tieneFuelleBolsa
+      if (form.tieneFuelleBolsa === "Sí") {
+        fields.push("tipoFuelleBolsa");
+      }
+    }
+
+    // POUCH fields - all required when POUCH wrapping is selected
+    if (isPouchWrapping(inheritedWrapping)) {
+      fields.push("tipoFamiliaPouch");
+
+      // Fields dependent on tipoFamiliaPouch
+      if (form.tipoFamiliaPouch === "Pouch Stand Up") {
+        fields.push("tipoStandUpPouch");
+      }
+
+      if (form.tipoFamiliaPouch === "Pouch Stand Up" && form.tipoStandUpPouch === "Doy Pack") {
+        fields.push("formaDoyPackPouch");
+      }
+
+      if (form.tipoFamiliaPouch === "Pouch Stand Up" && form.tipoStandUpPouch === "Stand Up con Fuelle") {
+        fields.push("tipoFuelleStandUpPouch");
+      }
+
+      if (form.tipoFamiliaPouch === "Pouch Plano") {
+        fields.push("cantidadSellosPouchPlano");
+      }
+
+      if (form.tipoFamiliaPouch === "Pouch con Sello Central") {
+        fields.push("tieneFuelleSelloCentralPouch", "materialSelloCentralPouch");
+      }
+
+      if (form.tipoFamiliaPouch === "Pouch con Sello en Fuelle") {
+        fields.push("tipoSelloEnFuellePouch");
+      }
+    }
+
+    // LÁMINA fields
+    if (isLaminaWrapping(inheritedWrapping)) {
+      fields.push("tipoFormatoLamina");
+    }
+
+    if (form.hasDesignPlan === "Sí") {
       fields.push("designPlanFiles");
     }
 
@@ -1590,8 +1642,17 @@ export default function ProjectEditPage() {
     activeLayerCount,
     projectTypeOptions,
     shouldApplyPouchDoyPackRestrictions,
-    form.hasEdagReference,
+    form.hasDesignPlan,
     form.hasCustomerTechnicalSpec,
+    form.tipoPresentacionBolsa,
+    form.tipoSelloBolsa,
+    form.tieneFuelleBolsa,
+    form.tipoFamiliaPouch,
+    form.tipoStandUpPouch,
+    form.formaDoyPackPouch,
+    form.cantidadSellosPouchPlano,
+    form.tieneFuelleSelloCentralPouch,
+    form.tipoSelloEnFuellePouch,
   ]);
   const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -1992,10 +2053,6 @@ export default function ProjectEditPage() {
     }
 
     if (canEditDesign) {
-      if (form.hasEdagReference === "Sí" && !hasIllustratorFile(form.designPlanFiles)) {
-        errors.designPlanFiles = "Debe cargar al menos un archivo de Illustrator (.ai).";
-      }
-
       if (form.hasDesignPlan === "Sí" && (!form.designPlanFiles || form.designPlanFiles.length === 0)) {
         errors.designPlanFiles = "Debe cargar al menos un plano de diseño.";
       }
@@ -2235,6 +2292,16 @@ export default function ProjectEditPage() {
       .toUpperCase();
     const shouldClearWidthForFood = isLaminaFormat && normalizedBlueprintFormat === "FOOD";
 
+    const hasModifications = hasUnsavedChanges(initialFormStateRef.current, form);
+    const wasValidated = originalProject?.status === "Validado";
+    const needsRevalidation = wasValidated && hasModifications;
+
+    if (needsRevalidation) {
+      if (!window.confirm("Al guardar estos cambios el proyecto requerirá una nueva validación (cambio de versión de línea base). ¿Desea continuar?")) {
+        return;
+      }
+    }
+
     updateProjectRecord(projectCode, {
       id: projectCode,
       code: projectCode,
@@ -2402,13 +2469,16 @@ export default function ProjectEditPage() {
       numeroItemsLicitacion: form.licitacion === "Sí" ? Number(form.numeroItemsLicitacion) : null,
       designPlanFiles: form.designPlanFiles,
 
-      status: nextStatus,
-      stage: nextStage,
+      status: needsRevalidation ? (nextStatus === "Validado" ? "Ficha Completa" : nextStatus) : nextStatus,
+      stage: needsRevalidation ? (nextStage === "P3_GESTION_PRODUCTOS_PRELIMINARES" ? "P1_FICHA_PROYECTO" : nextStage) : nextStage,
       completionPercentage: nextCompletionPercentage,
       hasStartedExtendedFicha: nextStatus !== "Registrado",
-      statusUpdatedAt: originalProject?.status !== nextStatus ? now : originalProject?.statusUpdatedAt,
-      stageUpdatedAt: now,
+      statusUpdatedAt: (originalProject?.status !== nextStatus || needsRevalidation) ? now : originalProject?.statusUpdatedAt,
+      stageUpdatedAt: needsRevalidation ? now : now,
       updatedAt: now,
+
+      requiresRevalidation: needsRevalidation ? true : originalProject?.requiresRevalidation,
+      baselineInvalidatedAt: needsRevalidation ? now : originalProject?.baselineInvalidatedAt,
     } as unknown as ProjectRecord);
 
     setShowCancelConfirmModal(false);
@@ -2433,8 +2503,18 @@ export default function ProjectEditPage() {
     // User either has no errors or clicked "Guardar avance"
     allowIncompleteSaveRef.current = false;
 
+    const hasModifications = hasUnsavedChanges(initialFormStateRef.current, form);
+    const wasValidated = originalProject?.status === "Validado";
+    const needsRevalidation = wasValidated && hasModifications;
+
     const shouldSubmitForValidation =
       isProjectCompleteForValidation && !shouldForceSaveAsDraft;
+
+    if (needsRevalidation && !shouldSubmitForValidation) {
+      if (!window.confirm("Al guardar estos cambios el proyecto requerirá una nueva validación (cambio de versión de línea base). ¿Desea continuar?")) {
+        return;
+      }
+    }
 
     const now = new Date().toISOString();
 
@@ -2652,15 +2732,24 @@ export default function ProjectEditPage() {
         validacionSolicitada: true,
         estadoValidacionGeneral: "En validación",
         fechaSolicitudValidacion: now,
+        validationRequestedAt: now,
+        requiresRevalidation: false,
+        baselineInvalidatedAt: undefined,
         ...(requiresManualAG ? {
-          graphicArtsValidationStatus: "Revisión manual",
+          graphicArtsValidationStatus: "En Revisión",
           currentValidationStep: "Artes Gráficas",
         } : {
           graphicArtsValidationStatus: "Aprobado automático",
           technicalSubArea: resolveTechnicalSubAreaByProjectType(form.projectType),
           currentValidationStep: resolveTechnicalSubAreaByProjectType(form.projectType),
-          technicalValidationStatus: resolveTechnicalSubAreaByProjectType(form.projectType) ? "Pendiente" : "Sin solicitar",
+          technicalValidationStatus: resolveTechnicalSubAreaByProjectType(form.projectType) ? "En Revisión" : "Sin solicitar",
         }),
+      }),
+      ...(!shouldSubmitForValidation && needsRevalidation && {
+        requiresRevalidation: true,
+        baselineInvalidatedAt: now,
+        status: calculatedStatus === "Validado" ? "Ficha Completa" : calculatedStatus,
+        stage: "P1_PREPARACION_FICHA_PROYECTO",
       }),
     } as unknown as ProjectRecord);
 
@@ -2668,6 +2757,12 @@ export default function ProjectEditPage() {
       // Close the missing fields modal after saving draft
       setShowMissingFieldsModal(false);
     } else if (shouldSubmitForValidation) {
+      // Save validation request to localStorage for UI badge
+      const RECENT_NEW_VALIDATION_KEY = "odiseo_recent_new_validation";
+      localStorage.setItem(RECENT_NEW_VALIDATION_KEY, JSON.stringify({
+        projectId: projectCode,
+        expiresAt: Date.now() + 25000,
+      }));
       // Show validation success modal when submitting for validation
       setShowValidationSuccessModal(true);
     } else {
@@ -3442,7 +3537,12 @@ export default function ProjectEditPage() {
                   <FormSelect
                     label="¿Tiene plano de diseño? *"
                     value={form.hasDesignPlan}
-                    onChange={(value) => updateField("hasDesignPlan", value)}
+                    onChange={(value) => {
+                      updateField("hasDesignPlan", value);
+                      if (value === "No") {
+                        updateField("designPlanFiles", []);
+                      }
+                    }}
                     onBlur={() => markFieldAsTouched("hasDesignPlan")}
                     error={getError("hasDesignPlan")}
                     placeholder="-- Seleccione --"
@@ -3453,7 +3553,7 @@ export default function ProjectEditPage() {
                 <ProjectPlansUploadSection
                   projectCode={projectCode}
                   error={getError("designPlanFiles")}
-                  required={form.hasEdagReference === "Sí"}
+                  required={form.hasDesignPlan === "Sí"}
                   onFilesChange={(fileNames) => {
                     updateField("designPlanFiles", fileNames);
                     markFieldAsTouched("designPlanFiles");

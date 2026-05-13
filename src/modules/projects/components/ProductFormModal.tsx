@@ -7,7 +7,6 @@ import {
   saveProjectProduct,
 } from "../../../shared/data/projectProductStorage";
 import type { ProjectRecord } from "../../../shared/data/projectStorage";
-import type { PreliminaryProductType } from "../../../shared/data/projectWorkflow";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
@@ -22,6 +21,7 @@ interface ProductFormModalProps {
   onCancel: () => void;
 }
 
+type PreliminaryProductType = "Base" | "Variación";
 type FormData = Partial<ProjectProductRecord>;
 
 export default function ProductFormModal({

@@ -20,6 +20,9 @@ import {
 import { getClientCatalogRecords, getClientByCode, canClientHavePortfolio } from "../../../shared/data/clientStorage";
 import { getCommercialExecutives } from "../../../shared/data/userStorage";
 import { savePortfolioRecord } from "../../../shared/data/portfolioStorage";
+
+const RECENT_NEW_PORTFOLIO_KEY = "odiseo_recent_new_portfolio";
+
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
 import FinalUseSelector from "../../../shared/components/catalog/FinalUseSelector";
 import FinalUseCatalogModal from "../../../shared/components/catalog/FinalUseCatalogModal";
@@ -448,6 +451,12 @@ export default function PortfolioCreatePage() {
       displayRecord: portfolioDisplayRecord,
       tabportRecord,
     });
+
+    // Store recent new portfolio indicator for 10 seconds
+    localStorage.setItem(RECENT_NEW_PORTFOLIO_KEY, JSON.stringify({
+      portfolioId: form.codigo,
+      expiresAt: Date.now() + 25000,
+    }));
 
     navigate("/portfolio");
   };

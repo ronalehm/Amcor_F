@@ -7,7 +7,7 @@ import type {
   TechnicalSubArea,
   CurrentValidationStep,
 } from "./projectWorkflow";
-import { resolveProjectStage } from "./projectWorkflow";
+import { resolveProjectStage, normalizeProjectWorkflow } from "./projectWorkflow";
 
 const PROJECTS_STORAGE_KEY = "odiseo_created_projects";
 const PROJECT_STATUS_HISTORY_KEY = "odiseo_project_status_history";
@@ -119,6 +119,13 @@ export type ProjectRecord = {
   hasBasePreliminaryProduct?: boolean;
   basePreliminaryProductId?: string;
   preliminaryProductIds?: string[];
+
+  // Versionamiento y Línea Base
+  baselineVersion?: number;
+  lastBaselineValidatedAt?: string;
+  baselineInvalidatedAt?: string;
+  baselineInvalidationReason?: string;
+  requiresRevalidation?: boolean;
 
   // Datos heredados del portafolio
   plantaId?: number;
@@ -325,6 +332,7 @@ export type ProjectRecord = {
   // Workflow v2: Timestamps de transición (continuación)
   statusUpdatedAt?: string;
   stageUpdatedAt?: string;
+  validationRequestedAt?: string;
   quoteStartedAt?: string;
   quoteCompletedAt?: string;
   clientApprovedAt?: string;
@@ -524,6 +532,12 @@ function normalizeProjectRecord(record: ProjectRecord): ProjectRecord {
     basePreliminaryProductId: record.basePreliminaryProductId,
     preliminaryProductIds: record.preliminaryProductIds,
     productSummaryStatus: record.productSummaryStatus,
+
+    baselineVersion: record.baselineVersion,
+    lastBaselineValidatedAt: record.lastBaselineValidatedAt,
+    baselineInvalidatedAt: record.baselineInvalidatedAt,
+    baselineInvalidationReason: record.baselineInvalidationReason,
+    requiresRevalidation: record.requiresRevalidation,
 
     createdAt: record.createdAt || now,
     updatedAt: record.updatedAt || now,
@@ -803,61 +817,7 @@ function normalizeValidationAreaName(value: any): string | null {
   return raw || null;
 }
 
-/**
- * Normaliza los campos de workflow v2 de un proyecto
- * Asegura que todos los campos requeridos tengan valores por defecto
- */
-function normalizeProjectWorkflow(project: ProjectRecord): ProjectRecord {
-  const status = project.status || "Registrado";
-  const stage = project.stage || resolveProjectStage(status as any);
 
-  // Normalizar nombres de áreas
-  const currentValidationStep = normalizeValidationAreaName(
-    project.currentValidationStep
-  ) as any;
-  const technicalSubArea = normalizeValidationAreaName(
-    project.technicalSubArea
-  ) as any;
-
-  let graphicArtsValidationStatus =
-    project.graphicArtsValidationStatus || "Sin solicitar";
-  let technicalValidationStatus =
-    project.technicalValidationStatus || "Sin solicitar";
-
-  // Normalizar estados de validación para proyectos "En validación"
-  if (status === "En validación") {
-    // Si está en Artes Gráficas y el estado es "Sin solicitar", cambiar a "Revisión manual"
-    if (
-      currentValidationStep === "Artes Gráficas" &&
-      (!graphicArtsValidationStatus || graphicArtsValidationStatus === "Sin solicitar")
-    ) {
-      graphicArtsValidationStatus = "Revisión manual";
-    }
-
-    // Si está en R&D Técnica o R&D Desarrollo y el estado es vacío o "Sin solicitar", cambiar a "Pendiente"
-    if (
-      (currentValidationStep === "R&D Técnica" || currentValidationStep === "R&D Desarrollo") &&
-      (!technicalValidationStatus || technicalValidationStatus === "Sin solicitar")
-    ) {
-      technicalValidationStatus = "Pendiente";
-    }
-  }
-
-  return {
-    ...project,
-    status,
-    stage: stage as ProjectStage,
-    completionPercentage: project.completionPercentage ?? 0,
-    graphicArtsValidationStatus,
-    technicalValidationStatus,
-    currentValidationStep: currentValidationStep ?? null,
-    technicalSubArea: technicalSubArea ?? undefined,
-    validationRound: project.validationRound ?? 0,
-    hasBasePreliminaryProduct: project.hasBasePreliminaryProduct ?? false,
-    basePreliminaryProductId: project.basePreliminaryProductId,
-    preliminaryProductIds: project.preliminaryProductIds ?? [],
-  };
-}
 
 export function getProjectByCode(
   code: string
@@ -1020,6 +980,43 @@ export function updateProjectStatus(
   });
 }
 
+export function invalidateProjectBaseline(
+  code: string,
+  reason: string,
+  changedBy: string = "Sistema"
+) {
+  const project = getProjectByCode(code);
+  if (!project) return;
+
+  const newStatus = "En Preparación";
+  const nextStage = inferPortalStage(newStatus);
+
+  updateProjectRecord(code, {
+    ...project,
+    status: newStatus,
+    stage: "P1_FICHA_PROYECTO",
+    currentPortalStage: nextStage,
+    graphicArtsValidationStatus: "Sin solicitar",
+    technicalValidationStatus: "Sin solicitar",
+    currentValidationStep: null,
+    validacionSolicitada: false,
+    estadoValidacionGeneral: "Sin solicitar",
+    requiresRevalidation: true,
+    baselineInvalidatedAt: new Date().toISOString(),
+    baselineInvalidationReason: reason,
+  });
+
+  addProjectStatusHistory({
+    projectCode: code,
+    fromStatus: project.status,
+    toStatus: newStatus,
+    fromStage: project.currentPortalStage,
+    toStage: nextStage,
+    changedBy,
+    comment: "Invalidación de línea base: " + reason,
+  });
+}
+
 export function updateProjectSiExternalStatus(
   code: string,
   siExternalStatus: SiExternalStatus,
@@ -1084,6 +1081,7 @@ export function createProjectFromPortfolio(params: {
     motivoModificacion?: string;
     licitacion: "Sí" | "No";
     numeroItemsLicitacion?: number | null;
+    projectName?: string;
   };
   createdBy?: string;
 }): ProjectRecord {
@@ -1130,11 +1128,11 @@ export function createProjectFromPortfolio(params: {
     modificationReason: params.initialData.motivoModificacion || "",
     licitacion: params.initialData.licitacion,
     numeroItemsLicitacion: params.initialData.licitacion === "Sí" ? params.initialData.numeroItemsLicitacion || null : null,
-    projectName: "", // To be filled in the full form
+    projectName: params.initialData.projectName || "",
     projectDescription: "",
 
     status: "Registrado",
-    stage: "P1_PREPARACION_FICHA_PROYECTO",
+    stage: "P1_FICHA_PROYECTO",
     completionPercentage: 0,
 
     requiereValidacion: true,

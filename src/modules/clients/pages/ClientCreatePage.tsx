@@ -19,6 +19,7 @@ import FormActionButtons from "../../../shared/components/forms/FormActionButton
 import SystemIntegrationClientSearch from "../../../shared/components/forms/SystemIntegrationClientSearch";
 import ClientDuplicateHandler from "../../../shared/components/forms/ClientDuplicateHandler";
 
+const RECENT_NEW_CLIENT_KEY = "odiseo_recent_new_client";
 const INDUSTRIES = ["Distribución", "Manufactura", "Consumo masivo", "Cuidado personal", "Alimentos y bebidas", "Retail"];
 
 interface FormState {
@@ -307,6 +308,13 @@ export default function ClientCreatePage() {
         ? "Cliente enlazado con el sistema integral"
         : "Cliente creado exitosamente y se solicitó la validación de Tesorería";
       setSuccessMessage(successMsg);
+
+      // Store recent new client indicator for 10 seconds
+      localStorage.setItem(RECENT_NEW_CLIENT_KEY, JSON.stringify({
+        clientId: newClient.code || newClient.id,
+        expiresAt: Date.now() + 25000,
+      }));
+
       setTimeout(() => navigate("/clients"), 2000);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

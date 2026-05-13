@@ -27,6 +27,7 @@ import {
 } from "../../../shared/data/userStorage";
 
 import ActionButton from "../../../shared/components/buttons/ActionButton";
+import { tableStyles } from "../../../shared/ui/tableStyles";
 
 type UserTab = "all" | UserStatus;
 
@@ -331,7 +332,7 @@ export default function UserListPage() {
     sortKey: SortKey;
     align?: "left" | "right";
   }) => (
-    <th className="px-4 py-3 text-xs font-bold uppercase tracking-wide">
+    <th className={align === "right" ? tableStyles.headerCellRight : tableStyles.headerCell}>
       <button
         type="button"
         onClick={() => requestSort(sortKey)}
@@ -598,11 +599,11 @@ export default function UserListPage() {
         </div>
       </section>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px] border-collapse text-sm">
+      <div className={tableStyles.wrapper}>
+        <div className={tableStyles.scroll}>
+          <table className={tableStyles.table}>
             <thead>
-              <tr className="bg-brand-primary text-white">
+              <tr className={tableStyles.headerRow}>
                 <SortableHeader label="Código" sortKey="code" />
                 <SortableHeader label="Usuario" sortKey="fullName" />
                 <SortableHeader label="Email" sortKey="email" />
@@ -611,41 +612,39 @@ export default function UserListPage() {
                 <SortableHeader label="Estado" sortKey="status" />
                 <SortableHeader label="Último acceso" sortKey="lastLoginAt" />
 
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
+                <th className={tableStyles.headerCellRight}>
                   Acciones
                 </th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {paginatedUsers.map((user, index) => {
                 return (
                   <tr
                     key={user.id}
-                    className={`transition-colors hover:bg-brand-secondary-soft ${
-                      index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
-                    }`}
+                    className={`${tableStyles.row} ${index % 2 === 0 ? tableStyles.rowEven : tableStyles.rowOdd}`}
                   >
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">
+                    <td className={tableStyles.cellCode}>
                       {user.code || "—"}
                     </td>
 
-                    <td className="px-4 py-3 text-sm">
-                      <div className="font-bold text-slate-800">
+                    <td className={tableStyles.cellStrong}>
+                      <div>
                         {getUserFullName(user)}
                       </div>
 
-                      <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
-                        <Mail size={12} />
+                      <div className={tableStyles.subText}>
+                        <Mail size={12} className="inline mr-1" />
                         {user.phone || "Sin teléfono"}
                       </div>
                     </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    <td className={tableStyles.cell}>
                       {user.email || "—"}
                     </td>
 
-                    <td className="px-4 py-3 text-sm">
+                    <td className={tableStyles.cell}>
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${
                           ROLE_COLORS[user.role] || "bg-slate-100 text-slate-700"
@@ -656,11 +655,11 @@ export default function UserListPage() {
                       </span>
                     </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    <td className={tableStyles.cell}>
                       {user.area || "—"}
                     </td>
 
-                    <td className="px-4 py-3 text-sm">
+                    <td className={tableStyles.cell}>
                       <span
                         className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[user.status]}`}
                       >
@@ -668,12 +667,11 @@ export default function UserListPage() {
                       </span>
                     </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    <td className={tableStyles.cell}>
                       {getLastLoginLabel(user)}
                     </td>
 
-                    <td className="px-4 py-3 text-right text-sm">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className={tableStyles.actions}>
                         <ActionButton
                           label="Ver"
                           size="sm"
@@ -687,7 +685,6 @@ export default function UserListPage() {
                           size="sm"
                           onClick={() => navigate(`/users/${user.id}/edit`)}
                         />
-                      </div>
                     </td>
                   </tr>
                 );
@@ -695,7 +692,7 @@ export default function UserListPage() {
 
               {filteredUsers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-14 text-center">
+                  <td colSpan={8} className={tableStyles.emptyCell}>
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <UserCog size={26} className="text-slate-400" />

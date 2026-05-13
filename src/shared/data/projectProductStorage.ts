@@ -114,6 +114,10 @@ export type ProjectPreliminaryProductRecord = {
   clientApprovedAt?: string;
   quoteRequestedAt?: string;
 
+  // Desestimación
+  destimarReason?: string;
+  destimarAt?: string;
+
   // Auditoría
   createdAt: string;
   updatedAt: string;
@@ -127,6 +131,7 @@ export type ProjectPreliminaryProductRecord = {
   approvedProductName?: string;
   motivoModificacion?: string;
   baseApprovedProductSnapshot?: any;
+  sourceBaselineVersion?: number;
 
   // === COMPATIBILIDAD LEGACY (serán removidos en PASO 6-7) ===
   // Aliases de campo para componentes antiguos
@@ -292,6 +297,7 @@ export function createBasePreliminaryProduct(
     approvedProductName: project.approvedProductName,
     motivoModificacion: project.motivoModificacion || project.modificationReason,
     baseApprovedProductSnapshot: project.approvedProductSnapshot,
+    sourceBaselineVersion: project.baselineVersion,
 
     createdAt: now,
     updatedAt: now,
@@ -437,6 +443,7 @@ export function createVariationFromProduct(
     approvedProductName: baseProduct.approvedProductName,
     motivoModificacion: baseProduct.motivoModificacion,
     baseApprovedProductSnapshot: baseProduct.baseApprovedProductSnapshot,
+    sourceBaselineVersion: baseProduct.sourceBaselineVersion,
 
     createdAt: now,
     updatedAt: now,
@@ -581,6 +588,8 @@ export function destimarPreliminaryProduct(
   return savePreliminaryProduct({
     ...product,
     status: "Desestimado",
+    destimarReason: reason,
+    destimarAt: new Date().toISOString(),
   });
 }
 
@@ -679,8 +688,10 @@ export function toggleProductSelectedForQuote(
 export function getProductStatusMeaning(status: PreliminaryProductStatus): string {
   const meanings: Record<PreliminaryProductStatus, string> = {
     Registrado: "Producto registrado en el proyecto",
+    "Listo para cotizar": "Listo para ser incluido en solicitud de cotización",
     "En Cotización": "Incluido en solicitud de cotización",
-    Aprobado: "Aprobado por cliente",
+    Cotizado: "Cotización recibida",
+    "Aprobado por Cliente": "Aprobado por cliente",
     Desestimado: "Desestimado",
     Alta: "Dado de alta en el sistema",
   };

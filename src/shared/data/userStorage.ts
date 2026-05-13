@@ -268,10 +268,7 @@ function normalizeEmail(email: string): string {
 }
 
 function normalizeUser(user: any): User {
-  const password =
-    user.password ||
-    user["Revisión manual"] ||
-    DEFAULT_DEMO_PASSWORD;
+  const password = user.password || DEFAULT_DEMO_PASSWORD;
 
   return {
     ...user,
@@ -361,10 +358,7 @@ export function authenticateUser(
     return null;
   }
 
-  const storedPassword =
-    (user as any).password ||
-    (user as any)["Revisión manual"] ||
-    DEFAULT_DEMO_PASSWORD;
+  const storedPassword = (user as any).password || DEFAULT_DEMO_PASSWORD;
 
   if (storedPassword !== password) {
     return null;

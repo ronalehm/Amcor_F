@@ -12,10 +12,12 @@
 
 export type PreliminaryProductStatus =
   | "Registrado"
+  | "Listo para cotizar"
   | "En Cotización"
-  | "Aprobado"
-  | "Desestimado"
-  | "Alta";
+  | "Cotizado"
+  | "Aprobado por Cliente"
+  | "Alta"
+  | "Desestimado";
 
 export type PreliminaryProductType = "Base" | "Variación";
 
@@ -47,8 +49,14 @@ export function normalizePreliminaryProductStatus(
   if (status.includes("registr")) return "Registrado";
   if (status.includes("generado") || status.includes("variación generada"))
     return "Registrado";
-  if (status.includes("cotización")) return "En Cotización";
-  if (status.includes("aprobado")) return "Aprobado";
+  if (status.includes("listo") && status.includes("cotizar"))
+    return "Listo para cotizar";
+  if (status.includes("en cotización") || status.includes("cotizando"))
+    return "En Cotización";
+  if (status.includes("cotizado")) return "Cotizado";
+  if (status.includes("aprobado") && status.includes("cliente"))
+    return "Aprobado por Cliente";
+  if (status.includes("aprobado")) return "Aprobado por Cliente"; // Migration from old "Aprobado"
   if (status.includes("alta") || status.includes("dado de alta"))
     return "Alta";
   if (status.includes("desestim")) return "Desestimado";
@@ -68,7 +76,7 @@ export function canCreateVariation(
   isBaseProduct?: boolean
 ): boolean {
   if (isBaseProduct) return true;
-  return productStatus === "Aprobado" || productStatus === "Alta";
+  return productStatus === "Aprobado por Cliente" || productStatus === "Alta";
 }
 
 /**
@@ -118,8 +126,8 @@ export function computeProjectProductSummaryStatus(
   const hasBase = products.some((p) => p.isBaseProduct);
   const hasVariations = products.some((p) => p.isDerived);
   const hasDesestimados = products.some((p) => p.status === "Desestimado");
-  const inQuote = products.some((p) => p.status === "En Cotización");
-  const approved = products.filter((p) => p.status === "Aprobado");
+  const inQuote = products.some((p) => p.status === "En Cotización" || p.status === "Cotizado");
+  const approved = products.filter((p) => p.status === "Aprobado por Cliente");
   const alta = products.filter((p) => p.status === "Alta");
   const activeProducts = products.filter((p) => p.status !== "Desestimado");
 
@@ -164,6 +172,9 @@ export function getActionsForProductStatus(
     case "Registrado":
       return ["editar", "seleccionar-cotizacion", "crear-variacion", "desestimar"];
 
+    case "Listo para cotizar":
+      return ["editar", "enviar-cotizacion", "crear-variacion", "desestimar"];
+
     case "En Cotización":
       return [
         "editar",
@@ -172,7 +183,10 @@ export function getActionsForProductStatus(
         "desestimar",
       ];
 
-    case "Aprobado":
+    case "Cotizado":
+      return ["crear-variacion", "marcar-aprobado", "desestimar"];
+
+    case "Aprobado por Cliente":
       return ["crear-variacion", "marcar-alta", "desestimar"];
 
     case "Alta":
@@ -299,7 +313,7 @@ export function canSendProductsToQuote(
     }
 
     const notReady = activeProducts.filter(
-      (product) => product.status !== "Registrado"
+      (product) => product.status !== "Registrado" && product.status !== "Listo para cotizar"
     );
 
     if (notReady.length > 0) {
@@ -332,7 +346,7 @@ export function canSendProductsToQuote(
   }
 
   const notReadySelected = selectedProducts.filter(
-    (product) => product.status !== "Registrado"
+    (product) => product.status !== "Registrado" && product.status !== "Listo para cotizar"
   );
 
   if (notReadySelected.length > 0) {

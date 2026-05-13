@@ -16,10 +16,13 @@ import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
 import { getProjectRecords } from "../../../shared/data/projectStorage";
 import ActionButton from "../../../shared/components/buttons/ActionButton";
+import { tableStyles } from "../../../shared/ui/tableStyles";
 
 type PortfolioTab = "all" | "active" | "inactive";
 type SortDirection = "asc" | "desc";
 type SortKey = "codigo" | "nombre" | "clientName" | "planta" | "envoltura" | "maquinaCliente" | "proyectos" | "updatedAt" | "updatedBy";
+
+const RECENT_NEW_PORTFOLIO_KEY = "odiseo_recent_new_portfolio";
 
 const getText = (...values: any[]) => {
   const value = values.find(
@@ -144,6 +147,7 @@ export default function PortfolioListPage() {
     key: "updatedAt",
     direction: "desc",
   });
+  const [recentNewPortfolioId, setRecentNewPortfolioId] = useState<string | null>(null);
 
   useEffect(() => {
     setHeader({
@@ -153,6 +157,26 @@ export default function PortfolioListPage() {
 
     return () => resetHeader();
   }, [setHeader, resetHeader]);
+
+  useEffect(() => {
+    const raw = localStorage.getItem(RECENT_NEW_PORTFOLIO_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as { portfolioId?: string; expiresAt?: number };
+      if (!parsed.portfolioId || !parsed.expiresAt || Date.now() > parsed.expiresAt) {
+        localStorage.removeItem(RECENT_NEW_PORTFOLIO_KEY);
+        return;
+      }
+      setRecentNewPortfolioId(parsed.portfolioId);
+      const timer = window.setTimeout(() => {
+        setRecentNewPortfolioId(null);
+        localStorage.removeItem(RECENT_NEW_PORTFOLIO_KEY);
+      }, parsed.expiresAt - Date.now());
+      return () => window.clearTimeout(timer);
+    } catch {
+      localStorage.removeItem(RECENT_NEW_PORTFOLIO_KEY);
+    }
+  }, []);
 
   const portfolios = useMemo(() => {
     const records = getPortfolioDisplayRecords();
@@ -290,7 +314,7 @@ export default function PortfolioListPage() {
     sortKey: SortKey;
     align?: "left" | "right";
   }) => (
-    <th className="px-4 py-3 text-xs font-bold uppercase tracking-wide">
+    <th className={align === "right" ? tableStyles.headerCellRight : tableStyles.headerCell}>
       <button
         type="button"
         onClick={() => requestSort(sortKey)}
@@ -303,6 +327,9 @@ export default function PortfolioListPage() {
       </button>
     </th>
   );
+
+  const isRecentNewPortfolio = (portfolio: any) =>
+    Boolean(recentNewPortfolioId && (portfolio.id || portfolio.codigo) === recentNewPortfolioId);
 
   const tabs = [
     {
@@ -454,11 +481,11 @@ export default function PortfolioListPage() {
         </div>
       </section>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] border-collapse text-sm">
+      <div className={tableStyles.wrapper}>
+        <div className={tableStyles.scroll}>
+          <table className={tableStyles.table}>
             <thead>
-              <tr className="bg-brand-primary text-white">
+              <tr className={tableStyles.headerRow}>
                 <SortableHeader label="Código" sortKey="codigo" />
                 <SortableHeader label="Nombre" sortKey="nombre" />
                 <SortableHeader label="Cliente" sortKey="clientName" />
@@ -466,64 +493,69 @@ export default function PortfolioListPage() {
                 <SortableHeader label="Envoltura" sortKey="envoltura" />
                 <SortableHeader label="Envasado / Máquina de Cliente" sortKey="maquinaCliente" />
                 <SortableHeader label="Proyectos" sortKey="proyectos" align="right" />
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wide">
+                <th className={tableStyles.headerCell}>
                   Estado
                 </th>
                 <SortableHeader label="Últ. actualización" sortKey="updatedAt" />
                 <SortableHeader label="Realizado por" sortKey="updatedBy" />
 
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
+                <th className={tableStyles.headerCellRight}>
                   Acciones
                 </th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {paginatedPortfolios.length > 0 ? (
                 paginatedPortfolios.map((portfolio, index) => {
                   const status = getPortfolioStatus(portfolio);
+                  const isNew = isRecentNewPortfolio(portfolio);
                   return (
                     <tr
                       key={portfolio.id}
-                      className={`transition-colors hover:bg-brand-secondary-soft ${
-                        index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
-                      }`}
+                      className={`${tableStyles.row} border-b border-slate-100 transition-colors ${
+                        isNew ? "bg-blue-50/70" : index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
+                      } hover:bg-brand-secondary-soft`}
                     >
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">
+                    <td className={tableStyles.cellCode}>
                       {portfolio.id || "—"}
                     </td>
 
-                    <td className="px-4 py-3 text-sm">
-                      <div className="font-bold text-slate-800">
-                        {(portfolio as any).nom || "—"}
+                    <td className={tableStyles.cellStrong}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">{(portfolio as any).nom || "—"}</span>
+                        {isNew && (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-blue-700 shadow-sm">
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                            Nuevo
+                          </span>
+                        )}
                       </div>
                     </td>
 
-                    <td className="px-4 py-3 text-sm">
-                      <div className="font-semibold text-slate-800">
-                        {(portfolio as any).cli || "—"}
-                      </div>
+                    <td className={tableStyles.cellStrong}>
+                      {(portfolio as any).cli || "—"}
                     </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className={tableStyles.cell}>
                       {getPortfolioPlantName(portfolio)}
                     </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className={tableStyles.cell}>
                       {(portfolio as any).env || "—"}
                     </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className={tableStyles.cell}>
                       {(portfolio as any).maq || "—"}
                     </td>
 
-                    <td className="px-4 py-3 text-sm text-center">
+                    <td className={`${tableStyles.cellRight}`}>
                       <span className={`inline-flex min-w-[2rem] items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold ${(portfolio as any).activeProjectCount > 0 ? 'bg-brand-secondary-soft text-brand-primary' : 'bg-red-50 text-red-600'}`}>
                         {(portfolio as any).activeProjectCount}
                       </span>
                     </td>
 
-                    <td className="px-4 py-3 text-sm">
+                    <td className={tableStyles.cell}>
                       <span
                         className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[status]}`}
                       >
@@ -531,37 +563,35 @@ export default function PortfolioListPage() {
                       </span>
                     </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    <td className={tableStyles.cell}>
                       {formatPortfolioDate(getPortfolioUpdatedAt(portfolio))}
                     </td>
 
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className={tableStyles.cell}>
                       {getPortfolioUpdatedBy(portfolio)}
                     </td>
 
-                    <td className="px-4 py-3 text-right text-sm">
-                      <div className="flex items-center justify-end gap-2">
-                        <ActionButton
-                          label="Ver"
-                          size="sm"
-                          variant="primary"
-                          onClick={() => navigate(`/portfolio/${portfolio.id}`)}
-                        />
+                    <td className={tableStyles.actions}>
+                      <ActionButton
+                        label="Ver"
+                        size="sm"
+                        variant="primary"
+                        onClick={() => navigate(`/portfolio/${portfolio.id}`)}
+                      />
 
-                        <ActionButton
-                          label="Editar"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/portfolio/${portfolio.id}/edit`)}
-                        />
-                      </div>
+                      <ActionButton
+                        label="Editar"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/portfolio/${portfolio.id}/edit`)}
+                      />
                     </td>
                   </tr>
                 );
                 })
               ) : (
                 <tr>
-                  <td colSpan={10} className="px-6 py-14 text-center">
+                  <td colSpan={11} className={tableStyles.emptyCell}>
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <BriefcaseBusiness size={26} className="text-slate-400" />

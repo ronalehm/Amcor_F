@@ -23,10 +23,13 @@ import {
 } from "../../../shared/data/clientStorage";
 
 import ActionButton from "../../../shared/components/buttons/ActionButton";
+import { tableStyles } from "../../../shared/ui/tableStyles";
 
 type ClientTab = "all" | ClientStatus;
 type SortDirection = "asc" | "desc";
 type SortKey = "code" | "businessName" | "email" | "ruc" | "industry" | "status" | "createdAt";
+
+const RECENT_NEW_CLIENT_KEY = "odiseo_recent_new_client";
 
 const getText = (...values: any[]) => {
   const value = values.find(
@@ -72,6 +75,7 @@ export default function ClientListPage() {
     key: "createdAt",
     direction: "desc",
   });
+  const [recentNewClientId, setRecentNewClientId] = useState<string | null>(null);
 
   useEffect(() => {
     setHeader({
@@ -80,6 +84,26 @@ export default function ClientListPage() {
     });
     return () => resetHeader();
   }, [setHeader, resetHeader]);
+
+  useEffect(() => {
+    const raw = localStorage.getItem(RECENT_NEW_CLIENT_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as { clientId?: string; expiresAt?: number };
+      if (!parsed.clientId || !parsed.expiresAt || Date.now() > parsed.expiresAt) {
+        localStorage.removeItem(RECENT_NEW_CLIENT_KEY);
+        return;
+      }
+      setRecentNewClientId(parsed.clientId);
+      const timer = window.setTimeout(() => {
+        setRecentNewClientId(null);
+        localStorage.removeItem(RECENT_NEW_CLIENT_KEY);
+      }, parsed.expiresAt - Date.now());
+      return () => window.clearTimeout(timer);
+    } catch {
+      localStorage.removeItem(RECENT_NEW_CLIENT_KEY);
+    }
+  }, []);
 
   const clients = useMemo(() => getAllClients(), []);
 
@@ -205,7 +229,7 @@ export default function ClientListPage() {
     sortKey: SortKey;
     align?: "left" | "right";
   }) => (
-    <th className="px-4 py-3 text-xs font-bold uppercase tracking-wide">
+    <th className={align === "right" ? tableStyles.headerCellRight : tableStyles.headerCell}>
       <button
         type="button"
         onClick={() => requestSort(sortKey)}
@@ -218,6 +242,9 @@ export default function ClientListPage() {
       </button>
     </th>
   );
+
+  const isRecentNewClient = (client: Client) =>
+    Boolean(recentNewClientId && (client.code || client.id) === recentNewClientId);
 
   const tabs = [
     { key: "all" as ClientTab, label: "Todos", count: clients.length },
@@ -321,44 +348,57 @@ export default function ClientListPage() {
         </div>
       </section>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1200px] border-collapse text-sm">
+      <div className={tableStyles.wrapper}>
+        <div className={tableStyles.scroll}>
+          <table className={tableStyles.table}>
             <thead>
-              <tr className="bg-brand-primary text-white">
+              <tr className={tableStyles.headerRow}>
                 <SortableHeader label="Código" sortKey="code" />
                 <SortableHeader label="Razón Social" sortKey="businessName" />
                 <SortableHeader label="Email" sortKey="email" />
                 <SortableHeader label="RUC" sortKey="ruc" />
                 <SortableHeader label="Rubro" sortKey="industry" />
                 <SortableHeader label="Estado" sortKey="status" />
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">Acciones</th>
+                <th className={tableStyles.headerCellRight}>Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {paginatedClients.map((client, index) => (
-                <tr key={client.id} className={`transition-colors hover:bg-brand-secondary-soft ${index % 2 === 0 ? "bg-white" : "bg-slate-50/70"}`}>
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">{client.code || "�"}</td>
-                  <td className="px-4 py-3 text-sm"><div className="font-bold text-slate-800">{client.businessName}</div></td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{client.email || "�"}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{client.ruc || "�"}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600">{client.industry || "�"}</td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[client.status]}`}>
-                      {STATUS_LABELS[client.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right text-sm">
-                    <div className="flex items-center justify-end gap-2">
+            <tbody>
+              {paginatedClients.map((client, index) => {
+                const isNew = isRecentNewClient(client);
+                return (
+                  <tr key={client.id} className={`${tableStyles.row} border-b border-slate-100 transition-colors ${
+                    isNew ? "bg-blue-50/70" : index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
+                  } hover:bg-brand-secondary-soft`}>
+                    <td className={tableStyles.cellCode}>{client.code || "�"}</td>
+                    <td className={tableStyles.cellStrong}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">{client.businessName}</span>
+                        {isNew && (
+                          <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-blue-700 shadow-sm">
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                            Nuevo
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className={tableStyles.cell}>{client.email || "�"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{client.ruc || "�"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{client.industry || "�"}</td>
+                    <td className={tableStyles.cell}>
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[client.status]}`}>
+                        {STATUS_LABELS[client.status]}
+                      </span>
+                    </td>
+                    <td className={tableStyles.actions}>
                       <ActionButton label="Ver" size="sm" variant="primary" onClick={() => navigate(`/clients/${client.code}`)} />
                       <ActionButton label="Editar" variant="outline" size="sm" onClick={() => navigate(`/clients/${client.code}/edit`)} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
               {filteredClients.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-14 text-center">
+                  <td colSpan={7} className={tableStyles.emptyCell}>
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <Users size={26} className="text-slate-400" />

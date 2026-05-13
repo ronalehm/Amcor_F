@@ -8,6 +8,10 @@ import {
   destimarPreliminaryProduct,
   type ProjectPreliminaryProductRecord,
 } from "../../../shared/data/projectProductStorage";
+import {
+  canCreatePreliminaryProduct,
+  canSendProductsToQuote,
+} from "../../../shared/data/projectProductWorkflow";
 import { updateProjectRecord, type ProjectRecord } from "../../../shared/data/projectStorage";
 import { type PortfolioRecord } from "../../../shared/data/portfolioStorage";
 import { exportProjectQuotationExcel } from "../../../shared/utils/exportProjectQuotationExcel";
@@ -74,13 +78,31 @@ export default function ProjectProductsPanel({
   const handleGenerateBase = () => {
     const baseProduct = createBasePreliminaryProduct(project.code, project);
     savePreliminaryProduct(baseProduct);
+
+    // Update project status to "Productos preliminares" and stage to P3 when first product is created
+    if (products.length === 0) {
+      updateProjectRecord(project.code, {
+        ...project,
+        status: "Productos preliminares",
+        stage: "P3_GESTION_PRODUCTOS_PRELIMINARES",
+      });
+      onProjectUpdated();
+    }
+
     refreshProducts();
   };
 
   const handleExportQuotation = async () => {
-    if (selectedIds.size === 0) return;
+    const validation = canSendProductsToQuote(project, products);
 
-    const selectedProducts = products.filter((p) => selectedIds.has(p.id));
+    if (!validation.allowed) {
+      alert(validation.message);
+      return;
+    }
+
+    const selectedProducts = project.licitacion === "Sí"
+      ? validation.productsToQuote
+      : products.filter((p) => selectedIds.has(p.id));
 
     try {
       // Export to Excel
@@ -109,7 +131,7 @@ export default function ProjectProductsPanel({
         const updatedProject: ProjectRecord = {
           ...project,
           status: "En Cotización",
-          stage: "P3_GESTION_COMERCIAL_PRODUCTOS_PRELIMINARES",
+          stage: "P3_GESTION_PRODUCTOS_PRELIMINARES",
           quoteStartedAt: project.quoteStartedAt || now,
           statusUpdatedAt: now,
         };
@@ -169,7 +191,8 @@ export default function ProjectProductsPanel({
   };
 
   const hasBaseProduct = products.some((p) => p.isBaseProduct);
-  const canGenerateBase = project.status === "Validado" && !hasBaseProduct;
+  const createProductValidation = canCreatePreliminaryProduct(project, products);
+  const canGenerateBase = createProductValidation.allowed && !hasBaseProduct;
 
   return (
     <div className="mt-8">
@@ -328,7 +351,7 @@ export default function ProjectProductsPanel({
                             <Edit2 className="w-3 h-3" />
                           </button>
 
-                          {(product.isBaseProduct || product.status === "Aprobado") && (
+                          {(product.isBaseProduct || product.status === "Aprobado por Cliente") && (
                             <button
                               onClick={() => handleCreateVariation(product)}
                               className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200"

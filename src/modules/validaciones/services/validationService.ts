@@ -8,7 +8,7 @@ import { recordValidationEvent } from "../../../shared/data/validationHistorySto
 
 export type ValidationArea =
   | "Artes Gráficas"
-  | "R&D Técnica"
+  | "R&D Área Técnica"
   | "R&D Desarrollo";
 
 export type ValidationActionResult = {
@@ -40,7 +40,7 @@ function isNoAplica(value: unknown): boolean {
 /**
  * Normaliza el área de validación, aceptando variaciones legacy.
  * Convierte:
- *   "Área Técnica", "Area Técnica", etc. → "R&D Técnica"
+ *   "Área Técnica", "Area Técnica", etc. → "R&D Área Técnica"
  *   "Desarrollo R&D" → "R&D Desarrollo"
  *   "Artes Gráficas" (y variaciones) → "Artes Gráficas"
  */
@@ -57,9 +57,9 @@ function normalizeValidationArea(value: any): ValidationArea {
     return "Artes Gráficas";
   }
 
-  // R&D Técnica variations (legacy: "Área Técnica")
+  // R&D Área Técnica variations (legacy: "Área Técnica")
   if (
-    raw === "R&D Técnica" ||
+    raw === "R&D Área Técnica" ||
     raw === "Área Técnica" ||
     raw === "Area Técnica" ||
     raw === "Area Tecnica" ||
@@ -67,7 +67,7 @@ function normalizeValidationArea(value: any): ValidationArea {
     raw === "Area_Tecnica" ||
     raw === "Área_Técnica"
   ) {
-    return "R&D Técnica";
+    return "R&D Área Técnica";
   }
 
   // R&D Desarrollo variations (legacy: "Desarrollo R&D")
@@ -139,11 +139,11 @@ export function isGraphicArtsApproved(project: ProjectRecord): boolean {
 
 /**
  * Regla oficial:
- * - Área_Técnica => R&D Técnica
+ * - Área_Técnica => R&D Área Técnica
  * - Desarrollo_RD => R&D Desarrollo
  *
  * Importante:
- * No devolver R&D Técnica por defecto.
+ * No devolver R&D Área Técnica por defecto.
  * Si no se puede resolver, devolver null para evitar validar mal el flujo.
  */
 export function resolveTechnicalValidatorBySubclassification(
@@ -157,7 +157,7 @@ export function resolveTechnicalValidatorBySubclassification(
     value === "Área Técnica" ||
     value === "Area Tecnica"
   ) {
-    return "R&D Técnica";
+    return "R&D Área Técnica";
   }
 
   if (
@@ -196,7 +196,7 @@ export function isTechnicalValidationApproved(
 /**
  * El proyecto solo queda Validado cuando:
  * - Artes Gráficas está Validado o Aprobado automático.
- * - R&D Técnica o R&D Desarrollo está Validado.
+ * - R&D Área Técnica o R&D Desarrollo está Validado.
  *
  * R&D NO debe aprobarse automáticamente.
  */
@@ -208,7 +208,7 @@ function assertAssignedTechnicalArea(
   project: ProjectRecord,
   area: ValidationArea
 ): void {
-  if (area !== "R&D Técnica" && area !== "R&D Desarrollo") return;
+  if (area !== "R&D Área Técnica" && area !== "R&D Desarrollo") return;
 
   const assignedArea = project.technicalSubArea || project.currentValidationStep;
 
@@ -236,12 +236,12 @@ function assertAssignedTechnicalArea(
  *
  * 3. Si Artes Gráficas es automática:
  *    - graphicArtsValidationStatus = "Aprobado automático"
- *    - deriva inmediatamente a R&D Técnica o R&D Desarrollo
- *    - technicalValidationStatus = "Pendiente"
+ *    - deriva inmediatamente a R&D Área Técnica o R&D Desarrollo
+ *    - technicalValidationStatus = "En Revisión"
  *
  * Importante:
  * Artes Gráficas automática NO significa Proyecto Validado.
- * R&D siempre queda Pendiente cuando se deriva.
+ * R&D siempre queda En Revisión cuando se deriva.
  */
 export function requestValidation(project: ProjectRecord): ProjectRecord {
   const now = getNow();
@@ -260,7 +260,7 @@ export function requestValidation(project: ProjectRecord): ProjectRecord {
   if (needsGraphicArtsManual) {
     updated = {
       ...updated,
-      graphicArtsValidationStatus: "Revisión manual",
+      graphicArtsValidationStatus: "En Revisión",
       currentValidationStep: "Artes Gráficas" as CurrentValidationStep,
       technicalSubArea: undefined,
       technicalValidationStatus: "Sin solicitar",
@@ -275,7 +275,7 @@ export function requestValidation(project: ProjectRecord): ProjectRecord {
       fromStatus: project.status,
       toStatus: "En validación",
       toValidationStep: "Artes Gráficas",
-      graphicArtsStatus: "Revisión manual",
+      graphicArtsStatus: "En Revisión",
       technicalStatus: "Sin solicitar",
       validationRound: saved.validationRound,
     });
@@ -292,7 +292,7 @@ export function requestValidation(project: ProjectRecord): ProjectRecord {
 
     technicalSubArea: subArea,
     currentValidationStep: subArea,
-    technicalValidationStatus: "Pendiente",
+    technicalValidationStatus: "En Revisión",
 
     status: "En validación",
     stage: resolveProjectStage("En validación"),
@@ -311,7 +311,7 @@ export function requestValidation(project: ProjectRecord): ProjectRecord {
     graphicArtsStatus: "Aprobado automático",
     toValidationStep: subArea,
     technicalSubArea: subArea,
-    technicalStatus: "Pendiente",
+    technicalStatus: "En Revisión",
     isAutomatic: true,
     validationRound: saved.validationRound,
   });
@@ -319,12 +319,12 @@ export function requestValidation(project: ProjectRecord): ProjectRecord {
   recordValidationEvent({
     projectCode: getProjectCode(project),
     timestamp: now,
-    eventType: subArea === "R&D Técnica" ? "derived_to_rnd_tecnica" : "derived_to_rnd_desarrollo",
+    eventType: subArea === "R&D Área Técnica" ? "derived_to_rnd_tecnica" : "derived_to_rnd_desarrollo",
     fromValidationStep: "Artes Gráficas",
     toValidationStep: subArea,
     graphicArtsStatus: "Aprobado automático",
     technicalSubArea: subArea,
-    technicalStatus: "Pendiente",
+    technicalStatus: "En Revisión",
     validationRound: saved.validationRound,
   });
 
@@ -352,7 +352,7 @@ export function startValidationReview(
   if (normalizedArea === "Artes Gráficas") {
     updated = {
       ...updated,
-      graphicArtsValidationStatus: "En revisión",
+      graphicArtsValidationStatus: "En Revisión",
       currentValidationStep: "Artes Gráficas",
     };
 
@@ -364,7 +364,7 @@ export function startValidationReview(
   updated = {
     ...updated,
     technicalSubArea: normalizedArea,
-    technicalValidationStatus: "En revisión",
+    technicalValidationStatus: "En Revisión",
     currentValidationStep: normalizedArea,
   };
 
@@ -380,10 +380,10 @@ export function startValidationReview(
  *
  * 1. Si valida Artes Gráficas:
  *    - NO se valida el proyecto.
- *    - Se deriva a R&D Técnica o R&D Desarrollo.
- *    - technicalValidationStatus queda "Pendiente".
+ *    - Se deriva a R&D Área Técnica o R&D Desarrollo.
+ *    - technicalValidationStatus queda "En Revisión".
  *
- * 2. Si valida R&D Técnica o R&D Desarrollo:
+ * 2. Si valida R&D Área Técnica o R&D Desarrollo:
  *    - Recién ahí el proyecto pasa a "Validado",
  *      siempre que Artes Gráficas ya esté aprobada.
  */
@@ -412,7 +412,7 @@ export function approveValidation(
 
       technicalSubArea: subArea,
       currentValidationStep: subArea,
-      technicalValidationStatus: "Pendiente",
+      technicalValidationStatus: "En Revisión",
 
       status: "En validación",
       stage: resolveProjectStage("En validación"),
@@ -432,25 +432,25 @@ export function approveValidation(
       toValidationStep: subArea,
       graphicArtsStatus: "Validado",
       technicalSubArea: subArea,
-      technicalStatus: "Pendiente",
+      technicalStatus: "En Revisión",
       comment,
     });
 
     recordValidationEvent({
       projectCode: getProjectCode(project),
       timestamp: now,
-      eventType: subArea === "R&D Técnica" ? "derived_to_rnd_tecnica" : "derived_to_rnd_desarrollo",
+      eventType: subArea === "R&D Área Técnica" ? "derived_to_rnd_tecnica" : "derived_to_rnd_desarrollo",
       fromValidationStep: "Artes Gráficas",
       toValidationStep: subArea,
       graphicArtsStatus: "Validado",
       technicalSubArea: subArea,
-      technicalStatus: "Pendiente",
+      technicalStatus: "En Revisión",
     });
 
     return saved;
   }
 
-  if (normalizedArea === "R&D Técnica" || normalizedArea === "R&D Desarrollo") {
+  if (normalizedArea === "R&D Área Técnica" || normalizedArea === "R&D Desarrollo") {
     assertAssignedTechnicalArea(project, normalizedArea);
 
     const graphicArtsOk =
@@ -476,6 +476,9 @@ export function approveValidation(
       statusUpdatedAt: now,
       stageUpdatedAt: now,
       lastValidatedAt: now,
+      baselineVersion: project.baselineVersion ?? 1,
+      lastBaselineValidatedAt: now,
+      requiresRevalidation: false,
     };
 
     const saved = persistProject(updated);
@@ -529,6 +532,11 @@ export function observeValidation(
 
   const now = getNow();
 
+  // Map ValidationArea to lastObservationSource type
+  const observationSource = normalizedArea === "R&D Área Técnica"
+    ? "R&D Técnica"
+    : normalizedArea;
+
   let updated: ProjectRecord = {
     ...project,
     status: "Observado",
@@ -536,7 +544,7 @@ export function observeValidation(
     statusUpdatedAt: now,
     stageUpdatedAt: now,
     updatedAt: now,
-    lastObservationSource: normalizedArea,
+    lastObservationSource: observationSource as "Artes Gráficas" | "R&D Técnica" | "R&D Desarrollo",
     lastObservationComment: trimmedComment,
     lastObservationAt: now,
   };
@@ -566,7 +574,7 @@ export function observeValidation(
     return saved;
   }
 
-  if (normalizedArea === "R&D Técnica" || normalizedArea === "R&D Desarrollo") {
+  if (normalizedArea === "R&D Área Técnica" || normalizedArea === "R&D Desarrollo") {
     assertAssignedTechnicalArea(project, normalizedArea);
 
     updated = {
@@ -673,8 +681,8 @@ export function getValidationAreaForProject(
     return "Artes Gráficas";
   }
 
-  if (project.currentValidationStep === "R&D Técnica") {
-    return "R&D Técnica";
+  if (project.currentValidationStep === "R&D Área Técnica") {
+    return "R&D Área Técnica";
   }
 
   if (project.currentValidationStep === "R&D Desarrollo") {
@@ -682,24 +690,21 @@ export function getValidationAreaForProject(
   }
 
   if (
-    project.graphicArtsValidationStatus === "Revisión manual" ||
-    project.graphicArtsValidationStatus === "En revisión"
+    project.graphicArtsValidationStatus === "En Revisión"
   ) {
     return "Artes Gráficas";
   }
 
   if (
-    project.technicalSubArea === "R&D Técnica" &&
-    (project.technicalValidationStatus === "Pendiente" ||
-      project.technicalValidationStatus === "En revisión")
+    project.technicalSubArea === "R&D Área Técnica" &&
+    project.technicalValidationStatus === "En Revisión"
   ) {
-    return "R&D Técnica";
+    return "R&D Área Técnica";
   }
 
   if (
     project.technicalSubArea === "R&D Desarrollo" &&
-    (project.technicalValidationStatus === "Pendiente" ||
-      project.technicalValidationStatus === "En revisión")
+    project.technicalValidationStatus === "En Revisión"
   ) {
     return "R&D Desarrollo";
   }

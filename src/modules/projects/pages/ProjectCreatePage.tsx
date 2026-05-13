@@ -25,6 +25,8 @@ import PortfolioSearch from "../../../shared/components/forms/PortfolioSearch";
 import CommercialExecutiveMultiSearch from "../../../shared/components/forms/CommercialExecutiveMultiSearch";
 import ProjectDocumentsSection from "../components/ProjectDocumentsSection";
 
+const RECENT_NEW_PROJECT_KEY = "odiseo_recent_new_project";
+
 type ProjectFormData = {
   portfolioCode: string;
   executiveId: string[];
@@ -1201,6 +1203,17 @@ export default function ProjectCreatePage() {
       estadoValidacionGeneral: "Sin solicitar",
       validaciones: [],
     });
+
+    // Store recent new project indicator for 10 seconds
+    localStorage.setItem(RECENT_NEW_PROJECT_KEY, JSON.stringify({
+      projectId: projectCode,
+      expiresAt: Date.now() + 25000,
+    }));
+
+    // Dispara custom event para notificar que se creó un nuevo proyecto
+    window.dispatchEvent(new CustomEvent("newProjectCreated", {
+      detail: { projectId: projectCode }
+    }));
 
     // Redirect to Edit page with optional completion prompt
     navigate(`/projects/${projectCode}/edit`, { replace: true });

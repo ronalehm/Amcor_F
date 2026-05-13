@@ -20,12 +20,11 @@ import { getProjectObservations } from "../../../shared/data/observationStorage"
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
 import {
   normalizeProjectWorkflow,
-  PROJECT_STAGE_LABELS,
   getResponsibleAreaForProject,
+  PROJECT_STAGE_LABELS,
   type ProjectStatus,
 } from "../../../shared/data/projectWorkflow";
 import ProjectStatusBadge from "../../../shared/components/display/ProjectStatusBadge";
-import SlaStatusBadge from "../../../shared/components/sla/SlaStatusBadge";
 import ActionButton from "../../../shared/components/buttons/ActionButton";
 import ProjectInitialCreateModal from "../../../shared/components/modals/ProjectInitialCreateModal";
 
@@ -37,15 +36,15 @@ type SortKey =
   | "code"
   | "projectName"
   | "clientName"
-  | "portfolio"
   | "classification"
   | "status"
   | "stage"
-  | "responsibleArea"
-  | "currentAction"
+  | "responsible"
   | "sla"
-  | "openObs"
+  | "createdAt"
   | "updatedAt";
+
+const RECENT_NEW_PROJECT_KEY = "odiseo_recent_new_project";
 
 const PROJECT_STATUSES: ProjectStatus[] = [
   "Registrado",
@@ -54,9 +53,12 @@ const PROJECT_STATUSES: ProjectStatus[] = [
   "En validación",
   "Observado",
   "Validado",
+  "Productos preliminares",
   "En Cotización",
   "Cotización Completa",
   "Aprobado por Cliente",
+  "Validación Tesorería",
+  "Alta Producto",
   "Desestimado",
 ];
 
@@ -82,6 +84,25 @@ const formatDate = (...values: any[]) => {
     month: "2-digit",
     year: "numeric",
   });
+};
+
+const formatDateTime = (...values: any[]) => {
+  const value = getText(...values);
+
+  if (!value) return "—";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("es-PE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
 };
 
 const getDaysRemaining = (dateValue: any) => {
@@ -127,19 +148,23 @@ const getCurrentActionLabel = (project: any): string => {
   if (status === "Ficha Completa") return "Solicitar validación";
 
   if (status === "En validación") {
-    if (area?.includes("Artes")) return "Pendiente Artes Gráficas";
-    if (area?.includes("R&D Desarrollo")) return "Pendiente R&D Desarrollo";
+    if (area?.includes("Artes")) return "En Revisión Artes Gráficas";
+    if (area?.includes("R&D Desarrollo")) return "En Revisión R&D Desarrollo";
     if (area?.includes("R&D Técnica") || area?.includes("R&D Área Técnica")) {
-      return "Pendiente R&D Área Técnica";
+      return "En Revisión R&D Área Técnica";
     }
-    return "Pendiente validación";
+    return "En Revisión";
   }
 
   if (status === "Observado") return "Corregir observaciones";
-  if (status === "Validado") return "Listo para producto preliminar";
+  if (status === "Validado") return "Crear productos preliminares";
+  if (status === "Productos preliminares") return "Gestionar productos";
   if (status === "En Cotización") return "Cotización en curso";
   if (status === "Cotización Completa") return "Cotización completa";
   if (status === "Aprobado por Cliente") return "Listo para siguiente etapa";
+  if (status === "Validación Tesorería") return "Revisión Tesorería";
+  if (status === "Alta Producto") return "Alta completada";
+  if (status === "Desestimado") return "Proyecto desestimado";
 
   return "—";
 };
@@ -155,9 +180,6 @@ const getSortValue = (project: any, key: SortKey): string | number => {
     case "clientName":
       return getText(project.clientName).toLowerCase();
 
-    case "portfolio":
-      return getText(project.portfolioCode, project.portfolioName).toLowerCase();
-
     case "classification":
       return getText(project.classification).toLowerCase();
 
@@ -165,21 +187,28 @@ const getSortValue = (project: any, key: SortKey): string | number => {
       return getText(project.status).toLowerCase();
 
     case "stage":
-      return getText(project.stageName).toLowerCase();
+      return getText(project.stageName, project.responsibleName).toLowerCase();
 
-    case "responsibleArea":
-      return getText(project.responsibleArea).toLowerCase();
-
-    case "currentAction":
-      return getText(project.currentAction).toLowerCase();
+    case "responsible":
+      return getText(project.responsibleLabel, project.responsibleArea).toLowerCase();
 
     case "sla":
       return typeof project.slaDaysRemaining === "number"
         ? project.slaDaysRemaining
         : 99999;
 
-    case "openObs":
-      return Number(project.openObs || 0);
+    case "createdAt": {
+      const dateValue = getText(
+        project.createdAt,
+        project.createdDate,
+        project.updatedAt,
+        project.updatedDate
+      );
+
+      const time = new Date(dateValue).getTime();
+
+      return Number.isNaN(time) ? 0 : time;
+    }
 
     case "updatedAt": {
       const dateValue = getText(
@@ -213,12 +242,14 @@ export default function ProjectListPage() {
     key: SortKey;
     direction: SortDirection;
   }>({
-    key: "updatedAt",
+    key: "createdAt",
     direction: "desc",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [recentNewProjectId, setRecentNewProjectId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setHeader({
@@ -229,9 +260,72 @@ export default function ProjectListPage() {
     return () => resetHeader();
   }, [setHeader, resetHeader]);
 
-  const projects = useMemo(() => getProjectRecords(), []);
-  const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
-  const observations = useMemo(() => getProjectObservations(), []);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        setRefreshKey((prev) => prev + 1);
+      }
+    };
+
+    const handleFocus = () => {
+      setRefreshKey((prev) => prev + 1);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    const checkRecentProject = () => {
+      const raw = localStorage.getItem(RECENT_NEW_PROJECT_KEY);
+      if (!raw) return;
+
+      try {
+        const parsed = JSON.parse(raw) as { projectId?: string; expiresAt?: number };
+        if (!parsed.projectId || !parsed.expiresAt || Date.now() > parsed.expiresAt) {
+          localStorage.removeItem(RECENT_NEW_PROJECT_KEY);
+          return;
+        }
+
+        // Incrementar refreshKey para forzar re-fetch de proyectos
+        setRefreshKey((prev) => prev + 1);
+        setRecentNewProjectId(parsed.projectId);
+
+        const remainingTime = parsed.expiresAt - Date.now();
+        const timer = window.setTimeout(() => {
+          setRecentNewProjectId(null);
+          localStorage.removeItem(RECENT_NEW_PROJECT_KEY);
+        }, remainingTime);
+
+        return () => window.clearTimeout(timer);
+      } catch {
+        localStorage.removeItem(RECENT_NEW_PROJECT_KEY);
+      }
+    };
+
+    // Ejecutar al montar el componente
+    checkRecentProject();
+
+    // Listener para detectar custom event cuando se crea un nuevo proyecto
+    const handleNewProjectCreated = () => {
+      checkRecentProject();
+    };
+
+    window.addEventListener("newProjectCreated", handleNewProjectCreated);
+    return () => window.removeEventListener("newProjectCreated", handleNewProjectCreated);
+  }, []);
+
+  const isRecentNewProject = (item: any) =>
+    Boolean(recentNewProjectId && (item.code || item.id) === recentNewProjectId);
+
+  const projects = useMemo(() => getProjectRecords(), [refreshKey]);
+  const portfolios = useMemo(() => getPortfolioDisplayRecords(), [refreshKey]);
+  const observations = useMemo(() => getProjectObservations(), [refreshKey]);
 
   const augmentedProjects = useMemo(() => {
     return projects.map((project) => {
@@ -289,6 +383,28 @@ export default function ProjectListPage() {
 
       const stageName = PROJECT_STAGE_LABELS[normalizedProject.stage];
       const responsibleArea = getResponsibleAreaForProject(normalizedProject);
+      const responsibleName =
+        getText(
+          (project as any).responsibleName,
+          (project as any).responsable,
+          (project as any).ownerName,
+          (project as any).assignedToName,
+          (project as any).commercialExecutiveName,
+          (project as any).executiveName,
+          (project as any).ejecutivoComercial
+        ) || "—";
+      const responsibleLabel =
+        getText(
+          responsibleName,
+          (project as any).responsibleName,
+          (project as any).responsable,
+          (project as any).ownerName,
+          (project as any).assignedToName,
+          (project as any).commercialExecutiveName,
+          (project as any).executiveName,
+          (project as any).ejecutivoComercial,
+          responsibleArea
+        ) || "—";
       const classification = getText(
         project.classification,
         (project as any).clasificacion
@@ -308,7 +424,7 @@ export default function ProjectListPage() {
         (project as any).format
       );
 
-      const updatedAtLabel = formatDate(
+      const updatedAtLabel = formatDateTime(
         project.updatedAt,
         (project as any).lastUpdatedAt,
         (project as any).updatedDate,
@@ -345,6 +461,8 @@ export default function ProjectListPage() {
         blueprintFormat,
         stageName,
         responsibleArea,
+        responsibleName,
+        responsibleLabel,
         currentAction: getCurrentActionLabel(normalizedProject),
         activeSla,
         slaStatus,
@@ -419,8 +537,11 @@ export default function ProjectListPage() {
       const valueB = getSortValue(b, sortConfig.key);
 
       let result = 0;
+      const isDateSort = sortConfig.key === "createdAt" || sortConfig.key === "updatedAt";
 
-      if (typeof valueA === "number" && typeof valueB === "number") {
+      if (isDateSort && typeof valueA === "number" && typeof valueB === "number") {
+        result = valueA - valueB;
+      } else if (typeof valueA === "number" && typeof valueB === "number") {
         result = valueA - valueB;
       } else {
         result = String(valueA).localeCompare(String(valueB), "es", {
@@ -436,7 +557,7 @@ export default function ProjectListPage() {
   const clearFilters = () => {
     setQuery("");
     setActiveTab("all");
-    setSortConfig({ key: "updatedAt", direction: "desc" });
+    setSortConfig({ key: "createdAt", direction: "desc" });
     setCurrentPage(1);
   };
 
@@ -451,7 +572,7 @@ export default function ProjectListPage() {
 
       return {
         key,
-        direction: key === "updatedAt" ? "desc" : "asc",
+        direction: (key === "createdAt" || key === "updatedAt") ? "desc" : "asc",
       };
     });
   };
@@ -656,21 +777,17 @@ export default function ProjectListPage() {
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1650px] border-collapse text-sm">
+          <table className="w-full min-w-[1280px] border-collapse text-sm">
             <thead>
               <tr className="bg-brand-primary text-white">
                 <SortableHeader label="Código" sortKey="code" />
                 <SortableHeader label="Proyecto" sortKey="projectName" />
                 <SortableHeader label="Cliente" sortKey="clientName" />
-                <SortableHeader label="Portafolio" sortKey="portfolio" />
-                <SortableHeader label="Tipo / Complejidad" sortKey="classification" />
+                <SortableHeader label="Etapa" sortKey="stage" />
+                <SortableHeader label="Responsable" sortKey="responsible" />
                 <SortableHeader label="Estado" sortKey="status" />
-                <SortableHeader label="Etapa Actual" sortKey="stage" />
-                <SortableHeader label="Área Responsable" sortKey="responsibleArea" />
-                <SortableHeader label="Validación / Acción Actual" sortKey="currentAction" />
                 <SortableHeader label="SLA" sortKey="sla" />
-                <SortableHeader label="Obs." sortKey="openObs" />
-                <SortableHeader label="Última Actualización" sortKey="updatedAt" />
+                <SortableHeader label="Fecha Actualización" sortKey="updatedAt" />
 
                 <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
                   Acciones
@@ -679,11 +796,13 @@ export default function ProjectListPage() {
             </thead>
 
             <tbody>
-              {paginatedProjects.map((item, index) => (
+              {paginatedProjects.map((item, index) => {
+                const isNew = isRecentNewProject(item);
+                return (
                 <tr
                   key={item.code || item.id}
                   className={`border-b border-slate-100 transition-colors ${
-                    index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
+                    isNew ? "bg-blue-50/70" : index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
                   } hover:bg-brand-secondary-soft`}
                 >
                   <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">
@@ -691,12 +810,20 @@ export default function ProjectListPage() {
                   </td>
 
                   <td className="px-4 py-3 text-sm">
-                    <div className="font-bold text-slate-800">
-                      {item.projectNameLabel || "Proyecto sin nombre"}
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-800">
+                        {item.projectNameLabel || "Proyecto sin nombre"}
+                      </span>
+                      {isNew && (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-blue-700 shadow-sm">
+                          <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                          Nuevo
+                        </span>
+                      )}
                     </div>
 
                     <div className="mt-0.5 text-xs text-slate-500">
-                      {item.wrappingName || "Sin envoltura"} · {item.blueprintFormat || "Sin formato"}
+                      {item.classification || "Sin clasificación"}
                     </div>
                   </td>
 
@@ -704,19 +831,15 @@ export default function ProjectListPage() {
                     {item.clientNameLabel || "—"}
                   </td>
 
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    <div className="font-semibold text-slate-700">
-                      {item.portfolioCodeLabel || "—"}
-                    </div>
-
-                    <div className="mt-0.5 max-w-[180px] truncate text-xs text-slate-500">
-                      {item.portfolioNameLabel || "Sin nombre"}
+                  <td className="px-4 py-3 text-sm">
+                    <div className="font-semibold text-slate-800">
+                      {item.stageName || "—"}
                     </div>
                   </td>
 
-                  <td className="px-4 py-3 text-sm text-slate-700">
-                    <span className="text-xs font-medium text-slate-600">
-                      {item.classification || "—"} · {item.complejidad || "—"}
+                  <td className="px-4 py-3 text-sm">
+                    <span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
+                      {item.responsibleArea || "Sin área"}
                     </span>
                   </td>
 
@@ -724,45 +847,20 @@ export default function ProjectListPage() {
                     <ProjectStatusBadge status={item.status} />
                   </td>
 
-                  <td className="px-4 py-3 text-sm text-slate-700">
-                    <div className="font-semibold text-brand-primary text-xs">
-                      {item.stageName?.split(/\s+/)[0] || "—"}
-                    </div>
-                    <div className="mt-0.5 text-xs text-slate-500">
-                      {item.stageName?.replace(/^[^\s]+\s+/, "") || "—"}
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-3 text-sm">
-                    <span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
-                      {item.responsibleArea || "—"}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-3 text-sm">
-                    <span className="inline-flex items-center rounded-md border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700">
-                      {item.currentAction || "—"}
-                    </span>
-                  </td>
-
                   <td className="px-4 py-3 text-sm">
                     {item.activeSla ? (
-                      <div className="flex flex-col items-start gap-1">
-                        <SlaStatusBadge status={item.activeSla.slaStatus} />
-
-                        <span
-                          className={`inline-flex items-center gap-1 text-xs font-semibold ${
-                            item.isSlaOverdue
-                              ? "text-red-600"
-                              : item.isSlaDueSoon
-                              ? "text-amber-600"
-                              : "text-slate-500"
-                          }`}
-                        >
-                          <Clock3 size={12} />
-                          {getSlaRemainingLabel(item.activeSla)}
-                        </span>
-                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1 text-xs font-semibold ${
+                          item.isSlaOverdue
+                            ? "text-red-600"
+                            : item.isSlaDueSoon
+                            ? "text-amber-600"
+                            : "text-slate-600"
+                        }`}
+                      >
+                        <Clock3 size={12} />
+                        {getSlaRemainingLabel(item.activeSla)}
+                      </span>
                     ) : (
                       <span className="text-xs italic text-slate-400">
                         Sin SLA
@@ -770,20 +868,11 @@ export default function ProjectListPage() {
                     )}
                   </td>
 
-                  <td className="px-4 py-3 text-sm text-center">
-                    {item.openObs > 0 ? (
-                      <span className="inline-flex items-center justify-center rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">
-                        {item.openObs}
-                      </span>
-                    ) : (
-                      <span className="text-slate-600 font-medium">0</span>
-                    )}
-                  </td>
-
                   <td className="px-4 py-3 text-sm text-slate-600">
                     <div className="font-semibold text-slate-700">
                       {item.updatedAtLabel}
                     </div>
+
                     <div className="mt-0.5 text-xs text-slate-500">
                       {item.updatedByLabel}
                     </div>
@@ -817,11 +906,12 @@ export default function ProjectListPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
 
               {filteredProjects.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="px-6 py-14 text-center">
+                  <td colSpan={9} className="px-6 py-14 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <BriefcaseBusiness size={26} className="text-slate-400" />

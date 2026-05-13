@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getProjectByCode } from "../../../shared/data/projectStorage";
+import { getResponsibleAreaForProject } from "../../../shared/data/projectWorkflow";
 import { observeProject, approveValidation } from "../services/validationService";
 import type { ProjectRecord } from "../../../shared/data/projectStorage";
 import FormCard from "../../../shared/components/forms/FormCard";
@@ -49,58 +50,23 @@ export default function ValidationDetailPage() {
     );
   }
 
-  // Helper para normalizar el área de validación
-  const normalizeValidationArea = (value: any): string => {
-    const raw = String(value || "").trim();
-
-    if (
-      raw === "Artes Gráficas" ||
-      raw === "Artes Graficas" ||
-      raw === "Ártes Gráficas" ||
-      raw === "Ártes Graficas"
-    ) {
-      return "Artes Gráficas";
-    }
-
-    if (
-      raw === "R&D Técnica" ||
-      raw === "Área Técnica" ||
-      raw === "Area Técnica" ||
-      raw === "Area Tecnica"
-    ) {
-      return "R&D Técnica";
-    }
-
-    if (raw === "R&D Desarrollo") {
-      return "R&D Desarrollo";
-    }
-
-    return "";
-  };
-
   // Get validation area from multiple possible sources
   const projectAny = project as any;
-  const validationArea = normalizeValidationArea(
-    projectAny.currentValidationStep ||
-    projectAny.responsibleArea ||
-    projectAny.technicalSubArea ||
-    projectAny.areaResponsable ||
-    ""
-  );
+  const validationArea = getResponsibleAreaForProject(projectAny);
 
   const isGraphicArtsStep = validationArea === "Artes Gráficas";
 
   const isTechnicalStep =
-    validationArea === "R&D Técnica" ||
+    validationArea === "R&D Área Técnica" ||
     validationArea === "R&D Desarrollo";
 
   const canValidateCurrentStep =
     validationArea === "Artes Gráficas" ||
-    validationArea === "R&D Técnica" ||
+    validationArea === "R&D Área Técnica" ||
     validationArea === "R&D Desarrollo";
 
   const displayValidationArea =
-    validationArea === "R&D Técnica" ? "R&D Área Técnica" : validationArea;
+    validationArea === "R&D Área Técnica" ? "R&D Área Técnica" : validationArea;
 
   // Helper to check if project is already validated
   const isProjectValidated =
@@ -129,6 +95,71 @@ export default function ValidationDetailPage() {
     if (value === null || value === undefined || value === "") return "—";
     return `${value} mm`;
   };
+
+  const getValidationSummaryView = () => {
+    if (projectAny.status === "Ficha Completa") {
+      return {
+        title: "Pendiente de solicitud",
+        area: "Comercial",
+        action: "Comercial debe solicitar la validación.",
+        tone: "neutral" as const,
+        showActions: false,
+      };
+    }
+
+    if (projectAny.status === "Validado") {
+      return {
+        title: "Validaciones completadas",
+        area: "",
+        action: "La ficha fue aprobada por Diseño y Estructura.",
+        tone: "success" as const,
+        showActions: false,
+      };
+    }
+
+    if (projectAny.status === "Observado") {
+      return {
+        title: "Ficha observada",
+        area: "Comercial",
+        action: "Comercial debe corregir las observaciones.",
+        tone: "danger" as const,
+        showActions: false,
+      };
+    }
+
+    if (validationArea === "Artes Gráficas") {
+      return {
+        title: "Revisión activa",
+        area: "Artes Gráficas",
+        action: "Revisar diseño y validar u observar.",
+        tone: "active" as const,
+        showActions: true,
+      };
+    }
+
+    if (
+      validationArea === "R&D Desarrollo" ||
+      validationArea === "R&D Área Técnica"
+    ) {
+      return {
+        title: "Revisión activa",
+        area: validationArea,
+        action: "Revisar estructura técnica y validar u observar.",
+        tone: "active" as const,
+        showActions: true,
+      };
+    }
+
+    return {
+      title: "Validación sin área asignada",
+      area: "",
+      action: "No hay responsable asignado para esta validación.",
+      tone: "neutral" as const,
+      showActions: false,
+    };
+  };
+
+  const validationSummary = getValidationSummaryView();
 
   const handleObservar = async () => {
     try {
@@ -477,7 +508,7 @@ export default function ValidationDetailPage() {
             </FormCard>
           )}
 
-          {/* Datos para Validación Técnica (R&D Técnica o R&D Desarrollo) */}
+          {/* Datos para Validación Técnica (R&D Área Técnica o R&D Desarrollo) */}
           {isTechnicalStep && (() => {
             // Detect wrapping type
             const wrappingLower = (projectAny.wrapping || projectAny.envoltura || "").toLowerCase();
@@ -719,53 +750,38 @@ export default function ValidationDetailPage() {
 
         {/* Columna derecha: Formulario de validación */}
         <div className="space-y-6">
-          {/* Estado de validaciones */}
+          {/* Estado de validaciones - Simplificado */}
           <FormCard title="Estado de Validaciones" icon="✓" color="#00395A">
             <div className="space-y-3">
-              <div>
-                <div className="text-xs font-bold uppercase text-slate-600 mb-1">Artes Gráficas</div>
-                <span className={`inline-block px-3 py-2 rounded text-xs font-medium ${
-                  project.graphicArtsValidationStatus === "Validado" ? "bg-green-100 text-green-800" :
-                  project.graphicArtsValidationStatus === "Aprobado automático" ? "bg-green-100 text-green-800" :
-                  project.graphicArtsValidationStatus === "Observado" ? "bg-orange-100 text-orange-800" :
-                  project.graphicArtsValidationStatus === "Revisión manual" ? "bg-yellow-100 text-yellow-800" :
-                  "bg-gray-100 text-gray-800"
-                }`}>
-                  {project.graphicArtsValidationStatus || "Sin solicitar"}
-                </span>
-              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  {validationSummary.title}
+                </p>
 
-              <div>
-                <div className="text-xs font-bold uppercase text-slate-600 mb-1">Validación Técnica</div>
-                <span className={`inline-block px-3 py-2 rounded text-xs font-medium ${
-                  project.technicalValidationStatus === "Validado" ? "bg-green-100 text-green-800" :
-                  project.technicalValidationStatus === "Aprobado automático" ? "bg-green-100 text-green-800" :
-                  project.technicalValidationStatus === "Observado" ? "bg-orange-100 text-orange-800" :
-                  project.technicalValidationStatus === "Pendiente" ? "bg-yellow-100 text-yellow-800" :
-                  "bg-gray-100 text-gray-800"
-                }`}>
-                  {project.technicalValidationStatus || "Sin solicitar"}
-                </span>
+                {validationSummary.area && (
+                  <p className="mt-1 text-lg font-bold text-[#004B6E]">
+                    {validationSummary.area}
+                  </p>
+                )}
+
+                <p className="mt-2 text-sm font-medium text-slate-600">
+                  {validationSummary.action}
+                </p>
               </div>
             </div>
           </FormCard>
 
           {/* Formulario de acción */}
-          {canValidateCurrentStep && !isProjectValidated && (
+          {projectAny.status === "En validación" && validationSummary.showActions && (
             <FormCard
               title="Acción de Validación"
               icon="📋"
               color="#e74c3c"
             >
               <div className="space-y-4">
-                {validationArea && (
-                  <p className="text-xs text-slate-500 mb-3">
-                    Área responsable: {validationArea}
-                  </p>
-                )}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Comentarios (obligatorio al observar)
+                    Comentarios
                   </label>
                   <textarea
                     value={comment}
