@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
 import FormSelect from "../forms/FormSelect";
@@ -288,75 +288,161 @@ useEffect(() => {
 
               {clasificacion === "Modificado" && (
                 <>
-                  <div className="relative">
-                    <label className="block mb-1 text-xs font-bold uppercase tracking-wide text-slate-600">
-                      Producto Aprobado (SKU)
+                  <div className="space-y-3">
+                    <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
+                      Producto Aprobado (SKU) *
                     </label>
-                    <input
-                      type="text"
-                      value={approvedProductQuery}
-                      onChange={(e) => {
-                        setApprovedProductQuery(e.target.value);
-                        setShowApprovedProductDropdown(true);
-                        setErrors((prev) => ({ ...prev, approvedProductCode: "" }));
-                      }}
-                      onFocus={() => setShowApprovedProductDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowApprovedProductDropdown(false), 200)}
-                      placeholder="Buscar por SKU, producto, cliente o formato..."
-                      className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors ${
-                        errors.approvedProductCode
-                          ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                          : "border-slate-300 bg-white focus:ring-2 focus:border-slate-500 focus:ring-slate-200"
-                      }`}
-                    />
-                    {selectedApprovedProduct && (
-                      <button
-                        onClick={() => {
+
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                      <input
+                        type="text"
+                        value={selectedApprovedProduct ? `${selectedApprovedProduct.sku} · ${selectedApprovedProduct.version} · ${selectedApprovedProduct.productName}` : approvedProductQuery}
+                        onChange={(e) => {
+                          setApprovedProductQuery(e.target.value);
                           setSelectedApprovedProduct(null);
-                          setApprovedProductQuery("");
                           setMotivoModificacion("");
-                          setShowApprovedProductDropdown(false);
+                          setShowApprovedProductDropdown(true);
+                          setErrors((prev) => ({ ...prev, approvedProductCode: "" }));
                         }}
-                        className="absolute right-3 top-9 text-slate-400 hover:text-slate-600"
-                      >
-                        <X size={16} />
-                      </button>
+                        onFocus={() => {
+                          if (!selectedApprovedProduct) {
+                            setShowApprovedProductDropdown(true);
+                          }
+                        }}
+                        onBlur={() => setTimeout(() => setShowApprovedProductDropdown(false), 200)}
+                        placeholder="Buscar por SKU, producto, cliente o formato..."
+                        className={[
+                          "h-11 w-full rounded-lg border bg-white pl-10 pr-10 text-sm text-slate-800 shadow-sm transition-all",
+                          "placeholder:text-slate-400",
+                          "focus:border-[#004B6E] focus:outline-none focus:ring-4 focus:ring-[#004B6E]/10",
+                          errors.approvedProductCode
+                            ? "border-red-300 bg-red-50"
+                            : "border-slate-300 hover:border-slate-400",
+                        ].join(" ")}
+                      />
+
+                      {(approvedProductQuery || selectedApprovedProduct) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedApprovedProduct(null);
+                            setApprovedProductQuery("");
+                            setMotivoModificacion("");
+                            setShowApprovedProductDropdown(false);
+                            setErrors((prev) => ({ ...prev, approvedProductCode: "" }));
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                          aria-label="Limpiar producto aprobado"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {!selectedApprovedProduct && (
+                      <p className="text-xs text-slate-500">
+                        Busca y selecciona el SKU aprobado que servirá como base para el proyecto modificado.
+                      </p>
                     )}
-                    {showApprovedProductDropdown && approvedProductResults.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+
+                    {showApprovedProductDropdown && approvedProductQuery && approvedProductResults.length > 0 && (
+                      <div className="mt-2 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
                         {approvedProductResults.map((product) => (
                           <button
                             key={product.id}
+                            type="button"
                             onClick={() => {
                               setSelectedApprovedProduct(product);
-                              setApprovedProductQuery(
-                                `${product.sku} - ${product.productName} - ${product.version}`
-                              );
+                              setApprovedProductQuery("");
                               setShowApprovedProductDropdown(false);
                               setErrors((prev) => ({
                                 ...prev,
                                 approvedProductCode: "",
                               }));
                             }}
-                            className="w-full text-left px-4 py-3 hover:bg-slate-100 border-b border-slate-100 last:border-b-0"
+                            className="w-full border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-sky-50"
                           >
-                            <div className="text-sm font-semibold text-slate-900">
-                              {product.sku} · {product.version}
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-bold text-slate-900">
+                                  {product.sku} · {product.version}
+                                </p>
+                                <p className="mt-0.5 text-sm font-medium text-slate-700">
+                                  {product.productName}
+                                </p>
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {product.clientName}
+                                </p>
+                              </div>
+
+                              <span className="rounded-full bg-sky-50 px-2 py-1 text-xs font-semibold text-[#004B6E]">
+                                {product.envoltura}
+                              </span>
                             </div>
-                            <div className="text-sm text-slate-700">{product.productName}</div>
-                            <div className="text-xs text-slate-500">
-                              {product.clientName} · {product.envoltura} · {product.formatoPlano}
-                            </div>
+
+                            <p className="mt-2 line-clamp-1 text-xs text-slate-500">
+                              {product.formatoPlano}
+                            </p>
                           </button>
                         ))}
                       </div>
                     )}
+
+                    {showApprovedProductDropdown && approvedProductQuery && approvedProductResults.length === 0 && (
+                      <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                        No se encontraron productos aprobados con ese criterio.
+                      </div>
+                    )}
+
+                    {selectedApprovedProduct && (
+                      <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50/60 p-3">
+                        <p className="text-xs font-bold uppercase tracking-wide text-[#004B6E]">
+                          Producto aprobado seleccionado
+                        </p>
+
+                        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                          <div>
+                            <span className="font-semibold text-slate-500">SKU</span>
+                            <p className="font-bold text-slate-900">{selectedApprovedProduct.sku}</p>
+                          </div>
+
+                          <div>
+                            <span className="font-semibold text-slate-500">Versión</span>
+                            <p className="font-bold text-slate-900">{selectedApprovedProduct.version}</p>
+                          </div>
+
+                          <div className="col-span-2">
+                            <span className="font-semibold text-slate-500">Producto</span>
+                            <p className="font-bold text-slate-900">{selectedApprovedProduct.productName}</p>
+                          </div>
+
+                          <div className="col-span-2">
+                            <span className="font-semibold text-slate-500">Cliente</span>
+                            <p className="font-medium text-slate-800">{selectedApprovedProduct.clientName}</p>
+                          </div>
+
+                          <div>
+                            <span className="font-semibold text-slate-500">Envoltura</span>
+                            <p className="font-medium text-slate-800">{selectedApprovedProduct.envoltura}</p>
+                          </div>
+
+                          <div>
+                            <span className="font-semibold text-slate-500">Formato</span>
+                            <p className="font-medium text-slate-800">{selectedApprovedProduct.formatoPlano}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {errors.approvedProductCode && (
-                      <span className="mt-1 block text-xs font-normal text-red-600">
+                      <span className="block text-xs font-normal text-red-600">
                         {errors.approvedProductCode}
                       </span>
                     )}
                   </div>
+
                   {shouldShowModificationReason && (
                     <FormSelect
                       label="Motivo *"
