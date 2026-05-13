@@ -77,10 +77,11 @@ export default function ValidationListPage() {
     return getProjectRecords().map(normalizeProjectWorkflow);
   }, []);
 
-  // FILTRO PRINCIPAL: Proyectos con status === "En validación" O que han sido observados por cualquier área
+  // FILTRO PRINCIPAL: Proyectos con status === "En validación", "Validado" O que han sido observados por cualquier área
   const projectsInValidation = useMemo(() => {
     return allProjects.filter((project) =>
       project.status === "En validación" ||
+      project.status === "Validado" ||
       (project.status === "Observado" &&
        (project.lastObservationSource === "Artes Gráficas" ||
         project.lastObservationSource === "R&D Técnica" ||
