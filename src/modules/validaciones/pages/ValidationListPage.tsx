@@ -172,6 +172,11 @@ export default function ValidationListPage() {
   };
 
   const getCurrentValidationStatus = (project: any): string => {
+    // Si el proyecto ya está validado globalmente, retornar "Validado"
+    if (project.status === "Validado") {
+      return "Validado";
+    }
+
     const area = getResponsibleAreaForProject(project);
 
     if (area === "Artes Gráficas") {
