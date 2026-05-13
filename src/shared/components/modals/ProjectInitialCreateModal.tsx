@@ -241,7 +241,7 @@ useEffect(() => {
               {!initialPortfolioCode && (
                 <div className="space-y-1">
                   <PortfolioSearch
-                    label="Portafolio Base"
+                    label="Portafolio Base *"
                     value={portfolioCode}
                     onChange={(val) => {
                       setPortfolioCode(val);
@@ -259,7 +259,7 @@ useEffect(() => {
 
               {portfolioCode && (
                 <FormSelect
-                  label="Clasificación"
+                  label="Clasificación *"
                   value={clasificacion}
                   onChange={(val) => {
                     setClasificacion(val);
@@ -273,7 +273,7 @@ useEffect(() => {
               )}
               {clasificacion === "Nuevo" && (
               <FormSelect
-                label="Complejidad"
+                label="Complejidad *"
                 value={complejidad}
                 onChange={(val) => {
                   setComplejidad(val as "ALTA" | "BAJA");
@@ -462,7 +462,7 @@ useEffect(() => {
 
               {clasificacion === "Nuevo" && complejidad && (
               <FormSelect
-                label="Motivo"
+                label="Motivo *"
                 value={tipoProyecto}
                 onChange={(val) => {
                   setTipoProyecto(val);
@@ -478,7 +478,7 @@ useEffect(() => {
               {clasificacion === "Nuevo" && (
                 <>
                   <FormSelect
-                    label="Licitación"
+                    label="Licitación *"
                     value={licitacion}
                     onChange={(val) => {
                       setLicitacion(val as "Sí" | "No");
