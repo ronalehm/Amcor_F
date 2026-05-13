@@ -2925,6 +2925,7 @@ export default function ProjectEditPage() {
                             error={getError("hasEdagReference")}
                             placeholder="-- Seleccione --"
                             options={YES_NO_OPTIONS}
+                            disabled={!canEditDesign}
                           />
 
                           {form.hasEdagReference === "Sí" && (
@@ -2958,6 +2959,7 @@ export default function ProjectEditPage() {
                             error={getError("printClass")}
                             placeholder="-- Seleccione --"
                             options={PRINT_CLASS_OPTIONS}
+                            disabled={!canEditDesign}
                           />
 
                           <FormSelect
@@ -2968,7 +2970,7 @@ export default function ProjectEditPage() {
                             error={getError("printType")}
                             placeholder="-- Seleccione --"
                             options={PRINT_TYPE_OPTIONS}
-                            disabled={isPrintingDisabled}
+                            disabled={!canEditDesign || isPrintingDisabled}
                           />
 
                           <FormSelect
@@ -2977,7 +2979,7 @@ export default function ProjectEditPage() {
                             onChange={(value) => updateField("specialDesignSpecs", value)}
                             placeholder="-- Seleccione --"
                             options={SPECIAL_DESIGN_SPECS_OPTIONS}
-                            disabled={isPrintingDisabled}
+                            disabled={!canEditDesign || isPrintingDisabled}
                           />
                         </div>
 
@@ -3389,6 +3391,7 @@ export default function ProjectEditPage() {
                       onChange={(value) => updateField("hasReferenceStructure", value)}
                       placeholder="-- Seleccione --"
                       options={YES_NO_OPTIONS}
+                      disabled={!canEditStructure}
                     />
                     {form.hasReferenceStructure === "Sí" && (
                       <>
@@ -3413,6 +3416,7 @@ export default function ProjectEditPage() {
                         onChange={(value) => updateField("structureType", value)}
                         placeholder="-- Seleccione --"
                         options={STRUCTURE_TYPE_OPTIONS}
+                        disabled={!canEditStructure}
                       />
                     )}
                   </div>
@@ -3457,6 +3461,7 @@ export default function ProjectEditPage() {
                                     error={getError(groupKey)}
                                     placeholder="-- Seleccione grupo --"
                                     options={MATERIAL_GROUP_OPTIONS}
+                                    disabled={!canEditStructure}
                                   />
                                   <FormSelect
                                     label="Tipo de Materia Prima *"
@@ -3481,7 +3486,7 @@ export default function ProjectEditPage() {
                                     onBlur={() => markFieldAsTouched(materialKey)}
                                     error={getError(materialKey)}
                                     options={groupOptions}
-                                    disabled={!group}
+                                    disabled={!canEditStructure || !group}
                                     placeholder="-- Seleccione tipo --"
                                   />
                                   <FormInput
@@ -3490,7 +3495,7 @@ export default function ProjectEditPage() {
                                     onChange={(value) => updateField(micronKey, value)}
                                     onBlur={() => markFieldAsTouched(micronKey)}
                                     error={getError(micronKey)}
-                                    disabled={!isMicronFree}
+                                    disabled={!canEditStructure || !isMicronFree}
                                     placeholder={isMicronFree ? "Ingrese micraje" : "Auto"}
                                   />
                                   <FormInput
@@ -3499,7 +3504,7 @@ export default function ProjectEditPage() {
                                     onChange={(value) => updateField(grammageKey, value)}
                                     onBlur={() => markFieldAsTouched(grammageKey)}
                                     error={getError(grammageKey)}
-                                    disabled={!isMicronFree}
+                                    disabled={!canEditStructure || !isMicronFree}
                                     placeholder={isMicronFree ? "Ingrese gramaje" : "Auto"}
                                   />
                                 </div>
@@ -3644,7 +3649,7 @@ export default function ProjectEditPage() {
                                 onBlur={() => markFieldAsTouched("width")}
                                 error={getError("width")}
                                 placeholder={widthRestriction ? `${widthRestriction.min} - ${widthRestriction.max} mm` : "mm"}
-                                disabled={isWidthDisabled}
+                                disabled={!canEditDimensions || isWidthDisabled}
                               />
                               {widthRestriction && (
                                 <p className="mt-1 text-xs text-slate-500">
@@ -3662,7 +3667,7 @@ export default function ProjectEditPage() {
                                 onBlur={() => markFieldAsTouched("length")}
                                 error={getError("length")}
                                 placeholder={lengthRestriction ? `${lengthRestriction.min} - ${lengthRestriction.max} mm` : "mm"}
-                                disabled={isLengthDisabled}
+                                disabled={!canEditDimensions || isLengthDisabled}
                               />
                               {lengthRestriction && (
                                 <p className="mt-1 text-xs text-slate-500">
@@ -3690,7 +3695,7 @@ export default function ProjectEditPage() {
                                 onBlur={() => markFieldAsTouched("gussetWidth")}
                                 error={getError("gussetWidth")}
                                 placeholder={gussetRestriction ? `${gussetRestriction.min} - ${gussetRestriction.max} mm` : "mm"}
-                                disabled={isGussetDisabled}
+                                disabled={!canEditDimensions || isGussetDisabled}
                               />
                               {gussetRestriction && (
                                 <p className="mt-1 text-xs text-slate-500">
