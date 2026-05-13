@@ -163,7 +163,13 @@ export type ProjectRecord = {
   projectType?: string;
   tipoProyecto?: string;
   approvedProductCode?: string;
+  approvedProductId?: string;
+  approvedProductSku?: string;
+  approvedProductVersion?: string;
+  approvedProductName?: string;
+  approvedProductSnapshot?: any;
   motivoModificacion?: string;
+  modificationReason?: string;
   salesforceAction?: string;
 
   graphicResponsible?: string;
@@ -1070,6 +1076,11 @@ export function createProjectFromPortfolio(params: {
     complejidad?: "ALTA" | "BAJA" | string;
     tipoProyecto: string;
     approvedProductCode?: string;
+    approvedProductId?: string;
+    approvedProductSku?: string;
+    approvedProductVersion?: string;
+    approvedProductName?: string;
+    approvedProductSnapshot?: any;
     motivoModificacion?: string;
     licitacion: "Sí" | "No";
     numeroItemsLicitacion?: number | null;
@@ -1110,7 +1121,13 @@ export function createProjectFromPortfolio(params: {
     projectType: params.initialData.tipoProyecto || "",
     tipoProyecto: params.initialData.tipoProyecto || "",
     approvedProductCode: params.initialData.approvedProductCode || "",
+    approvedProductId: params.initialData.approvedProductId || "",
+    approvedProductSku: params.initialData.approvedProductSku || "",
+    approvedProductVersion: params.initialData.approvedProductVersion || "",
+    approvedProductName: params.initialData.approvedProductName || "",
+    approvedProductSnapshot: params.initialData.approvedProductSnapshot || null,
     motivoModificacion: params.initialData.motivoModificacion || "",
+    modificationReason: params.initialData.motivoModificacion || "",
     licitacion: params.initialData.licitacion,
     numeroItemsLicitacion: params.initialData.licitacion === "Sí" ? params.initialData.numeroItemsLicitacion || null : null,
     projectName: "", // To be filled in the full form

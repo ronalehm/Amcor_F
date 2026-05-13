@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Button from "../ui/Button";
 import FormSelect from "../forms/FormSelect";
@@ -9,6 +9,10 @@ import PreviewRow from "../display/PreviewRow";
 import { getPortfolioByCode } from "../../data/portfolioStorage";
 import { createProjectFromPortfolio } from "../../data/projectStorage";
 import { getCurrentUser } from "../../data/userStorage";
+import {
+  searchApprovedProducts,
+  type ApprovedProductRecord,
+} from "../../data/approvedProductStorage";
 
 interface ProjectInitialCreateModalProps {
   isOpen: boolean;
@@ -63,11 +67,13 @@ export default function ProjectInitialCreateModal({
   const [clasificacion, setClasificacion] = useState("");
   const [complejidad, setComplejidad] = useState<"ALTA" | "BAJA" | "">("");
   const [tipoProyecto, setTipoProyecto] = useState("");
-  const [approvedProductCode, setApprovedProductCode] = useState("");
+  const [approvedProductQuery, setApprovedProductQuery] = useState("");
+  const [selectedApprovedProduct, setSelectedApprovedProduct] = useState<ApprovedProductRecord | null>(null);
   const [motivoModificacion, setMotivoModificacion] = useState("");
   const [licitacion, setLicitacion] = useState<"Sí" | "No">("No");
   const [numeroItemsLicitacion, setNumeroItemsLicitacion] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showApprovedProductDropdown, setShowApprovedProductDropdown] = useState(false);
 
   const portfolio = useMemo(() => {
     return portfolioCode ? getPortfolioByCode(portfolioCode) : null;
@@ -79,11 +85,13 @@ export default function ProjectInitialCreateModal({
       setClasificacion("");
       setComplejidad("");
       setTipoProyecto("");
-      setApprovedProductCode("");
+      setApprovedProductQuery("");
+      setSelectedApprovedProduct(null);
       setMotivoModificacion("");
       setLicitacion("No");
       setNumeroItemsLicitacion("");
       setErrors({});
+      setShowApprovedProductDropdown(false);
     }
   }, [isOpen, initialPortfolioCode]);
 
@@ -91,10 +99,12 @@ export default function ProjectInitialCreateModal({
   useEffect(() => {
   setComplejidad("");
   setTipoProyecto("");
-  setApprovedProductCode("");
+  setApprovedProductQuery("");
+  setSelectedApprovedProduct(null);
   setMotivoModificacion("");
   setLicitacion("No");
   setNumeroItemsLicitacion("");
+  setShowApprovedProductDropdown(false);
 }, [clasificacion]);
 
 useEffect(() => {
@@ -103,20 +113,26 @@ useEffect(() => {
 
 useEffect(() => {
   if (clasificacion !== "Modificado") {
-    setApprovedProductCode("");
+    setApprovedProductQuery("");
+    setSelectedApprovedProduct(null);
     setMotivoModificacion("");
     return;
   }
 
-  if (!approvedProductCode.trim()) {
+  if (!selectedApprovedProduct) {
     setMotivoModificacion("");
   }
-}, [clasificacion, approvedProductCode]);
+}, [clasificacion, selectedApprovedProduct]);
 
   if (!isOpen) return null;
 
+  const approvedProductResults =
+    clasificacion === "Modificado" && approvedProductQuery.trim()
+      ? searchApprovedProducts(approvedProductQuery)
+      : [];
+
   const shouldShowModificationReason =
-    clasificacion === "Modificado" && approvedProductCode.trim().length > 0;
+    clasificacion === "Modificado" && selectedApprovedProduct !== null;
 
   const tipoProyectoOptions =
   complejidad === "ALTA"
@@ -152,13 +168,13 @@ useEffect(() => {
       newErrors.numeroItemsLicitacion = "Ingresa un número válido de ítems.";
     }
 
-    if (clasificacion === "Modificado" && !approvedProductCode.trim()) {
-      newErrors.approvedProductCode = "Ingresa el código del producto aprobado.";
+    if (clasificacion === "Modificado" && !selectedApprovedProduct) {
+      newErrors.approvedProductCode = "Selecciona un producto aprobado.";
     }
 
     if (
       clasificacion === "Modificado" &&
-      approvedProductCode.trim() &&
+      selectedApprovedProduct &&
       !motivoModificacion
     ) {
       newErrors.motivoModificacion = "Selecciona el motivo de modificación.";
@@ -175,12 +191,17 @@ useEffect(() => {
         clasificacion,
         complejidad: clasificacion === "Nuevo" ? complejidad : "",
         tipoProyecto: clasificacion === "Nuevo" ? tipoProyecto : "",
-        approvedProductCode:
-          clasificacion === "Modificado"
-            ? approvedProductCode.trim()
-            : "",
+        approvedProductId: selectedApprovedProduct?.id || "",
+        approvedProductCode: selectedApprovedProduct?.sku || "",
+        approvedProductSku: selectedApprovedProduct?.sku || "",
+        approvedProductVersion: selectedApprovedProduct?.version || "",
+        approvedProductName: selectedApprovedProduct?.productName || "",
+        approvedProductSnapshot:
+          clasificacion === "Modificado" && selectedApprovedProduct
+            ? selectedApprovedProduct
+            : null,
         motivoModificacion:
-          clasificacion === "Modificado" && approvedProductCode.trim()
+          clasificacion === "Modificado" && selectedApprovedProduct
             ? motivoModificacion
             : "",
         licitacion: clasificacion === "Nuevo" ? licitacion : "No",
@@ -267,16 +288,75 @@ useEffect(() => {
 
               {clasificacion === "Modificado" && (
                 <>
-                  <FormInput
-                    label="Cód Producto aprobado *"
-                    value={approvedProductCode}
-                    onChange={(val) => {
-                      setApprovedProductCode(val);
-                      setErrors((prev) => ({ ...prev, approvedProductCode: "" }));
-                    }}
-                    error={errors.approvedProductCode}
-                    placeholder="Ingrese el código"
-                  />
+                  <div className="relative">
+                    <label className="block mb-1 text-xs font-bold uppercase tracking-wide text-slate-600">
+                      Cód Producto aprobado *
+                    </label>
+                    <input
+                      type="text"
+                      value={approvedProductQuery}
+                      onChange={(e) => {
+                        setApprovedProductQuery(e.target.value);
+                        setShowApprovedProductDropdown(true);
+                        setErrors((prev) => ({ ...prev, approvedProductCode: "" }));
+                      }}
+                      onFocus={() => setShowApprovedProductDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowApprovedProductDropdown(false), 200)}
+                      placeholder="Buscar por SKU, producto, cliente o formato..."
+                      className={`w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors ${
+                        errors.approvedProductCode
+                          ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                          : "border-slate-300 bg-white focus:ring-2 focus:border-slate-500 focus:ring-slate-200"
+                      }`}
+                    />
+                    {selectedApprovedProduct && (
+                      <button
+                        onClick={() => {
+                          setSelectedApprovedProduct(null);
+                          setApprovedProductQuery("");
+                          setMotivoModificacion("");
+                          setShowApprovedProductDropdown(false);
+                        }}
+                        className="absolute right-3 top-9 text-slate-400 hover:text-slate-600"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                    {showApprovedProductDropdown && approvedProductResults.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {approvedProductResults.map((product) => (
+                          <button
+                            key={product.id}
+                            onClick={() => {
+                              setSelectedApprovedProduct(product);
+                              setApprovedProductQuery(
+                                `${product.sku} - ${product.productName} - ${product.version}`
+                              );
+                              setShowApprovedProductDropdown(false);
+                              setErrors((prev) => ({
+                                ...prev,
+                                approvedProductCode: "",
+                              }));
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-slate-100 border-b border-slate-100 last:border-b-0"
+                          >
+                            <div className="text-sm font-semibold text-slate-900">
+                              {product.sku} · {product.version}
+                            </div>
+                            <div className="text-sm text-slate-700">{product.productName}</div>
+                            <div className="text-xs text-slate-500">
+                              {product.clientName} · {product.envoltura} · {product.formatoPlano}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {errors.approvedProductCode && (
+                      <span className="mt-1 block text-xs font-normal text-red-600">
+                        {errors.approvedProductCode}
+                      </span>
+                    )}
+                  </div>
                   {shouldShowModificationReason && (
                     <FormSelect
                       label="Motivo *"
