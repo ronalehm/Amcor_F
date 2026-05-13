@@ -762,6 +762,41 @@ export function getProjectRecords(): ProjectRecord[] {
 }
 
 /**
+ * Normaliza nombres de áreas de validación (legacy → current)
+ */
+function normalizeValidationAreaName(value: any): string | null {
+  const raw = String(value || "").trim();
+
+  if (
+    raw === "Artes Gráficas" ||
+    raw === "Artes Graficas" ||
+    raw === "Ártes Gráficas" ||
+    raw === "Ártes Graficas"
+  ) {
+    return "Artes Gráficas";
+  }
+
+  if (
+    raw === "R&D Técnica" ||
+    raw === "Área Técnica" ||
+    raw === "Area Técnica" ||
+    raw === "Area Tecnica"
+  ) {
+    return "R&D Técnica";
+  }
+
+  if (
+    raw === "R&D Desarrollo" ||
+    raw === "Desarrollo R&D" ||
+    raw === "Desarrollo RD"
+  ) {
+    return "R&D Desarrollo";
+  }
+
+  return raw || null;
+}
+
+/**
  * Normaliza los campos de workflow v2 de un proyecto
  * Asegura que todos los campos requeridos tengan valores por defecto
  */
@@ -769,16 +804,47 @@ function normalizeProjectWorkflow(project: ProjectRecord): ProjectRecord {
   const status = project.status || "Registrado";
   const stage = project.stage || resolveProjectStage(status as any);
 
+  // Normalizar nombres de áreas
+  const currentValidationStep = normalizeValidationAreaName(
+    project.currentValidationStep
+  ) as any;
+  const technicalSubArea = normalizeValidationAreaName(
+    project.technicalSubArea
+  ) as any;
+
+  let graphicArtsValidationStatus =
+    project.graphicArtsValidationStatus || "Sin solicitar";
+  let technicalValidationStatus =
+    project.technicalValidationStatus || "Sin solicitar";
+
+  // Normalizar estados de validación para proyectos "En validación"
+  if (status === "En validación") {
+    // Si está en Artes Gráficas y el estado es "Sin solicitar", cambiar a "Revisión manual"
+    if (
+      currentValidationStep === "Artes Gráficas" &&
+      (!graphicArtsValidationStatus || graphicArtsValidationStatus === "Sin solicitar")
+    ) {
+      graphicArtsValidationStatus = "Revisión manual";
+    }
+
+    // Si está en R&D Técnica o R&D Desarrollo y el estado es vacío o "Sin solicitar", cambiar a "Pendiente"
+    if (
+      (currentValidationStep === "R&D Técnica" || currentValidationStep === "R&D Desarrollo") &&
+      (!technicalValidationStatus || technicalValidationStatus === "Sin solicitar")
+    ) {
+      technicalValidationStatus = "Pendiente";
+    }
+  }
+
   return {
     ...project,
     status,
     stage: stage as ProjectStage,
     completionPercentage: project.completionPercentage ?? 0,
-    graphicArtsValidationStatus:
-      project.graphicArtsValidationStatus || "Sin solicitar",
-    technicalValidationStatus:
-      project.technicalValidationStatus || "Sin solicitar",
-    currentValidationStep: project.currentValidationStep ?? null,
+    graphicArtsValidationStatus,
+    technicalValidationStatus,
+    currentValidationStep: currentValidationStep ?? null,
+    technicalSubArea: technicalSubArea ?? undefined,
     validationRound: project.validationRound ?? 0,
     hasBasePreliminaryProduct: project.hasBasePreliminaryProduct ?? false,
     basePreliminaryProductId: project.basePreliminaryProductId,

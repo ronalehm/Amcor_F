@@ -37,6 +37,52 @@ function isNoAplica(value: unknown): boolean {
   return normalizeLower(value) === "no aplica";
 }
 
+/**
+ * Normaliza el área de validación, aceptando variaciones legacy.
+ * Convierte:
+ *   "Área Técnica", "Area Técnica", etc. → "R&D Técnica"
+ *   "Desarrollo R&D" → "R&D Desarrollo"
+ *   "Artes Gráficas" (y variaciones) → "Artes Gráficas"
+ */
+function normalizeValidationArea(value: any): ValidationArea {
+  const raw = normalizeText(value);
+
+  // Artes Gráficas variations
+  if (
+    raw === "Artes Gráficas" ||
+    raw === "Artes Graficas" ||
+    raw === "Ártes Gráficas" ||
+    raw === "Ártes Graficas"
+  ) {
+    return "Artes Gráficas";
+  }
+
+  // R&D Técnica variations (legacy: "Área Técnica")
+  if (
+    raw === "R&D Técnica" ||
+    raw === "Área Técnica" ||
+    raw === "Area Técnica" ||
+    raw === "Area Tecnica" ||
+    raw === "R&D Tecnica" ||
+    raw === "Area_Tecnica" ||
+    raw === "Área_Técnica"
+  ) {
+    return "R&D Técnica";
+  }
+
+  // R&D Desarrollo variations (legacy: "Desarrollo R&D")
+  if (
+    raw === "R&D Desarrollo" ||
+    raw === "Desarrollo R&D" ||
+    raw === "Desarrollo RD" ||
+    raw === "Desarrollo_RD"
+  ) {
+    return "R&D Desarrollo";
+  }
+
+  throw new Error(`Área de validación no reconocida: "${value}"`);
+}
+
 function getSpecialSpecifications(project: ProjectRecord): string {
   return normalizeText(
     project.specialDesignSpecs ||
@@ -293,6 +339,7 @@ export function startValidationReview(
   project: ProjectRecord,
   area: ValidationArea
 ): ProjectRecord {
+  const normalizedArea = normalizeValidationArea(area);
   const now = getNow();
 
   let updated: ProjectRecord = {
@@ -302,7 +349,7 @@ export function startValidationReview(
     updatedAt: now,
   };
 
-  if (area === "Artes Gráficas") {
+  if (normalizedArea === "Artes Gráficas") {
     updated = {
       ...updated,
       graphicArtsValidationStatus: "En revisión",
@@ -312,13 +359,13 @@ export function startValidationReview(
     return persistProject(updated);
   }
 
-  assertAssignedTechnicalArea(project, area);
+  assertAssignedTechnicalArea(project, normalizedArea);
 
   updated = {
     ...updated,
-    technicalSubArea: area,
+    technicalSubArea: normalizedArea,
     technicalValidationStatus: "En revisión",
-    currentValidationStep: area,
+    currentValidationStep: normalizedArea,
   };
 
   return persistProject(updated);
@@ -345,6 +392,7 @@ export function approveValidation(
   area: ValidationArea,
   comment?: string
 ): ProjectRecord {
+  const normalizedArea = normalizeValidationArea(area);
   const now = getNow();
 
   let updated: ProjectRecord = {
@@ -353,7 +401,7 @@ export function approveValidation(
     validationComment: comment || project.validationComment,
   };
 
-  if (area === "Artes Gráficas") {
+  if (normalizedArea === "Artes Gráficas") {
     const subArea = resolveTechnicalValidatorForProject(project);
 
     updated = {
@@ -402,8 +450,8 @@ export function approveValidation(
     return saved;
   }
 
-  if (area === "R&D Técnica" || area === "R&D Desarrollo") {
-    assertAssignedTechnicalArea(project, area);
+  if (normalizedArea === "R&D Técnica" || normalizedArea === "R&D Desarrollo") {
+    assertAssignedTechnicalArea(project, normalizedArea);
 
     const graphicArtsOk =
       project.graphicArtsValidationStatus === "Validado" ||
@@ -417,7 +465,7 @@ export function approveValidation(
 
     updated = {
       ...updated,
-      technicalSubArea: area,
+      technicalSubArea: normalizedArea,
       technicalValidationStatus: "Validado",
       technicalValidatedAt: now,
       technicalValidationComment: comment || "",
@@ -440,7 +488,7 @@ export function approveValidation(
       toStatus: "Validado",
       fromValidationStep: project.currentValidationStep,
       graphicArtsStatus: project.graphicArtsValidationStatus,
-      technicalSubArea: area,
+      technicalSubArea: normalizedArea,
       technicalStatus: "Validado",
       comment,
     });
@@ -452,7 +500,7 @@ export function approveValidation(
       fromStatus: "En validación",
       toStatus: "Validado",
       graphicArtsStatus: project.graphicArtsValidationStatus,
-      technicalSubArea: area,
+      technicalSubArea: normalizedArea,
       technicalStatus: "Validado",
       comment: "✅ Proyecto completamente validado",
     });
@@ -472,6 +520,7 @@ export function observeValidation(
   area: ValidationArea,
   comment: string
 ): ProjectRecord {
+  const normalizedArea = normalizeValidationArea(area);
   const trimmedComment = normalizeText(comment);
 
   if (!trimmedComment) {
@@ -487,12 +536,12 @@ export function observeValidation(
     statusUpdatedAt: now,
     stageUpdatedAt: now,
     updatedAt: now,
-    lastObservationSource: area,
+    lastObservationSource: normalizedArea,
     lastObservationComment: trimmedComment,
     lastObservationAt: now,
   };
 
-  if (area === "Artes Gráficas") {
+  if (normalizedArea === "Artes Gráficas") {
     updated = {
       ...updated,
       graphicArtsValidationStatus: "Observado",
@@ -517,14 +566,14 @@ export function observeValidation(
     return saved;
   }
 
-  if (area === "R&D Técnica" || area === "R&D Desarrollo") {
-    assertAssignedTechnicalArea(project, area);
+  if (normalizedArea === "R&D Técnica" || normalizedArea === "R&D Desarrollo") {
+    assertAssignedTechnicalArea(project, normalizedArea);
 
     updated = {
       ...updated,
-      technicalSubArea: area,
+      technicalSubArea: normalizedArea,
       technicalValidationStatus: "Observado",
-      currentValidationStep: area,
+      currentValidationStep: normalizedArea,
     };
 
     const saved = persistProject(updated);
@@ -536,8 +585,8 @@ export function observeValidation(
       fromStatus: project.status,
       toStatus: "Observado",
       fromValidationStep: project.currentValidationStep,
-      toValidationStep: area,
-      technicalSubArea: area,
+      toValidationStep: normalizedArea,
+      technicalSubArea: normalizedArea,
       technicalStatus: "Observado",
       comment: trimmedComment,
       observation: trimmedComment,

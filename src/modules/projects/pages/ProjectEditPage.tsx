@@ -12,6 +12,7 @@ import {
   type BooleanLike,
   type YesNoPending,
 } from "../../../shared/data/projectStorage";
+import { getDocumentsByProject } from "../../../shared/data/projectDocumentStorage";
 import {
   computeProjectPreparationStatus,
   normalizeProjectStatus,
@@ -1353,7 +1354,15 @@ export default function ProjectEditPage() {
   const inheritedMachine = selectedPortfolio?.maq || selectedPortfolio?.maquinaCliente || selectedPortfolio?.packingMachineName || "";
 
   const isPouch = isPouchWrapping(inheritedWrapping);
+  const isBolsa = isBolsaWrapping(inheritedWrapping);
+  const isLamina = isLaminaWrapping(inheritedWrapping);
   const shouldApplyPouchDoyPackRestrictions = isPouch && form.blueprintFormat === POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO;
+  const shouldShowInternalAccessories = isBolsa || isPouch;
+
+  // Perforation type field visibility
+  const hasPerforation = form.hasPerforation === "Sí";
+  const shouldShowPouchPerforationType = isPouch && hasPerforation;
+  const shouldShowBolsaPerforationType = isBolsa && hasPerforation;
 
   const activeLayerCount = useMemo(() => {
     return getLayerCountByStructureType(form.structureType);
@@ -1508,9 +1517,8 @@ export default function ProjectEditPage() {
       fields.push("designPlanFiles");
     }
 
-    if (form.hasCustomerTechnicalSpec === "Sí") {
-      fields.push("customerTechnicalSpecAttachment");
-    }
+    // Note: hasCustomerTechnicalSpec validation is handled separately with custom validation
+    // to check if documents are uploaded via ProjectDocumentsSection
 
     if (isLaminaWrapping(inheritedWrapping)) {
       fields.push("coreMaterial", "coreDiameter", "externalDiameter", "maxRollWeight");
@@ -1614,6 +1622,49 @@ export default function ProjectEditPage() {
       });
     }
   }, [inheritedWrapping, form.tipoFormatoLamina]);
+
+  // Clean up perforation types based on wrapping type and hasPerforation checkbox
+  useEffect(() => {
+    setForm((prev) => {
+      let changed = false;
+      const next = { ...prev };
+
+      // If hasPerforation is unchecked, clear both perforation types
+      if (prev.hasPerforation !== "Sí") {
+        if (prev.pouchPerforationType || prev.bagPerforationType || prev.perforationLocation) {
+          next.pouchPerforationType = "";
+          next.bagPerforationType = "";
+          next.perforationLocation = "";
+          changed = true;
+        }
+      }
+
+      // If POUCH wrapping, clear bagPerforationType
+      if (isPouchWrapping(inheritedWrapping) && prev.bagPerforationType) {
+        next.bagPerforationType = "";
+        changed = true;
+      }
+
+      // If BOLSA wrapping, clear pouchPerforationType
+      if (isBolsaWrapping(inheritedWrapping) && prev.pouchPerforationType) {
+        next.pouchPerforationType = "";
+        changed = true;
+      }
+
+      // If LÁMINA wrapping, clear all perforation data
+      if (isLaminaWrapping(inheritedWrapping)) {
+        if (prev.hasPerforation || prev.pouchPerforationType || prev.bagPerforationType || prev.perforationLocation) {
+          next.hasPerforation = "";
+          next.pouchPerforationType = "";
+          next.bagPerforationType = "";
+          next.perforationLocation = "";
+          changed = true;
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [inheritedWrapping, form.hasPerforation]);
 
   const handleLicitacionChange = (value: string) => {
     const licitacion = value as "Sí" | "No";
@@ -1763,7 +1814,20 @@ export default function ProjectEditPage() {
         ) {
           errors[field] = "Selecciona la base del Doy Pack.";
         }
-      } else if (isFieldEmpty(form[field])) {
+      }
+      // Skip internal accessories fields when LÁMINA wrapping is selected
+      else if (
+        !shouldShowInternalAccessories &&
+        [
+          "hasAngularCut", "hasRoundedCorners", "roundedCornersType", "hasNotch",
+          "hasPerforation", "pouchPerforationType", "bagPerforationType", "perforationLocation",
+          "hasPreCut", "preCutType"
+        ].includes(field as string)
+      ) {
+        // Skip validation for internal accessories when not showing
+        return;
+      }
+      else if (isFieldEmpty(form[field])) {
         const label = FIELD_LABELS[field] || String(field);
         errors[field] = `${label} es obligatorio.`;
       }
@@ -1824,8 +1888,28 @@ export default function ProjectEditPage() {
       errors.colorObjective = "No existe no puede combinarse con otros objetivos de color.";
     }
 
+    // Validar Especificación Técnica del Cliente
+    // Si selecciona "Sí", debe haber al menos un archivo cargado en ProjectDocumentsSection
+    if (form.hasCustomerTechnicalSpec === "Sí" && projectCode) {
+      const uploadedDocuments = getDocumentsByProject(projectCode);
+      if (uploadedDocuments.length === 0) {
+        errors.customerTechnicalSpecAttachment =
+          "Debe adjuntar al menos un archivo de especificación técnica del cliente.";
+      }
+    }
+
+    // Validar tipo de perforación según la envoltura
+    if (hasPerforation && shouldShowInternalAccessories) {
+      if (isPouch && !form.pouchPerforationType) {
+        errors.pouchPerforationType = "Selecciona el tipo de perforación pouch.";
+      }
+      if (isBolsa && !form.bagPerforationType) {
+        errors.bagPerforationType = "Selecciona el tipo de perforación bolsa.";
+      }
+    }
+
     return errors;
-  }, [form, requiredFields, shouldApplyPouchDoyPackRestrictions, inheritedWrapping]);
+  }, [form, requiredFields, shouldApplyPouchDoyPackRestrictions, inheritedWrapping, projectCode, shouldShowInternalAccessories, hasPerforation, isPouch, isBolsa]);
 
   const shouldShowFieldError = (field: keyof ProjectEditFormData) => {
     return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
@@ -2131,16 +2215,16 @@ export default function ProjectEditPage() {
       hasReinforcement: form.hasReinforcement as BooleanLike,
       reinforcementThickness: form.reinforcementThickness,
       reinforcementWidth: form.reinforcementWidth,
-      hasAngularCut: form.hasAngularCut as BooleanLike,
-      hasRoundedCorners: form.hasRoundedCorners as BooleanLike,
-      roundedCornersType: form.roundedCornersType,
-      hasNotch: form.hasNotch as BooleanLike,
-      hasPerforation: form.hasPerforation as BooleanLike,
-      pouchPerforationType: form.pouchPerforationType,
-      bagPerforationType: form.bagPerforationType,
-      perforationLocation: form.perforationLocation,
-      hasPreCut: form.hasPreCut as BooleanLike,
-      preCutType: form.preCutType,
+      hasAngularCut: shouldShowInternalAccessories ? (form.hasAngularCut as BooleanLike) : false,
+      hasRoundedCorners: shouldShowInternalAccessories ? (form.hasRoundedCorners as BooleanLike) : false,
+      roundedCornersType: shouldShowInternalAccessories ? form.roundedCornersType : "",
+      hasNotch: shouldShowInternalAccessories ? (form.hasNotch as BooleanLike) : false,
+      hasPerforation: shouldShowInternalAccessories ? (form.hasPerforation as BooleanLike) : false,
+      pouchPerforationType: shouldShowPouchPerforationType ? form.pouchPerforationType : "",
+      bagPerforationType: shouldShowBolsaPerforationType ? form.bagPerforationType : "",
+      perforationLocation: shouldShowInternalAccessories ? form.perforationLocation : "",
+      hasPreCut: shouldShowInternalAccessories ? (form.hasPreCut as BooleanLike) : false,
+      preCutType: shouldShowInternalAccessories ? form.preCutType : "",
       otherAccessories: form.otherAccessories,
 
       saleType: form.saleType,
@@ -2368,16 +2452,16 @@ export default function ProjectEditPage() {
       hasReinforcement: form.hasReinforcement as BooleanLike,
       reinforcementThickness: form.reinforcementThickness,
       reinforcementWidth: form.reinforcementWidth,
-      hasAngularCut: form.hasAngularCut as BooleanLike,
-      hasRoundedCorners: form.hasRoundedCorners as BooleanLike,
-      roundedCornersType: form.roundedCornersType,
-      hasNotch: form.hasNotch as BooleanLike,
-      hasPerforation: form.hasPerforation as BooleanLike,
-      pouchPerforationType: form.pouchPerforationType,
-      bagPerforationType: form.bagPerforationType,
-      perforationLocation: form.perforationLocation,
-      hasPreCut: form.hasPreCut as BooleanLike,
-      preCutType: form.preCutType,
+      hasAngularCut: shouldShowInternalAccessories ? (form.hasAngularCut as BooleanLike) : false,
+      hasRoundedCorners: shouldShowInternalAccessories ? (form.hasRoundedCorners as BooleanLike) : false,
+      roundedCornersType: shouldShowInternalAccessories ? form.roundedCornersType : "",
+      hasNotch: shouldShowInternalAccessories ? (form.hasNotch as BooleanLike) : false,
+      hasPerforation: shouldShowInternalAccessories ? (form.hasPerforation as BooleanLike) : false,
+      pouchPerforationType: shouldShowPouchPerforationType ? form.pouchPerforationType : "",
+      bagPerforationType: shouldShowBolsaPerforationType ? form.bagPerforationType : "",
+      perforationLocation: shouldShowInternalAccessories ? form.perforationLocation : "",
+      hasPreCut: shouldShowInternalAccessories ? (form.hasPreCut as BooleanLike) : false,
+      preCutType: shouldShowInternalAccessories ? form.preCutType : "",
       otherAccessories: form.otherAccessories,
 
       saleType: form.saleType,
@@ -3537,29 +3621,59 @@ export default function ProjectEditPage() {
                             ) : null;
                           })()}
 
-                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                            <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
-                            <div className="space-y-3">
-                              <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
-                              <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
-                              {form.hasRoundedCorners === "Sí" && (
-                                <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={ROUNDED_CORNERS_TYPE_OPTIONS} />
-                              )}
-                              <AccessoryCheckbox field="hasNotch" label="Muesca" />
-                              <AccessoryCheckbox field="hasPerforation" label="Perforación" />
-                              {form.hasPerforation === "Sí" && (
-                                <div className="space-y-3">
-                                  <FormSelect label="Tipo Perforación Pouch" value={form.pouchPerforationType} onChange={(value) => updateField("pouchPerforationType", value)} placeholder="-- Seleccione --" options={POUCH_PERFORATION_TYPE_OPTIONS} />
-                                  <FormSelect label="Tipo Perforación Bolsa" value={form.bagPerforationType} onChange={(value) => updateField("bagPerforationType", value)} placeholder="-- Seleccione --" options={BAG_PERFORATION_TYPE_OPTIONS} />
-                                  <FormSelect label="Ubicación Perforaciones" value={form.perforationLocation} onChange={(value) => updateField("perforationLocation", value)} placeholder="-- Seleccione --" options={PERFORATION_LOCATION_OPTIONS} />
-                                </div>
-                              )}
-                              <AccessoryCheckbox field="hasPreCut" label="Pre-Corte" />
-                              {form.hasPreCut === "Sí" && (
-                                <FormSelect label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} placeholder="-- Seleccione --" options={PRECUT_TYPE_OPTIONS} />
-                              )}
+                          {shouldShowInternalAccessories && (
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                              <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
+                              <div className="space-y-3">
+                                <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
+                                <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
+                                {form.hasRoundedCorners === "Sí" && (
+                                  <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={ROUNDED_CORNERS_TYPE_OPTIONS} />
+                                )}
+                                <AccessoryCheckbox field="hasNotch" label="Muesca" />
+                                <AccessoryCheckbox field="hasPerforation" label="Perforación" />
+                                {hasPerforation && (
+                                  <div className="space-y-3">
+                                    {shouldShowPouchPerforationType && (
+                                      <FormSelect
+                                        label="Tipo Perforación Pouch"
+                                        value={form.pouchPerforationType}
+                                        onChange={(value) => updateField("pouchPerforationType", value)}
+                                        onBlur={() => markFieldAsTouched("pouchPerforationType")}
+                                        error={getError("pouchPerforationType")}
+                                        placeholder="-- Seleccione --"
+                                        options={POUCH_PERFORATION_TYPE_OPTIONS}
+                                      />
+                                    )}
+                                    {shouldShowBolsaPerforationType && (
+                                      <FormSelect
+                                        label="Tipo Perforación Bolsa"
+                                        value={form.bagPerforationType}
+                                        onChange={(value) => updateField("bagPerforationType", value)}
+                                        onBlur={() => markFieldAsTouched("bagPerforationType")}
+                                        error={getError("bagPerforationType")}
+                                        placeholder="-- Seleccione --"
+                                        options={BAG_PERFORATION_TYPE_OPTIONS}
+                                      />
+                                    )}
+                                    <FormSelect
+                                      label="Ubicación Perforaciones"
+                                      value={form.perforationLocation}
+                                      onChange={(value) => updateField("perforationLocation", value)}
+                                      onBlur={() => markFieldAsTouched("perforationLocation")}
+                                      error={getError("perforationLocation")}
+                                      placeholder="-- Seleccione --"
+                                      options={PERFORATION_LOCATION_OPTIONS}
+                                    />
+                                  </div>
+                                )}
+                                <AccessoryCheckbox field="hasPreCut" label="Pre-Corte" />
+                                {form.hasPreCut === "Sí" && (
+                                  <FormSelect label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} placeholder="-- Seleccione --" options={PRECUT_TYPE_OPTIONS} />
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           <FormSelect
                             label="Otros accesorios"
@@ -3600,11 +3714,18 @@ export default function ProjectEditPage() {
                   </div>
 
                   {form.hasCustomerTechnicalSpec === "Sí" && (
-                    <ProjectDocumentsSection
-                      projectCode={projectCode}
-                      showPlans={false}
-                      embedded={true}
-                    />
+                    <>
+                      <ProjectDocumentsSection
+                        projectCode={projectCode}
+                        showPlans={false}
+                        embedded={true}
+                      />
+                      {getError("customerTechnicalSpecAttachment") && (
+                        <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
+                          {getError("customerTechnicalSpecAttachment")}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 

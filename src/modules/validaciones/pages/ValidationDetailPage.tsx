@@ -49,11 +49,44 @@ export default function ValidationDetailPage() {
     );
   }
 
+  // Helper para normalizar el área de validación
+  const normalizeValidationArea = (value: any): string => {
+    const raw = String(value || "").trim();
+
+    if (
+      raw === "Artes Gráficas" ||
+      raw === "Artes Graficas" ||
+      raw === "Ártes Gráficas" ||
+      raw === "Ártes Graficas"
+    ) {
+      return "Artes Gráficas";
+    }
+
+    if (
+      raw === "R&D Técnica" ||
+      raw === "Área Técnica" ||
+      raw === "Area Técnica" ||
+      raw === "Area Tecnica"
+    ) {
+      return "R&D Técnica";
+    }
+
+    if (raw === "R&D Desarrollo") {
+      return "R&D Desarrollo";
+    }
+
+    return "";
+  };
+
   // Get validation area from multiple possible sources
-  const validationArea =
-    project.currentValidationStep ||
-    project.technicalSubArea ||
-    "";
+  const projectAny = project as any;
+  const validationArea = normalizeValidationArea(
+    projectAny.currentValidationStep ||
+    projectAny.responsibleArea ||
+    projectAny.technicalSubArea ||
+    projectAny.areaResponsable ||
+    ""
+  );
 
   const isGraphicArtsStep = validationArea === "Artes Gráficas";
 
@@ -62,48 +95,95 @@ export default function ValidationDetailPage() {
     validationArea === "R&D Desarrollo";
 
   const canValidateCurrentStep =
-    isGraphicArtsStep || isTechnicalStep;
+    validationArea === "Artes Gráficas" ||
+    validationArea === "R&D Técnica" ||
+    validationArea === "R&D Desarrollo";
+
+  const displayValidationArea =
+    validationArea === "R&D Técnica" ? "R&D Área Técnica" : validationArea;
+
+  // Helper to check if project is already validated
+  const isProjectValidated =
+    projectAny.status === "Validado" ||
+    (
+      (
+        projectAny.graphicArtsValidationStatus === "Validado" ||
+        projectAny.graphicArtsValidationStatus === "Aprobado automático"
+      ) &&
+      projectAny.technicalValidationStatus === "Validado"
+    );
+
+  // Helper functions for displaying values
+  const displayYesNo = (value: any) => {
+    if (value === true || value === "Sí" || value === "Si") return "Sí";
+    if (value === false || value === "No") return "No";
+    return value || "—";
+  };
+
+  const displayArray = (value: any) => {
+    if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+    return value || "—";
+  };
+
+  const displayDimension = (value: any) => {
+    if (value === null || value === undefined || value === "") return "—";
+    return `${value} mm`;
+  };
 
   const handleObservar = async () => {
-    if (!canValidateCurrentStep || !validationArea) {
-      alert("No hay un área de validación activa para este proyecto.");
-      return;
-    }
-
-    if (!comment.trim()) {
-      alert("El comentario es obligatorio al observar.");
-      return;
-    }
-
-    setLoading(true);
     try {
-      const updated = observeProject(project, validationArea as any, comment);
+      if (!canValidateCurrentStep || !validationArea) {
+        alert("No hay un área de validación activa para este proyecto.");
+        return;
+      }
+
+      if (!comment.trim()) {
+        alert("El comentario es obligatorio para observar.");
+        return;
+      }
+
+      setLoading(true);
+      const updated = observeProject(project, validationArea as any, comment.trim());
+
+      if (!updated) {
+        throw new Error("observeProject no devolvió un proyecto actualizado.");
+      }
+
       setProject(updated);
-      alert("Proyecto observado. El ejecutivo deberá corregir y solicitar validación nuevamente.");
+      alert("Proyecto observado correctamente.");
       navigate("/validaciones");
     } catch (error) {
-      console.error("Error al observar:", error);
-      alert("Error al procesar la observación.");
+      console.error("Error al observar proyecto:", error);
+      alert("Error al procesar la observación. Revisa la consola para más detalle.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleValidar = async () => {
-    if (!canValidateCurrentStep || !validationArea) {
-      alert("No hay un área de validación activa para este proyecto.");
-      return;
-    }
-
-    setLoading(true);
     try {
-      const updated = approveValidation(project, validationArea as any, comment || undefined);
+      if (!canValidateCurrentStep || !validationArea) {
+        alert("No hay un área de validación activa para este proyecto.");
+        return;
+      }
+
+      setLoading(true);
+      const updated = approveValidation(
+        project,
+        validationArea as any,
+        comment.trim() || undefined
+      );
+
+      if (!updated) {
+        throw new Error("approveValidation no devolvió un proyecto actualizado.");
+      }
+
       setProject(updated);
-      alert("Validación completada.");
+      alert("Validación registrada correctamente.");
       navigate("/validaciones");
     } catch (error) {
-      console.error("Error al validar:", error);
-      alert("Error al procesar la validación.");
+      console.error("Error al aprobar validación:", error);
+      alert("Error al procesar la validación. Revisa la consola para más detalle.");
     } finally {
       setLoading(false);
     }
@@ -396,6 +476,245 @@ export default function ValidationDetailPage() {
               </div>
             </FormCard>
           )}
+
+          {/* Datos para Validación Técnica (R&D Técnica o R&D Desarrollo) */}
+          {isTechnicalStep && (() => {
+            // Detect wrapping type
+            const wrappingLower = (projectAny.wrapping || projectAny.envoltura || "").toLowerCase();
+            const isLamina = wrappingLower.includes("lámina") || wrappingLower.includes("lamina");
+            const isPouch = wrappingLower.includes("pouch");
+            const isBolsa = wrappingLower.includes("bolsa");
+
+            return (
+              <FormCard title={`Datos para Validación Técnica - ${displayValidationArea}`} icon="⚙" color="#00A1DE">
+                <div className="space-y-8">
+                  {/* SECCIÓN 1: Proyecto y producto */}
+                  <div>
+                    <h4 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600 pb-2 border-b border-slate-200">
+                      1. Proyecto y Producto
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-3 gap-x-8 md:grid-cols-2">
+                      <PreviewRow label="Código" value={projectAny.code || projectAny.projectCode || "—"} />
+                      <PreviewRow label="Nombre" value={projectAny.projectName || projectAny.name || "—"} />
+                      <PreviewRow label="Cliente" value={projectAny.clientName || "—"} />
+                      <PreviewRow label="Portafolio" value={projectAny.portfolioCode || projectAny.portfolioName || "—"} />
+                      <PreviewRow label="Planta" value={projectAny.plant || "—"} />
+                      <PreviewRow label="Envoltura" value={projectAny.wrapping || projectAny.envoltura || "—"} />
+                      <PreviewRow label="Uso final" value={projectAny.finalUse || "—"} />
+                      <PreviewRow label="Segmento" value={projectAny.segment || "—"} />
+                      <PreviewRow label="Sub-segmento" value={projectAny.subSegment || "—"} />
+                      <PreviewRow label="Sector" value={projectAny.sector || "—"} />
+                      <PreviewRow label="AF Market ID" value={projectAny.afMarketId || "—"} />
+                      <PreviewRow label="Máquina/Envasado" value={projectAny.machine || projectAny.packagingMachine || "—"} />
+                      <PreviewRow label="Ejecutivo Comercial" value={projectAny.executiveName || "—"} />
+                      <PreviewRow label="Estado" value={projectAny.status || "—"} />
+                      <PreviewRow label="Completitud" value={`${projectAny.completionPercentage || 0}%`} />
+                    </div>
+                  </div>
+
+                  {/* SECCIÓN 2: Proyecto Core */}
+                  <div>
+                    <h4 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600 pb-2 border-b border-slate-200">
+                      2. Proyecto Core
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-3 gap-x-8 md:grid-cols-2">
+                      <PreviewRow label="Clasificación" value={projectAny.classification || "—"} />
+                      <PreviewRow label="Complejidad" value={projectAny.complejidad || projectAny.complexity || "—"} />
+                      <PreviewRow label="Tipo de Proyecto" value={projectAny.projectType || "—"} />
+                      <PreviewRow label="Licitación" value={displayYesNo(projectAny.licitacion)} />
+                      {projectAny.licitacion === "Sí" && (
+                        <PreviewRow label="N° de ítems" value={projectAny.numeroItemsLicitacion || "—"} />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* SECCIÓN 3: Diseño */}
+                  <div>
+                    <h4 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600 pb-2 border-b border-slate-200">
+                      3. Diseño
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-3 gap-x-8 md:grid-cols-2">
+                      <PreviewRow label="Tiene diseño de referencia" value={displayYesNo(projectAny.isPreviousDesign || projectAny.hasEdagReference)} />
+                      <PreviewRow label="Impresión" value={projectAny.printClass || "—"} />
+                      <PreviewRow label="Tipo" value={projectAny.printType || "—"} />
+                      <PreviewRow label="Especificaciones especiales" value={projectAny.specialDesignSpecs || "—"} />
+                      <PreviewRow label="Comentarios de diseños especiales" value={projectAny.specialDesignComments || "—"} />
+                      <PreviewRow label="Requiere trabajo de diseño" value={displayYesNo(projectAny.requiresDesignWork)} />
+                      <PreviewRow label="Tiene plano de diseño" value={displayYesNo(projectAny.hasDesignPlan)} />
+                      <PreviewRow label="Objetivo de color" value={displayArray(projectAny.colorObjective || projectAny.objetivoColor)} />
+                      <PreviewRow label="Comentarios objetivo color" value={projectAny.colorObjectiveComment || projectAny.comentarioObjetivoColor || "—"} />
+                      <PreviewRow label="Instrucciones de trabajo" value={projectAny.designWorkInstructions || projectAny.instruccionesTrabajoDiseno || "—"} />
+                      <PreviewRow label='Logo "Producto Peruano"' value={projectAny.peruvianProductLogo || "—"} />
+                      <PreviewRow label="Pie de imprenta" value={projectAny.printingFooter || "—"} />
+                    </div>
+                  </div>
+
+                  {/* SECCIÓN 4: Formato de Plano */}
+                  <div>
+                    <h4 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600 pb-2 border-b border-slate-200">
+                      4. Formato de Plano
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-3 gap-x-8 md:grid-cols-2">
+                      <PreviewRow label="Formato Calculado" value={projectAny.blueprintFormat || projectAny.formatoPlano || "—"} />
+                      {isPouch && (
+                        <>
+                          <PreviewRow label="Familia Pouch" value={projectAny.tipoFamiliaPouch || "—"} />
+                          <PreviewRow label="Stand Up" value={projectAny.tipoStandUpPouch || "—"} />
+                          <PreviewRow label="Base Doy Pack" value={projectAny.formaDoyPackPouch || projectAny.baseDoyPack || "—"} />
+                          <PreviewRow label="Fuelle Stand Up" value={projectAny.tipoFuelleStandUpPouch || "—"} />
+                          <PreviewRow label="Cantidad Sellos" value={projectAny.cantidadSellosPouchPlano || "—"} />
+                          <PreviewRow label="Tiene Fuelle Central" value={displayYesNo(projectAny.tieneFuelleSelloCentralPouch)} />
+                          <PreviewRow label="Material Sello Central" value={projectAny.materialSelloCentralPouch || "—"} />
+                          <PreviewRow label="Tipo Sello Fuelle" value={projectAny.tipoSelloEnFuellePouch || "—"} />
+                        </>
+                      )}
+                      {isBolsa && (
+                        <>
+                          <PreviewRow label="Presentación Bolsa" value={projectAny.tipoPresentacionBolsa || "—"} />
+                          <PreviewRow label="Tipo Sello" value={projectAny.tipoSelloBolsa || "—"} />
+                          <PreviewRow label="Acabado" value={projectAny.acabadoBolsa || "—"} />
+                          <PreviewRow label="Tiene Fuelle" value={displayYesNo(projectAny.tieneFuelleBolsa)} />
+                        </>
+                      )}
+                      {isLamina && (
+                        <PreviewRow label="Tipo Lámina" value={projectAny.tipoFormatoLamina || "—"} />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* SECCIÓN 5: Estructura Técnica */}
+                  <div>
+                    <h4 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600 pb-2 border-b border-slate-200">
+                      5. Estructura Técnica
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-3 gap-x-8 md:grid-cols-2">
+                      <PreviewRow label="Tiene estructura de referencia" value={displayYesNo(projectAny.hasReferenceStructure)} />
+                      <PreviewRow label="Tipo de estructura" value={projectAny.structureType || "—"} />
+                      <PreviewRow label="Aplicación técnica" value={projectAny.technicalApplication || "—"} />
+                      <PreviewRow label="Complejidad técnica" value={projectAny.technicalComplexity || "—"} />
+                      <PreviewRow label="Gramaje general" value={projectAny.grammage || projectAny.totalGrammage || "—"} />
+                      <PreviewRow label="Tolerancia gramaje" value={projectAny.grammageTolerance || "—"} />
+                      <PreviewRow label="Solicitud de muestra" value={displayYesNo(projectAny.sampleRequest)} />
+                      <PreviewRow label="Comentarios técnicos" value={projectAny.technicalComments || "—"} />
+                    </div>
+                  </div>
+
+                  {/* SECCIÓN 6: Capas y Materiales */}
+                  <div>
+                    <h4 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600 pb-2 border-b border-slate-200">
+                      6. Capas y Materiales
+                    </h4>
+                    {Array.isArray(projectAny.layers) && projectAny.layers.length > 0 ? (
+                      <div className="space-y-4">
+                        {projectAny.layers.map((layer: any, idx: number) => (
+                          <div key={idx} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                            <p className="font-semibold text-slate-700 mb-3">Capa {idx + 1}</p>
+                            <div className="grid grid-cols-1 gap-y-2 gap-x-8 md:grid-cols-2 text-sm">
+                              <PreviewRow label="Grupo" value={layer.group || layer.materialGroup || "—"} />
+                              <PreviewRow label="Material" value={layer.material || "—"} />
+                              <PreviewRow label="Micraje" value={layer.micron || "—"} />
+                              <PreviewRow label="Gramaje" value={layer.grammage || "—"} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {[1, 2, 3, 4].map((l) => {
+                          const hasData = projectAny[`layer${l}Material`] || projectAny[`layer${l}Micron`] || projectAny[`layer${l}Grammage`];
+                          return hasData ? (
+                            <div key={l} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                              <p className="font-semibold text-slate-700 mb-3">Capa {l}</p>
+                              <div className="grid grid-cols-1 gap-y-2 gap-x-8 md:grid-cols-2 text-sm">
+                                <PreviewRow label="Grupo" value={projectAny[`layer${l}MaterialGroup`] || "—"} />
+                                <PreviewRow label="Material" value={projectAny[`layer${l}Material`] || "—"} />
+                                <PreviewRow label="Micraje" value={projectAny[`layer${l}Micron`] || "—"} />
+                                <PreviewRow label="Gramaje" value={projectAny[`layer${l}Grammage`] || "—"} />
+                              </div>
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SECCIÓN 7: Dimensiones y Accesorios */}
+                  <div>
+                    <h4 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600 pb-2 border-b border-slate-200">
+                      7. Dimensiones y Accesorios
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-3 gap-x-8 md:grid-cols-3">
+                      <PreviewRow label="Ancho" value={displayDimension(projectAny.width || projectAny.ancho)} />
+                      <PreviewRow label="Largo" value={displayDimension(projectAny.length || projectAny.largo)} />
+                      <PreviewRow label="Ancho Fuelle" value={displayDimension(projectAny.gussetWidth || projectAny.anchoFuelle)} />
+                      <PreviewRow label="Tipo Fuelle" value={projectAny.gussetType || projectAny.tipoFuelle || "—"} />
+                      <PreviewRow label="Zipper" value={displayYesNo(projectAny.hasZipper)} />
+                      {projectAny.hasZipper === "Sí" && <PreviewRow label="Tipo Zipper" value={projectAny.zipperType || "—"} />}
+                      <PreviewRow label="Tin-Tie" value={displayYesNo(projectAny.hasTinTie)} />
+                      <PreviewRow label="Válvula" value={displayYesNo(projectAny.hasValve)} />
+                      {projectAny.hasValve === "Sí" && <PreviewRow label="Tipo Válvula" value={projectAny.valveType || "—"} />}
+                      <PreviewRow label="Asa Troquelada" value={displayYesNo(projectAny.hasDieCutHandle)} />
+                      <PreviewRow label="Refuerzo" value={displayYesNo(projectAny.hasReinforcement)} />
+                      <PreviewRow label="Corte Angular" value={displayYesNo(projectAny.hasAngularCut)} />
+                      <PreviewRow label="Esquinas Redondas" value={displayYesNo(projectAny.hasRoundedCorners)} />
+                      <PreviewRow label="Muesca" value={displayYesNo(projectAny.hasNotch)} />
+                      <PreviewRow label="Perforación" value={displayYesNo(projectAny.hasPerforation)} />
+                      {projectAny.hasPerforation === "Sí" && isPouch && <PreviewRow label="Tipo Perforación Pouch" value={projectAny.pouchPerforationType || "—"} />}
+                      {projectAny.hasPerforation === "Sí" && isBolsa && <PreviewRow label="Tipo Perforación Bolsa" value={projectAny.bagPerforationType || "—"} />}
+                      <PreviewRow label="Pre-Corte" value={displayYesNo(projectAny.hasPreCut)} />
+                      <PreviewRow label="Otros accesorios" value={projectAny.otherAccessories || "—"} />
+                    </div>
+                  </div>
+
+                  {/* SECCIÓN 8: Especificaciones de Core - Solo para LÁMINA */}
+                  {isLamina && (
+                    <div>
+                      <h4 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600 pb-2 border-b border-slate-200">
+                        8. Especificaciones de Core
+                      </h4>
+                      <div className="grid grid-cols-1 gap-y-3 gap-x-8 md:grid-cols-2">
+                        <PreviewRow label="Material" value={projectAny.coreMaterial || "—"} />
+                        <PreviewRow label="Diámetro Core" value={displayDimension(projectAny.coreDiameter)} />
+                        <PreviewRow label="Diámetro Externo" value={displayDimension(projectAny.externalDiameter)} />
+                        <PreviewRow label="Variación Externa +" value={displayDimension(projectAny.externalVariationPlus)} />
+                        <PreviewRow label="Variación Externa -" value={displayDimension(projectAny.externalVariationMinus)} />
+                        <PreviewRow label="Peso Máximo Rollo" value={projectAny.maxRollWeight ? `${projectAny.maxRollWeight} kg` : "—"} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SECCIÓN 9: Condiciones Comerciales */}
+                  <div>
+                    <h4 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600 pb-2 border-b border-slate-200">
+                      9. Condiciones Comerciales
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-3 gap-x-8 md:grid-cols-2">
+                      <PreviewRow label="Volumen Estimado" value={projectAny.estimatedVolume || "—"} />
+                      <PreviewRow label="Unidad de Medida" value={projectAny.unitOfMeasure || "—"} />
+                      <PreviewRow label="Tipo de Venta" value={projectAny.saleType || "—"} />
+                      <PreviewRow label="Incoterm" value={projectAny.incoterm || "—"} />
+                      <PreviewRow label="País Destino" value={projectAny.destinationCountry || "—"} />
+                      <PreviewRow label="Precio Objetivo" value={projectAny.targetPrice || "—"} />
+                      <PreviewRow label="Tipo de Moneda" value={projectAny.currencyType || "—"} />
+                    </div>
+                  </div>
+
+                  {/* SECCIÓN 10: Datos Adicionales del Cliente */}
+                  <div>
+                    <h4 className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600 pb-2 border-b border-slate-200">
+                      10. Datos Adicionales del Cliente
+                    </h4>
+                    <div className="grid grid-cols-1 gap-y-3 gap-x-8 md:grid-cols-2">
+                      <PreviewRow label="Especificación técnica del cliente" value={displayYesNo(projectAny.hasCustomerTechnicalSpec)} />
+                      <PreviewRow label="Código de empaque" value={projectAny.customerPackagingCode || "—"} />
+                      <PreviewRow label="Información adicional" value={projectAny.additionalCustomerInfo || "—"} />
+                      <PreviewRow label="Comentario comercial" value={projectAny.commercialExecutiveComment || "—"} />
+                    </div>
+                  </div>
+                </div>
+              </FormCard>
+            );
+          })()}
         </div>
 
         {/* Columna derecha: Formulario de validación */}
@@ -432,7 +751,7 @@ export default function ValidationDetailPage() {
           </FormCard>
 
           {/* Formulario de acción */}
-          {canValidateCurrentStep && (
+          {canValidateCurrentStep && !isProjectValidated && (
             <FormCard
               title="Acción de Validación"
               icon="📋"
@@ -479,7 +798,7 @@ export default function ValidationDetailPage() {
             </FormCard>
           )}
 
-          {!isGraphicArtsStep && !isTechnicalStep && (
+          {isProjectValidated && (
             <FormCard title="Estado" icon="ℹ️" color="#2c3e50">
               <div className="text-sm text-slate-600">
                 Este proyecto ya ha completado todas las validaciones.

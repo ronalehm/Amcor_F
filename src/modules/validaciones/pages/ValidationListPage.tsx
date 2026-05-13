@@ -100,12 +100,80 @@ export default function ValidationListPage() {
     }
   };
 
-  const getValidationStatus = (area: string, project: any): string => {
-    if (area === "Artes Gráficas") {
-      return project.graphicArtsValidationStatus || "Pendiente";
-    } else {
-      return project.technicalValidationStatus || "Pendiente";
+  const normalizeValidationArea = (value: any): string => {
+    const raw = String(value || "").trim();
+
+    if (
+      raw === "Artes Gráficas" ||
+      raw === "Artes Graficas" ||
+      raw === "Ártes Gráficas" ||
+      raw === "Ártes Graficas"
+    ) {
+      return "Artes Gráficas";
     }
+
+    if (
+      raw === "R&D Técnica" ||
+      raw === "Área Técnica" ||
+      raw === "Area Técnica" ||
+      raw === "Area Tecnica"
+    ) {
+      return "R&D Técnica";
+    }
+
+    if (raw === "R&D Desarrollo") {
+      return "R&D Desarrollo";
+    }
+
+    return "";
+  };
+
+  const getCurrentValidationArea = (project: any): string => {
+    return normalizeValidationArea(
+      project.currentValidationStep ||
+      project.technicalSubArea ||
+      project.responsibleArea ||
+      project.areaResponsable ||
+      ""
+    );
+  };
+
+  const getCurrentValidationStatus = (project: any): string => {
+    const area = getCurrentValidationArea(project);
+    const projectStatus = project.status;
+
+    if (area === "Artes Gráficas") {
+      const rawStatus = project.graphicArtsValidationStatus;
+
+      if (
+        projectStatus === "En validación" &&
+        (!rawStatus || rawStatus === "Sin solicitar")
+      ) {
+        return "Revisión manual";
+      }
+
+      return rawStatus || "Revisión manual";
+    }
+
+    if (area === "R&D Técnica" || area === "R&D Desarrollo") {
+      const rawStatus = project.technicalValidationStatus;
+
+      if (
+        projectStatus === "En validación" &&
+        (!rawStatus || rawStatus === "Sin solicitar")
+      ) {
+        return "Pendiente";
+      }
+
+      return rawStatus || "Pendiente";
+    }
+
+    return "Sin solicitar";
+  };
+
+  const getValidationStatus = (project: any): string => {
+    // Usar getCurrentValidationStatus que ya aplica la regla de negocio
+    return getCurrentValidationStatus(project);
   };
 
   return (
@@ -167,7 +235,7 @@ export default function ValidationListPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredBySearch.map(({ project, responsibleArea }) => (
+                  {filteredBySearch.map(({ project }) => (
                     <tr
                       key={project.code}
                       className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
@@ -184,10 +252,10 @@ export default function ValidationListPage() {
                           {project.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{responsibleArea}</td>
+                      <td className="px-4 py-3 text-slate-700">{getCurrentValidationArea(project)}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getValidationStatusBadge(responsibleArea, getValidationStatus(responsibleArea, project))}`}>
-                          {getValidationStatus(responsibleArea, project)}
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getValidationStatusBadge(getCurrentValidationArea(project), getValidationStatus(project))}`}>
+                          {getValidationStatus(project)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-600">
