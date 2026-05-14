@@ -409,10 +409,6 @@ export default function ProjectListPage() {
         project.classification,
         (project as any).clasificacion
       );
-      const complejidad = getText(
-        project.complejidad,
-        (project as any).complexity
-      );
       const wrappingName = getText(
         project.envoltura,
         project.wrappingName,
@@ -456,7 +452,6 @@ export default function ProjectListPage() {
         portfolioCodeLabel: portfolioCode,
         portfolioNameLabel: portfolioName,
         classification,
-        complejidad,
         wrappingName,
         blueprintFormat,
         stageName,

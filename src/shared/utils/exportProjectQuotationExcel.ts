@@ -59,7 +59,7 @@ function buildQuotationExportRow(
     "Tipo de Proyecto": pickValue(project.projectType, project.tipoProyecto),
     "Responsable Commercial Finance": project.commercialFinanceResponsible || "",
     "Formato de Plano": pickValue(product.blueprintFormat, project.blueprintFormat),
-    "Aplicación Técnica": project.technicalApplication || "",
+    "Aplicación Técnica": pickValue(product.technicalApplication, product.aplicacionTecnica, project.technicalApplication),
     "Uso Final (autocompletado)": pickValue(
       (portfolio as any)?.usoFinal,
       project.useFinalName,
@@ -71,7 +71,12 @@ function buildQuotationExportRow(
     "AFMarketID (autocompletado)": pickValue(portfolio?.afMarketId, project.afMarketId),
     "Cantidades (Volumen Estimado)": pickValue(product.estimatedVolume, project.estimatedVolume),
     "Unidad de Medida": pickValue(product.unitOfMeasure, project.unitOfMeasure),
-    "Código de Empaque del Cliente (Opcional)": product.customerPackingCode || "",
+    "Código de Empaque del Cliente (Opcional)": pickValue(
+      product.customerPackingCode,
+      (product as any).customerPackagingCode,
+      project.customerPackingCode,
+      (project as any).clientPackagingCode
+    ),
     "Clase de Impresión": pickValue(product.printClass, project.printClass),
     "Tipo de Impresión": pickValue(product.printType, project.printType),
     "¿Es un Diseño ya Trabajado?": boolStr(project.isPreviousDesign),
@@ -189,9 +194,32 @@ function buildQuotationExportRow(
     "Otros accesorios (si aplica)": project.otherAccessories || "",
     "Código Producto": product.preliminaryProductCode || "",
     "Nombre Producto": pickValue(product.name, product.productName),
-    "Colores": Array.isArray(project.colorObjective)
-      ? project.colorObjective.join(", ")
-      : project.colors || "",
+    "Colores":
+      Array.isArray(product.colorObjective) && product.colorObjective.length > 0
+        ? product.colorObjective.join(", ")
+        : Array.isArray((product as any).objetivoColor) && (product as any).objetivoColor.length > 0
+        ? (product as any).objetivoColor.join(", ")
+        : Array.isArray(project.colorObjective)
+        ? project.colorObjective.join(", ")
+        : project.colors || "",
+    "Comentario de objetivo de color": pickValue(
+      product.colorObjectiveComment,
+      (product as any).comentarioObjetivoColor,
+      project.colorObjectiveComment,
+      (project as any).comentarioObjetivoColor
+    ),
+    'Logo "Producto Peruano"': pickValue(
+      product.peruvianProductLogo,
+      (product as any).logoProductoPeruano,
+      project.peruvianProductLogo,
+      "No"
+    ),
+    "Pie de Imprenta": pickValue(
+      product.printingFooter,
+      (product as any).pieImprenta,
+      project.printingFooter,
+      "Sí"
+    ),
     "Número de colores": "",
     "Tintas y Barnices": "",
     "Gramaje de la tinta (g)": "",

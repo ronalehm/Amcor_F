@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getPortfolioDisplayRecords, TECHNICAL_APPLICATION_OPTIONS } from "../../../shared/data/portfolioStorage";
+import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
 import {
   getProjectByCode,
   updateProjectRecord,
@@ -13,7 +13,6 @@ import {
   type YesNoPending,
 } from "../../../shared/data/projectStorage";
 import { getDocumentsByProject } from "../../../shared/data/projectDocumentStorage";
-import { getPreliminaryProducts } from "../../../shared/data/projectProductStorage";
 import {
   computeProjectPreparationStatus,
   normalizeProjectStatus,
@@ -25,6 +24,7 @@ import {
 } from "../../../shared/data/projectWorkflow";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { getActiveUsers } from "../../../shared/data/userStorage";
+import { isGenericPackingMachine } from "../../../shared/utils/validationUtils";
 import {
   isGuidedFormatEnabled,
   calculateBolsaFormatPlan,
@@ -81,10 +81,8 @@ type ProjectEditFormData = {
   materialSelloCentralPouch: string;
   tipoSelloEnFuellePouch: string;
 
-  technicalApplication: string;
   estimatedVolume: string;
   unitOfMeasure: string;
-  customerPackingCode: string;
 
   printClass: string;
   printType: string;
@@ -97,8 +95,6 @@ type ProjectEditFormData = {
   specialDesignComments: string;
   edagCode: string;
   edagVersion: string;
-  colorObjective: string[];
-  colorObjectiveComment: string;
   designWorkInstructions: string;
 
   hasReferenceStructure: string;
@@ -169,14 +165,10 @@ type ProjectEditFormData = {
   externalVariationMinus: string;
   maxRollWeight: string;
   customerAdditionalInfo: string;
-  peruvianProductLogo: string;
-  printingFooter: string;
   deliveryAddress: string;
   additionalComment: string;
 
   licitacion: string;
-  numeroItemsLicitacion: string;
-
   designPlanFiles: string[];
 };
 
@@ -550,14 +542,6 @@ const CORE_MATERIAL_OPTIONS = [
   { value: "Otros", label: "Otros" },
 ];
 
-const COLOR_OBJECTIVE_OPTIONS = [
-  { value: "No existe", label: "No existe" },
-  { value: "Muestra física", label: "Muestra física" },
-  { value: "Color pantone", label: "Color pantone" },
-  { value: "Producción de referencia", label: "Producción de referencia" },
-  { value: "Otros", label: "Otros" },
-];
-
 const GUSSET_TYPE_OPTIONS = [
   { value: "Lateral", label: "Lateral" },
   { value: "Fondo", label: "Fondo" },
@@ -637,9 +621,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "classification",
     "projectType",
     "licitacion",
-    "numeroItemsLicitacion",
-    "technicalApplication",
-    "customerPackingCode",
     "customerAdditionalInfo",
     "additionalComment",
     "deliveryAddress",
@@ -660,8 +641,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "printClass",
     "printType",
     "hasDesignPlan",
-    "colorObjective",
-    "colorObjectiveComment",
     "designWorkInstructions",
     "tipoFamiliaPouch",
     "tipoStandUpPouch",
@@ -674,8 +653,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "specialDesignSpecs",
     "specialDesignComments",
     "designPlanFiles",
-    "peruvianProductLogo",
-    "printingFooter",
   ],
 
   // 3. Estructura
@@ -725,8 +702,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   projectDescription: "Descripción del proyecto",
 
   blueprintFormat: "Formato de plano",
-  technicalApplication: "Aplicación técnica",
-  customerPackingCode: "Código de empaque del cliente",
 
   printClass: "Impresión",
   printType: "Tipo",
@@ -745,8 +720,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   coreDiameter: "Diámetro core",
   externalDiameter: "Diámetro externo",
   maxRollWeight: "Peso máximo rollo",
-  peruvianProductLogo: "Logo Producto Peruano",
-  printingFooter: "Pie de Imprenta",
 
   grammage: "Gramaje general (g/m2)",
   sampleRequest: "¿Solicitud de muestra?",
@@ -762,8 +735,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   hasEdagReference: "¿Tiene Diseño de referencia?",
   edagCode: "Código EDAG",
   edagVersion: "Versión EDAG",
-  colorObjective: "Objetivo de color",
-  colorObjectiveComment: "Comentar Objetivo de color",
   designWorkInstructions: "Instrucciones de trabajo para diseño",
   tipoFormatoLamina: "Tipo de Lámina",
   tipoFamiliaPouch: "Familia de pouch",
@@ -812,7 +783,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   layer4Grammage: "Capa 4 - Gramaje",
 
   licitacion: "Licitación",
-  numeroItemsLicitacion: "N° de ítems",
 };
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Información General
@@ -824,7 +794,6 @@ const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Producto Comercial
   "classification",
   "blueprintFormat",
-  "technicalApplication",
 
   // Diseño
   "hasEdagReference",
@@ -919,10 +888,8 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     projectType: form.projectType,
     salesforceAction: form.salesforceAction,
     blueprintFormat: form.blueprintFormat,
-    technicalApplication: form.technicalApplication,
     estimatedVolume: form.estimatedVolume,
     unitOfMeasure: form.unitOfMeasure,
-    customerPackingCode: form.customerPackingCode,
     printClass: form.printClass,
     printType: form.printType,
     requiresDesignWork: form.requiresDesignWork,
@@ -996,12 +963,9 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     externalVariationMinus: form.externalVariationMinus,
     maxRollWeight: form.maxRollWeight,
     customerAdditionalInfo: form.customerAdditionalInfo?.trim() || "",
-    peruvianProductLogo: form.peruvianProductLogo,
-    printingFooter: form.printingFooter,
     deliveryAddress: form.deliveryAddress?.trim() || "",
     additionalComment: form.additionalComment?.trim() || "",
     licitacion: form.licitacion,
-    numeroItemsLicitacion: form.numeroItemsLicitacion,
     designPlanFiles: form.designPlanFiles.slice(),
   };
 }
@@ -1046,10 +1010,8 @@ export default function ProjectEditPage() {
     tieneFuelleSelloCentralPouch: "",
     materialSelloCentralPouch: "",
     tipoSelloEnFuellePouch: "",
-    technicalApplication: "",
     estimatedVolume: "",
     unitOfMeasure: "",
-    customerPackingCode: "",
     printClass: "",
     printType: "",
     requiresDesignWork: "",
@@ -1061,8 +1023,6 @@ export default function ProjectEditPage() {
     specialDesignComments: "",
     edagCode: "",
     edagVersion: "",
-    colorObjective: [],
-    colorObjectiveComment: "",
     designWorkInstructions: "",
     hasReferenceStructure: "",
     referenceEmCode: "",
@@ -1127,12 +1087,9 @@ export default function ProjectEditPage() {
     externalVariationMinus: "",
     maxRollWeight: "",
     customerAdditionalInfo: "",
-    peruvianProductLogo: "",
-    printingFooter: "",
     deliveryAddress: "",
     additionalComment: "",
     licitacion: "",
-    numeroItemsLicitacion: "",
     designPlanFiles: [],
   });
 
@@ -1210,10 +1167,8 @@ export default function ProjectEditPage() {
       tieneFuelleSelloCentralPouch: (project as any).tieneFuelleSelloCentralPouch || "",
       materialSelloCentralPouch: (project as any).materialSelloCentralPouch || "",
       tipoSelloEnFuellePouch: (project as any).tipoSelloEnFuellePouch || "",
-      technicalApplication: project.technicalApplication || "",
       estimatedVolume: project.estimatedVolume || "",
       unitOfMeasure: project.unitOfMeasure || "KGS",
-      customerPackingCode: project.customerPackingCode || "",
       printClass: project.printClass || "",
       printType: project.printType || "",
       requiresDesignWork: toYesNo(project.requiresDesignWork),
@@ -1225,8 +1180,6 @@ export default function ProjectEditPage() {
       specialDesignComments: project.specialDesignComments || "",
       edagCode: project.edagCode || "",
       edagVersion: project.edagVersion || "",
-      colorObjective: (project as any).colorObjective || (project as any).objetivoColor || [],
-      colorObjectiveComment: (project as any).colorObjectiveComment || (project as any).comentarioObjetivoColor || "",
       designWorkInstructions: (project as any).designWorkInstructions || (project as any).instruccionesTrabajoDiseno || "",
       hasReferenceStructure: toYesNo(project.hasReferenceStructure),
       referenceEmCode: project.referenceEmCode || "",
@@ -1291,12 +1244,9 @@ export default function ProjectEditPage() {
       externalVariationMinus: project.externalVariationMinus || "",
       maxRollWeight: project.maxRollWeight || "",
       customerAdditionalInfo: project.customerAdditionalInfo || "",
-      peruvianProductLogo: toYesNo(project.peruvianProductLogo),
-      printingFooter: toYesNo(project.printingFooter),
       deliveryAddress: (project as any).deliveryAddress || "",
       additionalComment: (project as any).additionalComment || "",
       licitacion: toYesNo((project as any).licitacion),
-      numeroItemsLicitacion: ((project as any).numeroItemsLicitacion || "").toString(),
       designPlanFiles: (project as any).designPlanFiles || [],
     };
 
@@ -1819,57 +1769,14 @@ export default function ProjectEditPage() {
   }, [inheritedWrapping, form.hasPerforation]);
 
   const handleLicitacionChange = (value: string) => {
-    const licitacion = value as "Sí" | "No";
-    setForm((prev) => ({
-      ...prev,
-      licitacion,
-      numeroItemsLicitacion: licitacion === "No" ? "" : prev.numeroItemsLicitacion,
-    }));
+  const licitacion = value as "Sí" | "No";
 
-    if (licitacion === "No") {
-      setTouchedFields((prev) => ({
-        ...prev,
-        numeroItemsLicitacion: false,
-      }));
-    }
-  };
+  setForm((prev) => ({
+    ...prev,
+    licitacion,
+  }));
+};
 
-  const handleColorObjectiveChange = (value: string) => {
-    setForm((prev) => {
-      const current = Array.isArray(prev.colorObjective)
-        ? prev.colorObjective
-        : [];
-
-      const alreadySelected = current.includes(value);
-
-      let nextValues = alreadySelected
-        ? current.filter((item) => item !== value)
-        : [...current, value];
-
-      if (value === "No existe" && !alreadySelected) {
-        nextValues = ["No existe"];
-      }
-
-      if (value !== "No existe") {
-        nextValues = nextValues.filter((item) => item !== "No existe");
-      }
-
-      return {
-        ...prev,
-        colorObjective: nextValues,
-      };
-    });
-
-    markFieldAsTouched("colorObjective");
-  };
-
-  const isNoColorObjectiveSelected =
-    Array.isArray(form.colorObjective) &&
-    form.colorObjective.includes("No existe");
-
-  const hasAnyColorObjectiveSelected =
-    Array.isArray(form.colorObjective) &&
-    form.colorObjective.some((item) => item !== "No existe");
 
   const handlePouchFamilyChange = (value: string) => {
     setForm((prev) => ({
@@ -2058,45 +1965,9 @@ export default function ProjectEditPage() {
       }
     }
 
-    if (form.licitacion === "Sí") {
-      const itemCount = Number(form.numeroItemsLicitacion || 0);
-
-      if (!itemCount || itemCount <= 0) {
-        errors.numeroItemsLicitacion = "Ingresa el N° de ítems de la licitación.";
-      } else if (projectCode) {
-        const activePreliminaryProducts = getPreliminaryProducts(projectCode).filter(
-          (product) => product.status !== "Desestimado"
-        );
-
-        if (itemCount < activePreliminaryProducts.length) {
-          errors.numeroItemsLicitacion =
-            `No puedes configurar ${itemCount} ítems porque ya existen ${activePreliminaryProducts.length} productos preliminares activos. Desestima productos o configura un número igual o mayor a ${activePreliminaryProducts.length}.`;
-        }
-      }
-    }
 
     if (form.salesforceAction && !isValidSalesforceAction(form.salesforceAction)) {
       errors.salesforceAction = "La Acción Salesforce debe tener el formato A- seguido de 6 dígitos. Ejemplo: A-123456.";
-    }
-
-    if (!Array.isArray(form.colorObjective) || form.colorObjective.length === 0) {
-      errors.colorObjective = "Selecciona el objetivo de color.";
-    }
-
-    if (
-      Array.isArray(form.colorObjective) &&
-      form.colorObjective.includes("Otros") &&
-      !String(form.colorObjectiveComment || "").trim()
-    ) {
-      errors.colorObjectiveComment = "Comenta cuál es el objetivo de color cuando seleccionas Otros.";
-    }
-
-    if (
-      Array.isArray(form.colorObjective) &&
-      form.colorObjective.includes("No existe") &&
-      form.colorObjective.length > 1
-    ) {
-      errors.colorObjective = "No existe no puede combinarse con otros objetivos de color.";
     }
 
     // Validar Especificación Técnica del Cliente
@@ -2342,10 +2213,8 @@ export default function ProjectEditPage() {
       salesforceAction: normalizeSalesforceAction(form.salesforceAction),
 
       blueprintFormat: form.blueprintFormat,
-      technicalApplication: form.technicalApplication,
       estimatedVolume: form.estimatedVolume,
       unitOfMeasure: form.unitOfMeasure,
-      customerPackingCode: form.customerPackingCode,
 
       // LÁMINA guided format fields
       tipoFormatoLamina: form.tipoFormatoLamina || "",
@@ -2377,10 +2246,6 @@ export default function ProjectEditPage() {
       specialDesignComments: form.specialDesignComments,
       edagCode: form.edagCode,
       edagVersion: form.edagVersion,
-      colorObjective: form.colorObjective || [],
-      objetivoColor: form.colorObjective || [],
-      colorObjectiveComment: form.colorObjectiveComment || "",
-      comentarioObjetivoColor: form.colorObjectiveComment || "",
       designWorkInstructions: form.designWorkInstructions || "",
       instruccionesTrabajoDiseno: form.designWorkInstructions || "",
       isPreviousDesign: form.hasEdagReference as BooleanLike,
@@ -2461,12 +2326,9 @@ export default function ProjectEditPage() {
       externalVariationMinus: isLaminaWrapping(inheritedWrapping) ? form.externalVariationMinus : "",
       maxRollWeight: isLaminaWrapping(inheritedWrapping) ? form.maxRollWeight : "",
       customerAdditionalInfo: form.customerAdditionalInfo,
-      peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
-      printingFooter: form.printingFooter as BooleanLike,
       deliveryAddress: form.deliveryAddress,
       additionalComment: form.additionalComment,
       licitacion: form.licitacion as YesNoPending,
-      numeroItemsLicitacion: form.licitacion === "Sí" ? Number(form.numeroItemsLicitacion) : null,
       designPlanFiles: form.designPlanFiles,
 
       status: needsRevalidation ? (nextStatus === "Validado" ? "Ficha Completa" : nextStatus) : nextStatus,
@@ -2509,6 +2371,12 @@ export default function ProjectEditPage() {
 
     const shouldSubmitForValidation =
       isProjectCompleteForValidation && !shouldForceSaveAsDraft;
+
+    // Block submission if "Máquina genérica" is selected
+    if (shouldSubmitForValidation && isGenericPackingMachine(inheritedMachine)) {
+      alert("No se puede enviar el proyecto para validación mientras se tiene seleccionado 'Máquina genérica'. Por favor, seleccione una máquina específica.");
+      return;
+    }
 
     if (needsRevalidation && !shouldSubmitForValidation) {
       if (!window.confirm("Al guardar estos cambios el proyecto requerirá una nueva validación (cambio de versión de línea base). ¿Desea continuar?")) {
@@ -2593,10 +2461,8 @@ export default function ProjectEditPage() {
       salesforceAction: normalizeSalesforceAction(form.salesforceAction),
 
       blueprintFormat: form.blueprintFormat,
-      technicalApplication: form.technicalApplication,
       estimatedVolume: form.estimatedVolume,
       unitOfMeasure: form.unitOfMeasure,
-      customerPackingCode: form.customerPackingCode,
 
       // LÁMINA guided format fields
       tipoFormatoLamina: form.tipoFormatoLamina || "",
@@ -2628,10 +2494,6 @@ export default function ProjectEditPage() {
       specialDesignComments: form.specialDesignComments,
       edagCode: form.edagCode,
       edagVersion: form.edagVersion,
-      colorObjective: form.colorObjective || [],
-      objetivoColor: form.colorObjective || [],
-      colorObjectiveComment: form.colorObjectiveComment || "",
-      comentarioObjetivoColor: form.colorObjectiveComment || "",
       designWorkInstructions: form.designWorkInstructions || "",
       instruccionesTrabajoDiseno: form.designWorkInstructions || "",
       isPreviousDesign: form.hasEdagReference as BooleanLike,
@@ -2712,12 +2574,9 @@ export default function ProjectEditPage() {
       externalVariationMinus: isLaminaWrapping(inheritedWrapping) ? form.externalVariationMinus : "",
       maxRollWeight: isLaminaWrapping(inheritedWrapping) ? form.maxRollWeight : "",
       customerAdditionalInfo: form.customerAdditionalInfo,
-      peruvianProductLogo: form.peruvianProductLogo as YesNoPending,
-      printingFooter: form.printingFooter as BooleanLike,
       deliveryAddress: form.deliveryAddress,
       additionalComment: form.additionalComment,
       licitacion: form.licitacion as YesNoPending,
-      numeroItemsLicitacion: form.licitacion === "Sí" ? Number(form.numeroItemsLicitacion) : null,
       designPlanFiles: form.designPlanFiles,
 
       status: shouldSubmitForValidation ? "En validación" : calculatedStatus,
@@ -3037,29 +2896,7 @@ export default function ProjectEditPage() {
 
                 <FormCard title="Datos adicionales del cliente" icon="📌" color="#e67e22">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormSelect
-                      label="Aplicación Técnica *"
-                      value={form.technicalApplication}
-                      onChange={(value) => {
-                        updateField("technicalApplication", value);
-                        markFieldAsTouched("technicalApplication");
-                      }}
-                      onBlur={() => markFieldAsTouched("technicalApplication")}
-                      error={getError("technicalApplication")}
-                      placeholder="-- Seleccione --"
-                      options={TECHNICAL_APPLICATION_OPTIONS}
-                      disabled={!canEditAdditionalCustomerData}
-                    />
-
-                    <FormInput
-                      label="Código de Empaque del Cliente"
-                      value={form.customerPackingCode}
-                      onChange={(value) => updateField("customerPackingCode", value)}
-                      placeholder="Ej. COD-CLI-001"
-                      disabled={!canEditAdditionalCustomerData}
-                    />
-
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-3">
                       <FormTextarea
                         label="Información adicional cliente"
                         value={form.customerAdditionalInfo}
@@ -3188,72 +3025,15 @@ export default function ProjectEditPage() {
                         )}
 
                         {/* Objetivo de color - Multi selección */}
-                        <div>
-                          <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
-                            Objetivo de color *
-                          </label>
-
-                          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                            {COLOR_OBJECTIVE_OPTIONS.map((option) => {
-                              const checked = form.colorObjective?.includes(option.value);
-
-                              const disabled =
-                                option.value === "No existe"
-                                  ? hasAnyColorObjectiveSelected
-                                  : isNoColorObjectiveSelected;
-
-                              return (
-                                <label
-                                  key={option.value}
-                                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                                    disabled
-                                      ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
-                                      : "cursor-pointer border-slate-200 bg-white text-slate-700 hover:border-brand-primary"
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    disabled={disabled}
-                                    onChange={() => handleColorObjectiveChange(option.value)}
-                                    className="h-4 w-4 rounded border-slate-300"
-                                  />
-                                  <span>{option.label}</span>
-                                </label>
-                              );
-                            })}
-                          </div>
-
-                          {getError("colorObjective") && (
-                            <p className="mt-1 text-xs font-semibold text-red-600">
-                              {getError("colorObjective")}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Comentar Objetivo de color - solo si "Otros" está seleccionado */}
-                        {form.colorObjective?.includes("Otros") && (
-                          <FormTextarea
-                            label="Comentar Objetivo de color *"
-                            value={form.colorObjectiveComment}
-                            onChange={(value) => updateField("colorObjectiveComment", value)}
-                            onBlur={() => markFieldAsTouched("colorObjectiveComment")}
-                            error={getError("colorObjectiveComment")}
-                            placeholder="Describe la muestra, pantone, producción de referencia u otro criterio de color..."
-                          />
-                        )}
-
-                        {/* Instrucciones de trabajo para diseño - oculto si "No existe" está seleccionado */}
-                        {!form.colorObjective?.includes("No existe") && (
-                          <FormTextarea
-                            label="Instrucciones de trabajo para diseño"
-                            value={form.designWorkInstructions}
-                            onChange={(value) => updateField("designWorkInstructions", value)}
-                            onBlur={() => markFieldAsTouched("designWorkInstructions")}
-                            error={getError("designWorkInstructions")}
-                            placeholder="Indica instrucciones específicas para Artes Gráficas o diseño. Campo opcional."
-                          />
-                        )}
+                        {/* Instrucciones de trabajo para diseño */}
+                        <FormTextarea
+                          label="Instrucciones de trabajo para diseño"
+                          value={form.designWorkInstructions}
+                          onChange={(value) => updateField("designWorkInstructions", value)}
+                          onBlur={() => markFieldAsTouched("designWorkInstructions")}
+                          error={getError("designWorkInstructions")}
+                          placeholder="Indica instrucciones específicas para Artes Gráficas o diseño. Campo opcional."
+                        />
 
                         {/* Configuración de Formato - POUCH, BOLSA, LÁMINA o genérico */}
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -3498,34 +3278,6 @@ export default function ProjectEditPage() {
                               />
                             </div>
                           )}
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                          <FormSelect
-                            label='Logo "Producto Peruano"'
-                            value={form.peruvianProductLogo}
-                            onChange={(value) => {
-                              updateField("peruvianProductLogo", value);
-                              markFieldAsTouched("peruvianProductLogo");
-                            }}
-                            onBlur={() => markFieldAsTouched("peruvianProductLogo")}
-                            error={getError("peruvianProductLogo")}
-                            placeholder="-- Seleccione --"
-                            options={YES_NO_OPTIONS}
-                          />
-
-                          <FormSelect
-                            label="Pie de Imprenta"
-                            value={form.printingFooter}
-                            onChange={(value) => {
-                              updateField("printingFooter", value);
-                              markFieldAsTouched("printingFooter");
-                            }}
-                            onBlur={() => markFieldAsTouched("printingFooter")}
-                            error={getError("printingFooter")}
-                            placeholder="-- Seleccione --"
-                            options={YES_NO_OPTIONS}
-                          />
                         </div>
                       </div>
                     );
@@ -4282,22 +4034,6 @@ export default function ProjectEditPage() {
                       ]}
                       placeholder="-- Seleccione --"
                     />
-
-                    {form.licitacion === "Sí" && (
-                      <FormInput
-                        label="N° de ítems de Licitación *"
-                        type="number"
-                        value={form.numeroItemsLicitacion}
-                        onChange={(value) => {
-                          const onlyNumbers = value.replace(/\D/g, "");
-                          updateField("numeroItemsLicitacion", onlyNumbers);
-                          markFieldAsTouched("numeroItemsLicitacion");
-                        }}
-                        onBlur={() => markFieldAsTouched("numeroItemsLicitacion")}
-                        error={getError("numeroItemsLicitacion")}
-                        placeholder="Ej: 5, 10, 15..."
-                      />
-                    )}
                   </>
                 )}
 

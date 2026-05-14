@@ -1072,6 +1072,8 @@ export function createProjectFromPortfolio(params: {
     clasificacion: string;
     complejidad?: "ALTA" | "BAJA" | string;
     tipoProyecto: string;
+    responsibleArea?: string;
+    technicalSubArea?: string;
     approvedProductCode?: string;
     approvedProductId?: string;
     approvedProductSku?: string;
@@ -1114,10 +1116,12 @@ export function createProjectFromPortfolio(params: {
     packingMachineName: params.portfolio.maquinaCliente || params.portfolio.maq,
 
     classification: params.initialData.clasificacion,
-    complexity: params.initialData.complejidad || "",
-    complejidad: params.initialData.complejidad || "",
     projectType: params.initialData.tipoProyecto || "",
     tipoProyecto: params.initialData.tipoProyecto || "",
+    rdResponsible: params.initialData.responsibleArea || "",
+    technicalSubArea: (params.initialData.technicalSubArea === "R&D Desarrollo" || params.initialData.technicalSubArea === "R&D Área Técnica")
+      ? (params.initialData.technicalSubArea as any)
+      : undefined,
     approvedProductCode: params.initialData.approvedProductCode || "",
     approvedProductId: params.initialData.approvedProductId || "",
     approvedProductSku: params.initialData.approvedProductSku || "",

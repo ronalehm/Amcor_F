@@ -13,6 +13,23 @@ import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import Button from "../../../shared/components/ui/Button";
 
+const COLOR_OBJECTIVE_OPTIONS = [
+  { value: "No existe", label: "No existe" },
+  { value: "Muestra física", label: "Muestra física" },
+  { value: "Color pantone", label: "Color pantone" },
+  { value: "Producción de referencia", label: "Producción de referencia" },
+  { value: "Otros", label: "Otros" },
+];
+
+const TECHNICAL_APPLICATION_OPTIONS = [
+  { value: "Alimentos", label: "Alimentos" },
+  { value: "Bebidas", label: "Bebidas" },
+  { value: "Químicos", label: "Químicos" },
+  { value: "Agrícola", label: "Agrícola" },
+  { value: "Industrial", label: "Industrial" },
+  { value: "Otros", label: "Otros" },
+];
+
 interface ProductFormModalProps {
   projectCode: string;
   project: ProjectRecord;
@@ -86,6 +103,15 @@ export default function ProductFormModal({
     requiresDesign: initialData?.requiresDesign || false,
     requiresSample: initialData?.requiresSample || false,
 
+    // Objetivo de color
+    colorObjective: initialData?.colorObjective || initialData?.objetivoColor || [],
+    colorObjectiveComment: initialData?.colorObjectiveComment || initialData?.comentarioObjetivoColor || "",
+
+    // Campos de producto
+    technicalApplication: initialData?.technicalApplication || initialData?.aplicacionTecnica || project?.technicalApplication || "",
+    peruvianProductLogo: initialData?.peruvianProductLogo || initialData?.logoProductoPeruano || "No",
+    printingFooter: initialData?.printingFooter || initialData?.pieImprenta || "Sí",
+
     // Dimensiones
     width: initialData?.width ? Number(initialData.width) : undefined,
     length: initialData?.length ? Number(initialData.length) : undefined,
@@ -117,6 +143,38 @@ export default function ProductFormModal({
   const updateField = (key: string, value: any) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  const handleColorObjectiveChange = (value: string) => {
+    setForm((prev) => {
+      const current = Array.isArray(prev.colorObjective) ? prev.colorObjective : [];
+      const alreadySelected = current.includes(value);
+
+      let nextValues = alreadySelected
+        ? current.filter((item) => item !== value)
+        : [...current, value];
+
+      if (value === "No existe" && !alreadySelected) {
+        nextValues = ["No existe"];
+      }
+
+      if (value !== "No existe") {
+        nextValues = nextValues.filter((item) => item !== "No existe");
+      }
+
+      return {
+        ...prev,
+        colorObjective: nextValues,
+        colorObjectiveComment: nextValues.includes("Otros") ? prev.colorObjectiveComment : "",
+      };
+    });
+  };
+
+  const isNoColorObjectiveSelected =
+    Array.isArray(form.colorObjective) && form.colorObjective.includes("No existe");
+
+  const hasAnyColorObjectiveSelected =
+    Array.isArray(form.colorObjective) &&
+    form.colorObjective.some((item) => item !== "No existe");
 
   const validate = useMemo(() => {
     const errs: Record<string, string> = {};
@@ -173,6 +231,40 @@ export default function ProductFormModal({
       }
     }
 
+    // Validaciones de Objetivo de Color
+    if (!Array.isArray(form.colorObjective) || form.colorObjective.length === 0) {
+      errs.colorObjective = "Selecciona el objetivo de color.";
+    }
+
+    if (
+      Array.isArray(form.colorObjective) &&
+      form.colorObjective.includes("Otros") &&
+      !String(form.colorObjectiveComment || "").trim()
+    ) {
+      errs.colorObjectiveComment = "Comenta cuál es el objetivo de color cuando seleccionas Otros.";
+    }
+
+    if (
+      Array.isArray(form.colorObjective) &&
+      form.colorObjective.includes("No existe") &&
+      form.colorObjective.length > 1
+    ) {
+      errs.colorObjective = "No existe no puede combinarse con otros objetivos de color.";
+    }
+
+    // Validaciones de campos de producto
+    if (!form.technicalApplication?.trim()) {
+      errs.technicalApplication = "Selecciona la aplicación técnica.";
+    }
+
+    if (!form.peruvianProductLogo) {
+      errs.peruvianProductLogo = 'Selecciona si aplica Logo "Producto Peruano".';
+    }
+
+    if (!form.printingFooter) {
+      errs.printingFooter = "Selecciona si aplica Pie de Imprenta.";
+    }
+
     return errs;
   }, [form, isQuotationEnabled]);
 
@@ -193,6 +285,20 @@ export default function ProductFormModal({
           description: form.description || "",
           productDescription: form.description || "",
           customerPackingCode: form.customerPackingCode || "",
+
+          // Objetivo de color
+          colorObjective: form.colorObjective || [],
+          objetivoColor: form.colorObjective || [],
+          colorObjectiveComment: form.colorObjectiveComment || "",
+          comentarioObjetivoColor: form.colorObjectiveComment || "",
+
+          // Campos de producto
+          technicalApplication: form.technicalApplication || "",
+          aplicacionTecnica: form.technicalApplication || "",
+          peruvianProductLogo: form.peruvianProductLogo || "No",
+          logoProductoPeruano: form.peruvianProductLogo || "No",
+          printingFooter: form.printingFooter || "Sí",
+          pieImprenta: form.printingFooter || "Sí",
 
           // Dimensiones
           width: form.width ? Number(form.width) : undefined,
@@ -216,9 +322,6 @@ export default function ProductFormModal({
 
         // NO incluir campos técnicos: structureType, blueprintFormat, printType, layer*, grammage, etc.
         saved = saveProjectProduct(toSave);
-      } else if (baseProductId) {
-        // Creación desde producto aprobado
-        saved = createProjectProductFromApprovedProduct(projectCode, baseProductId, form);
       } else if (baseProductId) {
         // Creación desde producto aprobado
         saved = createProjectProductFromApprovedProduct(projectCode, baseProductId, form);
@@ -309,6 +412,18 @@ export default function ProductFormModal({
               </div>
             </div>
 
+            <FormSelect
+              label="Aplicación Técnica *"
+              value={form.technicalApplication || ""}
+              onChange={(value) => updateField("technicalApplication", value)}
+              error={errors.technicalApplication}
+              options={TECHNICAL_APPLICATION_OPTIONS.map((opt) => ({
+                value: opt.value,
+                label: opt.label,
+              }))}
+              placeholder="-- Seleccione --"
+            />
+
             <FormTextarea
               label="Descripción"
               value={form.description || ""}
@@ -326,6 +441,79 @@ export default function ProductFormModal({
               onChange={(value) => updateField("customerPackingCode", value)}
               placeholder="Ej. SKU-001"
             />
+
+            {/* Objetivo de color */}
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-3">
+                Objetivo de color *
+              </label>
+              <div className="space-y-2">
+                {COLOR_OBJECTIVE_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex items-center cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={Array.isArray(form.colorObjective) && form.colorObjective.includes(option.value)}
+                      onChange={() => handleColorObjectiveChange(option.value)}
+                      disabled={
+                        isNoColorObjectiveSelected && option.value !== "No existe"
+                          ? true
+                          : hasAnyColorObjectiveSelected && option.value === "No existe"
+                          ? true
+                          : false
+                      }
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-slate-700">
+                      {option.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {errors.colorObjective && (
+                <p className="mt-2 text-xs font-medium text-red-600">
+                  {errors.colorObjective}
+                </p>
+              )}
+            </div>
+
+            {/* Comentario de objetivo de color - solo si está seleccionado "Otros" */}
+            {Array.isArray(form.colorObjective) && form.colorObjective.includes("Otros") && (
+              <FormTextarea
+                label="Comentario de objetivo de color *"
+                value={form.colorObjectiveComment || ""}
+                onChange={(value) => updateField("colorObjectiveComment", value)}
+                placeholder="Describe cuál es el objetivo de color que necesitas"
+                rows={3}
+                error={errors.colorObjectiveComment}
+              />
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormSelect
+                label='Logo "Producto Peruano" *'
+                value={form.peruvianProductLogo || "No"}
+                onChange={(value) => updateField("peruvianProductLogo", value as "Sí" | "No")}
+                error={errors.peruvianProductLogo}
+                options={[
+                  { value: "Sí", label: "Sí" },
+                  { value: "No", label: "No" },
+                ]}
+              />
+
+              <FormSelect
+                label="Pie de Imprenta *"
+                value={form.printingFooter || "Sí"}
+                onChange={(value) => updateField("printingFooter", value as "Sí" | "No")}
+                error={errors.printingFooter}
+                options={[
+                  { value: "Sí", label: "Sí" },
+                  { value: "No", label: "No" },
+                ]}
+              />
+            </div>
           </fieldset>
 
           {/* SECCIÓN 2: DIMENSIONES Y VOLUMEN */}

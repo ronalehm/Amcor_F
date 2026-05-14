@@ -138,11 +138,32 @@ export default function PortfolioEditPage() {
   const selectedPlant = getPlantById(Number(form?.plantaId));
   const selectedWrapping = getWrappingById(Number(form?.envolturaId));
   const selectedFinalUse = getFinalUseById(Number(form?.usoFinalId));
-  const selectedPackingMachine = getPackingMachineById(Number(form?.envasadoId));
+
+  const selectedPackingMachine = useMemo(() => {
+    if (!form?.envasadoId) return null;
+    if (form.envasadoId === "generic") {
+      return {
+        id: "generic" as any,
+        code: "GENERIC",
+        name: "Máquina genérica",
+        wrappingId: Number(form?.envolturaId)
+      };
+    }
+    return getPackingMachineById(Number(form?.envasadoId));
+  }, [form?.envasadoId, form?.envolturaId]);
 
   const packingMachines = useMemo(() => {
     if (!form?.envolturaId) return [];
-    return getPackingMachinesByWrappingId(Number(form.envolturaId));
+    const machines = getPackingMachinesByWrappingId(Number(form.envolturaId));
+    return [
+      {
+        id: "generic" as any,
+        code: "GENERIC",
+        name: "Máquina genérica",
+        wrappingId: Number(form.envolturaId)
+      },
+      ...machines
+    ];
   }, [form?.envolturaId]);
 
   const requiredChecks = useMemo(() => {
@@ -150,7 +171,7 @@ export default function PortfolioEditPage() {
     const checks: Array<{ field: string; label: string; completed: boolean }> = [
       { field: "clienteId", label: "Cliente", completed: Boolean(form.clienteId) },
       { field: "ejecutivoId", label: "Ejecutivo comercial", completed: Boolean(form.ejecutivoId) },
-      { field: "plantaId", label: "Planta de origen", completed: Boolean(form.plantaId) },
+      { field: "plantaId", label: "Planta de origen de solicitud", completed: Boolean(form.plantaId) },
       { field: "nombrePortafolio", label: "Nombre de portafolio", completed: Boolean(form.nombrePortafolio.trim()) },
       { field: "envolturaId", label: "Envoltura", completed: Boolean(form.envolturaId) },
       { field: "usoFinalId", label: "Uso final", completed: Boolean(form.usoFinalId) },
@@ -711,6 +732,14 @@ export default function PortfolioEditPage() {
                   placeholder="Ej. 564356"
                 />
               </div>
+
+              {form.envasadoId === "generic" && (
+                <div className="col-span-full mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm text-amber-800">
+                    <strong>ℹ️ Aviso:</strong> "Máquina genérica" es un valor temporal. Debe reemplazarlo con una máquina específica antes de enviar el proyecto para validación.
+                  </p>
+                </div>
+              )}
             </SectionCard>
           </div>
 
@@ -735,7 +764,7 @@ export default function PortfolioEditPage() {
             {/* SECCIÓN 5: Planta de Origen */}
             <SectionCard
               number={5}
-              title="Planta de Origen"
+              title="Planta de Origen de solicitud"
               subtitle="Selecciona la planta asociada al diseño."
               status={getSectionStatus(["plantaId"])}
               required

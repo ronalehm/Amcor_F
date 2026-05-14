@@ -44,14 +44,14 @@ type PortfolioFormData = {
   clienteId: string;
   ejecutivoId: string;
   plantaId: string;
-  licitacion: "Sí" | "No";
-  codigoRFQ: string;
   nombrePortafolio: string;
   descripcionPortafolio: string;
   envolturaId: string;
   usoFinalId: string;
   envasadoId: string;
   portafolioEstandar: string;
+  codigoRFQ: string;
+  licitacion: string;
 };
 
 const AMCOR = {
@@ -87,8 +87,9 @@ const buildInitialForm = (): PortfolioFormData => ({
   clienteId: "",
   ejecutivoId: "",
   plantaId: "",
-  licitacion: "No",
+
   codigoRFQ: "",
+  licitacion: "No",
   nombrePortafolio: "",
   descripcionPortafolio: "",
   envolturaId: "",
@@ -149,31 +150,45 @@ export default function PortfolioCreatePage() {
   const selectedPlant = getPlantById(Number(form.plantaId));
   const selectedWrapping = getWrappingById(Number(form.envolturaId));
   const selectedFinalUse = getFinalUseById(Number(form.usoFinalId));
-  const selectedPackingMachine = getPackingMachineById(Number(form.envasadoId));
+
+  const selectedPackingMachine = useMemo(() => {
+    if (!form.envasadoId) return null;
+    if (form.envasadoId === "generic") {
+      return {
+        id: "generic" as any,
+        code: "GENERIC",
+        name: "Máquina genérica",
+        wrappingId: Number(form.envolturaId)
+      };
+    }
+    return getPackingMachineById(Number(form.envasadoId));
+  }, [form.envasadoId, form.envolturaId]);
 
   const packingMachines = useMemo(() => {
     if (!form.envolturaId) return [];
-    return getPackingMachinesByWrappingId(Number(form.envolturaId));
+    const machines = getPackingMachinesByWrappingId(Number(form.envolturaId));
+    return [
+      {
+        id: "generic" as any,
+        code: "GENERIC",
+        name: "Máquina genérica",
+        wrappingId: Number(form.envolturaId)
+      },
+      ...machines
+    ];
   }, [form.envolturaId]);
 
   const requiredChecks = useMemo(() => {
     const checks: Array<{ field: string; label: string; completed: boolean }> = [
       { field: "clienteId", label: "Cliente", completed: Boolean(form.clienteId) },
       { field: "ejecutivoId", label: "Ejecutivo comercial", completed: Boolean(form.ejecutivoId) },
-      { field: "plantaId", label: "Planta de origen", completed: Boolean(form.plantaId) },
+      { field: "plantaId", label: "Planta de origen de solicitud", completed: Boolean(form.plantaId) },
       { field: "nombrePortafolio", label: "Nombre de portafolio", completed: Boolean(form.nombrePortafolio.trim()) },
       { field: "envolturaId", label: "Envoltura", completed: Boolean(form.envolturaId) },
       { field: "usoFinalId", label: "Uso final", completed: Boolean(form.usoFinalId) },
       { field: "envasadoId", label: "Envasado / Máquina de cliente", completed: Boolean(form.envasadoId) },
     ];
 
-    if (form.licitacion === "Sí") {
-      checks.splice(4, 0, {
-        field: "codigoRFQ",
-        label: "Código RFQ",
-        completed: Boolean(form.codigoRFQ.trim()),
-      });
-    }
 
     return checks;
   }, [form]);
@@ -185,28 +200,16 @@ export default function PortfolioCreatePage() {
 
   const getSectionStatus = (sectionFields: string[]): "pending" | "completed" | "error" => {
     const allCompleted = sectionFields.every((field) => {
-      if (field === "codigoRFQ" && form.licitacion === "No") return true;
       if (field === "clienteId") return Boolean(form.clienteId);
       if (field === "ejecutivoId") return Boolean(form.ejecutivoId);
       if (field === "plantaId") return Boolean(form.plantaId);
       if (field === "nombrePortafolio") return Boolean(form.nombrePortafolio.trim());
       if (field === "descripcionPortafolio") return true; // optional
-      if (field === "licitacion") return true;
-      if (field === "codigoRFQ") return Boolean(form.codigoRFQ.trim());
       if (field === "envolturaId") return Boolean(form.envolturaId);
       if (field === "usoFinalId") return Boolean(form.usoFinalId);
       if (field === "envasadoId") return Boolean(form.envasadoId);
       return false;
     });
-
-    if (submitAttempted && !allCompleted) {
-      const hasError = sectionFields.some(
-        (field) =>
-          validationErrors[field as keyof PortfolioFormData] &&
-          !(field === "codigoRFQ" && form.licitacion === "No")
-      );
-      return hasError ? "error" : "pending";
-    }
 
     return allCompleted ? "completed" : "pending";
   };
@@ -231,10 +234,6 @@ export default function PortfolioCreatePage() {
     if (!form.clienteId) errors.clienteId = "Selecciona el nombre del cliente.";
     if (!form.ejecutivoId) errors.ejecutivoId = "Selecciona el ejecutivo comercial.";
     if (!form.plantaId) errors.plantaId = "Selecciona la planta de origen.";
-
-    if (form.licitacion === "Sí" && !form.codigoRFQ.trim()) {
-      errors.codigoRFQ = "Ingresa el código RFQ.";
-    }
 
     if (!form.nombrePortafolio.trim()) {
       errors.nombrePortafolio = "Ingresa el nombre del portafolio.";
@@ -327,16 +326,6 @@ export default function PortfolioCreatePage() {
     }));
   };
 
-  const handleLicitacionChange = (value: string) => {
-    const licitacion = value as "Sí" | "No";
-
-    setForm((prev) => ({
-      ...prev,
-      licitacion,
-      codigoRFQ: licitacion === "No" ? "" : prev.codigoRFQ,
-    }));
-  };
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitAttempted(true);
@@ -375,8 +364,6 @@ export default function PortfolioCreatePage() {
     const tabportRecord = {
       TbPoCodi: form.codigo,
       TbPoEsta: selectedStatus.id,
-      TbPoLici: form.licitacion === "Sí" ? 1 : 0,
-      TbPoColic: form.codigoRFQ,
       TbPoNPro: form.nombrePortafolio,
       TbPoDPro: form.descripcionPortafolio,
       TbPoEstdr: form.portafolioEstandar,
@@ -437,9 +424,6 @@ export default function PortfolioCreatePage() {
       envasadoId: selectedPackingMachine.id,
       envasadoCode: selectedPackingMachine.code,
       maq: selectedPackingMachine.name,
-
-      lic: form.licitacion,
-      codigoRFQ: form.codigoRFQ,
       portafolioEstandar: form.portafolioEstandar,
 
       createdAt: now,
@@ -480,7 +464,7 @@ export default function PortfolioCreatePage() {
             <SectionCard
               number={1}
               title="Cliente y responsable"
-              status={getSectionStatus(form.licitacion === "Sí" ? ["clienteId", "ejecutivoId", "licitacion", "codigoRFQ"] : ["clienteId", "ejecutivoId", "licitacion"])}
+              status={getSectionStatus(form.licitacion === "Sí" ? ["clienteId", "ejecutivoId"] : ["clienteId", "ejecutivoId"])}
               required
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -712,6 +696,14 @@ export default function PortfolioCreatePage() {
                   placeholder="Ej. 564356"
                 />
               </div>
+
+              {form.envasadoId === "generic" && (
+                <div className="col-span-full mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-sm text-amber-800">
+                    <strong>ℹ️ Aviso:</strong> "Máquina genérica" es un valor temporal. Debe reemplazarlo con una máquina específica antes de enviar el proyecto para validación.
+                  </p>
+                </div>
+              )}
             </SectionCard>
           </div>
 
@@ -736,7 +728,7 @@ export default function PortfolioCreatePage() {
             {/* SECCIÓN 5: Planta de Origen */}
             <SectionCard
               number={5}
-              title="Planta de Origen"
+              title="Planta de Origen de solicitud"
               status={getSectionStatus(["plantaId"])}
               required
             >

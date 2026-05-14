@@ -26,12 +26,7 @@ const CLASSIFICATION_OPTIONS = [
   { value: "Modificado", label: "Modificado" },
 ];
 
-const COMPLEJIDAD_OPTIONS = [
-  { value: "ALTA", label: "ALTA" },
-  { value: "BAJA", label: "BAJA" },
-];
-
-const TIPO_PROYECTO_ALTA_OPTIONS = [
+const PROJECT_TYPE_OPTIONS = [
   { value: "Producto nuevo", label: "Producto nuevo" },
   { value: "Nuevo equipamiento de envasado", label: "Nuevo equipamiento de envasado" },
   { value: "Nuevos insumos", label: "Nuevos insumos" },
@@ -40,9 +35,6 @@ const TIPO_PROYECTO_ALTA_OPTIONS = [
   { value: "Nuevos accesorios", label: "Nuevos accesorios" },
   { value: "Nuevos procesos por el lado del cliente", label: "Nuevos procesos por el lado del cliente" },
   { value: "Nuevas temperaturas de envasado y almacenaje", label: "Nuevas temperaturas de envasado y almacenaje" },
-];
-
-const TIPO_PROYECTO_BAJA_OPTIONS = [
   { value: "Extensión de línea por familia (EM de referencia)", label: "Extensión de línea por familia (EM de referencia)" },
   { value: "Modifica Dimensiones", label: "Modifica Dimensiones" },
   { value: "Modifica Propiedades", label: "Modifica Propiedades" },
@@ -56,6 +48,37 @@ const MODIFICATION_REASON_OPTIONS = [
   { value: "Diseño y Estructura", label: "Diseño y Estructura" },
 ];
 
+const RD_DESARROLLO_PROJECT_TYPES = [
+  "Producto nuevo",
+  "Nuevo equipamiento de envasado",
+  "Nuevos insumos",
+  "Nueva estructura",
+  "Nuevo formato de envasado",
+  "Nuevos accesorios",
+  "Nuevos procesos por el lado del cliente",
+  "Nuevas temperaturas de envasado y almacenaje",
+];
+
+const RD_TECNICA_PROJECT_TYPES = [
+  "Extensión de línea por familia (EM de referencia)",
+  "Modifica Dimensiones",
+  "Modifica Propiedades",
+  "Portafolio Estándar",
+  "ICO (Intercompany), BCP (Business Continous Production)",
+];
+
+const resolveResponsibleArea = (projectType: string) => {
+  if (RD_DESARROLLO_PROJECT_TYPES.includes(projectType)) {
+    return "R&D Desarrollo";
+  }
+
+  if (RD_TECNICA_PROJECT_TYPES.includes(projectType)) {
+    return "R&D Área Técnica";
+  }
+
+  return "—";
+};
+
 export default function ProjectInitialCreateModal({
   isOpen,
   onClose,
@@ -67,7 +90,6 @@ export default function ProjectInitialCreateModal({
 
   const [portfolioCode, setPortfolioCode] = useState(initialPortfolioCode || "");
   const [clasificacion, setClasificacion] = useState("");
-  const [complejidad, setComplejidad] = useState<"ALTA" | "BAJA" | "">("");
   const [tipoProyecto, setTipoProyecto] = useState("");
   const [approvedProductQuery, setApprovedProductQuery] = useState("");
   const [selectedApprovedProduct, setSelectedApprovedProduct] = useState<ApprovedProductRecord | null>(null);
@@ -86,7 +108,6 @@ export default function ProjectInitialCreateModal({
     if (isOpen) {
       setPortfolioCode(initialPortfolioCode || "");
       setClasificacion("");
-      setComplejidad("");
       setTipoProyecto("");
       setApprovedProductQuery("");
       setSelectedApprovedProduct(null);
@@ -101,7 +122,6 @@ export default function ProjectInitialCreateModal({
 
   // Si cambia la clasificación, se resetea el tipo de proyecto y campos dependientes
   useEffect(() => {
-  setComplejidad("");
   setTipoProyecto("");
   setApprovedProductQuery("");
   setSelectedApprovedProduct(null);
@@ -110,10 +130,6 @@ export default function ProjectInitialCreateModal({
   setNumeroItemsLicitacion("");
   setShowApprovedProductDropdown(false);
 }, [clasificacion]);
-
-useEffect(() => {
-  setTipoProyecto("");
-}, [complejidad]);
 
 useEffect(() => {
   if (clasificacion !== "Modificado") {
@@ -138,12 +154,7 @@ useEffect(() => {
   const shouldShowModificationReason =
     clasificacion === "Modificado" && selectedApprovedProduct !== null;
 
-  const tipoProyectoOptions =
-  complejidad === "ALTA"
-    ? TIPO_PROYECTO_ALTA_OPTIONS
-    : complejidad === "BAJA"
-    ? TIPO_PROYECTO_BAJA_OPTIONS
-    : [];
+  const responsibleArea = resolveResponsibleArea(tipoProyecto);
 
   const handleCreate = () => {
     const newErrors: Record<string, string> = {};
@@ -159,10 +170,6 @@ useEffect(() => {
 
     if (!clasificacion) {
       newErrors.clasificacion = "Selecciona la clasificación del proyecto.";
-    }
-
-    if (clasificacion === "Nuevo" && !complejidad) {
-      newErrors.complejidad = "Selecciona la complejidad del proyecto.";
     }
 
     if (clasificacion === "Nuevo" && !tipoProyecto) {
@@ -198,8 +205,9 @@ useEffect(() => {
       portfolio: portfolio!,
       initialData: {
         clasificacion,
-        complejidad: clasificacion === "Nuevo" ? complejidad : "",
         tipoProyecto: clasificacion === "Nuevo" ? tipoProyecto : "",
+        responsibleArea: clasificacion === "Nuevo" ? responsibleArea : "",
+        technicalSubArea: clasificacion === "Nuevo" ? responsibleArea : "",
         approvedProductId: selectedApprovedProduct?.id || "",
         approvedProductCode: selectedApprovedProduct?.sku || "",
         approvedProductSku: selectedApprovedProduct?.sku || "",
@@ -315,20 +323,6 @@ useEffect(() => {
                   disabled={!portfolioCode}
                 />
               )}
-              {clasificacion === "Nuevo" && (
-              <FormSelect
-                label="Complejidad *"
-                value={complejidad}
-                onChange={(val) => {
-                  setComplejidad(val as "ALTA" | "BAJA");
-                  setErrors((prev) => ({ ...prev, complejidad: "" }));
-                }}
-                options={COMPLEJIDAD_OPTIONS}
-                error={errors.complejidad}
-                placeholder="-- Seleccione --"
-                disabled={!portfolioCode}
-              />
-            )}
 
               {clasificacion === "Modificado" && (
                 <>
@@ -489,7 +483,7 @@ useEffect(() => {
 
                   {shouldShowModificationReason && (
                     <FormSelect
-                      label="Motivo *"
+                      label="Tipo de Proyecto *"
                       value={motivoModificacion}
                       onChange={(val) => {
                         setMotivoModificacion(val);
@@ -504,19 +498,32 @@ useEffect(() => {
                 </>
               )}
 
-              {clasificacion === "Nuevo" && complejidad && (
-              <FormSelect
-                label="Motivo *"
-                value={tipoProyecto}
-                onChange={(val) => {
-                  setTipoProyecto(val);
-                  setErrors((prev) => ({ ...prev, tipoProyecto: "" }));
-                }}
-                options={tipoProyectoOptions}
-                error={errors.tipoProyecto}
-                placeholder="-- Seleccione --"
-                disabled={!complejidad}
-              />
+              {clasificacion === "Nuevo" && (
+              <>
+                <FormSelect
+                  label="Tipo de Proyecto *"
+                  value={tipoProyecto}
+                  onChange={(val) => {
+                    setTipoProyecto(val);
+                    setErrors((prev) => ({ ...prev, tipoProyecto: "" }));
+                  }}
+                  options={PROJECT_TYPE_OPTIONS}
+                  error={errors.tipoProyecto}
+                  placeholder="-- Seleccione --"
+                  disabled={!portfolioCode}
+                />
+
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                    Área encargada
+                  </label>
+
+                  <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                    {responsibleArea}
+                  </div>
+
+                </div>
+              </>
             )}
 
               {clasificacion === "Nuevo" && (

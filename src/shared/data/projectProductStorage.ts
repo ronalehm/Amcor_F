@@ -105,6 +105,20 @@ export type ProjectPreliminaryProductRecord = {
   currencyType?: string;
   commercialComments?: string;
 
+  // Objetivo de color (moved from project to product)
+  colorObjective?: string[];
+  objetivoColor?: string[]; // alias para compatibilidad
+  colorObjectiveComment?: string;
+  comentarioObjetivoColor?: string; // alias para compatibilidad
+
+  // Campos de producto (moved from project to product)
+  technicalApplication?: string;
+  aplicacionTecnica?: string; // alias para compatibilidad
+  peruvianProductLogo?: "Sí" | "No";
+  logoProductoPeruano?: "Sí" | "No"; // alias para compatibilidad
+  printingFooter?: "Sí" | "No";
+  pieImprenta?: "Sí" | "No"; // alias para compatibilidad
+
   // Cotización extendida
   saleScope?: "Nacional" | "Internacional";
   incoterm?: string;
