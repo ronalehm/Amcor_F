@@ -5,7 +5,6 @@ type PreviewItem = {
 
 type PortfolioPreviewProps = {
   codigo: string;
-  estado: string;
   completionPercentage: number;
   items: PreviewItem[];
   title?: string;
@@ -26,7 +25,6 @@ function PreviewRow({ label, value }: { label: string; value?: string }) {
 
 export default function PortfolioPreview({
   codigo,
-  estado,
   completionPercentage,
   items,
   title = "Vista rápida",
@@ -54,7 +52,6 @@ export default function PortfolioPreview({
 
       <div className="space-y-2 text-sm">
         <PreviewRow label="Código" value={codigo} />
-        <PreviewRow label="Estado" value={estado} />
         {items.map((item, index) => (
           <PreviewRow key={index} label={item.label} value={item.value} />
         ))}

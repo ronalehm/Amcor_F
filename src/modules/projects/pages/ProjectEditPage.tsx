@@ -278,6 +278,151 @@ function parseNumberInput(value: string): number | null {
   return Number.isFinite(parsedValue) ? parsedValue : null;
 }
 
+const getAnyProjectValue = (
+  project: ProjectRecord | null | undefined,
+  keys: string[],
+): string => {
+  const source = project as Record<string, unknown> | null;
+
+  if (!source) return "";
+
+  for (const key of keys) {
+    const value = source[key];
+
+    if (value !== undefined && value !== null && String(value).trim()) {
+      return String(value).trim();
+    }
+  }
+
+  return "";
+};
+
+const normalizeTextValue = (value: unknown): string =>
+  String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const normalizeInitialClassification = (
+  project: ProjectRecord | null | undefined,
+): "Nuevo" | "Modificado" | "" => {
+  const raw = getAnyProjectValue(project, [
+    "classification",
+    "clasificacion",
+    "motivo",
+    "requestReason",
+    "tipoSolicitud",
+  ]);
+
+  const normalized = normalizeTextValue(raw);
+
+  if (normalized.includes("modificado")) return "Modificado";
+  if (normalized.includes("nuevo")) return "Nuevo";
+
+  return "";
+};
+
+const resolveInitialProjectType = (
+  project: ProjectRecord | null | undefined,
+): string => {
+  return getAnyProjectValue(project, [
+    "projectType",
+    "tipoProyecto",
+    "causal",
+    "motivoNuevaValidacion",
+    "validationReason",
+    "causalValidacion",
+  ]);
+};
+
+const resolveInitialProjectDescription = (
+  project: ProjectRecord | null | undefined,
+): string => {
+  return getAnyProjectValue(project, [
+    "projectDescription",
+    "descripcionNecesidad",
+    "descripcion",
+    "description",
+  ]);
+};
+
+const resolveInitialVolume = (
+  project: ProjectRecord | null | undefined,
+): string => {
+  return getAnyProjectValue(project, [
+    "estimatedVolume",
+    "volumenReferencial",
+    "volumenCantidadReferencial",
+    "volumen",
+    "volume",
+  ]);
+};
+
+const resolveInitialUnit = (
+  project: ProjectRecord | null | undefined,
+): string => {
+  return getAnyProjectValue(project, [
+    "unitOfMeasure",
+    "unidad",
+    "unidadVolumen",
+    "unit",
+  ]);
+};
+
+const isProductoNuevo = (classification: string): boolean =>
+  classification === "Nuevo";
+
+const isProductoModificado = (classification: string): boolean =>
+  classification === "Modificado";
+
+const isDisenoNuevo = (classification: string, projectType: string): boolean =>
+  isProductoNuevo(classification) && projectType === "Diseño nuevo";
+
+const isCambioDiseno = (classification: string, projectType: string): boolean =>
+  isProductoModificado(classification) && projectType === "Cambia diseño";
+
+const goesToGraphicArts = (
+  classification: string,
+  projectType: string,
+): boolean => {
+  return (
+    isDisenoNuevo(classification, projectType) ||
+    isCambioDiseno(classification, projectType)
+  );
+};
+
+const goesToRDDesarrollo = (
+  classification: string,
+  projectType: string,
+): boolean => {
+  return (
+    isProductoNuevo(classification) &&
+    [
+      "Nueva estructura",
+      "Nuevos insumos",
+      "Nuevo formato de envasado",
+    ].includes(projectType)
+  );
+};
+
+const goesToRDAreaTecnica = (
+  classification: string,
+  projectType: string,
+): boolean => {
+  return (
+    isProductoModificado(classification) &&
+    [
+      "Nuevo equipamiento / proceso / temperatura",
+      "Modifica dimensiones",
+      "Modifica propiedades",
+      "Cambia estructura",
+      "Cambia materia prima",
+    ].includes(projectType)
+  );
+};
+
 function canEditDesign(motivoModificacion: string): boolean {
   return motivoModificacion === "Diseño y Dimensiones" || motivoModificacion === "Diseño y Estructura";
 }
@@ -1098,6 +1243,11 @@ export default function ProjectEditPage() {
   const [loading, setLoading] = useState(true);
   const [activeStep, setActiveStep] = useState(0);
   const [originalProject, setOriginalProject] = useState<ProjectRecord | null>(null);
+  const [initialClassification, setInitialClassification] = useState<"Nuevo" | "Modificado" | "">("");
+  const [initialProjectType, setInitialProjectType] = useState("");
+  const [initialVolume, setInitialVolume] = useState("");
+  const [initialUnit, setInitialUnit] = useState("");
+  const [initialDescription, setInitialDescription] = useState("");
   const [showValidationSuccessModal, setShowValidationSuccessModal] = useState(false);
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
   const [showInheritedDataModal, setShowInheritedDataModal] = useState(false);
@@ -1141,15 +1291,31 @@ export default function ProjectEditPage() {
       return val;
     };
 
+    const initialClassification = normalizeInitialClassification(project);
+    const initialProjectType = resolveInitialProjectType(project);
+    const initialDescription = resolveInitialProjectDescription(project);
+    const initialVolume = resolveInitialVolume(project);
+    const initialUnit = resolveInitialUnit(project);
+
+    const shouldGoGraphicArts = goesToGraphicArts(
+      initialClassification,
+      initialProjectType,
+    );
+
+    const shouldBeNewDesign = isDisenoNuevo(
+      initialClassification,
+      initialProjectType,
+    );
+
     const convertedForm: ProjectEditFormData = {
       portfolioCode: project.portfolioCode || "",
       executiveId: getProjectExecutiveIds(project),
       siUserId: project.siUserId || "",
       projectName: project.projectName || "",
-      projectDescription: project.projectDescription || "",
-      classification: project.classification || "",
+      projectDescription: initialDescription || project.projectDescription || "",
+      classification: initialClassification || project.classification || "",
       subClassification: (project as any).subClassification || "",
-      projectType: project.projectType || "",
+      projectType: initialProjectType || project.projectType || "",
       motivoModificacion: (project as any).motivoModificacion || "",
       salesforceAction: normalizeSalesforceAction(project.salesforceAction || ""),
       blueprintFormat: project.blueprintFormat || "",
@@ -1167,13 +1333,19 @@ export default function ProjectEditPage() {
       tieneFuelleSelloCentralPouch: (project as any).tieneFuelleSelloCentralPouch || "",
       materialSelloCentralPouch: (project as any).materialSelloCentralPouch || "",
       tipoSelloEnFuellePouch: (project as any).tipoSelloEnFuellePouch || "",
-      estimatedVolume: project.estimatedVolume || "",
-      unitOfMeasure: project.unitOfMeasure || "KGS",
+      estimatedVolume: initialVolume || project.estimatedVolume || "",
+      unitOfMeasure: initialUnit || project.unitOfMeasure || "KGS",
       printClass: project.printClass || "",
       printType: project.printType || "",
-      requiresDesignWork: toYesNo(project.requiresDesignWork),
+      requiresDesignWork: shouldGoGraphicArts ? "Sí" : toYesNo(project.requiresDesignWork),
       hasDesignPlan: toYesNo((project as any).hasDesignPlan),
-      hasEdagReference: toYesNo(project.isPreviousDesign),
+      hasEdagReference: shouldBeNewDesign
+        ? "No"
+        : toYesNo(
+            (project as any).hasEdagReference ??
+            project.isPreviousDesign ??
+            (project as any).isPreviousDesign
+          ),
       referenceEdagCode: project.previousEdagCode || "",
       referenceEdagVersion: project.previousEdagVersion || "",
       specialDesignSpecs: project.specialDesignSpecs || "No aplica",
@@ -1187,21 +1359,21 @@ export default function ProjectEditPage() {
       hasCustomerTechnicalSpec: toYesNo((project as any).hasCustomerTechnicalSpec),
       customerTechnicalSpecAttachment: (project as any).customerTechnicalSpecAttachment || "",
       structureType: project.structureType || "Monocapa",
-      layer1MaterialGroup: extractMaterialGroupFromValue(project.layer1Material || ""),
-      layer1Material: project.layer1Material || "",
-      layer1Micron: project.layer1Micron || "",
+      layer1MaterialGroup: extractMaterialGroupFromValue(project.layer1Material || (project as any).layer1MaterialLabel || ""),
+      layer1Material: project.layer1Material || (project as any).layer1MaterialLabel || "",
+      layer1Micron: project.layer1Micron || (project as any).layer1Micraje || "",
       layer1Grammage: project.layer1Grammage || "",
-      layer2MaterialGroup: extractMaterialGroupFromValue(project.layer2Material || ""),
-      layer2Material: project.layer2Material || "",
-      layer2Micron: project.layer2Micron || "",
+      layer2MaterialGroup: extractMaterialGroupFromValue(project.layer2Material || (project as any).layer2MaterialLabel || ""),
+      layer2Material: project.layer2Material || (project as any).layer2MaterialLabel || "",
+      layer2Micron: project.layer2Micron || (project as any).layer2Micraje || "",
       layer2Grammage: project.layer2Grammage || "",
-      layer3MaterialGroup: extractMaterialGroupFromValue(project.layer3Material || ""),
-      layer3Material: project.layer3Material || "",
-      layer3Micron: project.layer3Micron || "",
+      layer3MaterialGroup: extractMaterialGroupFromValue(project.layer3Material || (project as any).layer3MaterialLabel || ""),
+      layer3Material: project.layer3Material || (project as any).layer3MaterialLabel || "",
+      layer3Micron: project.layer3Micron || (project as any).layer3Micraje || "",
       layer3Grammage: project.layer3Grammage || "",
-      layer4MaterialGroup: extractMaterialGroupFromValue(project.layer4Material || ""),
-      layer4Material: project.layer4Material || "",
-      layer4Micron: project.layer4Micron || "",
+      layer4MaterialGroup: extractMaterialGroupFromValue(project.layer4Material || (project as any).layer4MaterialLabel || ""),
+      layer4Material: project.layer4Material || (project as any).layer4MaterialLabel || "",
+      layer4Micron: project.layer4Micron || (project as any).layer4Micraje || "",
       layer4Grammage: project.layer4Grammage || "",
       specialStructureSpecs: project.specialStructureSpecs || "",
       grammage: project.grammage || "",
@@ -1251,6 +1423,11 @@ export default function ProjectEditPage() {
     };
 
     setForm(convertedForm);
+    setInitialClassification(initialClassification);
+    setInitialProjectType(initialProjectType);
+    setInitialVolume(initialVolume);
+    setInitialUnit(initialUnit);
+    setInitialDescription(initialDescription);
     initialFormStateRef.current = normalizeComparableProjectForm(convertedForm);
     setLoading(false);
   }, [projectCode]);
@@ -1422,6 +1599,23 @@ export default function ProjectEditPage() {
     form.layer4MaterialGroup,
     form.layer4Material,
   ]);
+
+  useEffect(() => {
+    if (!isDisenoNuevo(form.classification, form.projectType)) return;
+
+    setForm((prev) => {
+      if (prev.hasEdagReference === "No") return prev;
+
+      return {
+        ...prev,
+        hasEdagReference: "No",
+        referenceEdagCode: "",
+        referenceEdagVersion: "",
+        edagCode: "",
+        edagVersion: "",
+      };
+    });
+  }, [form.classification, form.projectType]);
 
   const projectTypeOptions = useMemo(() => {
     if (form.classification === "Nuevo") {
@@ -2185,6 +2379,7 @@ export default function ProjectEditPage() {
 
       projectName: form.projectName,
       projectDescription: form.projectDescription,
+      descripcionNecesidad: form.projectDescription,
 
       ejecutivoId: finalExecutiveId,
       ejecutivoName: finalExecutiveName,
@@ -2208,13 +2403,20 @@ export default function ProjectEditPage() {
       packingMachineName: inheritedMachine,
 
       classification: form.classification,
+      clasificacion: form.classification,
       projectType: form.projectType,
+      tipoProyecto: form.projectType,
+      causal: form.projectType,
+      motivoNuevaValidacion: form.projectType,
       motivoModificacion: form.motivoModificacion,
       salesforceAction: normalizeSalesforceAction(form.salesforceAction),
 
       blueprintFormat: form.blueprintFormat,
       estimatedVolume: form.estimatedVolume,
+      volumenReferencial: form.estimatedVolume,
+      volumenCantidadReferencial: form.estimatedVolume,
       unitOfMeasure: form.unitOfMeasure,
+      unidad: form.unitOfMeasure,
 
       // LÁMINA guided format fields
       tipoFormatoLamina: form.tipoFormatoLamina || "",
@@ -2249,6 +2451,7 @@ export default function ProjectEditPage() {
       designWorkInstructions: form.designWorkInstructions || "",
       instruccionesTrabajoDiseno: form.designWorkInstructions || "",
       isPreviousDesign: form.hasEdagReference as BooleanLike,
+      hasEdagReference: form.hasEdagReference as BooleanLike,
       previousEdagCode: form.referenceEdagCode,
       previousEdagVersion: form.referenceEdagVersion,
       requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
@@ -2431,6 +2634,7 @@ export default function ProjectEditPage() {
 
       projectName: form.projectName,
       projectDescription: form.projectDescription,
+      descripcionNecesidad: form.projectDescription,
 
       ejecutivoId: finalExecutiveId,
       ejecutivoName: finalExecutiveName,
@@ -2456,13 +2660,20 @@ export default function ProjectEditPage() {
       packingMachineName: inheritedMachine,
 
       classification: form.classification,
+      clasificacion: form.classification,
       projectType: form.projectType,
+      tipoProyecto: form.projectType,
+      causal: form.projectType,
+      motivoNuevaValidacion: form.projectType,
       motivoModificacion: form.motivoModificacion,
       salesforceAction: normalizeSalesforceAction(form.salesforceAction),
 
       blueprintFormat: form.blueprintFormat,
       estimatedVolume: form.estimatedVolume,
+      volumenReferencial: form.estimatedVolume,
+      volumenCantidadReferencial: form.estimatedVolume,
       unitOfMeasure: form.unitOfMeasure,
+      unidad: form.unitOfMeasure,
 
       // LÁMINA guided format fields
       tipoFormatoLamina: form.tipoFormatoLamina || "",
@@ -2497,6 +2708,7 @@ export default function ProjectEditPage() {
       designWorkInstructions: form.designWorkInstructions || "",
       instruccionesTrabajoDiseno: form.designWorkInstructions || "",
       isPreviousDesign: form.hasEdagReference as BooleanLike,
+      hasEdagReference: form.hasEdagReference as BooleanLike,
       previousEdagCode: form.referenceEdagCode,
       previousEdagVersion: form.referenceEdagVersion,
       requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
@@ -2776,6 +2988,64 @@ export default function ProjectEditPage() {
             {/* PASO 0: Información de Producto */}
             {activeStep === 0 && (
               <div className="space-y-5">
+                {originalProject && (initialClassification || initialProjectType || initialVolume || initialDescription) && (
+                  <FormCard title="Base registrada del proyecto" icon="📄" color="#00395A">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <PreviewRow
+                        label="Clasificación"
+                        value={initialClassification ? `Producto ${initialClassification.toLowerCase()}` : "—"}
+                      />
+
+                      <PreviewRow
+                        label="Motivo"
+                        value={initialProjectType || "—"}
+                      />
+
+                      <PreviewRow
+                        label="Volumen referencial"
+                        value={
+                          initialVolume
+                            ? `${initialVolume} ${initialUnit || ""}`
+                            : "—"
+                        }
+                      />
+
+                      <PreviewRow
+                        label="Estructura referencial"
+                        value={
+                          (originalProject as any)?.estructuraCalculada ||
+                          originalProject?.structureType ||
+                          "—"
+                        }
+                      />
+
+                      <PreviewRow
+                        label="Materiales referenciales"
+                        value={
+                          (originalProject as any)?.estructuraMaterialesReferencial ||
+                          (originalProject as any)?.estructuraMateriales ||
+                          [
+                            originalProject?.layer1Material,
+                            originalProject?.layer2Material,
+                            originalProject?.layer3Material,
+                            originalProject?.layer4Material,
+                          ].filter(Boolean).join(" - ") ||
+                          "—"
+                        }
+                      />
+
+                      <PreviewRow
+                        label="Referencia previa"
+                        value={
+                          (originalProject as any)?.proyectoReferenciaCodigo
+                            ? `${(originalProject as any).proyectoReferenciaCodigo} - ${(originalProject as any).proyectoReferenciaNombre || ""}`
+                            : "—"
+                        }
+                      />
+                    </div>
+                  </FormCard>
+                )}
+
                 <FormCard title="Información del Proyecto y Producto" icon="▦" color="#00395A" required>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
@@ -2926,6 +3196,26 @@ export default function ProjectEditPage() {
             {/* PASO 1: DISEÑO */}
             {activeStep === 1 && (
               <div className="space-y-5">
+                {isDisenoNuevo(form.classification, form.projectType) && (
+                  <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm text-purple-800">
+                    <p className="font-bold">Diseño nuevo</p>
+                    <p className="mt-1 text-xs">
+                      Este proyecto no tiene EDAG de referencia. La información de diseño será
+                      completada y validada por Artes Gráficas en el Momento 2.
+                    </p>
+                  </div>
+                )}
+
+                {isCambioDiseno(form.classification, form.projectType) && (
+                  <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800">
+                    <p className="font-bold">Cambio de diseño</p>
+                    <p className="mt-1 text-xs">
+                      Este proyecto parte de un producto vigente. Solo se habilitan los campos
+                      relacionados con diseño y dimensiones según corresponda.
+                    </p>
+                  </div>
+                )}
+
                 <FormCard title="Especificaciones de diseño" icon="🎨" color="#8e44ad">
                   {(() => {
                     const isPrintingDisabled = form.printClass === "Sin impresión";
@@ -2945,7 +3235,7 @@ export default function ProjectEditPage() {
                             error={getError("hasEdagReference")}
                             placeholder="-- Seleccione --"
                             options={YES_NO_OPTIONS}
-                            disabled={!canEditDesign}
+                            disabled={!canEditDesign || isDisenoNuevo(form.classification, form.projectType)}
                           />
 
                           {form.hasEdagReference === "Sí" && (
@@ -3982,71 +4272,73 @@ export default function ProjectEditPage() {
             {/* TARJETA: PROYECTO CORE */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <h3 className="font-semibold text-sm text-slate-900 mb-3">Proyecto</h3>
-              <div className="space-y-4">
-                <FormSelect
-                  label="Clasificación *"
-                  value={form.classification}
-                  onChange={() => {}}
-                  options={CLASSIFICATION_OPTIONS}
-                  placeholder="-- Seleccione --"
-                  disabled={true}
+
+              <div className="space-y-2 text-sm">
+                <PreviewRow
+                  label="Clasificación"
+                  value={
+                    form.classification === "Nuevo"
+                      ? "Producto nuevo"
+                      : form.classification === "Modificado"
+                        ? "Producto modificado"
+                        : "—"
+                  }
                 />
 
-                {form.classification && (
-                  <FormSelect
-                    label={
-                      projectTypeOptions.length > 0
-                        ? "Motivo *"
-                        : "Motivo "
-                    }
-                    value={form.projectType}
-                    onChange={() => {}}
-                    options={projectTypeOptions}
-                    placeholder="-- Seleccione --"
-                    disabled={true}
-                  />
-                )}
+                <PreviewRow
+                  label="Motivo"
+                  value={form.projectType || "—"}
+                />
 
-                {form.classification === "Modificado" && (
-                  <FormInput
-                    label="Motivo de Modificación *"
-                    value={form.motivoModificacion}
-                    onChange={() => {}}
-                    placeholder="Motivo"
-                    disabled={true}
-                  />
-                )}
+                <PreviewRow
+                  label="Ruta sugerida"
+                  value={
+                    goesToGraphicArts(form.classification, form.projectType)
+                      ? "Artes Gráficas"
+                      : goesToRDDesarrollo(form.classification, form.projectType)
+                        ? "R&D Desarrollo"
+                        : goesToRDAreaTecnica(form.classification, form.projectType)
+                          ? "R&D Área Técnica"
+                          : "—"
+                  }
+                />
 
-                {form.classification === "Nuevo" && (
-                  <>
-                    <FormSelect
-                      label="¿Licitación? *"
-                      value={form.licitacion}
-                      onChange={(value) => {
-                        handleLicitacionChange(value);
-                        markFieldAsTouched("licitacion");
-                      }}
-                      onBlur={() => markFieldAsTouched("licitacion")}
-                      error={getError("licitacion")}
-                      options={[
-                        { value: "Sí", label: "Sí" },
-                        { value: "No", label: "No" },
-                      ]}
-                      placeholder="-- Seleccione --"
-                    />
-                  </>
-                )}
+                <PreviewRow
+                  label="Volumen referencial"
+                  value={
+                    form.estimatedVolume
+                      ? `${form.estimatedVolume} ${form.unitOfMeasure || ""}`
+                      : "—"
+                  }
+                />
 
                 {form.blueprintFormat && (
-                  <FormInput
-                    label="Formato de Plano Calculado *"
+                  <PreviewRow
+                    label="Formato de plano calculado"
                     value={form.blueprintFormat}
-                    onChange={() => {}}
-                    placeholder="Formato calculado"
-                    disabled={true}
                   />
                 )}
               </div>
+
+              {form.classification === "Nuevo" && (
+                <div className="mt-4 border-t border-slate-100 pt-4">
+                  <FormSelect
+                    label="¿Licitación? *"
+                    value={form.licitacion}
+                    onChange={(value) => {
+                      handleLicitacionChange(value);
+                      markFieldAsTouched("licitacion");
+                    }}
+                    onBlur={() => markFieldAsTouched("licitacion")}
+                    error={getError("licitacion")}
+                    options={[
+                      { value: "Sí", label: "Sí" },
+                      { value: "No", label: "No" },
+                    ]}
+                    placeholder="-- Seleccione --"
+                  />
+                </div>
+              )}
             </div>
 
             {/* HERENCIA DEL PORTAFOLIO */}

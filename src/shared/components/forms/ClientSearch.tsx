@@ -1,69 +1,62 @@
 import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
-import { getPortfolioDisplayRecords } from "../../data/portfolioStorage";
+import { getAllClients, type Client } from "../../data/clientStorage";
 
-interface PortfolioSearchProps {
+interface ClientSearchProps {
   value: string;
   onChange: (value: string) => void;
-  onSelect?: (portfolioCode: string) => void;
-  portfolios?: any[];
+  onSelect?: (client: Client) => void;
   placeholder?: string;
   disabled?: boolean;
   error?: string;
   label?: string;
 }
 
-export default function PortfolioSearch({
+export default function ClientSearch({
   value,
   onChange,
   onSelect,
-  portfolios: externalPortfolios,
-  placeholder = "Buscar portafolio por código o nombre...",
+  placeholder = "Buscar cliente por código, nombre o RUC...",
   disabled = false,
   error,
   label,
-}: PortfolioSearchProps) {
+}: ClientSearchProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const portfolios = useMemo(() =>
-    externalPortfolios ?? getPortfolioDisplayRecords(),
-    [externalPortfolios]
-  );
+  const clients = useMemo(() => getAllClients(), []);
 
-  const filteredPortfolios = useMemo(() => {
+  const filteredClients = useMemo(() => {
     const search = value.trim().toLowerCase();
     if (!search) return [];
 
-    return portfolios.filter((portfolio) => {
-      const code = portfolio.id || portfolio.codigo || portfolio.code || "";
-      const name = portfolio.nom || portfolio.portfolioName || "";
-      const client = portfolio.cli || portfolio.clientName || "";
-      
-      const searchableText = [code, name, client]
+    return clients.filter((client) => {
+      const code = client.code || "";
+      const name = client.businessName || "";
+      const ruc = client.ruc || "";
+
+      const searchableText = [code, name, ruc]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
       return searchableText.includes(search);
     });
-  }, [value, portfolios]);
+  }, [value, clients]);
 
-  const selectedPortfolio = portfolios.find(
-    (p) => String(p.id || p.codigo || p.code) === value
-  );
+  const selectedClient = clients.find((c) => c.id === value);
 
-  const handleSelect = (portfolioCode: string) => {
-    onChange(portfolioCode);
-    onSelect?.(portfolioCode);
+  const handleSelect = (client: Client) => {
+    onChange(client.id);
+    onSelect?.(client);
     setIsOpen(false);
   };
 
-  const getPortfolioCode = (p: any) => String(p.id || p.codigo || p.code);
-  const getPortfolioName = (p: any) => String(p.nom || p.portfolioName || "");
+  const getClientCode = (c: Client) => c.code;
+  const getClientName = (c: Client) => c.businessName || "";
 
   return (
     <div className="space-y-1">
       {label && (
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
           {label}
         </label>
       )}
@@ -75,19 +68,20 @@ export default function PortfolioSearch({
           />
           <input
             value={
-              selectedPortfolio
-                ? `${getPortfolioCode(selectedPortfolio)} - ${getPortfolioName(selectedPortfolio)}`
+              selectedClient
+                ? `${getClientCode(selectedClient)} - ${getClientName(selectedClient)}`
                 : value
             }
             onChange={(e) => {
               const inputValue = e.target.value;
-              if (selectedPortfolio) {
+              if (selectedClient) {
                 onChange("");
               } else {
                 onChange(inputValue);
               }
             }}
             onFocus={() => setIsOpen(true)}
+            onBlur={() => setTimeout(() => setIsOpen(false), 200)}
             placeholder={placeholder}
             disabled={disabled}
             className={`w-full rounded-lg border bg-white py-2 pl-9 pr-9 text-sm shadow-sm outline-none transition-colors placeholder:text-slate-400 ${
@@ -98,7 +92,7 @@ export default function PortfolioSearch({
                   : "border-slate-200 text-slate-700 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
             }`}
           />
-          {selectedPortfolio && (
+          {selectedClient && (
             <button
               type="button"
               onClick={() => onChange("")}
@@ -109,23 +103,23 @@ export default function PortfolioSearch({
           )}
         </div>
 
-        {isOpen && value && !selectedPortfolio && (
+        {isOpen && value && !selectedClient && (
           <>
             <div
               className="fixed inset-0 z-10"
               onClick={() => setIsOpen(false)}
             />
             <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
-              {filteredPortfolios.length > 0 ? (
+              {filteredClients.length > 0 ? (
                 <div className="divide-y divide-slate-100">
-                  {filteredPortfolios.map((portfolio) => {
-                    const code = getPortfolioCode(portfolio);
-                    const name = getPortfolioName(portfolio);
+                  {filteredClients.map((client) => {
+                    const code = getClientCode(client);
+                    const name = getClientName(client);
                     return (
                       <button
-                        key={code}
+                        key={client.id}
                         type="button"
-                        onClick={() => handleSelect(code)}
+                        onClick={() => handleSelect(client)}
                         className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50 transition-colors"
                       >
                         <div className="font-semibold text-slate-900">
@@ -133,7 +127,7 @@ export default function PortfolioSearch({
                         </div>
                         <div className="text-xs text-slate-500 mt-0.5 flex justify-between">
                           <span>Código: {code}</span>
-                          <span>Cliente: {portfolio.cli || portfolio.clientName || "N/A"}</span>
+                          <span>RUC: {client.ruc || "N/A"}</span>
                         </div>
                       </button>
                     );
@@ -141,7 +135,7 @@ export default function PortfolioSearch({
                 </div>
               ) : (
                 <div className="px-4 py-6 text-center text-sm text-slate-500">
-                  No se encontraron portafolios
+                  No se encontraron clientes
                 </div>
               )}
             </div>
@@ -149,9 +143,9 @@ export default function PortfolioSearch({
         )}
       </div>
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-      {!selectedPortfolio && portfolios.length > 0 && !isOpen && (
+      {!selectedClient && clients.length > 0 && !isOpen && (
         <p className="text-xs text-slate-500">
-          {portfolios.length} portafolio(s) disponible(s)
+          {clients.length} cliente(s) disponible(s)
         </p>
       )}
     </div>

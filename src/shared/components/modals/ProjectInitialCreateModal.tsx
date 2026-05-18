@@ -1,334 +1,2629 @@
-import { useState, useMemo, useEffect } from "react";
-import { X, ChevronDown, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { createPortal } from "react-dom";
+import { Info, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
 import Button from "../ui/Button";
 import FormSelect from "../forms/FormSelect";
 import FormInput from "../forms/FormInput";
-import PortfolioSearch from "../forms/PortfolioSearch";
+import ClientSearch from "../forms/ClientSearch";
 import PreviewRow from "../display/PreviewRow";
-import { getPortfolioByCode } from "../../data/portfolioStorage";
-import { createProjectFromPortfolio } from "../../data/projectStorage";
-import { getCurrentUser } from "../../data/userStorage";
-import {
-  searchApprovedProducts,
-  type ApprovedProductRecord,
-} from "../../data/approvedProductStorage";
+
+import * as portfolioStorage from "../../data/portfolioStorage";
+import * as clientStorage from "../../data/clientStorage";
+import * as projectStorage from "../../data/projectStorage";
+import * as userStorage from "../../data/userStorage";
+
+import { UNITS_OF_MEASURE, UNIT_LABELS } from "../../data/unitOfMeasureStorage";
+
+type AnyRecord = Record<string, unknown>;
+type PortfolioRecord = AnyRecord;
+type ProjectRecord = AnyRecord;
+type ClientRecord = AnyRecord;
 
 interface ProjectInitialCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onProjectCreated?: (projectId: string) => void;
+  portfolio?: PortfolioRecord | null;
   initialPortfolioCode?: string;
 }
 
-const CLASSIFICATION_OPTIONS = [
-  { value: "Nuevo", label: "Nuevo" },
-  { value: "Modificado", label: "Modificado" },
-];
+type MatchScope =
+  | "SAME_CLIENT_SAME_PORTFOLIO"
+  | "SAME_CLIENT_OTHER_PORTFOLIO"
+  | "OTHER_CLIENT";
 
-const PROJECT_TYPE_OPTIONS = [
+interface SimilarityMatch {
+  project: ProjectRecord;
+  score: number;
+  scope: MatchScope;
+}
+
+const ClientSearchField = ClientSearch as unknown as ComponentType<any>;
+
+const MOTIVO_OPTIONS = [
   { value: "Producto nuevo", label: "Producto nuevo" },
-  { value: "Nuevo equipamiento de envasado", label: "Nuevo equipamiento de envasado" },
-  { value: "Nuevos insumos", label: "Nuevos insumos" },
+  { value: "Producto modificado", label: "Producto modificado" },
+];
+
+const CAUSAL_OPTIONS_NUEVO = [
   { value: "Nueva estructura", label: "Nueva estructura" },
+  { value: "Nuevos insumos", label: "Nuevos insumos" },
   { value: "Nuevo formato de envasado", label: "Nuevo formato de envasado" },
-  { value: "Nuevos accesorios", label: "Nuevos accesorios" },
-  { value: "Nuevos procesos por el lado del cliente", label: "Nuevos procesos por el lado del cliente" },
-  { value: "Nuevas temperaturas de envasado y almacenaje", label: "Nuevas temperaturas de envasado y almacenaje" },
-  { value: "Extensión de línea por familia (EM de referencia)", label: "Extensión de línea por familia (EM de referencia)" },
-  { value: "Modifica Dimensiones", label: "Modifica Dimensiones" },
-  { value: "Modifica Propiedades", label: "Modifica Propiedades" },
-  { value: "Portafolio Estándar", label: "Portafolio Estándar" },
-  { value: "ICO (Intercompany), BCP (Business Continous Production)", label: "ICO (Intercompany), BCP (Business Continous Production)" },
+  { value: "Diseño nuevo", label: "Diseño nuevo" },
 ];
 
-const MODIFICATION_REASON_OPTIONS = [
-  { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
-  { value: "Estructura", label: "Estructura" },
-  { value: "Diseño y Estructura", label: "Diseño y Estructura" },
+const CAUSAL_OPTIONS_MODIFICADO = [
+  { value: "Nuevo equipamiento / proceso / temperatura", label: "Nuevo equipamiento / proceso / temperatura" },
+  { value: "Modifica dimensiones", label: "Modifica dimensiones" },
+  { value: "Modifica propiedades", label: "Modifica propiedades" },
+  { value: "Cambia estructura", label: "Cambia estructura" },
+  { value: "Cambia materia prima", label: "Cambia materia prima" },
+  { value: "Cambia diseño", label: "Cambia diseño" },
 ];
 
-const RD_DESARROLLO_PROJECT_TYPES = [
-  "Producto nuevo",
-  "Nuevo equipamiento de envasado",
-  "Nuevos insumos",
-  "Nueva estructura",
-  "Nuevo formato de envasado",
-  "Nuevos accesorios",
-  "Nuevos procesos por el lado del cliente",
-  "Nuevas temperaturas de envasado y almacenaje",
-];
-
-const RD_TECNICA_PROJECT_TYPES = [
-  "Extensión de línea por familia (EM de referencia)",
-  "Modifica Dimensiones",
-  "Modifica Propiedades",
-  "Portafolio Estándar",
-  "ICO (Intercompany), BCP (Business Continous Production)",
-];
-
-const resolveResponsibleArea = (projectType: string) => {
-  if (RD_DESARROLLO_PROJECT_TYPES.includes(projectType)) {
-    return "R&D Desarrollo";
-  }
-
-  if (RD_TECNICA_PROJECT_TYPES.includes(projectType)) {
-    return "R&D Área Técnica";
-  }
-
-  return "—";
+const getCausalOptions = (motivo: string) => {
+  if (motivo === "Producto nuevo") return CAUSAL_OPTIONS_NUEVO;
+  if (motivo === "Producto modificado") return CAUSAL_OPTIONS_MODIFICADO;
+  return [];
 };
+
+const MATERIAL_MICRON_CONFIG: Record<
+  string,
+  {
+    label: string;
+    micronOptions?: string[];
+    defaultMicron?: string;
+  }
+> = {
+  BOPP: {
+    label: "BOPP",
+    micronOptions: ["13.5", "15", "17", "20", "25", "27", "30", "35"],
+  },
+  PET: {
+    label: "PET / Poliéster",
+    micronOptions: ["10", "12"],
+    defaultMicron: "12",
+  },
+  BOPA: {
+    label: "BOPA / Nylon",
+    micronOptions: ["15"],
+    defaultMicron: "15",
+  },
+  PAPEL: {
+    label: "Papel",
+    micronOptions: ["40", "60", "70"],
+  },
+  COEX: {
+    label: "COEX",
+    micronOptions: [],
+  },
+  ALUMINIO: {
+    label: "Aluminio / Foil",
+    micronOptions: ["7", "8", "9"],
+    defaultMicron: "7",
+  },
+  AMPRIMA: {
+    label: "AmPrima",
+    micronOptions: ["25"],
+  },
+  PPCAST: {
+    label: "PP Cast",
+    micronOptions: ["20", "25", "30", "60"],
+  },
+  PE: {
+    label: "PE / Polietileno",
+    micronOptions: ["70", "80", "90"],
+  },
+  PE_SELLANTE: {
+    label: "PE sellante",
+    micronOptions: ["70", "80", "90"],
+    defaultMicron: "80",
+  },
+  TERMOFORMADOS: {
+    label: "Termoformados",
+    micronOptions: ["75", "90", "100", "110", "150", "178", "200"],
+  },
+};
+
+const MATERIAL_OPTIONS = Object.entries(MATERIAL_MICRON_CONFIG).map(
+  ([value, config]) => ({
+    value,
+    label: config.label,
+  }),
+);
+
+const getMaterialLabel = (material: string) =>
+  MATERIAL_MICRON_CONFIG[material]?.label || material;
+
+const getMicronOptionsByMaterial = (material: string): string[] => {
+  return MATERIAL_MICRON_CONFIG[material]?.micronOptions ?? [];
+};
+
+const getDefaultMicronByMaterial = (material: string): string => {
+  return MATERIAL_MICRON_CONFIG[material]?.defaultMicron ?? "";
+};
+
+const formatLayerForTechnicalName = (material: string, micron?: string): string => {
+  const label = getMaterialLabel(material);
+  if (!micron || !material) return label;
+  return `${label} ${micron} µ`;
+};
+
+const getUnitOptions = () => UNITS_OF_MEASURE.map((unit) => ({
+  value: unit,
+  label: (UNIT_LABELS as Record<string, string>)[unit] || unit,
+}));
+
+const UNIT_OPTIONS = getUnitOptions();
+
+const normalizeText = (value: unknown): string =>
+  String(value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_/\\]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const normalizeClientCode = (value: unknown): string =>
+  normalizeText(value).replace(/^cli\s+/, "cl ");
+
+const normalizeCompanyName = (value: unknown): string =>
+  normalizeText(value)
+    .replace(/\./g, "")
+    .replace(
+      /\b(s a a|saa|s a c|sac|s a|sa|s r l|srl|e i r l|eirl)\b/g,
+      "",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+
+    const isSameClient = (
+  portfolio: PortfolioRecord,
+  selectedClient: { code: string; name: string },
+): boolean => {
+  const portfolioClientName = normalizeCompanyName(
+    getPortfolioClientName(portfolio),
+  );
+
+  const selectedClientName = normalizeCompanyName(selectedClient.name);
+
+  /**
+   * Regla principal:
+   * Si el portafolio tiene nombre de cliente, el nombre es definitorio.
+   * Esto evita que se cuelen portafolios de otro cliente por códigos inconsistentes.
+   */
+  if (portfolioClientName && selectedClientName) {
+    return portfolioClientName === selectedClientName;
+  }
+
+  /**
+   * Regla secundaria:
+   * Solo usar código cuando no hay nombre de cliente suficiente para comparar.
+   */
+  const portfolioClientCode = normalizeClientCode(
+    getPortfolioClientCode(portfolio),
+  );
+
+  const selectedClientCode = normalizeClientCode(selectedClient.code);
+
+  return Boolean(
+    portfolioClientCode &&
+      selectedClientCode &&
+      portfolioClientCode === selectedClientCode,
+  );
+};
+
+const getRecordValue = (record: unknown, keys: string[]): string => {
+  const source = record as AnyRecord | null;
+
+  if (!source) return "";
+
+  for (const key of keys) {
+    const value = source[key];
+
+    if (value !== undefined && value !== null && String(value).trim()) {
+      return String(value).trim();
+    }
+  }
+
+  return "";
+};
+
+const toArray = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+
+  if (value && typeof value === "object") {
+    const source = value as Record<string, unknown>;
+    const commonArrayKeys = [
+      "data",
+      "records",
+      "items",
+      "rows",
+      "values",
+      "clients",
+      "portfolios",
+      "projects",
+    ];
+
+    for (const key of commonArrayKeys) {
+      if (Array.isArray(source[key])) return source[key] as T[];
+    }
+
+    const values = Object.values(source);
+    const firstArray = values.find(Array.isArray);
+    if (Array.isArray(firstArray)) return firstArray as T[];
+
+    return values.filter((item) => item && typeof item === "object") as T[];
+  }
+
+  return [];
+};
+
+const getStorageApi = (storage: unknown) =>
+  storage as unknown as Record<string, unknown>;
+
+const parseClientSearchValue = (value: string) => {
+  const raw = String(value ?? "").trim();
+
+  if (!raw) {
+    return {
+      code: "",
+      name: "",
+      display: "",
+    };
+  }
+
+  const parts = raw.split(" - ");
+
+  if (parts.length >= 2) {
+    return {
+      code: parts[0].trim(),
+      name: parts.slice(1).join(" - ").trim(),
+      display: raw,
+    };
+  }
+
+  const upper = raw.toUpperCase();
+
+  return {
+    code: upper.startsWith("CL") || upper.startsWith("CLI") ? raw : "",
+    name: upper.startsWith("CL") || upper.startsWith("CLI") ? "" : raw,
+    display: raw,
+  };
+};
+
+const getPortfolioCode = (portfolio: PortfolioRecord | null | undefined) =>
+  getRecordValue(portfolio, [
+    "codigo",
+    "code",
+    "id",
+    "portfolioCode",
+    "portafolioCodigo",
+  ]);
+
+const getPortfolioName = (portfolio: PortfolioRecord | null | undefined) =>
+  getRecordValue(portfolio, [
+    "nom",
+    "nombre",
+    "name",
+    "portfolioName",
+    "description",
+    "descripcion",
+  ]);
+
+const getPortfolioClientCode = (
+  portfolio: PortfolioRecord | null | undefined,
+) =>
+  getRecordValue(portfolio, [
+    "clientCode",
+    "codigoCliente",
+    "clientId",
+    "clienteId",
+    "customerCode",
+    "codigoClienteSI",
+    "clienteCodigo",
+  ]);
+
+const getPortfolioClientName = (
+  portfolio: PortfolioRecord | null | undefined,
+) =>
+  getRecordValue(portfolio, [
+    "cli",
+    "cliente",
+    "clientName",
+    "nombreCliente",
+    "razonSocialCliente",
+    "customerName",
+    "clienteNombre",
+    "client",
+    "customer",
+  ]);
+
+const getClientCodeFromAny = (client: unknown) =>
+  getRecordValue(client, [
+    "code",
+    "codigo",
+    "id",
+    "clientCode",
+    "clienteCodigo",
+    "codigoCliente",
+  ]);
+
+const getClientNameFromAny = (client: unknown) =>
+  getRecordValue(client, [
+    "businessName",
+    "name",
+    "nombre",
+    "razonSocial",
+    "clientName",
+    "cliente",
+  ]);
+
+const getAllClientRecordsSafe = (): ClientRecord[] => {
+  const api = getStorageApi(clientStorage);
+
+  const functionNames = [
+    "getClientRecords",
+    "getAllClientRecords",
+    "getClients",
+    "getAllClients",
+    "listClients",
+    "getClientList",
+  ];
+
+  for (const functionName of functionNames) {
+    const fn = api[functionName];
+
+    if (typeof fn === "function") {
+      try {
+        const rows = toArray<ClientRecord>((fn as () => unknown)());
+        if (rows.length > 0) return rows;
+      } catch {
+        // Continuar con la siguiente alternativa.
+      }
+    }
+  }
+
+  const constantNames = [
+    "CLIENTS",
+    "MOCK_CLIENTS",
+    "CLIENT_RECORDS",
+    "clientRecords",
+    "clients",
+  ];
+
+  for (const constantName of constantNames) {
+    const rows = toArray<ClientRecord>(api[constantName]);
+    if (rows.length > 0) return rows;
+  }
+
+  if (typeof window !== "undefined") {
+    const rows: ClientRecord[] = [];
+
+    Object.keys(window.localStorage).forEach((key) => {
+      const normalizedKey = normalizeText(key);
+
+      if (
+        !normalizedKey.includes("client") &&
+        !normalizedKey.includes("cliente")
+      ) {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(key) || "");
+        rows.push(...toArray<ClientRecord>(parsed));
+      } catch {
+        // Ignorar claves que no sean JSON.
+      }
+    });
+
+    return rows.filter(
+      (row) => getClientCodeFromAny(row) || getClientNameFromAny(row),
+    );
+  }
+
+  return [];
+};
+
+const resolveSelectedClient = (
+  selectedClientValue: string,
+  selectedClientObject?: unknown,
+) => {
+  const parsed = parseClientSearchValue(selectedClientValue);
+
+  const objectCode = getClientCodeFromAny(selectedClientObject);
+  const objectName = getClientNameFromAny(selectedClientObject);
+
+  const rawCode = parsed.code || objectCode || selectedClientValue;
+  const rawName = parsed.name || objectName;
+
+  const normalizedRawCode = normalizeClientCode(rawCode);
+  const normalizedRawName = normalizeText(rawName);
+
+  const foundClient = getAllClientRecordsSafe().find((client) => {
+    const clientCode = normalizeClientCode(getClientCodeFromAny(client));
+    const clientName = normalizeText(getClientNameFromAny(client));
+
+    return (
+      (!!normalizedRawCode &&
+        !!clientCode &&
+        clientCode === normalizedRawCode) ||
+      (!!normalizedRawName && !!clientName && clientName === normalizedRawName)
+    );
+  });
+
+  return {
+    code: getClientCodeFromAny(foundClient) || rawCode,
+    name: getClientNameFromAny(foundClient) || rawName,
+  };
+};
+
+const getAllPortfolioRecordsSafe = (): PortfolioRecord[] => {
+  const api = getStorageApi(portfolioStorage);
+
+  const functionNames = [
+    "getPortfolioRecords",
+    "getAllPortfolioRecords",
+    "getPortfolios",
+    "getAllPortfolios",
+    "listPortfolios",
+    "getPortfolioList",
+  ];
+
+  for (const functionName of functionNames) {
+    const fn = api[functionName];
+
+    if (typeof fn === "function") {
+      try {
+        const rows = toArray<PortfolioRecord>((fn as () => unknown)());
+        if (rows.length > 0) return rows;
+      } catch {
+        // Continuar con la siguiente alternativa.
+      }
+    }
+  }
+
+  const constantNames = [
+    "PORTFOLIO_RECORDS",
+    "PORTFOLIOS",
+    "MOCK_PORTFOLIOS",
+    "portfolioRecords",
+    "portfolios",
+  ];
+
+  for (const constantName of constantNames) {
+    const rows = toArray<PortfolioRecord>(api[constantName]);
+    if (rows.length > 0) return rows;
+  }
+
+  if (typeof window !== "undefined") {
+    const rows: PortfolioRecord[] = [];
+
+    Object.keys(window.localStorage).forEach((key) => {
+      const normalizedKey = normalizeText(key);
+
+      if (
+        !normalizedKey.includes("portfolio") &&
+        !normalizedKey.includes("portafolio")
+      ) {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(key) || "");
+        rows.push(...toArray<PortfolioRecord>(parsed));
+      } catch {
+        // Ignorar claves que no sean JSON.
+      }
+    });
+
+    return rows.filter((row) => getPortfolioCode(row) || getPortfolioName(row));
+  }
+
+  return [];
+};
+
+const getPortfolioByCodeSafe = (code: string): PortfolioRecord | null => {
+  if (!code) return null;
+
+  const api = getStorageApi(portfolioStorage);
+  const fn = api.getPortfolioByCode;
+
+  if (typeof fn === "function") {
+    try {
+      const result = (fn as (value: string) => unknown)(code);
+      if (result) return result as PortfolioRecord;
+    } catch {
+      // Fallback abajo.
+    }
+  }
+
+  return (
+    getAllPortfolioRecordsSafe().find(
+      (portfolio) =>
+        normalizeText(getPortfolioCode(portfolio)) === normalizeText(code),
+    ) || null
+  );
+};
+
+const getPortfolioFieldWithStorageFallback = (
+  portfolio: PortfolioRecord | null | undefined,
+  keys: string[],
+): string => {
+  const directValue = getRecordValue(portfolio, keys);
+
+  if (directValue) return directValue;
+
+  const code = getPortfolioCode(portfolio);
+
+  if (!code) return "";
+
+  const fullPortfolio = getAllPortfolioRecordsSafe().find(
+    (item) => normalizeText(getPortfolioCode(item)) === normalizeText(code),
+  );
+
+  return getRecordValue(fullPortfolio, keys);
+};
+
+const portfolioMatchesSelectedClient = (
+  portfolio: PortfolioRecord,
+  selectedClient: { code: string; name: string },
+): boolean => {
+  /**
+   * Usar la misma regla estricta del dropdown.
+   * El cliente seleccionado debe ser definitorio.
+   */
+  return isSameClient(portfolio, selectedClient);
+};
+
+// User resolution helpers
+const getAllUserRecordsSafe = (): AnyRecord[] => {
+  const api = getStorageApi(userStorage);
+
+  const functionNames = [
+    "getAllUsers",
+    "getUsers",
+    "listUsers",
+    "getUserRecords",
+    "getAllUserRecords",
+    "getUserList",
+    "getStoredUsers",
+    "getUsersFromStorage",
+  ];
+
+  for (const functionName of functionNames) {
+    const fn = api[functionName];
+
+    if (typeof fn === "function") {
+      try {
+        const rows = toArray<AnyRecord>((fn as () => unknown)());
+        if (rows.length > 0) return rows;
+      } catch {
+        // Continuar con la siguiente alternativa.
+      }
+    }
+  }
+
+  const constantNames = [
+    "USERS",
+    "MOCK_USERS",
+    "USER_RECORDS",
+    "userRecords",
+    "users",
+    "DEFAULT_USERS",
+    "INITIAL_USERS",
+  ];
+
+  for (const constantName of constantNames) {
+    const rows = toArray<AnyRecord>(api[constantName]);
+    if (rows.length > 0) return rows;
+  }
+
+  if (typeof window !== "undefined") {
+    const rows: AnyRecord[] = [];
+
+    Object.keys(window.localStorage).forEach((key) => {
+      const normalizedKey = normalizeText(key);
+
+      if (
+        !normalizedKey.includes("user") &&
+        !normalizedKey.includes("usuario")
+      ) {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(key) || "");
+        rows.push(...toArray<AnyRecord>(parsed));
+      } catch {
+        // Ignorar claves que no sean JSON.
+      }
+    });
+
+    return rows.filter(
+      (row) => getUserCodeFromAny(row) || getUserNameFromAny(row),
+    );
+  }
+
+  return [];
+};
+
+const getUserCodeFromAny = (user: AnyRecord | undefined): string => {
+  return getRecordValue(user, [
+    "codigo",
+    "code",
+    "userCode",
+    "id",
+    "Id",
+    "userId",
+    "usuarioId",
+    "employeeId",
+    "codigoUsuario",
+    "codUsuario",
+  ]);
+};
+
+const getUserNameFromAny = (user: AnyRecord | undefined): string => {
+  return getRecordValue(user, [
+    "usuario",
+    "nombre",
+    "name",
+    "userName",
+    "username",
+    "fullName",
+    "nombreCompleto",
+    "displayName",
+    "commercialName",
+    "nombreUsuario",
+  ]);
+};
+
+const getUserEmailFromAny = (user: AnyRecord | undefined): string => {
+  return getRecordValue(user, [
+    "email",
+    "correo",
+    "mail",
+    "emailAddress",
+  ]);
+};
+
+const isUserReferenceCode = (value: unknown): boolean => {
+  const raw = String(value ?? "").trim();
+
+  if (!raw) return false;
+
+  return (
+    /^USR[-_]/i.test(raw) ||
+    /^US[-_]/i.test(raw) ||
+    /^USER[-_]/i.test(raw) ||
+    /^EJC[-_]/i.test(raw)
+  );
+};
+
+const resolvePortfolioExecutiveName = (
+  portfolio: PortfolioRecord | null | undefined,
+): string => {
+  if (!portfolio) return "";
+
+  const executiveNameKeys = [
+    "ejecutivo",
+    "ejecutivoComercial",
+    "ejecutivoComercialName",
+    "ejecutivoName",
+    "nombreEjecutivo",
+    "nombreEjecutivoComercial",
+    "executive",
+    "executiveName",
+    "commercialExecutive",
+    "commercialExecutiveName",
+    "salesExecutive",
+    "salesExecutiveName",
+    "seller",
+    "sellerName",
+    "vendedor",
+    "vendedorName",
+    "nombreVendedor",
+    "accountExecutive",
+    "accountExecutiveName",
+    "responsableComercial",
+    "responsableComercialName",
+    "executiveDisplayName",
+    "commercialResponsible",
+    "commercialResponsibleName",
+  ];
+
+  const executiveIdKeys = [
+    "ejecutivoId",
+    "ejecutivoComercialId",
+    "executiveId",
+    "commercialExecutiveId",
+    "salesExecutiveId",
+    "sellerId",
+    "vendedorId",
+    "accountExecutiveId",
+    "responsableComercialId",
+    "commercialResponsibleId",
+    "ownerId",
+    "userId",
+    "usuarioId",
+  ];
+
+  const rawExecutiveNameOrCode = getPortfolioFieldWithStorageFallback(
+    portfolio,
+    executiveNameKeys,
+  );
+
+  const rawExecutiveId = getPortfolioFieldWithStorageFallback(
+    portfolio,
+    executiveIdKeys,
+  );
+
+  const valueToResolve = rawExecutiveId || rawExecutiveNameOrCode;
+
+  if (!valueToResolve) return "";
+
+const valueVariants = getUserCodeVariants(valueToResolve);
+const normalizedValue = normalizeText(valueToResolve);
+
+const matchedUser = getAllUserRecordsSafe().find((user) => {
+  const userCodeVariants = getUserCodeVariants(getUserCodeFromAny(user));
+  const userName = normalizeText(getUserNameFromAny(user));
+  const userEmail = normalizeText(getUserEmailFromAny(user));
+
+  const sameCode = userCodeVariants.some((code) =>
+    valueVariants.includes(code),
+  );
+
+  return (
+    sameCode ||
+    (!!userName && userName === normalizedValue) ||
+    (!!userEmail && userEmail === normalizedValue)
+  );
+});
+
+  const resolvedUserName = getUserNameFromAny(matchedUser);
+
+  if (resolvedUserName) return resolvedUserName;
+
+  if (rawExecutiveNameOrCode && !isUserReferenceCode(rawExecutiveNameOrCode)) {
+    return rawExecutiveNameOrCode;
+  }
+
+  return valueToResolve;
+};
+
+// Value normalization helpers
+const normalizeMotivoValue = (value: string): string => {
+  const normalized = normalizeText(value);
+
+  if (normalized.includes("nuevo") && !normalized.includes("modificado")) {
+    return "producto nuevo";
+  }
+
+  if (normalized.includes("modificado") || normalized.includes("modificacion")) {
+    return "producto modificado";
+  }
+
+  return normalized;
+};
+
+const normalizeUserLookupValue = (value: unknown): string =>
+  normalizeText(value).replace(/[^a-z0-9]/g, "");
+
+const getUserCodeVariants = (value: unknown): string[] => {
+  const normalized = normalizeUserLookupValue(value);
+
+  if (!normalized) return [];
+
+  const variants = new Set<string>([normalized]);
+
+  // Caso USR-EJC-001003 vs US-EJC-001003
+  if (normalized.startsWith("usr")) {
+    variants.add(`us${normalized.slice(3)}`);
+  }
+
+  if (normalized.startsWith("us") && !normalized.startsWith("usr")) {
+    variants.add(`usr${normalized.slice(2)}`);
+  }
+
+  return Array.from(variants);
+};
+
+const normalizeCausalValue = (value: string): string => {
+  return normalizeText(value);
+};
+
+const normalizeMaterialValue = (value: unknown): string => {
+  const normalized = normalizeText(value);
+
+  if (!normalized) return "";
+
+  const entry = Object.entries(MATERIAL_MICRON_CONFIG).find(
+    ([materialCode, config]) =>
+      normalizeText(materialCode) === normalized ||
+      normalizeText(config.label) === normalized,
+  );
+
+  return entry ? normalizeText(entry[0]) : normalized;
+};
+
+// Map de variantes de unidades a su forma normalizada
+const UNIT_NORMALIZATION_MAP: Record<string, string> = {
+  "gramos": "g",
+  "gramo": "g",
+  "g": "g",
+  "kilogramos": "kg",
+  "kilogramo": "kg",
+  "kg": "kg",
+  "mililitros": "ml",
+  "mililitro": "ml",
+  "ml": "ml",
+  "litros": "l",
+  "litro": "l",
+  "l": "l",
+};
+
+const normalizeUnitValue = (value: string): string => {
+  const normalized = normalizeText(value);
+  return UNIT_NORMALIZATION_MAP[normalized] || normalized;
+};
+
+const parseMicronNumber = (value: string | undefined): number | null => {
+  if (!value) return null;
+  const parsed = parseFloat(String(value).replace(/[^\d.]/g, ""));
+  return isNaN(parsed) ? null : parsed;
+};
+
+const parseVolumeNumber = (value: string | undefined): number | null => {
+  if (!value) return null;
+  const parsed = parseFloat(String(value).replace(/[^\d.]/g, ""));
+  return isNaN(parsed) ? null : parsed;
+};
+
+const getExistingLayerMaterial = (
+  existing: ProjectRecord,
+  index: number,
+): string => {
+  const keysByIndex = [
+    [
+      "layer1Material",
+      "layer1MaterialLabel",
+      "capa1",
+      "materialCapa1",
+      "material1",
+    ],
+    [
+      "layer2Material",
+      "layer2MaterialLabel",
+      "capa2",
+      "materialCapa2",
+      "material2",
+    ],
+    [
+      "layer3Material",
+      "layer3MaterialLabel",
+      "capa3",
+      "materialCapa3",
+      "material3",
+    ],
+    [
+      "layer4Material",
+      "layer4MaterialLabel",
+      "capa4",
+      "materialCapa4",
+      "material4",
+    ],
+  ];
+
+  return getRecordValue(existing, keysByIndex[index] || []);
+};
+
+const getExistingLayerMicron = (
+  existing: ProjectRecord,
+  index: number,
+): number | null => {
+  const keysByIndex = [
+    ["layer1Micraje", "layer1Micron", "micrajeCapa1", "micraje1"],
+    ["layer2Micraje", "layer2Micron", "micrajeCapa2", "micraje2"],
+    ["layer3Micraje", "layer3Micron", "micrajeCapa3", "micraje3"],
+    ["layer4Micraje", "layer4Micron", "micrajeCapa4", "micraje4"],
+  ];
+
+  return parseMicronNumber(getRecordValue(existing, keysByIndex[index] || []));
+};
+
+const DEBUG_PROJECT_SIMILARITY = false;
+
+const getProjectsFromPortfolioRecord = (
+  portfolio: PortfolioRecord | null | undefined,
+): ProjectRecord[] => {
+  if (!portfolio) return [];
+
+  const possibleProjectCollections = [
+    portfolio.projects,
+    portfolio.proyectos,
+    portfolio.associatedProjects,
+    portfolio.proyectosAsociados,
+    portfolio.validationProjects,
+    portfolio.projectRecords,
+  ];
+
+  const projects = possibleProjectCollections.flatMap((value) =>
+    toArray<ProjectRecord>(value),
+  );
+
+  const portfolioCode = getPortfolioCode(portfolio);
+  const portfolioName = getPortfolioName(portfolio);
+  const clientCode = getPortfolioClientCode(portfolio);
+  const clientName = getPortfolioClientName(portfolio);
+  const envoltura = getRecordValue(portfolio, ["env", "envoltura", "wrappingName"]);
+  const usoFinal = getRecordValue(portfolio, ["uf", "usoFinal", "useFinalName"]);
+  const maquinaCliente = getRecordValue(portfolio, [
+    "maq",
+    "maquinaCliente",
+    "packingMachineName",
+  ]);
+  const afMarketId = getRecordValue(portfolio, ["af", "afMarketId", "afMarketID"]);
+
+  return projects.map((project) => ({
+    ...project,
+    portfolioCode: getRecordValue(project, ["portfolioCode", "portafolioCodigo", "portfolioId"]) || portfolioCode,
+    portfolioName: getRecordValue(project, ["portfolioName", "portafolioNombre"]) || portfolioName,
+    clientCode: getRecordValue(project, ["clientCode", "clienteCodigo", "clientId"]) || clientCode,
+    clientName: getRecordValue(project, ["clientName", "cliente", "nombreCliente"]) || clientName,
+    envoltura: getRecordValue(project, ["envoltura", "wrappingName", "env"]) || envoltura,
+    usoFinal: getRecordValue(project, ["usoFinal", "useFinalName", "uf"]) || usoFinal,
+    maquinaCliente:
+      getRecordValue(project, ["maquinaCliente", "packingMachineName", "maq"]) ||
+      maquinaCliente,
+    afMarketId: getRecordValue(project, ["afMarketId", "afMarketID"]) || afMarketId,
+  }));
+};
+
+const getProjectRecordsSafe = (): ProjectRecord[] => {
+  const api = getStorageApi(projectStorage);
+
+  const functionNames = [
+    "getProjectRecords",
+    "getProjects",
+    "getAllProjects",
+    "listProjects",
+  ];
+
+  for (const functionName of functionNames) {
+    const fn = api[functionName];
+
+    if (typeof fn === "function") {
+      try {
+        const rows = toArray<ProjectRecord>((fn as () => unknown)());
+        if (rows.length > 0) return rows;
+      } catch {
+        // Continuar con la siguiente alternativa.
+      }
+    }
+  }
+
+  const constantNames = [
+    "PROJECTS",
+    "MOCK_PROJECTS",
+    "PROJECT_RECORDS",
+    "projectRecords",
+    "projects",
+  ];
+
+  for (const constantName of constantNames) {
+    const rows = toArray<ProjectRecord>(api[constantName]);
+    if (rows.length > 0) return rows;
+  }
+
+  if (typeof window !== "undefined") {
+    const rows: ProjectRecord[] = [];
+
+    Object.keys(window.localStorage).forEach((key) => {
+      const normalizedKey = normalizeText(key);
+
+      if (
+        !normalizedKey.includes("project") &&
+        !normalizedKey.includes("proyecto")
+      ) {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(key) || "");
+        rows.push(...toArray<ProjectRecord>(parsed));
+      } catch {
+        // Ignorar claves que no sean JSON.
+      }
+    });
+
+    return rows.filter((row) => getProjectCode(row) || getProjectName(row));
+  }
+
+  return [];
+};
+
+const createProjectFromPortfolioSafe = (payload: {
+  portfolio: PortfolioRecord;
+  initialData: AnyRecord;
+  createdBy?: string;
+}) => {
+  const api = getStorageApi(projectStorage);
+  const fn = api.createProjectFromPortfolio;
+
+  if (typeof fn === "function") {
+    return (fn as (value: typeof payload) => unknown)(payload);
+  }
+
+  return {
+    id: `PRJ-${Date.now()}`,
+    projectCode: `PRJ-${Date.now()}`,
+    ...payload.initialData,
+  };
+};
+
+const getCurrentUserSafe = () => {
+  const api = getStorageApi(userStorage);
+  const fn = api.getCurrentUser;
+
+  if (typeof fn !== "function") return null;
+
+  try {
+    return fn() as AnyRecord;
+  } catch {
+    return null;
+  }
+};
+
+const getMatchScope = (
+  candidateClientCode: string | undefined,
+  candidateClientName: string | undefined,
+  candidatePortfolioCode: string | undefined,
+  existing: ProjectRecord,
+): MatchScope => {
+  const existingClientCode = normalizeClientCode(
+    existing.clientCode ?? existing.clienteCodigo ?? existing.clientId,
+  );
+
+  const existingClientName = normalizeText(
+    existing.clientName ?? existing.cliente ?? existing.nombreCliente,
+  );
+
+  const existingPortfolioCode = normalizeText(
+    existing.portfolioCode ?? existing.portafolioCodigo ?? existing.portfolioId,
+  );
+
+  const sameClient =
+    (!!candidateClientCode &&
+      normalizeClientCode(candidateClientCode) === existingClientCode) ||
+    (!!candidateClientName &&
+      normalizeText(candidateClientName) === existingClientName);
+
+  const samePortfolio =
+    !!candidatePortfolioCode &&
+    normalizeText(candidatePortfolioCode) === existingPortfolioCode;
+
+  if (sameClient && samePortfolio) return "SAME_CLIENT_SAME_PORTFOLIO";
+  if (sameClient) return "SAME_CLIENT_OTHER_PORTFOLIO";
+
+  return "OTHER_CLIENT";
+};
+
+const doesProjectPassMandatoryFilter = (
+  candidate: {
+    clientCode?: string;
+    clientName?: string;
+    portfolioCode?: string;
+    envoltura?: string;
+    usoFinal?: string;
+    maquinaCliente?: string;
+    afMarketId?: string;
+    motivo?: string;
+    causal?: string;
+  },
+  existing: ProjectRecord,
+): boolean => {
+  const existingClientCode = normalizeClientCode(
+    existing.clientCode ?? existing.clienteCodigo ?? existing.clientId,
+  );
+  const existingClientName = normalizeText(
+    existing.clientName ?? existing.cliente ?? existing.nombreCliente,
+  );
+
+  const sameClient =
+    (candidate.clientCode &&
+      normalizeClientCode(candidate.clientCode) === existingClientCode) ||
+    (candidate.clientName &&
+      normalizeText(candidate.clientName) === existingClientName);
+
+  if (!sameClient) return false;
+
+  const existingPortfolioCode = normalizeText(
+    existing.portfolioCode ??
+      existing.portafolioCodigo ??
+      existing.portfolioId ??
+      existing.portafolioId ??
+      existing.codigoPortafolio ??
+      "",
+  );
+
+  const samePortfolio =
+    candidate.portfolioCode &&
+    normalizeText(candidate.portfolioCode) === existingPortfolioCode;
+
+  if (!samePortfolio) return false;
+
+  // Envoltura - flexible: allow if candidate empty (sparse data)
+  const envCand = normalizeText(candidate.envoltura);
+  const envExist = normalizeText(
+    existing.envoltura ?? existing.wrappingName ?? existing.env,
+  );
+
+  if (envCand && envExist && envCand !== envExist) return false;
+
+  // UsoFinal or AfMarket - flexible matching
+  const usoFinalCand = normalizeText(candidate.usoFinal);
+  const usoFinalExist = normalizeText(
+    existing.usoFinal ?? existing.useFinalName ?? existing.uf,
+  );
+
+  const afMarketCand = normalizeText(candidate.afMarketId || "");
+  const afMarketExist = normalizeText(
+    existing.afMarketId ?? existing.afMarketID ?? "",
+  );
+
+  const sameUsoFinalOrMarket =
+    (usoFinalCand && usoFinalExist && usoFinalCand === usoFinalExist) ||
+    (afMarketCand && afMarketExist && afMarketCand === afMarketExist) ||
+    (!usoFinalExist && !afMarketExist);
+
+  if (!sameUsoFinalOrMarket) return false;
+
+  // Maquina - flexible: allow if candidate empty or existing empty
+  const maquinaCand = normalizeText(candidate.maquinaCliente);
+  const maquinaExist = normalizeText(
+    existing.maquinaCliente ?? existing.packingMachineName ?? existing.maq,
+  );
+
+  const sameMaquina =
+    maquinaCand && maquinaExist ? maquinaCand === maquinaExist : true;
+
+  if (!sameMaquina) return false;
+
+  // Motivo - normalized comparison
+  const motivoCand = normalizeMotivoValue(String(candidate.motivo || ""));
+  const motivoExist = normalizeMotivoValue(
+    String(
+      existing.motivo ??
+        existing.clasificacion ??
+        existing.classification ??
+        existing.requestReason ??
+        existing.tipoSolicitud ??
+        "",
+    ),
+  );
+
+  if (motivoCand && motivoExist && motivoCand !== motivoExist) return false;
+
+  // Causal - normalized comparison
+  const casualCand = normalizeCausalValue(String(candidate.causal || ""));
+  const casualExist = normalizeCausalValue(
+    String(
+      existing.causal ??
+        existing.motivoNuevaValidacion ??
+        existing.tipoProyecto ??
+        existing.validationReason ??
+        existing.causalValidacion ??
+        "",
+    ),
+  );
+
+  if (casualCand && casualExist && casualCand !== casualExist) return false;
+
+  return true;
+};
+
+const calculatePreliminarySimilarity = (
+  candidate: {
+    layer1?: string;
+    layer2?: string;
+    layer3?: string;
+    layer4?: string;
+    layer1Micron?: string;
+    layer2Micron?: string;
+    layer3Micron?: string;
+    layer4Micron?: string;
+    volumen?: string;
+    unidad?: string;
+  },
+  existing: ProjectRecord,
+): number => {
+  let score = 0;
+
+  const candidateLayers = [
+    candidate.layer1,
+    candidate.layer2,
+    candidate.layer3,
+    candidate.layer4,
+  ].filter(Boolean);
+
+  const candidateMicrons = [
+    candidate.layer1Micron,
+    candidate.layer2Micron,
+    candidate.layer3Micron,
+    candidate.layer4Micron,
+  ];
+
+  const existingLayers = [
+    getExistingLayerMaterial(existing, 0),
+    getExistingLayerMaterial(existing, 1),
+    getExistingLayerMaterial(existing, 2),
+    getExistingLayerMaterial(existing, 3),
+  ].filter(Boolean);
+
+  // Check if candidate has any micron data
+  const candidateHasMicron = candidateMicrons.some(Boolean);
+  const existingHasMicron = [0, 1, 2, 3].some(
+    (index) => getExistingLayerMicron(existing, index) !== null,
+  );
+
+  // Determine weighting based on data presence
+  let materialWeight: number;
+  let capasWeight: number;
+  let volumenWeight: number;
+  let micronWeight: number;
+
+  if (candidateHasMicron && existingHasMicron) {
+    // Both have micron: 45% materials, 20% capas, 15% volumen, 20% micron
+    materialWeight = 45;
+    capasWeight = 20;
+    volumenWeight = 15;
+    micronWeight = 20;
+  } else {
+    // At least one missing micron: 65% materials, 20% capas, 15% volumen, 0% micron
+    materialWeight = 65;
+    capasWeight = 20;
+    volumenWeight = 15;
+    micronWeight = 0;
+  }
+
+  // 1. Materiales por capa - normalized comparison
+  if (candidateLayers.length > 0 && existingLayers.length > 0) {
+    let materialMatches = 0;
+    const maxLayers = Math.max(candidateLayers.length, existingLayers.length);
+
+    candidateLayers.forEach((candMaterial, index) => {
+      if (existingLayers[index]) {
+        const candNorm = normalizeMaterialValue(candMaterial);
+        const existNorm = normalizeMaterialValue(existingLayers[index]);
+        if (candNorm && existNorm && candNorm === existNorm) {
+          materialMatches += 1;
+        }
+      }
+    });
+
+    const materialScore = Math.round((materialMatches / maxLayers) * materialWeight);
+    score += materialScore;
+  }
+
+  // 2. Cantidad de capas
+  if (candidateLayers.length === existingLayers.length && candidateLayers.length > 0) {
+    score += capasWeight;
+  } else if (candidateLayers.length > 0 && existingLayers.length > 0) {
+    const capasRatio = Math.min(candidateLayers.length, existingLayers.length) /
+                       Math.max(candidateLayers.length, existingLayers.length);
+    score += Math.round(capasRatio * capasWeight);
+  }
+
+  // 3. Volumen referencial + unidad
+  const volumenCand = parseVolumeNumber(candidate.volumen);
+  const unidadCand = normalizeUnitValue(String(candidate.unidad || ""));
+
+  const volumenExistRaw = existing.volumenReferencial ??
+                          existing.volumenCantidadReferencial ??
+                          existing.volumen;
+  const volumenExist = parseVolumeNumber(String(volumenExistRaw || ""));
+  const unidadExist = normalizeUnitValue(String(existing.unidad ?? existing.unidadVolumen ?? ""));
+
+  if (
+    volumenCand !== null &&
+    volumenExist !== null &&
+    unidadCand &&
+    unidadExist &&
+    unidadCand === unidadExist
+  ) {
+    const tolerance = volumenExist * 0.05;
+    if (Math.abs(volumenCand - volumenExist) <= tolerance) {
+      score += volumenWeight;
+    } else {
+      const similarity = Math.max(0, 1 - Math.abs(volumenCand - volumenExist) / volumenExist);
+      score += Math.round(similarity * volumenWeight * 0.5);
+    }
+  }
+
+  // 4. Micraje (only if both have micron data) - numeric comparison with 5% tolerance
+  if (micronWeight > 0 && candidateHasMicron && existingHasMicron) {
+    let micronMatches = 0;
+    let matchCount = 0;
+
+    candidateLayers.forEach((candMaterial, index) => {
+      const candMicron = parseMicronNumber(candidateMicrons[index]);
+      const existingMaterial = existingLayers[index];
+      const existingMicron = getExistingLayerMicron(existing, index);
+
+      if (candMaterial && existingMaterial) {
+        const candNorm = normalizeMaterialValue(candMaterial);
+        const existNorm = normalizeMaterialValue(existingMaterial);
+        if (candNorm && existNorm && candNorm === existNorm) {
+          matchCount += 1;
+
+          if (candMicron !== null && existingMicron !== null) {
+            const tolerance = existingMicron * 0.05;
+            if (Math.abs(candMicron - existingMicron) <= tolerance) {
+              micronMatches += 1;
+            }
+          }
+        }
+      }
+    });
+
+    if (matchCount > 0) {
+      const micronScore = Math.round((micronMatches / matchCount) * micronWeight);
+      score += micronScore;
+    }
+  }
+
+  if (DEBUG_PROJECT_SIMILARITY) {
+    console.log("[SIMILARITY]", {
+      candidateLayers,
+      existingLayers,
+      score,
+    });
+  }
+
+  return Math.min(100, score);
+};
+
+const getRecomendacion = (score: number, scope: MatchScope): string => {
+  if (score >= 90 && scope === "SAME_CLIENT_SAME_PORTFOLIO") {
+    return "Reutilizar proyecto existente. Creación bloqueada por duplicidad.";
+  }
+
+  if (score >= 90) {
+    return "Usar como referencia técnica. No es duplicado del portafolio actual.";
+  }
+
+  if (score >= 70) {
+    return "Revisar antes de crear. Existe un proyecto similar que puede servir de referencia.";
+  }
+
+  return "Puedes crear un nuevo proyecto. No se encontraron coincidencias relevantes.";
+};
+
+const getScopeLabel = (scope: MatchScope): string => {
+  switch (scope) {
+    case "SAME_CLIENT_SAME_PORTFOLIO":
+      return "Mismo cliente · Mismo portafolio";
+    case "SAME_CLIENT_OTHER_PORTFOLIO":
+      return "Mismo cliente · Otro portafolio";
+    case "OTHER_CLIENT":
+      return "Otro cliente";
+    default:
+      return "—";
+  }
+};
+
+const getProjectCode = (project: ProjectRecord) =>
+  getRecordValue(project, ["code", "projectCode", "id"]);
+
+const getProjectName = (project: ProjectRecord) =>
+  getRecordValue(project, [
+    "nombreTecnicoCalculado",
+    "technicalName",
+    "nombreCalculado",
+    "projectName",
+    "name",
+  ]);
+
+const getProjectStatus = (project: ProjectRecord) =>
+  getRecordValue(project, ["status", "estado"]);
+
+const DEBUG_PORTFOLIO_FILTER = false;
 
 export default function ProjectInitialCreateModal({
   isOpen,
   onClose,
   onProjectCreated,
+  portfolio: propPortfolio,
   initialPortfolioCode,
 }: ProjectInitialCreateModalProps) {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
+  const currentUser = getCurrentUserSafe();
 
-  const [portfolioCode, setPortfolioCode] = useState(initialPortfolioCode || "");
-  const [clasificacion, setClasificacion] = useState("");
-  const [tipoProyecto, setTipoProyecto] = useState("");
-  const [approvedProductQuery, setApprovedProductQuery] = useState("");
-  const [selectedApprovedProduct, setSelectedApprovedProduct] = useState<ApprovedProductRecord | null>(null);
-  const [motivoModificacion, setMotivoModificacion] = useState("");
-  const [licitacion, setLicitacion] = useState<"Sí" | "No">("No");
-  const [numeroItemsLicitacion, setNumeroItemsLicitacion] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [selectedClient, setSelectedClient] = useState<ClientRecord | null>(
+    null,
+  );
+  const [portfolioCode, setPortfolioCode] = useState(
+    initialPortfolioCode || "",
+  );
+  const [portfolioSearchTerm, setPortfolioSearchTerm] = useState("");
+  const [isPortfolioDropdownOpen, setIsPortfolioDropdownOpen] = useState(false);
+
+  const [motivo, setMotivo] = useState("");
+  const [causal, setCausal] = useState("");
   const [projectName, setProjectName] = useState("");
+  const [volumen, setVolumen] = useState("");
+  const [unidad, setUnidad] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+
+  const [layer1, setLayer1] = useState("");
+const [layer2, setLayer2] = useState("");
+const [layer3, setLayer3] = useState("");
+const [layer4, setLayer4] = useState("");
+const [layer1Micron, setLayer1Micron] = useState("");
+const [layer2Micron, setLayer2Micron] = useState("");
+const [layer3Micron, setLayer3Micron] = useState("");
+const [layer4Micron, setLayer4Micron] = useState("");
+const [visibleLayerCount, setVisibleLayerCount] = useState(1);
+
+  const [comentarios, setComentarios] = useState("");
+
+  const [productoBaseId, setProductoBaseId] = useState("");
+  const [productoBaseNombre, setProductoBaseNombre] = useState("");
+  const [productoBaseCodigo, setProductoBaseCodigo] = useState("");
+  const [productoBaseVersion, setProductoBaseVersion] = useState("");
+
+  const [similarityMatches, setSimilarityMatches] = useState<SimilarityMatch[]>(
+    [],
+  );
+  const [selectedReference, setSelectedReference] = useState<{
+    projectId?: string;
+    projectCode?: string;
+    projectName?: string;
+    score?: number;
+    datosSugeridosMomento2?: AnyRecord;
+  } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showApprovedProductDropdown, setShowApprovedProductDropdown] = useState(false);
+  const [creationSteps, setCreationSteps] = useState<string[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
 
-  const portfolio = useMemo(() => {
-    return portfolioCode ? getPortfolioByCode(portfolioCode) : null;
-  }, [portfolioCode]);
+  const [stepNotice, setStepNotice] = useState<{
+    key: string;
+    message: string;
+  } | null>(null);
+
+  const stepNoticeTimeoutRef = useRef<number | null>(null);
+
+  const showStepNotice = (key: string, message: string) => {
+    setStepNotice({ key, message });
+
+    if (stepNoticeTimeoutRef.current) {
+      window.clearTimeout(stepNoticeTimeoutRef.current);
+    }
+
+    stepNoticeTimeoutRef.current = window.setTimeout(() => {
+      setStepNotice(null);
+      stepNoticeTimeoutRef.current = null;
+    }, 5000);
+  };
+
+  const isPortfolioLocked = Boolean(propPortfolio || initialPortfolioCode);
+
+  // Resolve selected client early for use in completion flags
+  const resolvedSelectedClient = useMemo(
+    () => resolveSelectedClient(selectedClientId, selectedClient),
+    [selectedClientId, selectedClient],
+  );
+
+  // Get selected portfolio early for use in completion flags
+  const selectedPortfolio = useMemo(() => {
+    if (propPortfolio) return propPortfolio;
+    if (portfolioCode) return getPortfolioByCodeSafe(portfolioCode);
+    return null;
+  }, [propPortfolio, portfolioCode]);
+
+  // Field completion flags - portfolioBelongsToClient will be calculated below after portfoliosForClient is available
+  // For now, we use a simple check
+  const isClientStepComplete = Boolean(isPortfolioLocked || selectedClientId);
+
+  const isMotivoStepComplete = Boolean(motivo);
+  const isCausalStepComplete = Boolean(causal);
+
+  const requiresProductoBase = motivo === "Producto modificado";
+
+  const isProductoBaseStepComplete = Boolean(
+    !requiresProductoBase ||
+      productoBaseCodigo.trim() ||
+      productoBaseNombre.trim()
+  );
+
+  const isProductoBaseVersionStepComplete = Boolean(
+    !requiresProductoBase || productoBaseVersion.trim()
+  );
+
+  const isProjectNameStepComplete = Boolean(projectName.trim());
+  const isVolumenStepComplete = Boolean(volumen.trim());
+  const isUnidadStepComplete = Boolean(unidad);
+  const isDescripcionStepComplete = Boolean(descripcion.trim());
+
+  // Computed editability flags
+  const canEditPortfolio = isClientStepComplete && !isPortfolioLocked;
+  // canEditMotivo will be set after isPortfolioStepComplete is computed
+  const canEditCausal = isMotivoStepComplete;
+  const canEditProductoBase = isCausalStepComplete && requiresProductoBase;
+  const canEditProductoBaseVersion =
+    canEditProductoBase && isProductoBaseStepComplete;
+  const canEditProjectName =
+    isCausalStepComplete &&
+    (!requiresProductoBase ||
+      (isProductoBaseStepComplete && isProductoBaseVersionStepComplete));
+  const canEditVolumen = canEditProjectName && isProjectNameStepComplete;
+  const canEditUnidad = canEditVolumen && isVolumenStepComplete;
+  const canEditDescripcion = canEditUnidad && isUnidadStepComplete;
+  const canEditMateriales = canEditDescripcion && isDescripcionStepComplete;
+  const canEditComentarios = canEditDescripcion && isDescripcionStepComplete;
+
+  const portfoliosForClient = useMemo(() => {
+    if (isPortfolioLocked) return [];
+    if (!selectedClientId) return [];
+
+    const allPortfolios = getAllPortfolioRecordsSafe();
+
+    return allPortfolios
+      .filter((portfolio) =>
+        portfolioMatchesSelectedClient(portfolio, resolvedSelectedClient),
+      )
+      .sort((a, b) =>
+        getPortfolioName(a).localeCompare(getPortfolioName(b), "es"),
+      );
+  }, [
+    isPortfolioLocked,
+    selectedClientId,
+    resolvedSelectedClient.code,
+    resolvedSelectedClient.name,
+  ]);
 
   useEffect(() => {
-    if (isOpen) {
-      setPortfolioCode(initialPortfolioCode || "");
-      setClasificacion("");
-      setTipoProyecto("");
-      setApprovedProductQuery("");
-      setSelectedApprovedProduct(null);
-      setMotivoModificacion("");
-      setLicitacion("No");
-      setNumeroItemsLicitacion("");
-      setProjectName("");
-      setErrors({});
-      setShowApprovedProductDropdown(false);
-    }
-  }, [isOpen, initialPortfolioCode]);
+    if (!DEBUG_PORTFOLIO_FILTER || !selectedClientId) return;
 
-  // Si cambia la clasificación, se resetea el tipo de proyecto y campos dependientes
+    console.log("[ODISEO] Cliente seleccionado RAW:", selectedClientId);
+    console.log("[ODISEO] Cliente resuelto:", resolvedSelectedClient);
+    console.log(
+      "[ODISEO] Total portafolios leídos:",
+      getAllPortfolioRecordsSafe().length,
+    );
+    console.log("[ODISEO] Portafolios filtrados:", portfoliosForClient.length);
+
+    console.table(
+      getAllPortfolioRecordsSafe().map((portfolio) => ({
+        code: getPortfolioCode(portfolio),
+        name: getPortfolioName(portfolio),
+        clientCode: getPortfolioClientCode(portfolio),
+        clientName: getPortfolioClientName(portfolio),
+        match: portfolioMatchesSelectedClient(
+          portfolio,
+          resolvedSelectedClient,
+        ),
+      })),
+    );
+  }, [selectedClientId, resolvedSelectedClient, portfoliosForClient]);
+
+const filteredPortfoliosForClient = useMemo(() => {
+  const search = normalizeText(portfolioSearchTerm);
+
+  if (!selectedClientId) return [];
+
+  const onlySelectedClientPortfolios = portfoliosForClient.filter((portfolio) =>
+    isSameClient(portfolio, {
+      code: resolvedSelectedClient.code,
+      name: resolvedSelectedClient.name,
+    }),
+  );
+
+  if (!search) return onlySelectedClientPortfolios;
+
+  return onlySelectedClientPortfolios.filter((portfolio) => {
+    const code = normalizeText(getPortfolioCode(portfolio));
+    const name = normalizeText(getPortfolioName(portfolio));
+
+    return code.includes(search) || name.includes(search);
+  });
+}, [
+  portfolioSearchTerm,
+  portfoliosForClient,
+  selectedClientId,
+  resolvedSelectedClient.code,
+  resolvedSelectedClient.name,
+]);
+
+  const inheritedPortfolioCode = getPortfolioCode(selectedPortfolio);
+  const inheritedPortfolioName = getPortfolioName(selectedPortfolio);
+  const inheritedClientName = getPortfolioClientName(selectedPortfolio);
+  const inheritedClientCode = getPortfolioClientCode(selectedPortfolio);
+
+  const inheritedPlantName = getRecordValue(selectedPortfolio, [
+    "pl",
+    "plantaName",
+    "plantName",
+    "planta",
+  ]);
+
+  const inheritedExecutiveName = resolvePortfolioExecutiveName(selectedPortfolio);
+
+  const envoltura = getRecordValue(selectedPortfolio, [
+    "env",
+    "envoltura",
+    "wrappingName",
+  ]);
+
+  const usoFinal = getRecordValue(selectedPortfolio, [
+    "uf",
+    "usoFinal",
+    "useFinalName",
+  ]);
+
+  const maquinaCliente = getRecordValue(selectedPortfolio, [
+    "maq",
+    "maquinaCliente",
+    "packingMachineName",
+  ]);
+
+  const inheritedSegment = getRecordValue(selectedPortfolio, [
+    "seg",
+    "segmento",
+    "segment",
+  ]);
+
+  const inheritedSubSegment = getRecordValue(selectedPortfolio, [
+    "subseg",
+    "subSegmento",
+    "subSegment",
+  ]);
+
+  const inheritedSector = getRecordValue(selectedPortfolio, ["sector"]);
+
+  const inheritedAfMarketId = getRecordValue(selectedPortfolio, [
+    "af",
+    "afMarketId",
+    "afMarketID",
+  ]);
+
+  // Check if portfolio belongs to selected client
+  const portfolioBelongsToClient = useMemo(() => {
+    if (isPortfolioLocked) return true;
+    if (!selectedPortfolio) return false;
+
+    return portfoliosForClient.some(
+      (item) =>
+        normalizeText(getPortfolioCode(item)) ===
+        normalizeText(getPortfolioCode(selectedPortfolio)),
+    );
+  }, [isPortfolioLocked, selectedPortfolio, portfoliosForClient]);
+
+  // Fixed isPortfolioStepComplete - allows Motivo to enable for locked portfolios
+  const isPortfolioStepComplete = Boolean(
+    selectedPortfolio && portfolioBelongsToClient
+  );
+
+  const canEditMotivo = isPortfolioStepComplete;
+
+const estructuraCalculada = useMemo(() => {
+  const caps = [layer1, layer2, layer3, layer4].filter(Boolean).length;
+
+  if (caps === 1) return "Monocapa";
+  if (caps === 2) return "Bilaminado";
+  if (caps === 3) return "Trilaminado";
+  if (caps === 4) return "Tetralaminado";
+
+  return "";
+}, [layer1, layer2, layer3, layer4]);
+
+const nombreTecnicoCalculado = useMemo(() => {
+  const capasStr = [
+    layer1 ? formatLayerForTechnicalName(layer1, layer1Micron) : "",
+    layer2 ? formatLayerForTechnicalName(layer2, layer2Micron) : "",
+    layer3 ? formatLayerForTechnicalName(layer3, layer3Micron) : "",
+    layer4 ? formatLayerForTechnicalName(layer4, layer4Micron) : "",
+  ]
+    .filter(Boolean)
+    .join(" - ");
+
+  return [
+    projectName.trim(),
+    volumen.trim() && unidad ? `${volumen.trim()} ${unidad}` : "",
+    envoltura,
+    capasStr,
+  ]
+    .filter(Boolean)
+    .join(" - ")
+    .replace(/\s+/g, " ")
+    .trim();
+}, [
+  projectName,
+  volumen,
+  unidad,
+  envoltura,
+  layer1,
+  layer2,
+  layer3,
+  layer4,
+  layer1Micron,
+  layer2Micron,
+  layer3Micron,
+  layer4Micron,
+]);
+
+  const requiredBaseFieldsFilled = Boolean(
+    (isPortfolioLocked || selectedClientId) &&
+      selectedPortfolio &&
+      portfolioBelongsToClient &&
+      motivo &&
+      causal &&
+      projectName.trim() &&
+      volumen.trim() &&
+      unidad &&
+      descripcion.trim() &&
+      (motivo !== "Producto modificado" ||
+        ((productoBaseCodigo.trim() || productoBaseNombre.trim()) &&
+          productoBaseVersion.trim()))
+  );
+
+  const hasMaterialsForSimilarity = [layer1, layer2, layer3, layer4].some(Boolean);
+
+  const hasMinDataForSimilarity = requiredBaseFieldsFilled && hasMaterialsForSimilarity;
+
+  const hasMinDataForSearch = hasMinDataForSimilarity;
+
+  const projectsForSimilarity = useMemo(() => {
+    const fromStorage = getProjectRecordsSafe();
+    const fromPortfolio = getProjectsFromPortfolioRecord(selectedPortfolio);
+
+    const merged = [...fromStorage, ...fromPortfolio];
+
+    const seen = new Set<string>();
+
+    return merged.filter((project) => {
+      const key =
+        getProjectCode(project) ||
+        `${getProjectName(project)}-${getRecordValue(project, ["portfolioCode", "portafolioCodigo"])}`;
+
+      if (!key) return true;
+
+      const normalizedKey = normalizeText(key);
+
+      if (seen.has(normalizedKey)) return false;
+
+      seen.add(normalizedKey);
+      return true;
+    });
+  }, [selectedPortfolio]);
+
   useEffect(() => {
-  setTipoProyecto("");
-  setApprovedProductQuery("");
-  setSelectedApprovedProduct(null);
-  setMotivoModificacion("");
-  setLicitacion("No");
-  setNumeroItemsLicitacion("");
-  setShowApprovedProductDropdown(false);
-}, [clasificacion]);
-
-useEffect(() => {
-  if (clasificacion !== "Modificado") {
-    setApprovedProductQuery("");
-    setSelectedApprovedProduct(null);
-    setMotivoModificacion("");
-    return;
-  }
-
-  if (!selectedApprovedProduct) {
-    setMotivoModificacion("");
-  }
-}, [clasificacion, selectedApprovedProduct]);
-
-  if (!isOpen) return null;
-
-  const approvedProductResults =
-    clasificacion === "Modificado" && approvedProductQuery.trim()
-      ? searchApprovedProducts(approvedProductQuery)
-      : [];
-
-  const shouldShowModificationReason =
-    clasificacion === "Modificado" && selectedApprovedProduct !== null;
-
-  const responsibleArea = resolveResponsibleArea(tipoProyecto);
-
-  const handleCreate = () => {
-    const newErrors: Record<string, string> = {};
-    const normalizedProjectName = projectName.trim();
-
-    if (!normalizedProjectName) {
-      newErrors.projectName = "Ingresa el nombre del proyecto.";
-    }
-
-    if (!portfolioCode || !portfolio) {
-      newErrors.portfolioCode = "Selecciona un portafolio base.";
-    }
-
-    if (!clasificacion) {
-      newErrors.clasificacion = "Selecciona la clasificación del proyecto.";
-    }
-
-    if (clasificacion === "Nuevo" && !tipoProyecto) {
-      newErrors.tipoProyecto = "Selecciona el tipo de proyecto.";
-    }
-
-    if (clasificacion === "Nuevo" && !licitacion) {
-      newErrors.licitacion = "Indica si el proyecto corresponde a licitación.";
-    }
-
-    if (clasificacion === "Nuevo" && licitacion === "Sí" && (!numeroItemsLicitacion || Number(numeroItemsLicitacion) <= 0)) {
-      newErrors.numeroItemsLicitacion = "Ingresa un número válido de ítems.";
-    }
-
-    if (clasificacion === "Modificado" && !selectedApprovedProduct) {
-      newErrors.approvedProductCode = "Selecciona un producto aprobado.";
-    }
-
-    if (
-      clasificacion === "Modificado" &&
-      selectedApprovedProduct &&
-      !motivoModificacion
-    ) {
-      newErrors.motivoModificacion = "Selecciona el motivo de modificación.";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (!isOpen) {
+      setStepNotice(null);
+      if (stepNoticeTimeoutRef.current) {
+        window.clearTimeout(stepNoticeTimeoutRef.current);
+        stepNoticeTimeoutRef.current = null;
+      }
       return;
     }
 
-    const createdProject = createProjectFromPortfolio({
-      portfolio: portfolio!,
-      initialData: {
-        clasificacion,
-        tipoProyecto: clasificacion === "Nuevo" ? tipoProyecto : "",
-        responsibleArea: clasificacion === "Nuevo" ? responsibleArea : "",
-        technicalSubArea: clasificacion === "Nuevo" ? responsibleArea : "",
-        approvedProductId: selectedApprovedProduct?.id || "",
-        approvedProductCode: selectedApprovedProduct?.sku || "",
-        approvedProductSku: selectedApprovedProduct?.sku || "",
-        approvedProductVersion: selectedApprovedProduct?.version || "",
-        approvedProductName: selectedApprovedProduct?.productName || "",
-        approvedProductSnapshot:
-          clasificacion === "Modificado" && selectedApprovedProduct
-            ? selectedApprovedProduct
-            : null,
-        motivoModificacion:
-          clasificacion === "Modificado" && selectedApprovedProduct
-            ? motivoModificacion
-            : "",
-        licitacion: clasificacion === "Nuevo" ? licitacion : "No",
-        numeroItemsLicitacion: clasificacion === "Nuevo" && licitacion === "Sí" ? Number(numeroItemsLicitacion) : null,
-        projectName: normalizedProjectName,
-      },
-      createdBy: currentUser?.id,
-    });
+    const initialCode = initialPortfolioCode || getPortfolioCode(propPortfolio);
 
-    // Save "Nuevo" badge indicator to localStorage
-    const RECENT_NEW_PROJECT_KEY = "odiseo_recent_new_project";
-    const projectId = createdProject.code || createdProject.id;
-    localStorage.setItem(RECENT_NEW_PROJECT_KEY, JSON.stringify({
-      projectId,
-      expiresAt: Date.now() + 25000,
+    setSelectedClientId("");
+    setSelectedClient(null);
+    setPortfolioCode(initialCode || "");
+    setPortfolioSearchTerm("");
+    setIsPortfolioDropdownOpen(false);
+
+    setMotivo("");
+    setCausal("");
+    setProjectName("");
+    setVolumen("");
+    setUnidad("");
+    setDescripcion("");
+
+    setProductoBaseId("");
+    setProductoBaseNombre("");
+    setProductoBaseCodigo("");
+    setProductoBaseVersion("");
+
+    setLayer1("");
+    setLayer2("");
+    setLayer3("");
+    setLayer4("");
+    setLayer1Micron("");
+    setLayer2Micron("");
+    setLayer3Micron("");
+    setLayer4Micron("");
+    setVisibleLayerCount(1);
+
+    setComentarios("");
+
+    setSimilarityMatches([]);
+    setErrors({});
+    setStepNotice(null);
+  }, [isOpen, initialPortfolioCode, propPortfolio]);
+
+  useEffect(() => {
+    return () => {
+      if (stepNoticeTimeoutRef.current) {
+        window.clearTimeout(stepNoticeTimeoutRef.current);
+        stepNoticeTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!layer1) {
+      setLayer2("");
+      setLayer3("");
+      setLayer4("");
+    }
+  }, [layer1]);
+
+  useEffect(() => {
+    if (!layer2) {
+      setLayer3("");
+      setLayer4("");
+    }
+  }, [layer2]);
+
+  useEffect(() => {
+    if (!layer3) {
+      setLayer4("");
+    }
+  }, [layer3]);
+
+  useEffect(() => {
+    if (!hasMinDataForSearch) {
+      setSimilarityMatches([]);
+      return;
+    }
+
+    const candidateData = {
+      clientCode: inheritedClientCode || resolvedSelectedClient.code,
+      clientName: inheritedClientName || resolvedSelectedClient.name,
+      portfolioCode: inheritedPortfolioCode,
+      envoltura,
+      usoFinal,
+      maquinaCliente,
+      afMarketId: inheritedAfMarketId,
+      estructuraCalculada,
+      nombreTecnicoCalculado,
+      motivo,
+      causal,
+      layer1,
+      layer2,
+      layer3,
+      layer4,
+      layer1Micron,
+      layer2Micron,
+      layer3Micron,
+      layer4Micron,
+      descripcion,
+      volumen,
+      unidad,
+    };
+
+    if (DEBUG_PROJECT_SIMILARITY) {
+      const all = projectsForSimilarity;
+      const filtered = all.filter((project) =>
+        doesProjectPassMandatoryFilter(candidateData, project),
+      );
+
+      console.log("[ODISEO] Similarity candidateData", candidateData);
+      console.log("[ODISEO] Total projects for similarity", all.length);
+      console.log("[ODISEO] Projects passing mandatory filter", filtered.length);
+      console.table(
+        filtered.map((project) => ({
+          code: getProjectCode(project),
+          name: getProjectName(project),
+          motivo: project.motivo,
+          clasificacion: project.clasificacion,
+          causal: project.causal,
+          tipoProyecto: project.tipoProyecto,
+          portfolioCode: project.portfolioCode,
+          layer1: project.layer1Material,
+          layer2: project.layer2Material,
+          layer3: project.layer3Material,
+          layer4: project.layer4Material,
+          score: calculatePreliminarySimilarity(candidateData, project),
+        })),
+      );
+    }
+const [similarityDiagnostics, setSimilarityDiagnostics] = useState<{
+  totalProjects: number;
+  contextCandidates: Array<SimilarityMatch>;
+  visibleCandidates: Array<SimilarityMatch>;
+} | null>(null);
+
+
+    const results = projectsForSimilarity
+      .filter((project) => doesProjectPassMandatoryFilter(candidateData, project))
+      .map((project) => ({
+        project,
+        score: calculatePreliminarySimilarity(candidateData, project),
+        scope: getMatchScope(
+          candidateData.clientCode,
+          candidateData.clientName,
+          candidateData.portfolioCode,
+          project,
+        ),
+      }))
+      .filter((match) => match.score >= 50)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+    setSimilarityMatches(results);
+  }, [
+    hasMinDataForSearch,
+    projectsForSimilarity,
+    inheritedClientCode,
+    inheritedClientName,
+    inheritedPortfolioCode,
+    inheritedAfMarketId,
+    resolvedSelectedClient.code,
+    resolvedSelectedClient.name,
+    envoltura,
+    usoFinal,
+    maquinaCliente,
+    motivo,
+    causal,
+    volumen,
+    unidad,
+    layer1,
+    layer2,
+    layer3,
+    layer4,
+    layer1Micron,
+    layer2Micron,
+    layer3Micron,
+    layer4Micron,
+    descripcion,
+    nombreTecnicoCalculado,
+    estructuraCalculada,
+  ]);
+
+  const projectsPassingMandatoryFilter = useMemo(() => {
+    if (!hasMinDataForSearch) return 0;
+
+    const candidateData = {
+      clientCode: inheritedClientCode || resolvedSelectedClient.code,
+      clientName: inheritedClientName || resolvedSelectedClient.name,
+      portfolioCode: inheritedPortfolioCode,
+      envoltura,
+      usoFinal,
+      maquinaCliente,
+      afMarketId: inheritedAfMarketId,
+      motivo,
+      causal,
+    };
+
+    return projectsForSimilarity.filter((project) =>
+      doesProjectPassMandatoryFilter(candidateData, project),
+    ).length;
+  }, [
+    hasMinDataForSearch,
+    projectsForSimilarity,
+    inheritedClientCode,
+    inheritedClientName,
+    inheritedPortfolioCode,
+    inheritedAfMarketId,
+    resolvedSelectedClient.code,
+    resolvedSelectedClient.name,
+    envoltura,
+    usoFinal,
+    maquinaCliente,
+  ]);
+
+  const topMatch = similarityMatches[0];
+  const topScore = topMatch?.score ?? 0;
+
+  const canCreate = requiredBaseFieldsFilled;
+
+  const validateForm = useMemo(() => {
+    const newErrors: Record<string, string> = {};
+
+    if (!selectedClientId && !isPortfolioLocked) {
+      newErrors.clientId = "Selecciona un cliente.";
+    }
+
+    if (!selectedPortfolio) {
+      newErrors.portfolioCode = "Selecciona un portafolio base.";
+    }
+
+    if (!portfolioBelongsToClient) {
+      newErrors.portfolioCode =
+        "El portafolio seleccionado no pertenece al cliente seleccionado.";
+    }
+
+    if (!motivo) {
+      newErrors.motivo = "Selecciona el motivo.";
+    }
+
+    if (!causal) {
+      newErrors.causal = "Selecciona el motivo.";
+    }
+
+    if (!projectName.trim()) {
+      newErrors.projectName = "Ingresa el nombre del proyecto.";
+    }
+
+    if (!volumen.trim()) {
+      newErrors.volumen = projectName.trim()
+        ? "Ingresa el volumen/cantidad referencial."
+        : "Completa primero el nombre del proyecto.";
+    }
+
+    if (!unidad) {
+      newErrors.unidad = volumen.trim()
+        ? "Selecciona la unidad."
+        : "Completa primero el volumen referencial.";
+    }
+
+    if (!descripcion.trim()) {
+      newErrors.descripcion = "Ingresa la descripción breve de la necesidad.";
+    }
+
+    if (motivo === "Producto modificado") {
+      if (!productoBaseCodigo.trim() && !productoBaseNombre.trim()) {
+        newErrors.productoBase = "Selecciona o ingresa el producto base vigente.";
+      }
+
+      if (!productoBaseVersion.trim()) {
+        newErrors.productoBaseVersion = "Ingresa la versión del producto base.";
+      }
+    }
+
+    return newErrors;
+  }, [
+    selectedClientId,
+    isPortfolioLocked,
+    selectedPortfolio,
+    portfolioBelongsToClient,
+    motivo,
+    causal,
+    projectName,
+    volumen,
+    unidad,
+    descripcion,
+    productoBaseCodigo,
+    productoBaseNombre,
+    productoBaseVersion,
+  ]);
+
+  const handleClientChange = (value: string) => {
+    setSelectedClientId(value);
+    setSelectedClient(null);
+    setPortfolioCode("");
+    setPortfolioSearchTerm("");
+    setIsPortfolioDropdownOpen(false);
+    setMotivo("");
+    setCausal("");
+    setProductoBaseId("");
+    setProductoBaseNombre("");
+    setProductoBaseCodigo("");
+    setProductoBaseVersion("");
+    setProjectName("");
+    setVolumen("");
+    setUnidad("");
+    setDescripcion("");
+    setLayer1("");
+    setLayer2("");
+    setLayer3("");
+    setLayer4("");
+    setLayer1Micron("");
+    setLayer2Micron("");
+    setLayer3Micron("");
+    setLayer4Micron("");
+    setVisibleLayerCount(1);
+    setComentarios("");
+    setSimilarityMatches([]);
+    setSelectedReference(null);
+    setErrors((prev) => ({
+      ...prev,
+      clientId: "",
+      portfolioCode: "",
+      motivo: "",
+      causal: "",
+      productoBase: "",
+      productoBaseVersion: "",
+      projectName: "",
+      volumen: "",
+      unidad: "",
+      descripcion: "",
+      layer1: "",
+      comentarios: "",
     }));
 
-    // Notify parent component that project was created (pass projectId for badge)
-    onProjectCreated?.(projectId);
-
-    onClose();
-    navigate("/projects");
+    if (value) {
+      showStepNotice("client", "Cliente seleccionado. Portafolio Base se habilitó.");
+    }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-5xl rounded-2xl bg-white shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
+  const handlePortfolioSelect = (portfolio: PortfolioRecord) => {
+    const selectedCode = normalizeText(getPortfolioCode(portfolio));
+
+    const existsInClientList = portfoliosForClient.some(
+      (item) => normalizeText(getPortfolioCode(item)) === selectedCode,
+    );
+
+    if (!existsInClientList) {
+      setErrors((prev) => ({
+        ...prev,
+        portfolioCode:
+          "El portafolio seleccionado no pertenece al cliente seleccionado.",
+      }));
+      return;
+    }
+
+    const code = getPortfolioCode(portfolio);
+    const name = getPortfolioName(portfolio);
+
+    setPortfolioCode(code);
+    setPortfolioSearchTerm(`${code} - ${name}`);
+    setIsPortfolioDropdownOpen(false);
+    setMotivo("");
+    setCausal("");
+    setProductoBaseId("");
+    setProductoBaseNombre("");
+    setProductoBaseCodigo("");
+    setProductoBaseVersion("");
+    setProjectName("");
+    setVolumen("");
+    setUnidad("");
+    setDescripcion("");
+    setLayer1("");
+    setLayer2("");
+    setLayer3("");
+    setLayer4("");
+    setLayer1Micron("");
+    setLayer2Micron("");
+    setLayer3Micron("");
+    setLayer4Micron("");
+    setVisibleLayerCount(1);
+    setComentarios("");
+    setSimilarityMatches([]);
+    setSelectedReference(null);
+    setErrors((prev) => ({
+      ...prev,
+      portfolioCode: "",
+      motivo: "",
+      causal: "",
+      productoBase: "",
+      productoBaseVersion: "",
+      projectName: "",
+      volumen: "",
+      unidad: "",
+      descripcion: "",
+      layer1: "",
+      comentarios: "",
+    }));
+
+    showStepNotice("portfolio", "Portafolio seleccionado. Motivo se habilitó.");
+  };
+
+  const clearPortfolio = () => {
+    setPortfolioCode("");
+    setPortfolioSearchTerm("");
+    setIsPortfolioDropdownOpen(false);
+    setMotivo("");
+    setCausal("");
+    setProductoBaseId("");
+    setProductoBaseNombre("");
+    setProductoBaseCodigo("");
+    setProductoBaseVersion("");
+    setProjectName("");
+    setVolumen("");
+    setUnidad("");
+    setDescripcion("");
+    setLayer1("");
+    setLayer2("");
+    setLayer3("");
+    setLayer4("");
+    setLayer1Micron("");
+    setLayer2Micron("");
+    setLayer3Micron("");
+    setLayer4Micron("");
+    setVisibleLayerCount(1);
+    setComentarios("");
+    setSimilarityMatches([]);
+    setSelectedReference(null);
+  };
+
+  const getLayerValue = (index: number) => {
+  const values = [layer1, layer2, layer3, layer4];
+  return values[index] || "";
+};
+
+const setLayerValue = (index: number, value: string) => {
+  if (index === 0) setLayer1(value);
+  if (index === 1) setLayer2(value);
+  if (index === 2) setLayer3(value);
+  if (index === 3) setLayer4(value);
+};
+
+const getLayerMicronValue = (index: number) => {
+  const values = [layer1Micron, layer2Micron, layer3Micron, layer4Micron];
+  return values[index] || "";
+};
+
+const setLayerMicronValue = (index: number, value: string) => {
+  if (index === 0) setLayer1Micron(value);
+  if (index === 1) setLayer2Micron(value);
+  if (index === 2) setLayer3Micron(value);
+  if (index === 3) setLayer4Micron(value);
+};
+
+const clearLayerMicronsAfter = (index: number) => {
+  if (index < 0) return;
+  if (index < 1) setLayer2Micron("");
+  if (index < 2) setLayer3Micron("");
+  if (index < 3) setLayer4Micron("");
+};
+
+const clearLayersAfter = (index: number) => {
+  if (index < 0) return;
+
+  if (index < 1) {
+    setLayer2("");
+    setLayer2Micron("");
+  }
+
+  if (index < 2) {
+    setLayer3("");
+    setLayer3Micron("");
+  }
+
+  if (index < 3) {
+    setLayer4("");
+    setLayer4Micron("");
+  }
+};
+
+const handleLayerChange = (index: number, value: string) => {
+  setLayerValue(index, value);
+
+  setErrors((prev) => ({
+    ...prev,
+    layer1: "",
+  }));
+
+  if (value) {
+    const defaultMicron = getDefaultMicronByMaterial(value);
+    if (defaultMicron) {
+      setLayerMicronValue(index, defaultMicron);
+    }
+    setSimilarityMatches([]);
+    setSelectedReference(null);
+  } else {
+    clearLayersAfter(index);
+    clearLayerMicronsAfter(index);
+    setVisibleLayerCount(Math.max(1, index + 1));
+    setSimilarityMatches([]);
+    setSelectedReference(null);
+  }
+};
+
+const handleAddLayer = () => {
+  if (visibleLayerCount >= 4) return;
+
+  const lastVisibleLayerValue = getLayerValue(visibleLayerCount - 1);
+
+  if (!lastVisibleLayerValue) return;
+
+  setVisibleLayerCount((prev) => Math.min(prev + 1, 4));
+};
+
+const handleRemoveLastLayer = () => {
+  if (visibleLayerCount <= 1) return;
+
+  const layerIndexToRemove = visibleLayerCount - 1;
+
+  setLayerValue(layerIndexToRemove, "");
+  clearLayersAfter(layerIndexToRemove);
+
+  setVisibleLayerCount((prev) => Math.max(prev - 1, 1));
+};
+
+  const validate = () => {
+    setErrors(validateForm);
+    return Object.keys(validateForm).length === 0;
+  };
+
+  const applyReferenceProject = (match: SimilarityMatch) => {
+    const project = match.project;
+
+    setProjectName(
+      getRecordValue(project, ["projectName", "name"]) || projectName
+    );
+
+    const refVolumen = getRecordValue(project, [
+      "volumenReferencial",
+      "volumenCantidadReferencial",
+      "volumen",
+    ]);
+    if (refVolumen) {
+      setVolumen(String(refVolumen));
+    }
+
+    const refUnidad = getRecordValue(project, ["unidad", "unidadVolumen"]);
+    if (refUnidad) {
+      setUnidad(String(refUnidad));
+    }
+
+    const refDescripcion = getRecordValue(project, [
+      "descripcionNecesidad",
+      "descripcion",
+    ]);
+    if (refDescripcion) {
+      setDescripcion(String(refDescripcion));
+    }
+
+    const refLayer1Material = getRecordValue(project, ["layer1Material"]);
+    if (refLayer1Material) setLayer1(String(refLayer1Material));
+
+    const refLayer2Material = getRecordValue(project, ["layer2Material"]);
+    if (refLayer2Material) setLayer2(String(refLayer2Material));
+
+    const refLayer3Material = getRecordValue(project, ["layer3Material"]);
+    if (refLayer3Material) setLayer3(String(refLayer3Material));
+
+    const refLayer4Material = getRecordValue(project, ["layer4Material"]);
+    if (refLayer4Material) setLayer4(String(refLayer4Material));
+
+    const refLayer1Micron = getRecordValue(project, ["layer1Micraje", "layer1Micron"]);
+    if (refLayer1Micron) setLayer1Micron(String(refLayer1Micron));
+
+    const refLayer2Micron = getRecordValue(project, ["layer2Micraje", "layer2Micron"]);
+    if (refLayer2Micron) setLayer2Micron(String(refLayer2Micron));
+
+    const refLayer3Micron = getRecordValue(project, ["layer3Micraje", "layer3Micron"]);
+    if (refLayer3Micron) setLayer3Micron(String(refLayer3Micron));
+
+    const refLayer4Micron = getRecordValue(project, ["layer4Micraje", "layer4Micron"]);
+    if (refLayer4Micron) setLayer4Micron(String(refLayer4Micron));
+
+    const copiedLayers = [
+      getRecordValue(project, ["layer1Material"]),
+      getRecordValue(project, ["layer2Material"]),
+      getRecordValue(project, ["layer3Material"]),
+      getRecordValue(project, ["layer4Material"]),
+    ].filter(Boolean).length;
+
+    setVisibleLayerCount(Math.max(1, copiedLayers));
+
+    const refComentarios = getRecordValue(project, ["comentarios"]);
+    if (refComentarios) {
+      setComentarios(String(refComentarios));
+    }
+
+    setSelectedReference({
+      projectId: getRecordValue(project, ["id"]),
+      projectCode: getProjectCode(project),
+      projectName: getProjectName(project),
+      score: match.score,
+      datosSugeridosMomento2: {
+        layer1Material: project.layer1Material,
+        layer1Micraje: project.layer1Micraje,
+        layer2Material: project.layer2Material,
+        layer2Micraje: project.layer2Micraje,
+        layer3Material: project.layer3Material,
+        layer3Micraje: project.layer3Micraje,
+        layer4Material: project.layer4Material,
+        layer4Micraje: project.layer4Micraje,
+        ancho: project.ancho,
+        largo: project.largo,
+        anchoFuelle: project.anchoFuelle,
+        disenoEspecial: project.disenoEspecial,
+        tipoImpresion: project.tipoImpresion,
+        accesorios: project.accesorios,
+        criteriosTecnicos: project.criteriosTecnicos,
+        comentariosTecnicos: project.comentariosTecnicos,
+      },
+    });
+
+    setErrors({});
+  };
+
+  const handleCreate = async () => {
+    if (!validate()) return;
+
+    setIsCreating(true);
+    setCreationSteps([]);
+
+    const addStep = (step: string) => {
+      console.log(`[ODISEO] ${step}`);
+      setCreationSteps((prev) => [...prev, step]);
+    };
+
+    try {
+      addStep("✓ Validando datos del formulario...");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      addStep("✓ Preparando información del portafolio...");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      addStep("✓ Compilando estructura de capas y materiales...");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      addStep("✓ Calculando nombre técnico y estructura...");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      addStep("✓ Preparando datos heredados del portafolio...");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      addStep("✓ Registrando proyecto en el sistema...");
+
+      const createdProject = createProjectFromPortfolioSafe({
+        portfolio: selectedPortfolio!,
+        initialData: {
+          clasificacion: "Nuevo",
+          tipoProyecto: causal,
+          motivoNuevaValidacion: causal,
+          motivo,
+          causal,
+          licitacion: "No",
+          status: "Registrado",
+          estadoValidacion: "Pendiente de solicitud",
+
+          projectName: projectName.trim(),
+          volumenCantidadReferencial: volumen.trim(),
+          unidad,
+          descripcionNecesidad: descripcion.trim(),
+
+          layer1Material: layer1,
+          layer1MaterialLabel: getMaterialLabel(layer1),
+          layer1Micraje: layer1Micron || undefined,
+
+          layer2Material: layer2 || undefined,
+          layer2MaterialLabel: layer2 ? getMaterialLabel(layer2) : undefined,
+          layer2Micraje: layer2Micron || undefined,
+
+          layer3Material: layer3 || undefined,
+          layer3MaterialLabel: layer3 ? getMaterialLabel(layer3) : undefined,
+          layer3Micraje: layer3Micron || undefined,
+
+          layer4Material: layer4 || undefined,
+          layer4MaterialLabel: layer4 ? getMaterialLabel(layer4) : undefined,
+          layer4Micraje: layer4Micron || undefined,
+
+          estructuraCalculada,
+          cantidadCapasReferencial: [layer1, layer2, layer3, layer4].filter(Boolean).length,
+          estructuraMateriales: [
+            layer1 ? getMaterialLabel(layer1) : "",
+            layer2 ? getMaterialLabel(layer2) : "",
+            layer3 ? getMaterialLabel(layer3) : "",
+            layer4 ? getMaterialLabel(layer4) : "",
+          ]
+            .filter(Boolean)
+            .join(" / "),
+          estructuraMaterialesReferencial: [
+            layer1 ? formatLayerForTechnicalName(layer1, layer1Micron) : "",
+            layer2 ? formatLayerForTechnicalName(layer2, layer2Micron) : "",
+            layer3 ? formatLayerForTechnicalName(layer3, layer3Micron) : "",
+            layer4 ? formatLayerForTechnicalName(layer4, layer4Micron) : "",
+          ]
+            .filter(Boolean)
+            .join(" / "),
+          volumenReferencial: volumen.trim(),
+
+          comentarios: comentarios.trim() || undefined,
+          nombreTecnicoCalculado,
+
+          clientCode: inheritedClientCode || resolvedSelectedClient.code,
+          clientName: inheritedClientName || resolvedSelectedClient.name,
+          portfolioCode: inheritedPortfolioCode,
+          portfolioName: inheritedPortfolioName,
+          envoltura,
+          usoFinal,
+          maquinaCliente,
+          ejecutivoComercial: inheritedExecutiveName || undefined,
+          ejecutivoName: inheritedExecutiveName || undefined,
+          executiveName: inheritedExecutiveName || undefined,
+          segmento: inheritedSegment,
+          subSegmento: inheritedSubSegment,
+          sector: inheritedSector,
+          afMarketId: inheritedAfMarketId,
+
+          ...(motivo === "Producto modificado" && {
+            productoBaseId: productoBaseId || undefined,
+            productoBaseCodigo: productoBaseCodigo.trim(),
+            productoBaseNombre: productoBaseNombre.trim(),
+            productoBaseVersion: productoBaseVersion.trim(),
+          }),
+
+          proyectoReferenciaId: selectedReference?.projectId,
+          proyectoReferenciaCodigo: selectedReference?.projectCode,
+          proyectoReferenciaNombre: selectedReference?.projectName,
+          porcentajeSimilitudPreliminar: selectedReference?.score,
+          referenciaParaMomento2: Boolean(selectedReference),
+          datosSugeridosMomento2: selectedReference?.datosSugeridosMomento2,
+        },
+        createdBy: String(currentUser?.id ?? "system"),
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      addStep("✓ Guardando datos en el almacenamiento...");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const createdProjectCode =
+        getRecordValue(createdProject, ["code", "projectCode", "id"]) ||
+        getRecordValue(createdProject, ["codigo"]);
+
+      addStep(`✓ ¡Proyecto creado exitosamente! (${createdProjectCode})`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      onProjectCreated?.(createdProjectCode);
+      onClose();
+      navigate("/projects");
+    } catch (error) {
+      addStep(`✗ Error durante la creación: ${error}`);
+      console.error("[ODISEO] Error creating project:", error);
+      setIsCreating(false);
+    }
+  };
+
+  const handleCreateClick = () => {
+    handleCreate();
+  };
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4 py-6">
+      <div className="flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4">
           <div>
             <h3 className="text-lg font-bold text-slate-900">Crear Proyecto</h3>
-            <p className="text-sm text-slate-500">
-              Completa la información inicial para registrar el proyecto.
-            </p>
           </div>
+
           <button
+            type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Cerrar"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-            {/* Lado izquierdo: Formulario */}
-            <div className="space-y-5">
-              {!initialPortfolioCode && (
-                <div className="space-y-1">
-                  <PortfolioSearch
-                    label="Portafolio Base *"
-                    value={portfolioCode}
-                    onChange={(val) => {
-                      setPortfolioCode(val);
-                      setErrors((prev) => ({ ...prev, portfolioCode: "" }));
-                    }}
-                    error={errors.portfolioCode}
-                  />
-                  {!portfolioCode && (
-                    <p className="text-xs text-slate-500">
-                      Busca un portafolio para heredar sus datos y crear el proyecto.
-                    </p>
-                  )}
-                </div>
-              )}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <div className="space-y-5 lg:col-span-2">
+              {!isPortfolioLocked && (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <ClientSearchField
+                      label="Cliente *"
+                      value={selectedClientId}
+                      onChange={handleClientChange}
+                      onSelect={(client: ClientRecord) => {
+                        setSelectedClient(client);
+                        setErrors((prev) => ({ ...prev, clientId: "" }));
+                      }}
+                      error={errors.clientId}
+                    />
+                    {stepNotice?.key === "client" && (
+                      <p className="text-xs font-medium text-green-600">
+                        {stepNotice.message}
+                      </p>
+                    )}
+                  </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                  Nombre del Proyecto *
-                </label>
-
-                <input
-                  type="text"
-                  value={projectName}
-                  onChange={(event) => {
-                    setProjectName(event.target.value);
-                    setErrors((prev) => ({ ...prev, projectName: "" }));
-                  }}
-                  placeholder="Ej. Doypack Mayonesa 250 ml"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
-                />
-
-                {errors.projectName && (
-                  <span className="block mt-1 text-xs font-normal text-red-600">
-                    {errors.projectName}
-                  </span>
-                )}
-              </div>
-
-              {portfolioCode && (
-                <FormSelect
-                  label="Clasificación *"
-                  value={clasificacion}
-                  onChange={(val) => {
-                    setClasificacion(val);
-                    setErrors((prev) => ({ ...prev, clasificacion: "" }));
-                  }}
-                  options={CLASSIFICATION_OPTIONS}
-                  error={errors.clasificacion}
-                  placeholder="-- Seleccione --"
-                  disabled={!portfolioCode}
-                />
-              )}
-
-              {clasificacion === "Modificado" && (
-                <>
-                  <div className="space-y-3">
+                  <div className={`relative z-[10040] space-y-1 transition-all duration-500 ${
+                    !canEditPortfolio
+                      ? "opacity-50 scale-95"
+                      : "opacity-100 scale-100"
+                  }`}>
                     <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
-                      Producto Aprobado (SKU) *
+                      Portafolio Base *
                     </label>
 
                     <div className="relative">
@@ -336,271 +2631,939 @@ useEffect(() => {
 
                       <input
                         type="text"
-                        value={selectedApprovedProduct ? `${selectedApprovedProduct.sku} · ${selectedApprovedProduct.version} · ${selectedApprovedProduct.productName}` : approvedProductQuery}
-                        onChange={(e) => {
-                          setApprovedProductQuery(e.target.value);
-                          setSelectedApprovedProduct(null);
-                          setMotivoModificacion("");
-                          setShowApprovedProductDropdown(true);
-                          setErrors((prev) => ({ ...prev, approvedProductCode: "" }));
+                        value={portfolioSearchTerm}
+                        disabled={!canEditPortfolio}
+                        onChange={(event) => {
+                          if (!canEditPortfolio) return;
+                          setPortfolioSearchTerm(event.target.value);
+                          setPortfolioCode("");
+                          setIsPortfolioDropdownOpen(true);
+                          setErrors((prev) => ({
+                            ...prev,
+                            portfolioCode: "",
+                          }));
                         }}
                         onFocus={() => {
-                          if (!selectedApprovedProduct) {
-                            setShowApprovedProductDropdown(true);
-                          }
+                          if (canEditPortfolio)
+                            setIsPortfolioDropdownOpen(true);
                         }}
-                        onBlur={() => setTimeout(() => setShowApprovedProductDropdown(false), 200)}
-                        placeholder="Buscar por SKU, producto, cliente o formato..."
+                        onBlur={() => {
+                          window.setTimeout(
+                            () => setIsPortfolioDropdownOpen(false),
+                            150,
+                          );
+                        }}
+                        placeholder={
+                          canEditPortfolio
+                            ? "Buscar portafolio por código o nombre..."
+                            : "Selecciona primero un cliente"
+                        }
                         className={[
-                          "h-11 w-full rounded-lg border bg-white pl-10 pr-10 text-sm text-slate-800 shadow-sm transition-all",
-                          "placeholder:text-slate-400",
-                          "focus:border-[#004B6E] focus:outline-none focus:ring-4 focus:ring-[#004B6E]/10",
-                          errors.approvedProductCode
-                            ? "border-red-300 bg-red-50"
-                            : "border-slate-300 hover:border-slate-400",
+                          "h-11 w-full rounded-lg border pl-10 pr-10 text-sm shadow-sm transition-colors",
+                          "placeholder:text-slate-400 focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary",
+                          canEditPortfolio
+                            ? "border-slate-300 bg-white text-slate-800"
+                            : "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400",
+                          errors.portfolioCode
+                            ? "border-red-300 bg-red-50 text-slate-800"
+                            : "",
                         ].join(" ")}
                       />
 
-                      {(approvedProductQuery || selectedApprovedProduct) && (
+                      {canEditPortfolio && (portfolioSearchTerm || portfolioCode) && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setSelectedApprovedProduct(null);
-                            setApprovedProductQuery("");
-                            setMotivoModificacion("");
-                            setShowApprovedProductDropdown(false);
-                            setErrors((prev) => ({ ...prev, approvedProductCode: "" }));
-                          }}
+                          onClick={clearPortfolio}
                           className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                          aria-label="Limpiar producto aprobado"
+                          aria-label="Limpiar portafolio"
                         >
                           <X className="h-4 w-4" />
                         </button>
                       )}
                     </div>
 
-                    {!selectedApprovedProduct && (
+                    {canEditPortfolio && isPortfolioDropdownOpen && (
+                      <div className="absolute left-0 right-0 z-[10050] mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-300 bg-white shadow-2xl ring-1 ring-slate-900/5">
+                        {filteredPortfoliosForClient.length > 0 ? (
+                          filteredPortfoliosForClient.map((portfolio) => {
+                            const code = getPortfolioCode(portfolio);
+                            const name = getPortfolioName(portfolio);
+                            const clientName =
+                              getPortfolioClientName(portfolio);
+
+                            return (
+                              <button
+                                key={code}
+                                type="button"
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => handlePortfolioSelect(portfolio)}
+                                className="w-full border-b border-slate-100 bg-white px-4 py-3 text-left transition hover:bg-blue-50"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-bold text-slate-900">
+                                      {name || code}
+                                    </p>
+                                    <p className="mt-0.5 text-xs text-slate-500">
+                                      Código: {code}
+                                    </p>
+                                  </div>
+
+                                  <span className="shrink-0 text-xs font-medium text-slate-500">
+                                    Cliente:{" "}
+                                    {clientName ||
+                                      resolvedSelectedClient.name ||
+                                      "—"}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="px-4 py-3 text-sm text-slate-500">
+                            Este cliente no tiene portafolios disponibles con
+                            ese criterio.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {canEditPortfolio && (
                       <p className="text-xs text-slate-500">
-                        Busca y selecciona el SKU aprobado que servirá como base para el proyecto modificado.
+                        {portfoliosForClient.length} portafolio(s) del cliente
                       </p>
                     )}
 
-                    {showApprovedProductDropdown && approvedProductQuery && approvedProductResults.length > 0 && (
-                      <div className="mt-2 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
-                        {approvedProductResults.map((product) => (
-                          <button
-                            key={product.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedApprovedProduct(product);
-                              setApprovedProductQuery("");
-                              setShowApprovedProductDropdown(false);
-                              setErrors((prev) => ({
-                                ...prev,
-                                approvedProductCode: "",
-                              }));
-                            }}
-                            className="w-full border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-sky-50"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-sm font-bold text-slate-900">
-                                  {product.sku} · {product.version}
-                                </p>
-                                <p className="mt-0.5 text-sm font-medium text-slate-700">
-                                  {product.productName}
-                                </p>
-                                <p className="mt-1 text-xs text-slate-500">
-                                  {product.clientName}
-                                </p>
-                              </div>
-
-                              <span className="rounded-full bg-sky-50 px-2 py-1 text-xs font-semibold text-[#004B6E]">
-                                {product.envoltura}
-                              </span>
-                            </div>
-
-                            <p className="mt-2 line-clamp-1 text-xs text-slate-500">
-                              {product.formatoPlano}
-                            </p>
-                          </button>
-                        ))}
-                      </div>
+                    {stepNotice?.key === "portfolio" && (
+                      <p className="text-xs font-medium text-green-600">
+                        {stepNotice.message}
+                      </p>
                     )}
 
-                    {showApprovedProductDropdown && approvedProductQuery && approvedProductResults.length === 0 && (
-                      <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                        No se encontraron productos aprobados con ese criterio.
-                      </div>
-                    )}
-
-                    {selectedApprovedProduct && (
-                      <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50/60 p-3">
-                        <p className="text-xs font-bold uppercase tracking-wide text-[#004B6E]">
-                          Producto aprobado seleccionado
-                        </p>
-
-                        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                          <div>
-                            <span className="font-semibold text-slate-500">SKU</span>
-                            <p className="font-bold text-slate-900">{selectedApprovedProduct.sku}</p>
-                          </div>
-
-                          <div>
-                            <span className="font-semibold text-slate-500">Versión</span>
-                            <p className="font-bold text-slate-900">{selectedApprovedProduct.version}</p>
-                          </div>
-
-                          <div className="col-span-2">
-                            <span className="font-semibold text-slate-500">Producto</span>
-                            <p className="font-bold text-slate-900">{selectedApprovedProduct.productName}</p>
-                          </div>
-
-                          <div className="col-span-2">
-                            <span className="font-semibold text-slate-500">Cliente</span>
-                            <p className="font-medium text-slate-800">{selectedApprovedProduct.clientName}</p>
-                          </div>
-
-                          <div>
-                            <span className="font-semibold text-slate-500">Envoltura</span>
-                            <p className="font-medium text-slate-800">{selectedApprovedProduct.envoltura}</p>
-                          </div>
-
-                          <div>
-                            <span className="font-semibold text-slate-500">Formato</span>
-                            <p className="font-medium text-slate-800">{selectedApprovedProduct.formatoPlano}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {errors.approvedProductCode && (
-                      <span className="block text-xs font-normal text-red-600">
-                        {errors.approvedProductCode}
+                    {errors.portfolioCode && (
+                      <span className="block text-xs text-red-600">
+                        {errors.portfolioCode}
                       </span>
                     )}
-                  </div>
-
-                  {shouldShowModificationReason && (
-                    <FormSelect
-                      label="Tipo de Proyecto *"
-                      value={motivoModificacion}
-                      onChange={(val) => {
-                        setMotivoModificacion(val);
-                        setErrors((prev) => ({ ...prev, motivoModificacion: "" }));
-                      }}
-                      options={MODIFICATION_REASON_OPTIONS}
-                      error={errors.motivoModificacion}
-                      placeholder="-- Seleccione --"
-                      disabled={!portfolioCode}
-                    />
-                  )}
-                </>
+                    </div>
+                </div>
               )}
 
-              {clasificacion === "Nuevo" && (
-              <>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <FormSelect
-                  label="Tipo de Proyecto *"
-                  value={tipoProyecto}
-                  onChange={(val) => {
-                    setTipoProyecto(val);
-                    setErrors((prev) => ({ ...prev, tipoProyecto: "" }));
+                  label="Clasificación *"
+                  value={motivo}
+                  onChange={(value) => {
+                    setMotivo(value);
+                    setCausal("");
+                    setProjectName("");
+                    setVolumen("");
+                    setUnidad("");
+                    setDescripcion("");
+                    setLayer1("");
+                    setLayer2("");
+                    setLayer3("");
+                    setLayer4("");
+                    setLayer1Micron("");
+                    setLayer2Micron("");
+                    setLayer3Micron("");
+                    setLayer4Micron("");
+                    setVisibleLayerCount(1);
+                    setComentarios("");
+
+                    if (value !== "Producto modificado") {
+                      setProductoBaseId("");
+                      setProductoBaseNombre("");
+                      setProductoBaseCodigo("");
+                      setProductoBaseVersion("");
+                    }
+
+                    setSimilarityMatches([]);
+                    setSelectedReference(null);
+                    setErrors((prev) => ({
+                      ...prev,
+                      motivo: "",
+                      causal: "",
+                      productoBase: "",
+                      productoBaseVersion: "",
+                      projectName: "",
+                      volumen: "",
+                      unidad: "",
+                      descripcion: "",
+                      layer1: "",
+                      comentarios: "",
+                    }));
+
+                    if (value) {
+                      showStepNotice("motivo", "Motivo seleccionado. Se habilitó seleccionar el siguiente paso.");
+                    }
                   }}
-                  options={PROJECT_TYPE_OPTIONS}
-                  error={errors.tipoProyecto}
+                  options={MOTIVO_OPTIONS}
+                  error={errors.motivo}
                   placeholder="-- Seleccione --"
-                  disabled={!portfolioCode}
+                  disabled={!canEditMotivo}
                 />
 
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                    Área encargada
-                  </label>
+                <FormSelect
+                  label="Motivo *"
+                  value={causal}
+                  onChange={(value) => {
+                    setCausal(value);
+                    setProjectName("");
+                    setVolumen("");
+                    setUnidad("");
+                    setDescripcion("");
+                    setLayer1("");
+                    setLayer2("");
+                    setLayer3("");
+                    setLayer4("");
+                    setLayer1Micron("");
+                    setLayer2Micron("");
+                    setLayer3Micron("");
+                    setLayer4Micron("");
+                    setVisibleLayerCount(1);
+                    setComentarios("");
+                    setSimilarityMatches([]);
+                    setSelectedReference(null);
+                    setErrors((prev) => ({
+                      ...prev,
+                      causal: "",
+                      projectName: "",
+                      volumen: "",
+                      unidad: "",
+                      descripcion: "",
+                      layer1: "",
+                      comentarios: "",
+                    }));
 
-                  <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
-                    {responsibleArea}
-                  </div>
+                    if (value) {
+                      if (motivo === "Producto modificado") {
+                        showStepNotice(
+                          "causal",
+                          "Motivo seleccionado. Producto base se habilitó.",
+                        );
+                      } else {
+                        showStepNotice(
+                          "causal",
+                          "Motivo seleccionado. Nombre del Proyecto se habilitó.",
+                        );
+                      }
+                    }
+                  }}
+                  options={getCausalOptions(motivo)}
+                  error={errors.causal}
+                  placeholder="-- Seleccione --"
+                  disabled={!canEditCausal}
+                />
+              </div>
 
-                </div>
-              </>
-            )}
+              {motivo === "Producto modificado" && (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <FormInput
+                    label="Producto base / SKU vigente *"
+                    value={productoBaseCodigo || productoBaseNombre}
+                    onChange={(value) => {
+                      const wasEmpty = !productoBaseCodigo.trim() && !productoBaseNombre.trim();
+                      setProductoBaseCodigo(value);
+                      setProductoBaseNombre(value);
+                      setProjectName("");
+                      setVolumen("");
+                      setUnidad("");
+                      setDescripcion("");
+                      setLayer1("");
+                      setLayer2("");
+                      setLayer3("");
+                      setLayer4("");
+                      setLayer1Micron("");
+                      setLayer2Micron("");
+                      setLayer3Micron("");
+                      setLayer4Micron("");
+                      setVisibleLayerCount(1);
+                      setComentarios("");
+                      setSimilarityMatches([]);
+                      setSelectedReference(null);
+                      setErrors((prev) => ({
+                        ...prev,
+                        productoBase: "",
+                        projectName: "",
+                        volumen: "",
+                        unidad: "",
+                        descripcion: "",
+                        layer1: "",
+                        comentarios: "",
+                      }));
 
-              {clasificacion === "Nuevo" && (
-                <>
-                  <FormSelect
-                    label="Licitación *"
-                    value={licitacion}
-                    onChange={(val) => {
-                      setLicitacion(val as "Sí" | "No");
-                      if (val === "No") setNumeroItemsLicitacion("");
-                      setErrors((prev) => ({ ...prev, licitacion: "", numeroItemsLicitacion: "" }));
+                      if (wasEmpty && value.trim()) {
+                        showStepNotice(
+                          "productoBase",
+                          "Producto base completado. Versión se habilitó.",
+                        );
+                      }
                     }}
-                    options={[
-                      { value: "Sí", label: "Sí" },
-                      { value: "No", label: "No" },
-                    ]}
-                    error={errors.licitacion}
-                    disabled={!portfolioCode}
+                    placeholder="Buscar o ingresar producto vigente"
+                    error={errors.productoBase}
+                    disabled={!canEditProductoBase}
                   />
 
-                  {licitacion === "Sí" && (
-                    <FormInput
-                      label="N° de ítems *"
-                      type="number"
-                      value={numeroItemsLicitacion}
-                      onChange={(val) => {
-                        const numericVal = val.replace(/[^\d]/g, "");
-                        setNumeroItemsLicitacion(numericVal);
-                        setErrors((prev) => ({ ...prev, numeroItemsLicitacion: "" }));
-                      }}
-                      error={errors.numeroItemsLicitacion}
-                      placeholder="Ej: 5, 10, 15..."
-                    />
+                  <FormInput
+                    label="Versión del producto base *"
+                    value={productoBaseVersion}
+                    onChange={(value) => {
+                      const wasEmpty = !productoBaseVersion.trim();
+                      setProductoBaseVersion(value);
+                      setProjectName("");
+                      setVolumen("");
+                      setUnidad("");
+                      setDescripcion("");
+                      setLayer1("");
+                      setLayer2("");
+                      setLayer3("");
+                      setLayer4("");
+                      setLayer1Micron("");
+                      setLayer2Micron("");
+                      setLayer3Micron("");
+                      setLayer4Micron("");
+                      setVisibleLayerCount(1);
+                      setComentarios("");
+                      setSimilarityMatches([]);
+                      setSelectedReference(null);
+                      setErrors((prev) => ({
+                        ...prev,
+                        productoBaseVersion: "",
+                        projectName: "",
+                        volumen: "",
+                        unidad: "",
+                        descripcion: "",
+                        layer1: "",
+                        comentarios: "",
+                      }));
+
+                      if (wasEmpty && value.trim()) {
+                        showStepNotice(
+                          "productoBaseVersion",
+                          "Versión completada. Nombre del Proyecto se habilitó.",
+                        );
+                      }
+                    }}
+                    placeholder="Ej. V1"
+                    error={errors.productoBaseVersion}
+                    disabled={!canEditProductoBaseVersion}
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className={`space-y-1 transition-all duration-300 ${!projectName.trim() ? "opacity-100" : "opacity-100"}`}>
+                  <FormInput
+                    label="Nombre del Proyecto *"
+                    value={projectName}
+                    onChange={(value) => {
+                      const wasEmpty = !projectName.trim();
+                      setProjectName(value);
+                      setVolumen("");
+                      setUnidad("");
+                      setDescripcion("");
+                      setLayer1("");
+                      setLayer2("");
+                      setLayer3("");
+                      setLayer4("");
+                      setLayer1Micron("");
+                      setLayer2Micron("");
+                      setLayer3Micron("");
+                      setLayer4Micron("");
+                      setVisibleLayerCount(1);
+                      setComentarios("");
+                      setSimilarityMatches([]);
+                      setSelectedReference(null);
+                      setErrors((prev) => ({
+                        ...prev,
+                        projectName: "",
+                        volumen: "",
+                        unidad: "",
+                        descripcion: "",
+                        layer1: "",
+                        comentarios: "",
+                      }));
+
+                      if (wasEmpty && value.trim()) {
+                        showStepNotice(
+                          "projectName",
+                          "Nombre completado. Volumen referencial se habilitó.",
+                        );
+                      }
+                    }}
+                    placeholder="Ej. Salsa Premium"
+                    error={errors.projectName}
+                    disabled={!canEditProjectName}
+                  />
+                  {stepNotice?.key === "projectName" && (
+                    <p className="text-xs font-medium text-green-600">
+                      {stepNotice.message}
+                    </p>
                   )}
-                </>
+                </div>
+
+                <div className={`space-y-1 transition-all duration-500 ${
+                  !projectName.trim()
+                    ? "opacity-50 scale-95"
+                    : "opacity-100 scale-100"
+                }`}>
+                  <FormInput
+                    label="Volumen referencial *"
+                    value={volumen}
+                    onChange={(value) => {
+                      const wasEmpty = !volumen.trim();
+                      setVolumen(value);
+                      setUnidad("");
+                      setDescripcion("");
+                      setLayer1("");
+                      setLayer2("");
+                      setLayer3("");
+                      setLayer4("");
+                      setLayer1Micron("");
+                      setLayer2Micron("");
+                      setLayer3Micron("");
+                      setLayer4Micron("");
+                      setVisibleLayerCount(1);
+                      setComentarios("");
+                      setSimilarityMatches([]);
+                      setSelectedReference(null);
+                      setErrors((prev) => ({
+                        ...prev,
+                        volumen: "",
+                        unidad: "",
+                        descripcion: "",
+                        layer1: "",
+                        comentarios: "",
+                      }));
+
+                      if (wasEmpty && value.trim()) {
+                        showStepNotice(
+                          "volumen",
+                          "Volumen completado. Unidad se habilitó.",
+                        );
+                      }
+                    }}
+                    placeholder="Ej. 500"
+                    error={errors.volumen}
+                    disabled={!canEditVolumen}
+                  />
+                  {stepNotice?.key === "volumen" && (
+                    <p className="text-xs font-medium text-green-600">
+                      {stepNotice.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className={`space-y-1 transition-all duration-700 ${
+                  !volumen.trim()
+                    ? "opacity-50 scale-95"
+                    : "opacity-100 scale-100"
+                }`}>
+                  <FormSelect
+                    label="Unidad *"
+                    value={unidad}
+                    onChange={(value) => {
+                      setUnidad(value);
+                      setDescripcion("");
+                      setLayer1("");
+                      setLayer2("");
+                      setLayer3("");
+                      setLayer4("");
+                      setLayer1Micron("");
+                      setLayer2Micron("");
+                      setLayer3Micron("");
+                      setLayer4Micron("");
+                      setVisibleLayerCount(1);
+                      setComentarios("");
+                      setSimilarityMatches([]);
+                      setSelectedReference(null);
+                      setErrors((prev) => ({
+                        ...prev,
+                        unidad: "",
+                        descripcion: "",
+                        layer1: "",
+                        comentarios: "",
+                      }));
+
+                      if (value) {
+                        showStepNotice(
+                          "unidad",
+                          "Unidad seleccionada. Descripción se habilitó.",
+                        );
+                      }
+                    }}
+                    options={UNIT_OPTIONS}
+                    placeholder="-- Seleccione --"
+                    error={errors.unidad}
+                    disabled={!canEditUnidad}
+                  />
+                  {stepNotice?.key === "unidad" && (
+                    <p className="text-xs font-medium text-green-600">
+                      {stepNotice.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
+                  Descripción breve de la necesidad *
+                </label>
+
+                <textarea
+                  value={descripcion}
+                  onChange={(event) => {
+                    const wasEmpty = !descripcion.trim();
+                    setDescripcion(event.target.value);
+                    setLayer1("");
+                    setLayer2("");
+                    setLayer3("");
+                    setLayer4("");
+                    setLayer1Micron("");
+                    setLayer2Micron("");
+                    setLayer3Micron("");
+                    setLayer4Micron("");
+                    setVisibleLayerCount(1);
+                    setComentarios("");
+                    setSimilarityMatches([]);
+                    setSelectedReference(null);
+                    setErrors((prev) => ({
+                      ...prev,
+                      descripcion: "",
+                      layer1: "",
+                      comentarios: "",
+                    }));
+
+                    if (wasEmpty && event.target.value.trim()) {
+                      showStepNotice(
+                        "descripcion",
+                        "Descripción completada. Materiales y Comentarios se habilitaron.",
+                      );
+                    }
+                  }}
+                  placeholder="Describe la necesidad técnica o comercial..."
+                  disabled={!canEditDescripcion}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary ${
+                    canEditDescripcion
+                      ? "border-slate-300 bg-white text-slate-800"
+                      : "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400"
+                  }`}
+                  rows={2}
+                />
+
+                {stepNotice?.key === "descripcion" && (
+                  <p className="text-xs font-medium text-green-600">
+                    {stepNotice.message}
+                  </p>
+                )}
+
+                {errors.descripcion && (
+                  <span className="block text-xs text-red-600">
+                    {errors.descripcion}
+                  </span>
+                )}
+              </div>
+
+              <div className={`space-y-3 border-t border-slate-200 pt-4 transition-opacity ${canEditMateriales ? "opacity-100" : "opacity-60"}`}>
+  <div className="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
+        Materiales por capa
+      </label>
+      <p className="mt-1 text-xs text-slate-500">
+        Opcional. El micraje mejora la precisión de búsqueda de similitudes.
+      </p>
+    </div>
+
+    <div className="flex items-center gap-2">
+      {visibleLayerCount > 1 && (
+        <button
+          type="button"
+          onClick={handleRemoveLastLayer}
+          disabled={!canEditMateriales}
+          className={`h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold transition ${
+            canEditMateriales
+              ? "text-slate-600 hover:bg-slate-50"
+              : "cursor-not-allowed bg-slate-50 text-slate-400"
+          }`}
+        >
+          Quitar capa
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={handleAddLayer}
+        disabled={
+          !canEditMateriales ||
+          visibleLayerCount >= 4 ||
+          !getLayerValue(visibleLayerCount - 1)
+        }
+        className={[
+          "h-9 rounded-lg px-3 text-xs font-semibold transition",
+          !canEditMateriales ||
+          visibleLayerCount >= 4 ||
+          !getLayerValue(visibleLayerCount - 1)
+            ? "cursor-not-allowed bg-slate-100 text-slate-400"
+            : "border border-brand-primary bg-white text-brand-primary hover:bg-brand-primary/5",
+        ].join(" ")}
+      >
+        + Nueva capa
+      </button>
+    </div>
+  </div>
+
+  <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+  {Array.from({ length: visibleLayerCount }).map((_, index) => {
+    const layerNumber = index + 1;
+    const isFirstLayer = index === 0;
+    const selectedMaterial = getLayerValue(index);
+    const selectedMicron = getLayerMicronValue(index);
+    const micronOptions = getMicronOptionsByMaterial(selectedMaterial);
+    const hasMicronOptions = micronOptions.length > 0;
+
+    return (
+      <div
+        key={`layer-${layerNumber}`}
+        className="rounded-xl border border-slate-200 bg-slate-50/60 p-3"
+      >
+        <FormSelect
+          label={`Capa ${layerNumber}`}
+          value={selectedMaterial}
+          onChange={(value) => handleLayerChange(index, value)}
+          options={MATERIAL_OPTIONS}
+          placeholder="Material"
+          error={isFirstLayer ? errors.layer1 : undefined}
+          disabled={!canEditMateriales}
+        />
+
+        {selectedMaterial && (
+          <div className="mt-2">
+            {hasMicronOptions ? (
+              <FormSelect
+                label={`Micraje ${layerNumber}`}
+                value={selectedMicron}
+                onChange={(value) => setLayerMicronValue(index, value)}
+                options={micronOptions.map((option) => ({
+                  value: option,
+                  label: `${option} µ`,
+                }))}
+                placeholder="Opcional"
+                disabled={!canEditMateriales}
+              />
+            ) : (
+              <FormInput
+                label={`Micraje ${layerNumber}`}
+                value={selectedMicron}
+                onChange={(value) => setLayerMicronValue(index, value)}
+                placeholder="Opcional (µ)"
+                disabled={!canEditMateriales}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  })}
+</div>
+
+</div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
+                  Comentarios
+                </label>
+
+                <textarea
+                  value={comentarios}
+                  onChange={(event) => {
+                    setComentarios(event.target.value);
+                    setErrors((prev) => ({ ...prev, comentarios: "" }));
+                  }}
+                  placeholder="Comentarios técnicos iniciales."
+                  disabled={!canEditComentarios}
+                  className={`w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary ${
+                    canEditComentarios
+                      ? "bg-white text-slate-800"
+                      : "cursor-not-allowed bg-slate-50 text-slate-400"
+                  }`}
+                  rows={2}
+                />
+
+                {errors.comentarios && (
+                  <span className="block text-xs text-red-600">
+                    {errors.comentarios}
+                  </span>
+                )}
+              </div>
+                            {estructuraCalculada && (
+                <div className="rounded-xl border border-green-100 bg-green-50/50 p-4">
+                  <h4 className="mb-3 border-b border-green-100 pb-2 text-sm font-bold text-green-700">
+                    Resultado
+                  </h4>
+
+                  <div className="space-y-2">
+                    <PreviewRow
+                      label="Estructura"
+                      value={estructuraCalculada}
+                    />
+                    <PreviewRow
+                      label="Nombre técnico"
+                      value={nombreTecnicoCalculado || "—"}
+                    />
+                  </div>
+                </div>
               )}
             </div>
 
-            {/* Lado derecho: Herencia */}
-            <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-5">
-              <h4 className="mb-4 font-bold text-brand-primary border-b border-brand-primary/10 pb-2">
-                Herencia del portafolio
-              </h4>
-              
-              {portfolio ? (
-                <div className="space-y-3">
-                  <PreviewRow label="Portafolio" value={portfolio.nom || portfolio.id} />
-                  <PreviewRow label="Cliente" value={portfolio.cli || portfolio.clientName || "—"} />
-                  <PreviewRow label="Planta" value={portfolio.pl || portfolio.plantaName || "—"} />
-                  <PreviewRow label="Envoltura" value={portfolio.env || portfolio.envoltura || "—"} />
-                  <PreviewRow label="Uso Final" value={portfolio.uf || portfolio.usoFinal || "—"} />
-                  <PreviewRow label="Segmento" value={portfolio.seg || portfolio.segmento || "—"} />
-                  <PreviewRow label="Sub-segmento" value={portfolio.subseg || portfolio.subSegmento || "—"} />
-                  <PreviewRow label="Sector" value={portfolio.sector || "—"} />
-                  <PreviewRow label="AFMarketID" value={portfolio.af || portfolio.afMarketId || "—"} />
-                  <PreviewRow label="Máquina / Envasado" value={portfolio.maq || portfolio.maquinaCliente || "—"} />
+            <div className="space-y-5">
+              <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                <h4 className="mb-3 border-b border-brand-primary/10 pb-2 text-sm font-bold text-brand-primary">
+                  Herencia del Portafolio
+                </h4>
+
+                {selectedPortfolio ? (
+                  <div className="space-y-2">
+                    <PreviewRow
+                      label="Portafolio"
+                      value={inheritedPortfolioName || inheritedPortfolioCode}
+                    />
+                    <PreviewRow
+                      label="Cliente"
+                      value={
+                        inheritedClientName ||
+                        resolvedSelectedClient.name ||
+                        "—"
+                      }
+                    />
+                    <PreviewRow
+                      label="Planta"
+                      value={inheritedPlantName || "—"}
+                    />
+                    <PreviewRow
+                      label="Ejecutivo comercial"
+                      value={inheritedExecutiveName || "—"}
+                    />
+                    <PreviewRow label="Envoltura" value={envoltura || "—"} />
+                    <PreviewRow label="Uso Final" value={usoFinal || "—"} />
+                    <PreviewRow
+                      label="Segmento"
+                      value={inheritedSegment || "—"}
+                    />
+                    <PreviewRow
+                      label="Sub-segmento"
+                      value={inheritedSubSegment || "—"}
+                    />
+                    <PreviewRow label="Sector" value={inheritedSector || "—"} />
+                    <PreviewRow
+                      label="AFMarketID"
+                      value={inheritedAfMarketId || "—"}
+                    />
+                    <PreviewRow
+                      label="Máquina de Envasado"
+                      value={maquinaCliente || "—"}
+                    />
+                  </div>
+                ) : (
+                  <p className="py-4 text-center text-xs text-slate-500">
+                    Selecciona un portafolio para ver su herencia.
+                  </p>
+                )}
+              </div>
+
+              {requiredBaseFieldsFilled && !hasMaterialsForSimilarity && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+                  <div className="mb-3 flex items-start gap-2">
+                    <Info size={16} className="mt-0.5 flex-shrink-0 text-slate-500" />
+                    <h4 className="text-sm font-bold text-slate-700">Búsqueda de similitud</h4>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Completa los materiales por capa para buscar proyectos similares. El micraje es opcional pero mejora la precisión de la búsqueda.
+                  </p>
                 </div>
-              ) : (
-                <div className="flex h-40 flex-col items-center justify-center text-center text-sm text-slate-500">
-                  <p>Aún no has seleccionado un portafolio base.</p>
-                  <p className="mt-1">Selecciona uno para ver los datos que heredará el proyecto.</p>
+              )}
+
+              {requiredBaseFieldsFilled && hasMaterialsForSimilarity && !topMatch && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+                  <div className="mb-3 flex items-start gap-2">
+                    <Info size={16} className="mt-0.5 flex-shrink-0 text-slate-500" />
+                    <h4 className="text-sm font-bold text-slate-700">
+                      Búsqueda de similitud
+                    </h4>
+                  </div>
+
+                  <p className="text-xs text-slate-600">
+                    No se encontraron referencias preliminares relevantes para el mismo cliente,
+                    portafolio, envoltura, uso final, máquina, motivo y causal.
+                  </p>
+
+                  <p className="mt-2 text-xs text-slate-500">
+                    Proyectos evaluados: {projectsForSimilarity.length}.{" "}
+                    Candidatos del mismo contexto: {projectsPassingMandatoryFilter}.
+                  </p>
+                </div>
+              )}
+
+              {hasMinDataForSearch && topMatch && topScore >= 50 && (
+                <div
+                  className={[
+                    "rounded-xl border p-4",
+                    topScore >= 85
+                      ? "border-blue-200 bg-blue-50"
+                      : "border-slate-200 bg-slate-50",
+                  ].join(" ")}
+                >
+                  <div className="mb-3 flex items-start gap-2">
+                    <Info
+                      size={16}
+                      className={[
+                        "mt-0.5 flex-shrink-0",
+                        topScore >= 85 ? "text-blue-600" : "text-slate-600",
+                      ].join(" ")}
+                    />
+
+                    <h4 className="text-sm font-bold">
+                      {topScore >= 85 ? "Coincidencia preliminar alta" : "Referencia preliminar disponible"}
+                    </h4>
+                  </div>
+
+                  {topMatch && topScore >= 50 ? (
+                    <div className="space-y-3">
+                      <p className="text-xs text-slate-600">
+                        {topScore >= 85
+                          ? "Se encontró un proyecto similar dentro del mismo cliente, portafolio, envoltura, uso final, máquina, motivo y causal."
+                          : "Este proyecto puede servir como referencia para completar información del Momento 2."}
+                      </p>
+
+                      <p className="text-xs font-semibold text-slate-700">
+                        {getProjectCode(topMatch.project)} ·{" "}
+                        {getProjectName(topMatch.project)}
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-slate-500">
+                            Similitud preliminar
+                          </span>
+                          <div className="font-bold text-slate-900">
+                            {Math.round(topMatch.score)}%
+                          </div>
+                        </div>
+
+                        <div>
+                          <span className="text-slate-500">Estado</span>
+                          <div className="font-bold text-slate-900">
+                            {getProjectStatus(topMatch.project) || "—"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            navigate(
+                              `/projects/${getProjectCode(topMatch.project)}`,
+                            )
+                          }
+                        >
+                          Ver proyecto
+                        </Button>
+                        <Button
+                          variant="primary"
+                          onClick={() => applyReferenceProject(topMatch)}
+                        >
+                          Usar como referencia
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-600">
+                      {projectsPassingMandatoryFilter === 0
+                        ? "No se encontraron proyectos similares bajo el mismo cliente, portafolio, envoltura, uso final y máquina. Puedes crear un nuevo proyecto."
+                        : "No se encontraron coincidencias técnicas relevantes para este contexto."}
+                    </p>
+                  )}
+
+                  {similarityMatches.length > 1 && (
+                    <div className="mt-4 space-y-2 border-t border-slate-200 pt-4">
+                      <p className="text-xs font-bold text-slate-600">
+                        Otras coincidencias:
+                      </p>
+
+                      {similarityMatches.slice(1).map((match) => (
+                        <div
+                          key={getProjectCode(match.project)}
+                          className="rounded border border-slate-100 bg-white p-2 text-xs"
+                        >
+                          <div className="flex justify-between">
+                            <span className="font-semibold">
+                              {getProjectCode(match.project)}
+                            </span>
+                            <span className="font-bold">
+                              {Math.round(match.score)}%
+                            </span>
+                          </div>
+                          <div className="mt-1 text-slate-600">
+                            {getProjectName(match.project)}
+                          </div>
+                          <div className="mt-1 text-slate-500">
+                            {getScopeLabel(match.scope)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isCreating}>
             Cancelar
           </Button>
-          <Button variant="primary" onClick={handleCreate} disabled={!portfolio || !projectName.trim()}>
-            Crear Proyecto
+
+          <Button
+            variant="primary"
+            onClick={handleCreateClick}
+            disabled={!canCreate || isCreating}
+          >
+            {isCreating ? "Creando Proyecto..." : "Crear Proyecto"}
           </Button>
         </div>
+
+        {isCreating && creationSteps.length > 0 && (
+          <div className="border-t border-slate-200 bg-slate-50 px-6 py-4">
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold uppercase text-slate-600">
+                Progreso de Creación
+              </h4>
+              <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg bg-white p-3">
+                {creationSteps.map((step, index) => (
+                  <div key={index} className="flex items-start gap-2 text-xs">
+                    <span className="flex-shrink-0 text-green-600">
+                      {step.includes("✓") ? "✓" : "✗"}
+                    </span>
+                    <span className={step.includes("✗") ? "text-red-600" : "text-slate-700"}>
+                      {step}
+                    </span>
+                  </div>
+                ))}
+                {creationSteps.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-slate-600 pt-1">
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-brand-primary" />
+                    <span>Procesando...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

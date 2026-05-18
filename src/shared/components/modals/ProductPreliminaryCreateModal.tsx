@@ -1,41 +1,47 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Info, X } from "lucide-react";
 
-import type { PortfolioRecord } from "../../../shared/data/portfolioStorage";
+import type { PortfolioRecord } from "../../data/portfolioStorage";
 import type {
   ProductPreliminaryRecord,
   ProductRequestReason,
   ProductCausal,
   ResultOdiseo,
   ValidationRoute,
-} from "../../../shared/data/productPreliminaryTypes";
+} from "../../data/productPreliminaryTypes";
 
 import {
   createProductPreliminaryRecord,
   getProductPreliminaryRecords,
-} from "../../../shared/data/productPreliminaryStorage";
+} from "../../data/productPreliminaryStorage";
 
 import {
   PRODUCT_REQUEST_REASONS,
   getCausalsByReason,
   getReasonHelpText,
   getCausalHelpText,
-} from "../../../shared/data/productCausalRules";
+} from "../../data/productCausalRules";
 
 import {
   UNITS_OF_MEASURE,
   UNIT_LABELS,
-} from "../../../shared/data/unitOfMeasureStorage";
+} from "../../data/unitOfMeasureStorage";
 
-import FormInput from "../../../shared/components/forms/FormInput";
-import FormSelect from "../../../shared/components/forms/FormSelect";
-import Button from "../../../shared/components/ui/Button";
-import PreviewRow from "../../../shared/components/display/PreviewRow";
+import { getPortfolioByCode } from "../../data/portfolioStorage";
 
-interface CreateProductPreliminaryModalProps {
-  portfolio: PortfolioRecord;
-  onSave: (product: ProductPreliminaryRecord) => void;
-  onCancel: () => void;
+import FormInput from "../forms/FormInput";
+import FormSelect from "../forms/FormSelect";
+import Button from "../ui/Button";
+import PreviewRow from "../display/PreviewRow";
+import PortfolioSearch from "../forms/PortfolioSearch";
+
+interface ProductPreliminaryCreateModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onProductCreated?: (product: ProductPreliminaryRecord) => void;
+  portfolio?: PortfolioRecord | null;
+  initialPortfolioCode?: string;
 }
 
 type FormData = {
@@ -347,12 +353,29 @@ function SelectBox({
   );
 }
 
-export default function CreateProductPreliminaryModal({
+export default function ProductPreliminaryCreateModal({
+  isOpen,
+  onClose,
+  onProductCreated,
   portfolio,
-  onSave,
-  onCancel,
-}: CreateProductPreliminaryModalProps) {
+  initialPortfolioCode,
+}: ProductPreliminaryCreateModalProps) {
   const defaultUnit = UNITS_OF_MEASURE[0] || "";
+
+  const isPortfolioLocked = Boolean(portfolio || initialPortfolioCode);
+
+  const fixedPortfolioCode = useMemo(() => {
+    if (initialPortfolioCode) return initialPortfolioCode;
+    if (portfolio) return getPortfolioValue(portfolio, ["codigo", "code", "id"]);
+    return "";
+  }, [initialPortfolioCode, portfolio]);
+
+  const [selectedPortfolioCode, setSelectedPortfolioCode] = useState(fixedPortfolioCode);
+
+  const selectedPortfolio = useMemo(() => {
+    if (portfolio) return portfolio;
+    return selectedPortfolioCode ? getPortfolioByCode(selectedPortfolioCode) : null;
+  }, [portfolio, selectedPortfolioCode]);
 
   const [form, setForm] = useState<FormData>({
     requestReason: "",
@@ -368,39 +391,57 @@ export default function CreateProductPreliminaryModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
 
-  const portfolioCode = getPortfolioValue(portfolio, ["codigo", "code", "id"]);
-  const portfolioName = getPortfolioValue(portfolio, [
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPortfolioCode(fixedPortfolioCode);
+      setForm({
+        requestReason: "",
+        causal: "",
+        commercialName: "",
+        materialsList: "",
+        hasSpecialDesign: "",
+        capacityValue: "",
+        capacityUnit: defaultUnit,
+        assignedProjectCode: "",
+      });
+      setErrors({});
+      setShowProductSuggestions(false);
+    }
+  }, [isOpen, fixedPortfolioCode, defaultUnit]);
+
+  const portfolioCode = getPortfolioValue(selectedPortfolio, ["codigo", "code", "id"]);
+  const portfolioName = getPortfolioValue(selectedPortfolio, [
     "nom",
     "name",
     "portfolioName",
     "nombre",
   ]);
-  const clientName = getPortfolioValue(portfolio, [
+  const clientName = getPortfolioValue(selectedPortfolio, [
     "clientName",
     "cli",
     "cliente",
   ]);
-  const plantName = getPortfolioValue(portfolio, [
+  const plantName = getPortfolioValue(selectedPortfolio, [
     "plantaName",
     "pl",
     "plantName",
   ]);
-  const executiveName = getPortfolioValue(portfolio, [
+  const executiveName = getPortfolioValue(selectedPortfolio, [
     "ejecutivoName",
     "ej",
     "executiveName",
   ]);
-  const wrappingName = getPortfolioValue(portfolio, [
+  const wrappingName = getPortfolioValue(selectedPortfolio, [
     "envoltura",
     "env",
     "wrappingName",
   ]);
-  const useFinalName = getPortfolioValue(portfolio, [
+  const useFinalName = getPortfolioValue(selectedPortfolio, [
     "usoFinal",
     "uf",
     "useFinalName",
   ]);
-  const packingMachineName = getPortfolioValue(portfolio, [
+  const packingMachineName = getPortfolioValue(selectedPortfolio, [
     "maquinaCliente",
     "maq",
     "packingMachineName",
@@ -487,8 +528,8 @@ export default function CreateProductPreliminaryModal({
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!portfolioCode) {
-      newErrors.portfolioCode = "No se encontró el código del portafolio.";
+    if (!selectedPortfolio || !portfolioCode) {
+      newErrors.portfolioCode = "Selecciona un portafolio base.";
     }
 
     if (!form.requestReason) {
@@ -576,12 +617,13 @@ export default function CreateProductPreliminaryModal({
       validationRoute,
     });
 
-    onSave(newProduct);
+    onProductCreated?.(newProduct);
+    onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-slate-900/50 px-4 py-10">
+      <div className="flex w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4">
           <div>
             <h3 className="text-lg font-bold text-slate-900">
@@ -595,7 +637,7 @@ export default function CreateProductPreliminaryModal({
 
           <button
             type="button"
-            onClick={onCancel}
+            onClick={onClose}
             className="text-slate-400 transition hover:text-slate-600"
           >
             <X size={20} />
@@ -605,6 +647,20 @@ export default function CreateProductPreliminaryModal({
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <div className="space-y-5">
+              {!isPortfolioLocked && (
+                <section>
+                  <h4 className="mb-3 text-sm font-semibold text-slate-700">
+                    Portafolio Base
+                  </h4>
+                  <PortfolioSearch
+                    value={selectedPortfolioCode}
+                    onChange={setSelectedPortfolioCode}
+                    label="Portafolio base *"
+                    error={errors.portfolioCode}
+                  />
+                </section>
+              )}
+
               <section>
                 <h4 className="mb-3 text-sm font-semibold text-slate-700">
                   Clasificación
@@ -882,6 +938,17 @@ export default function CreateProductPreliminaryModal({
                 Herencia del Portafolio
               </h4>
 
+              {isPortfolioLocked && selectedPortfolio ? (
+                <div className="rounded-lg border border-blue-200 bg-white p-3 mb-4">
+                  <div className="text-sm font-semibold text-slate-900">
+                    {portfolioCode} - {portfolioName}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {clientName && `Cliente: ${clientName}`}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="space-y-3">
                 <PreviewRow label="Portafolio" value={portfolioCode} />
                 <PreviewRow label="Cliente" value={clientName} />
@@ -895,22 +962,22 @@ export default function CreateProductPreliminaryModal({
                 />
                 <PreviewRow
                   label="Sector"
-                  value={getPortfolioValue(portfolio, ["sector"])}
+                  value={getPortfolioValue(selectedPortfolio, ["sector"])}
                 />
                 <PreviewRow
                   label="Segmento"
-                  value={getPortfolioValue(portfolio, ["segmento", "seg"])}
+                  value={getPortfolioValue(selectedPortfolio, ["segmento", "seg"])}
                 />
                 <PreviewRow
                   label="Sub-segmento"
-                  value={getPortfolioValue(portfolio, [
+                  value={getPortfolioValue(selectedPortfolio, [
                     "subSegmento",
                     "subseg",
                   ])}
                 />
                 <PreviewRow
                   label="AFMarketID"
-                  value={getPortfolioValue(portfolio, ["afMarketId", "af"])}
+                  value={getPortfolioValue(selectedPortfolio, ["afMarketId", "af"])}
                 />
               </div>
 
@@ -946,7 +1013,7 @@ export default function CreateProductPreliminaryModal({
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
-          <Button variant="outline" onClick={onCancel}>
+          <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
 
@@ -954,6 +1021,7 @@ export default function CreateProductPreliminaryModal({
             variant="primary"
             onClick={handleSave}
             disabled={
+              !selectedPortfolio ||
               !form.commercialName.trim() ||
               !form.requestReason ||
               !form.causal ||
@@ -966,4 +1034,6 @@ export default function CreateProductPreliminaryModal({
       </div>
     </div>
   );
+if (!isOpen) return null;
+  return createPortal(modalContent, document.body);
 }

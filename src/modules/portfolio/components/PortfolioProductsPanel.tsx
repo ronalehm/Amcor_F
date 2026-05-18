@@ -7,7 +7,7 @@ import {
   deleteProductPreliminaryRecord,
 } from "../../../shared/data/productPreliminaryStorage";
 import Button from "../../../shared/components/ui/Button";
-import CreateProductPreliminaryModal from "./CreateProductPreliminaryModal";
+import CreateProductPreliminaryModal from "../../../shared/components/modals/ProductPreliminaryCreateModal";
 
 export interface PortfolioProductsPanelProps {
   portfolio: PortfolioRecord;
@@ -58,7 +58,6 @@ export function PortfolioProductsPanel({
   }, [portfolioCode]);
 
   const handleCreateProduct = (product: ProductPreliminaryRecord) => {
-    setShowCreateModal(false);
     loadProducts();
     onPortfolioUpdated?.();
   };
@@ -81,7 +80,7 @@ export function PortfolioProductsPanel({
         <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-6 py-4">
           <div>
             <h3 className="font-bold text-gray-800">
-              Productos Preliminares
+              Productos Aprobados
             </h3>
             <p className="text-xs text-gray-500">
               Gestiona los productos preliminares asociados a este portafolio.
@@ -230,13 +229,12 @@ export function PortfolioProductsPanel({
         </table>
       </div>
 
-      {showCreateModal && (
-        <CreateProductPreliminaryModal
-          portfolio={portfolio}
-          onSave={handleCreateProduct}
-          onCancel={() => setShowCreateModal(false)}
-        />
-      )}
+      <CreateProductPreliminaryModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onProductCreated={handleCreateProduct}
+        portfolio={portfolio}
+      />
     </>
   );
 }

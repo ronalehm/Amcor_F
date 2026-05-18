@@ -1,394 +1,296 @@
-import { useEffect, useMemo, useState } from "react";
+// src/modules/dashboard/pages/DashboardPage.tsx
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  AlertTriangle,
-  ArrowRight,
-  BarChart3,
-  Building2,
-  CheckCircle2,
-  Clock3,
-  FolderKanban,
-  ScanBarcode,
-  BriefcaseBusiness,
-  TrendingUp,
+  ChevronDown,
+  FilePlus2,
+  FolderPlus,
+  GitBranchPlus,
+  Plus,
+  Search,
+  Upload,
 } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getClientCatalogRecords } from "../../../shared/data/clientStorage";
-import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
-import { getProjectRecords, getProjectsSummary } from "../../../shared/data/projectStorage";
-import { getProjectObservations, getObservedProjectsSummary, type ObservedProjectSummary } from "../../../shared/data/observationStorage";
-import { getProjectSlaSummary, getProjectStatusHistory} from "../../../shared/data/slaStorage";
-import { getAllProjectTrackingStates } from "../../../shared/data/projectTrackingStorage";
-import { isPortalStage } from "../../../shared/data/projectStageConfig";
+import QuickCreatePanel from "../components/QuickCreatePanel";
+import WorkQueuePanel from "../components/WorkQueuePanel";
+import ProjectInitialCreateModal from "../../../shared/components/modals/ProjectInitialCreateModal";
+import ProductPreliminaryCreateModal from "../../../shared/components/modals/ProductPreliminaryCreateModal";
 
-import SummaryCard from "../../../shared/components/display/SummaryCard";
-import SlaStatusBadge from "../../../shared/components/sla/SlaStatusBadge";
+import { WORK_QUEUE } from "../data/homeMockData";
 
-const QUICK_ACTIONS = [
-  {
-    label: "Portafolios",
-    description: "Gestionar familias de oportunidades por cliente",
-    icon: FolderKanban,
-    path: "/portfolio",
-  },
-  {
-    label: "Proyectos",
-    description: "Revisar oportunidades comerciales activas",
-    icon: BriefcaseBusiness,
-    path: "/projects",
-  },
-  {
-    label: "Clientes",
-    description: "Registrar y administrar clientes",
-    icon: Building2,
-    path: "/clients",
-  },
-  {
-    label: "Fichas de Producto",
-    description: "Consultar información técnica consolidada",
-    icon: ScanBarcode,
-    path: "/datasheets",
-  },
-];
+type NewOption = {
+  label: string;
+  description: string;
+  enabled: boolean;
+  icon: ReactNode;
+  onClick: () => void;
+};
+
+type DashboardCommandBarProps = {
+  onCreateProject: () => void;
+  onCreatePreliminaryProduct: () => void;
+};
+
+function DashboardCommandBar({
+  onCreateProject,
+  onCreatePreliminaryProduct,
+}: DashboardCommandBarProps) {
+  const navigate = useNavigate();
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [open, setOpen] = useState(false);
+
+  /**
+   * TODO ODISEO:
+   * Reemplazar por contexto real del portafolio/proyecto seleccionado.
+   */
+  const hasValidatedOrApprovedProject = true;
+  const hasApprovedPreviousProduct = true;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const options = useMemo<NewOption[]>(
+    () => [
+      {
+        label: "Crear Proyecto",
+        description: "Registrar un nuevo proyecto para validación técnica.",
+        enabled: true,
+        icon: <FolderPlus size={17} />,
+        onClick: () => {
+          setOpen(false);
+          onCreateProject();
+        },
+      },
+      {
+        label: "Crear Producto Preliminar",
+        description: "Crear producto desde un proyecto validado o aprobado.",
+        enabled: hasValidatedOrApprovedProject,
+        icon: <FilePlus2 size={17} />,
+        onClick: () => {
+          setOpen(false);
+          onCreatePreliminaryProduct();
+        },
+      },
+      {
+        label: "Importar Productos Preliminares",
+        description: "Carga masiva de productos preliminares desde plantilla.",
+        enabled: hasValidatedOrApprovedProject,
+        icon: <Upload size={17} />,
+        onClick: () => {
+          setOpen(false);
+          navigate("/products/import");
+        },
+      },
+      {
+        label: "Crear Producto Modificado / Nueva Versión",
+        description: "Crear una nueva versión desde un producto previo aprobado.",
+        enabled: hasApprovedPreviousProduct,
+        icon: <GitBranchPlus size={17} />,
+        onClick: () => {
+          setOpen(false);
+          navigate("/products/create?mode=modified");
+        },
+      },
+    ],
+    [
+      hasValidatedOrApprovedProject,
+      hasApprovedPreviousProduct,
+      navigate,
+      onCreateProject,
+      onCreatePreliminaryProduct,
+    ],
+  );
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const value = String(formData.get("search") ?? "").trim();
+
+    if (!value) return;
+
+    console.log("Buscar en ODISEO:", value);
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4">
+        <h1 className="text-2xl font-black tracking-tight text-slate-900">
+          Portal Web ODISEO
+        </h1>
+      </div>
+
+      <form onSubmit={handleSearchSubmit} className="flex items-center gap-4">
+        <div className="relative flex-1">
+          <Search
+            size={18}
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+
+          <input
+            name="search"
+            type="text"
+            placeholder="Buscar cliente, producto, SKU, portafolio o rubro..."
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#003B5C] focus:ring-2 focus:ring-[#003B5C]/10"
+          />
+        </div>
+
+        <div ref={dropdownRef} className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setOpen((current) => !current)}
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#003B5C] px-5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#00567f] hover:shadow-md"
+          >
+            <Plus size={17} />
+            Nuevo
+            <ChevronDown
+              size={16}
+              className={`transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          {open && (
+            <div className="absolute right-0 top-[52px] z-50 w-[380px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+              <div className="border-b border-slate-100 px-4 py-3">
+                <p className="text-sm font-semibold text-slate-900">
+                  Crear nuevo
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Selecciona qué deseas iniciar en ODISEO.
+                </p>
+              </div>
+
+              <div className="p-2">
+                {options.map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    disabled={!option.enabled}
+                    onClick={option.enabled ? option.onClick : undefined}
+                    title={
+                      option.enabled
+                        ? option.description
+                        : "Opción no disponible con el contexto actual."
+                    }
+                    className={[
+                      "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition",
+                      option.enabled
+                        ? "text-slate-700 hover:bg-slate-50"
+                        : "cursor-not-allowed text-slate-400 opacity-60",
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                        option.enabled
+                          ? "bg-[#003B5C]/10 text-[#003B5C]"
+                          : "bg-slate-100 text-slate-400",
+                      ].join(" ")}
+                    >
+                      {option.icon}
+                    </span>
+
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">
+                        {option.label}
+                      </span>
+
+                      <span className="mt-0.5 block text-xs leading-snug text-slate-500">
+                        {option.description}
+                      </span>
+
+                      {!option.enabled && (
+                        <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                          No disponible
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
-  const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
 
-  const [clients, setClients] = useState<any[]>([]);
-  const [portfolios, setPortfolios] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [slas, setSlas] = useState<any[]>([]);
-  const [observations, setObservations] = useState<any[]>([]);
-  const [history, setHistory] = useState<any[]>([]);
-  const [trackingStates, setTrackingStates] = useState<any[]>([]);
-  const [observedProjects, setObservedProjects] = useState<ObservedProjectSummary[]>([]);
+  const [isProjectCreateModalOpen, setIsProjectCreateModalOpen] =
+    useState(false);
+
+  const [isPreliminaryProductModalOpen, setIsPreliminaryProductModalOpen] =
+    useState(false);
 
   useEffect(() => {
     setHeader({
       title: "Portal Web ODISEO",
-      subtitle: "Cuadro de mando operativo - Visualiza el avance de oportunidades, retrasos, observaciones y actividades pendientes para mantener trazabilidad desde el cliente hasta la ficha de producto.",
+      subtitle: undefined,
+      toolbar: (
+        <DashboardCommandBar
+          onCreateProject={() => setIsProjectCreateModalOpen(true)}
+          onCreatePreliminaryProduct={() =>
+            setIsPreliminaryProductModalOpen(true)
+          }
+        />
+      ),
     });
-
-    // Load data from storage
-    setClients(getClientCatalogRecords());
-    setPortfolios(getPortfolioDisplayRecords());
-    
-    const allProjects = getProjectRecords();
-    setProjects(allProjects);
-    
-    const allSlas = allProjects.flatMap(p => getProjectSlaSummary(p.code));
-    setSlas(allSlas);
-    
-    setObservations(getProjectObservations());
-    setHistory(getProjectStatusHistory());
-    setTrackingStates(getAllProjectTrackingStates());
-    
-    // Obtener resumen de proyectos observados y enriquecer con datos de proyectos
-    const observedSummary = getObservedProjectsSummary();
-    const enrichedObserved = observedSummary.map(obs => {
-      const project = allProjects.find(p => p.code === obs.projectCode);
-      const tracking = trackingStates.find(t => t.projectCode === obs.projectCode);
-      return {
-        ...obs,
-        clientName: project?.clientName || "—",
-        currentStage: tracking?.currentStage || "—",
-      };
-    });
-    setObservedProjects(enrichedObserved);
 
     return () => resetHeader();
   }, [setHeader, resetHeader]);
 
-  const activePortalProjects = trackingStates.filter(t => isPortalStage(t.currentStage) && !t.isCompleted);
-  const externalSiProjects = trackingStates.filter(t => !isPortalStage(t.currentStage) && !t.isCompleted);
-  const overdueProjects = slas.filter(s => s.slaStatus === "Vencido" && !s.completedAt);
-  const openObservations = observations.filter(o => o.status === "Abierta" && o.isBlocking);
-  
-  const funnelStages = [
-    { code: "P1", name: "Registro", count: activePortalProjects.filter(p => p.currentStage === "P1").length },
-    { code: "P2", name: "Arte", count: activePortalProjects.filter(p => p.currentStage === "P2").length },
-    { code: "P3", name: "R&D", count: activePortalProjects.filter(p => p.currentStage === "P3").length },
-    { code: "P4", name: "Finance", count: activePortalProjects.filter(p => p.currentStage === "P4").length },
-    { code: "P5", name: "Cierre", count: activePortalProjects.filter(p => p.currentStage === "P5").length },
-  ];
-  
-  // Basic metrics
-  const totalClients = clients.length;
-  const totalPortfolios = portfolios.length;
-
-  const kpis = [
-    {
-      label: "Portafolios",
-      value: String(totalPortfolios),
-      description: "Familias registradas",
-      icon: <FolderKanban size={24} />,
-      colorClass: "text-blue-600 bg-blue-50",
-    },
-    {
-      label: "En Portal Web",
-      value: String(activePortalProjects.length),
-      description: "Seguimiento P1-P5",
-      icon: <BriefcaseBusiness size={24} />,
-      colorClass: "text-brand-primary bg-blue-50",
-    },
-    {
-      label: "En Sistema Integral",
-      value: String(externalSiProjects.length),
-      description: "Seguimiento externo",
-      icon: <CheckCircle2 size={24} />,
-      colorClass: "text-emerald-600 bg-emerald-50",
-    },
-    {
-      label: "Vencidos",
-      value: String(overdueProjects.length),
-      description: "Proyectos críticos",
-      icon: <AlertTriangle size={24} />,
-      colorClass: "text-red-600 bg-red-50",
-    },
-    {
-      label: "Observados",
-      value: String(openObservations.length),
-      description: "Frenan el avance",
-      icon: <AlertTriangle size={24} />,
-      colorClass: "text-amber-600 bg-amber-50",
-    },
-  ];
-
   return (
-    <div className="space-y-6">
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((kpi, idx) => (
-          <SummaryCard
-            key={idx}
-            title={kpi.label}
-            value={kpi.value}
-            subtitle={kpi.description}
-            icon={kpi.icon}
-            colorClass={kpi.colorClass.split(' ')[0]}
-          />
-        ))}
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-800 mb-4">
-          ETAPAS DEL PROYECTO (Portal Web)
-        </h2>
-        <div className="flex flex-col sm:flex-row gap-2">
-          {funnelStages.map((stage, idx) => (
-            <div key={stage.code} className="flex-1 flex items-center relative group">
-              <div className={`flex-1 rounded-lg p-4 transition-all ${
-                stage.count > 0 ? "bg-brand-secondary-soft border border-brand-secondary" : "bg-slate-50 border border-slate-200"
-              }`}>
-                <div className="text-xs font-bold text-slate-500 uppercase">{stage.code} - {stage.name}</div>
-                <div className={`text-3xl font-extrabold mt-1 ${stage.count > 0 ? "text-brand-primary" : "text-slate-400"}`}>
-                  {stage.count}
-                </div>
-              </div>
-              {idx < funnelStages.length - 1 && (
-                <div className="hidden sm:flex items-center justify-center px-2 text-slate-300">
-                  <ArrowRight size={24} />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.4fr_0.8fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 bg-gray-50">
-            <div>
-              <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
-                Bandeja de seguimiento (SLA)
-              </h2>
-            </div>
-          </div>
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-white border-b border-gray-100 text-xs uppercase text-gray-500">
-                <tr>
-                  <th className="px-5 py-3 font-semibold">Proyecto</th>
-                  <th className="px-5 py-3 font-semibold">Área responsable</th>
-                  <th className="px-5 py-3 font-semibold">Vencimiento</th>
-                  <th className="px-5 py-3 font-semibold">Días restantes</th>
-                  <th className="px-5 py-3 font-semibold">Estado SLA</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {slas.slice(0, 10).map((sla) => {
-                  // Calcular días restantes
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  const dueDate = new Date(sla.dueAt);
-                  dueDate.setHours(0, 0, 0, 0);
-                  const diffTime = dueDate.getTime() - today.getTime();
-                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                  
-                  let daysText = "";
-                  let daysClass = "";
-                  if (diffDays > 1) {
-                    daysText = `Faltan ${diffDays} días`;
-                    daysClass = "text-green-600";
-                  } else if (diffDays === 1) {
-                    daysText = "Falta 1 día";
-                    daysClass = "text-amber-600";
-                  } else if (diffDays === 0) {
-                    daysText = "Vence hoy";
-                    daysClass = "text-red-600 font-semibold";
-                  } else {
-                    daysText = `Vencido hace ${Math.abs(diffDays)} días`;
-                    daysClass = "text-red-600 font-semibold";
-                  }
-                  
-                  return (
-                    <tr key={sla.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/projects/${sla.projectCode}`)}>
-                      <td className="px-5 py-4 font-bold text-brand-primary">{sla.projectCode}</td>
-                      <td className="px-5 py-4 text-gray-600">{sla.responsibleArea}</td>
-                      <td className="px-5 py-4 text-gray-500">{new Date(sla.dueAt).toLocaleDateString()}</td>
-                      <td className={`px-5 py-4 ${daysClass}`}>{daysText}</td>
-                      <td className="px-5 py-4">
-                        <SlaStatusBadge status={sla.slaStatus} />
-                      </td>
-                    </tr>
-                  );
-                })}
-                {slas.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-5 py-8 text-center text-gray-500 italic">No hay registros SLA</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-800 mb-4">
-              Accesos rápidos
+    <>
+      <div className="w-full space-y-6">
+        {/* Grid principal: Reutilizar base (izq) + Mi bandeja (der) */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_0.85fr]">
+          {/* Columna izquierda: Reutilizar bases aprobadas */}
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-slate-900">
+              Crear desde base aprobada
             </h2>
-            <div className="grid grid-cols-1 gap-3">
-              {QUICK_ACTIONS.map((action) => (
-                <button
-                  key={action.path}
-                  onClick={() => navigate(action.path)}
-                  className="group flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-brand-primary hover:bg-[#f8fbfd] transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-brand-primary">
-                      <action.icon size={20} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-800">{action.label}</div>
-                    </div>
-                  </div>
-                  <ArrowRight size={18} className="text-slate-400 group-hover:text-brand-primary" />
-                </button>
-              ))}
-            </div>
-          </div>
+            <p className="text-xs text-slate-500">
+              Reutiliza productos aprobados como base para avanzar más rápido.
+            </p>
+            <QuickCreatePanel />
+          </section>
 
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col max-h-[300px]">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 bg-gray-50">
-              <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
-                Actividad reciente
-              </h2>
-            </div>
-            <div className="overflow-y-auto divide-y divide-gray-100 flex-1">
-              {history.slice(0, 10).map((h) => (
-                <div key={h.id} className="p-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="font-bold text-sm text-gray-800">{h.projectCode}</span>
-                    <span className="text-xs text-gray-400">{new Date(h.changedAt).toLocaleDateString()}</span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Cambio a <b>{h.toStatus}</b> por {h.changedBy} ({h.responsibleArea})
-                  </div>
-                </div>
-              ))}
-              {history.length === 0 && (
-                <div className="p-8 text-center text-gray-500 italic">No hay actividad reciente</div>
-              )}
-            </div>
-          </div>
+          {/* Columna derecha: Mi bandeja */}
+          <WorkQueuePanel items={WORK_QUEUE} />
         </div>
-      </section>
+      </div>
 
-      {/* Sección de Proyectos Observados */}
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 bg-gray-50">
-          <div>
-            <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
-              Proyectos observados
-            </h2>
-          </div>
-        </div>
-        <div className="overflow-x-auto flex-1">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-white border-b border-gray-100 text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-5 py-3 font-semibold">Proyecto</th>
-                <th className="px-5 py-3 font-semibold">Cliente</th>
-                <th className="px-5 py-3 font-semibold">Etapa actual</th>
-                <th className="px-5 py-3 font-semibold">Obs. abiertas</th>
-                <th className="px-5 py-3 font-semibold">Veces observado</th>
-                <th className="px-5 py-3 font-semibold">Última observación</th>
-                <th className="px-5 py-3 font-semibold">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {observedProjects.slice(0, 10).map((obs) => (
-                <tr key={obs.projectCode} className="hover:bg-gray-50">
-                  <td className="px-5 py-4 font-bold text-brand-primary">{obs.projectCode}</td>
-                  <td className="px-5 py-4 text-gray-600">{obs.clientName}</td>
-                  <td className="px-5 py-4 text-gray-600">
-                    <span className="px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                      {obs.currentStage}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    {obs.openObservations > 0 ? (
-                      <span className="inline-flex items-center justify-center w-6 h-6 bg-red-100 text-red-700 font-bold rounded-full text-xs">
-                        {obs.openObservations}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-4 text-gray-600">
-                    {obs.timesObserved} {obs.timesObserved === 1 ? "vez" : "veces"}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="text-xs text-gray-500">
-                      {obs.lastObservationDate ? new Date(obs.lastObservationDate).toLocaleDateString() : "—"}
-                    </div>
-                    <div className="text-sm text-gray-700 truncate max-w-[200px]" title={obs.lastObservationDescription}>
-                      {obs.lastObservationDescription || "—"}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <button
-                      onClick={() => navigate(`/projects/${obs.projectCode}`)}
-                      className="text-xs font-semibold text-brand-primary hover:text-brand-secondary underline"
-                    >
-                      Ver
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {observedProjects.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-gray-500 italic">
-                    No hay proyectos con observaciones registradas
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+      <ProjectInitialCreateModal
+        isOpen={isProjectCreateModalOpen}
+        onClose={() => setIsProjectCreateModalOpen(false)}
+        onProjectCreated={() => setIsProjectCreateModalOpen(false)}
+      />
+
+      <ProductPreliminaryCreateModal
+        isOpen={isPreliminaryProductModalOpen}
+        onClose={() => setIsPreliminaryProductModalOpen(false)}
+        onProductCreated={() => setIsPreliminaryProductModalOpen(false)}
+      />
+    </>
   );
 }

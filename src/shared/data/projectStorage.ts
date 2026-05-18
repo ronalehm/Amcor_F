@@ -1084,6 +1084,23 @@ export function createProjectFromPortfolio(params: {
     licitacion: "Sí" | "No";
     numeroItemsLicitacion?: number | null;
     projectName?: string;
+    // Momento 1 fields
+    motivoNuevaValidacion?: string;
+    volumenCantidadReferencial?: string;
+    unidad?: string;
+    descripcionNecesidad?: string;
+    layer1Material?: string;
+    layer2Material?: string;
+    layer3Material?: string;
+    layer4Material?: string;
+    estructuraCalculada?: string;
+    ancho?: string;
+    largo?: string;
+    anchoFuelle?: string;
+    comentarios?: string;
+    nombreCalculado?: string;
+    mejorProyectoSimilar?: string;
+    porcentajeSimilitud?: number;
   };
   createdBy?: string;
 }): ProjectRecord {
@@ -1133,7 +1150,19 @@ export function createProjectFromPortfolio(params: {
     licitacion: params.initialData.licitacion,
     numeroItemsLicitacion: params.initialData.licitacion === "Sí" ? params.initialData.numeroItemsLicitacion || null : null,
     projectName: params.initialData.projectName || "",
-    projectDescription: "",
+    projectDescription: params.initialData.descripcionNecesidad || "",
+
+    // Momento 1 fields
+    layer1Material: params.initialData.layer1Material || "",
+    layer2Material: params.initialData.layer2Material || "",
+    layer3Material: params.initialData.layer3Material || "",
+    layer4Material: params.initialData.layer4Material || "",
+    structureType: params.initialData.estructuraCalculada || "",
+    estimatedVolume: params.initialData.volumenCantidadReferencial || "",
+    unitOfMeasure: params.initialData.unidad || "",
+    width: params.initialData.ancho || "",
+    length: params.initialData.largo || "",
+    gussetWidth: params.initialData.anchoFuelle || "",
 
     status: "Registrado",
     stage: "P1_FICHA_PROYECTO",

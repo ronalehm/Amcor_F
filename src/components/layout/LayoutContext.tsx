@@ -1,4 +1,6 @@
-import { createContext, useContext, useCallback, useMemo, useState } from "react"
+// src/components/layout/LayoutContext.tsx
+
+import { createContext, useCallback, useContext, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 
 export type LayoutHeaderState = {
@@ -6,9 +8,13 @@ export type LayoutHeaderState = {
   subtitle?: string
   actions?: ReactNode
   tabs?: ReactNode
-  breadcrumbs?: { label: string; href?: string }[]
+  toolbar?: ReactNode
+  breadcrumbs?: { label: string; href?: string; path?: string }[]
   badges?: ReactNode
-  progress?: { percentage: number; label: string }
+  progress?: {
+    percentage: number
+    label: string
+  }
 }
 
 type DrawerState = {
@@ -41,13 +47,20 @@ const DEFAULT_HEADER: LayoutHeaderState = {
   subtitle: undefined,
   actions: undefined,
   tabs: undefined,
+  toolbar: undefined,
+  breadcrumbs: undefined,
+  badges: undefined,
+  progress: undefined,
 }
 
 const LayoutContext = createContext<LayoutContextValue | null>(null)
 
 export const LayoutProvider = ({ children }: { children: ReactNode }) => {
-  const [baseHeader, setBaseHeader] = useState<LayoutHeaderState>(DEFAULT_HEADER)
-  const [overlayHeader, setOverlayHeader] = useState<LayoutHeaderState | null>(null)
+  const [baseHeader, setBaseHeader] =
+    useState<LayoutHeaderState>(DEFAULT_HEADER)
+
+  const [overlayHeader, setOverlayHeader] =
+    useState<LayoutHeaderState | null>(null)
 
   const [drawer, setDrawer] = useState<DrawerState>({
     open: false,
@@ -59,8 +72,16 @@ export const LayoutProvider = ({ children }: { children: ReactNode }) => {
 
   const header = overlayHeader ?? baseHeader
 
-  const setHeader = useCallback((next: LayoutHeaderState) => setBaseHeader(next), [])
-  const resetHeader = useCallback(() => setBaseHeader(DEFAULT_HEADER), [])
+  const setHeader = useCallback((next: LayoutHeaderState) => {
+    setBaseHeader({
+      ...DEFAULT_HEADER,
+      ...next,
+    })
+  }, [])
+
+  const resetHeader = useCallback(() => {
+    setBaseHeader(DEFAULT_HEADER)
+  }, [])
 
   const openDrawer = useCallback((args: OpenDrawerArgs) => {
     setDrawer({
@@ -70,24 +91,50 @@ export const LayoutProvider = ({ children }: { children: ReactNode }) => {
       widthClassName: args.widthClassName ?? "w-[420px]",
       content: args.content,
     })
-    if (args.header) setOverlayHeader(args.header)
+
+    if (args.header) {
+      setOverlayHeader({
+        ...DEFAULT_HEADER,
+        ...args.header,
+      })
+    }
   }, [])
 
   const closeDrawer = useCallback(() => {
-    setDrawer((d) => ({ ...d, open: false, content: null }))
+    setDrawer((currentDrawer) => ({
+      ...currentDrawer,
+      open: false,
+      content: null,
+    }))
+
     setOverlayHeader(null)
   }, [])
 
   const value = useMemo<LayoutContextValue>(
-    () => ({ header, setHeader, resetHeader, drawer, openDrawer, closeDrawer }),
-    [header, drawer, setHeader, resetHeader, openDrawer, closeDrawer],
+    () => ({
+      header,
+      setHeader,
+      resetHeader,
+      drawer,
+      openDrawer,
+      closeDrawer,
+    }),
+    [header, setHeader, resetHeader, drawer, openDrawer, closeDrawer],
   )
 
-  return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>
+  return (
+    <LayoutContext.Provider value={value}>
+      {children}
+    </LayoutContext.Provider>
+  )
 }
 
 export const useLayout = () => {
   const ctx = useContext(LayoutContext)
-  if (!ctx) throw new Error("useLayout debe usarse dentro de <LayoutProvider />")
+
+  if (!ctx) {
+    throw new Error("useLayout debe usarse dentro de <LayoutProvider />")
+  }
+
   return ctx
 }

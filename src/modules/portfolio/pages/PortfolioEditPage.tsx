@@ -53,7 +53,6 @@ type PortfolioFormData = {
   envolturaId: string;
   usoFinalId: string;
   envasadoId: string;
-  portafolioEstandar: string;
 };
 
 const AMCOR = {
@@ -81,7 +80,6 @@ function recordToFormData(record: Record<string, unknown>): PortfolioFormData {
     envolturaId: String(record.envolturaId || record.envolturaId || ""),
     usoFinalId: String(record.usoFinalId || record.usoFinalId || ""),
     envasadoId: String(record.envasadoId || record.envasadoId || ""),
-    portafolioEstandar: String(record.portafolioEstandar || record.portafolioEstandar || ""),
   };
 }
 
@@ -274,33 +272,31 @@ export default function PortfolioEditPage() {
   };
 
   // Update header dynamically
-  useEffect(() => {
-    if (portfolioCodeStr && form) {
-      setHeader({
-        title: "Editar Portafolio",
-        breadcrumbs: [
-          { label: "Portafolio", href: "/portfolio" },
-          { label: portfolioCodeStr },
-          { label: "Editar" },
-        ],
-        badges: (
-          <>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-              ID: {form.codigo}
-            </span>
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-              Edición
-            </span>
-          </>
-        ),
-        progress: {
-          percentage: completionPercentage,
-          label: `${completionPercentage}% completado`,
-        }
-      });
-    }
-    return () => resetHeader();
-  }, [setHeader, resetHeader, portfolioCodeStr, form?.codigo, completionPercentage]);
+useEffect(() => {
+  if (!form) return;
+
+  setHeader({
+    title: "Editar Portafolio",
+    breadcrumbs: [
+      { label: "Portafolio", href: "/portfolio" },
+      { label: form.codigo || "Portafolio" },
+      { label: "Editar" },
+    ],
+    badges: (
+      <>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+          ID: {form.codigo}
+        </span>
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+          Edición
+        </span>
+      </>
+    ),
+  });
+
+  return () => resetHeader();
+}, [setHeader, resetHeader, form?.codigo]);
+
 
   const validationErrors = useMemo(() => {
     if (!form) return {};
@@ -444,12 +440,10 @@ export default function PortfolioEditPage() {
       maq: selectedPackingMachine.name,
       lic: form.licitacion,
       codigoRFQ: form.codigoRFQ,
-      portafolioEstandar: form.portafolioEstandar,
       TbPoLici: form.licitacion === "Sí" ? 1 : 0,
       TbPoColic: form.codigoRFQ,
       TbPoNPro: form.nombrePortafolio,
       TbPoDPro: form.descripcionPortafolio,
-      TbPoEstdr: form.portafolioEstandar,
       updatedAt: now,
     });
 
@@ -702,36 +696,27 @@ export default function PortfolioEditPage() {
               status={getSectionStatus(["envasadoId"])}
               required
             >
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <FormSelect
-                  label="Envasado / Máquina de Cliente *"
-                  value={form.envasadoId}
-                  onChange={(value) => updateField("envasadoId", value)}
-                  onBlur={() => markFieldAsTouched("envasadoId")}
-                  error={
-                    shouldShowFieldError("envasadoId")
-                      ? validationErrors.envasadoId
-                      : ""
-                  }
-                  options={packingMachines.map((item) => ({
-                    value: String(item.id),
-                    label: item.name,
-                  }))}
-                  placeholder={
-                    form.envolturaId
-                      ? "-- Seleccione --"
-                      : "Primero seleccione una envoltura"
-                  }
-                  disabled={!form.envolturaId}
-                />
-
-                <FormInput
-                  label="Portafolio Estándar"
-                  value={form.portafolioEstandar}
-                  onChange={(value) => updateField("portafolioEstandar", value)}
-                  placeholder="Ej. 564356"
-                />
-              </div>
+              <FormSelect
+                label="Envasado / Máquina de Cliente *"
+                value={form.envasadoId}
+                onChange={(value) => updateField("envasadoId", value)}
+                onBlur={() => markFieldAsTouched("envasadoId")}
+                error={
+                  shouldShowFieldError("envasadoId")
+                    ? validationErrors.envasadoId
+                    : ""
+                }
+                options={packingMachines.map((item) => ({
+                  value: String(item.id),
+                  label: item.name,
+                }))}
+                placeholder={
+                  form.envolturaId
+                    ? "-- Seleccione --"
+                    : "Primero seleccione una envoltura"
+                }
+                disabled={!form.envolturaId}
+              />
 
               {form.envasadoId === "generic" && (
                 <div className="col-span-full mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
@@ -748,7 +733,6 @@ export default function PortfolioEditPage() {
             {/* Vista rápida */}
             <PortfolioPreview
               codigo={form.codigo}
-              estado={selectedStatus?.name || "Registrado"}
               completionPercentage={completionPercentage}
               items={[
                 { label: "Cliente", value: selectedClient?.businessName || "—" },

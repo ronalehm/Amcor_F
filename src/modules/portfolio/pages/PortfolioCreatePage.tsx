@@ -49,7 +49,6 @@ type PortfolioFormData = {
   envolturaId: string;
   usoFinalId: string;
   envasadoId: string;
-  portafolioEstandar: string;
   codigoRFQ: string;
   licitacion: string;
 };
@@ -95,7 +94,6 @@ const buildInitialForm = (): PortfolioFormData => ({
   envolturaId: "",
   usoFinalId: "",
   envasadoId: "",
-  portafolioEstandar: "",
 });
 
 export default function PortfolioCreatePage() {
@@ -215,18 +213,22 @@ export default function PortfolioCreatePage() {
   };
 
   // Update header dynamically
-  useEffect(() => {
-    setHeader({
-      title: "Crear Portafolio",
-      breadcrumbs: [{ label: "Portafolio", href: "/portfolio" }, { label: "Crear Portafolio" }],
-      badges: <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">ID: {form.codigo}</span>,
-      progress: {
-        percentage: completionPercentage,
-        label: `${completionPercentage}% completado`
-      }
-    });
-    return () => resetHeader();
-  }, [setHeader, resetHeader, form.codigo, completionPercentage]);
+useEffect(() => {
+  setHeader({
+    title: "Crear Portafolio",
+    breadcrumbs: [
+      { label: "Portafolio", href: "/portfolio" },
+      { label: "Crear Portafolio" },
+    ],
+    badges: (
+      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+        ID: {form.codigo}
+      </span>
+    ),
+  });
+
+  return () => resetHeader();
+}, [setHeader, resetHeader, form.codigo]);
 
   const validationErrors = useMemo(() => {
     const errors: Partial<Record<keyof PortfolioFormData, string>> = {};
@@ -366,7 +368,6 @@ export default function PortfolioCreatePage() {
       TbPoEsta: selectedStatus.id,
       TbPoNPro: form.nombrePortafolio,
       TbPoDPro: form.descripcionPortafolio,
-      TbPoEstdr: form.portafolioEstandar,
       TbPoIdpr: crypto.randomUUID(),
       TbPoFReg: now,
       TbPoActi: true,
@@ -424,7 +425,6 @@ export default function PortfolioCreatePage() {
       envasadoId: selectedPackingMachine.id,
       envasadoCode: selectedPackingMachine.code,
       maq: selectedPackingMachine.name,
-      portafolioEstandar: form.portafolioEstandar,
 
       createdAt: now,
       fch: new Intl.DateTimeFormat("es-PE").format(new Date()),
@@ -666,36 +666,27 @@ export default function PortfolioCreatePage() {
               status={getSectionStatus(["envasadoId"])}
               required
             >
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <FormSelect
-                  label="Envasado / Máquina de Cliente *"
-                  value={form.envasadoId}
-                  onChange={(value) => updateField("envasadoId", value)}
-                  onBlur={() => markFieldAsTouched("envasadoId")}
-                  error={
-                    shouldShowFieldError("envasadoId")
-                      ? validationErrors.envasadoId
-                      : ""
-                  }
-                  options={packingMachines.map((item) => ({
-                    value: String(item.id),
-                    label: item.name,
-                  }))}
-                  placeholder={
-                    form.envolturaId
-                      ? "-- Seleccione --"
-                      : "Primero seleccione una envoltura"
-                  }
-                  disabled={!form.envolturaId}
-                />
-
-                <FormInput
-                  label="Portafolio Estándar"
-                  value={form.portafolioEstandar}
-                  onChange={(value) => updateField("portafolioEstandar", value)}
-                  placeholder="Ej. 564356"
-                />
-              </div>
+              <FormSelect
+                label="Envasado / Máquina de Cliente *"
+                value={form.envasadoId}
+                onChange={(value) => updateField("envasadoId", value)}
+                onBlur={() => markFieldAsTouched("envasadoId")}
+                error={
+                  shouldShowFieldError("envasadoId")
+                    ? validationErrors.envasadoId
+                    : ""
+                }
+                options={packingMachines.map((item) => ({
+                  value: String(item.id),
+                  label: item.name,
+                }))}
+                placeholder={
+                  form.envolturaId
+                    ? "-- Seleccione --"
+                    : "Primero seleccione una envoltura"
+                }
+                disabled={!form.envolturaId}
+              />
 
               {form.envasadoId === "generic" && (
                 <div className="col-span-full mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
@@ -712,7 +703,6 @@ export default function PortfolioCreatePage() {
             {/* Vista rápida */}
             <PortfolioPreview
               codigo={form.codigo}
-              estado={selectedStatus?.name || "Registrado"}
               completionPercentage={completionPercentage}
               items={[
                 { label: "Cliente", value: selectedClient?.businessName || "—" },
