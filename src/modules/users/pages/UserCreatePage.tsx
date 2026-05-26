@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+
+const RECENT_NEW_USER_KEY = "odiseo_recent_new_user";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
   createUser,
@@ -194,6 +196,20 @@ export default function UserCreatePage() {
         `Hola ${newUser.fullName.split(" ")[0]},\n\nTu cuenta ha sido creada en ODISEO. Por favor actívala para continuar.\n\nEquipo ODISEO`,
         newUser.id,
         "activation"
+      );
+
+      localStorage.setItem(
+        RECENT_NEW_USER_KEY,
+        JSON.stringify({
+          userId: newUser.id,
+          expiresAt: Date.now() + 10 * 1000,
+        })
+      );
+
+      window.dispatchEvent(
+        new CustomEvent("newUserCreated", {
+          detail: { userId: newUser.id },
+        })
       );
 
       setSuccessMessage("Usuario creado correctamente. Se envió el correo de activación.");

@@ -27,6 +27,8 @@ import {
 import ActionButton from "../../../shared/components/buttons/ActionButton";
 import { tableStyles } from "../../../shared/ui/tableStyles";
 
+const RECENT_NEW_USER_KEY = "odiseo_recent_new_user";
+
 type UserTab = "all" | UserStatus;
 
 type SortDirection = "asc" | "desc";
@@ -105,6 +107,9 @@ export default function UserListPage() {
     direction: "asc",
   });
 
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [recentNewUserId, setRecentNewUserId] = useState<string | null>(null);
+
   useEffect(() => {
     setHeader({
       title: "Gestión de Usuarios",
@@ -114,7 +119,62 @@ export default function UserListPage() {
     return () => resetHeader();
   }, [setHeader, resetHeader]);
 
-  const users = useMemo(() => getAllUsers(), []);
+  useEffect(() => {
+    let timer: number | undefined;
+
+    const checkRecentUser = () => {
+      const raw = localStorage.getItem(RECENT_NEW_USER_KEY);
+
+      if (!raw) {
+        setRecentNewUserId(null);
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(raw) as {
+          userId?: string;
+          expiresAt?: number;
+        };
+
+        if (!parsed.userId || !parsed.expiresAt || Date.now() > parsed.expiresAt) {
+          localStorage.removeItem(RECENT_NEW_USER_KEY);
+          setRecentNewUserId(null);
+          return;
+        }
+
+        setRecentNewUserId(parsed.userId);
+        setRefreshKey((prev) => prev + 1);
+
+        const remainingTime = parsed.expiresAt - Date.now();
+
+        timer = window.setTimeout(() => {
+          setRecentNewUserId(null);
+          localStorage.removeItem(RECENT_NEW_USER_KEY);
+        }, remainingTime);
+      } catch {
+        localStorage.removeItem(RECENT_NEW_USER_KEY);
+        setRecentNewUserId(null);
+      }
+    };
+
+    checkRecentUser();
+
+    const handleNewUserCreated = () => {
+      checkRecentUser();
+    };
+
+    window.addEventListener("newUserCreated", handleNewUserCreated);
+
+    return () => {
+      window.removeEventListener("newUserCreated", handleNewUserCreated);
+
+      if (timer) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, []);
+
+  const users = useMemo(() => getAllUsers(), [refreshKey]);
 
   const activeUsers = useMemo(
     () => users.filter((user) => getUserStatus(user) === "active"),
@@ -140,6 +200,9 @@ export default function UserListPage() {
     () => users.filter((user) => getUserStatus(user) === "blocked"),
     [users],
   );
+
+  const isRecentNewUser = (user: User) =>
+    Boolean(recentNewUserId && user.id === recentNewUserId);
 
   const areaOptions = useMemo(() => {
     const areas = new Set(users.map((user) => getText(user.area)).filter(Boolean));
@@ -194,15 +257,32 @@ export default function UserListPage() {
     });
   }, [users, query, activeTab, areaFilter, sortConfig]);
 
-  const totalRecords = filteredUsers.length;
+  const prioritizedUsers = useMemo(() => {
+    if (!recentNewUserId) {
+      return filteredUsers;
+    }
+
+    const recentUser = filteredUsers.find((user) => user.id === recentNewUserId);
+
+    if (!recentUser) {
+      return filteredUsers;
+    }
+
+    return [
+      recentUser,
+      ...filteredUsers.filter((user) => user.id !== recentNewUserId),
+    ];
+  }, [filteredUsers, recentNewUserId]);
+
+  const totalRecords = prioritizedUsers.length;
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
 
   const paginatedUsers = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
 
-    return filteredUsers.slice(startIndex, endIndex);
-  }, [filteredUsers, currentPage, pageSize]);
+    return prioritizedUsers.slice(startIndex, endIndex);
+  }, [prioritizedUsers, currentPage, pageSize]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -529,10 +609,17 @@ export default function UserListPage() {
             <tbody>
               {paginatedUsers.map((user, index) => {
                 const rowNumber = index + 1 + ((currentPage - 1) * pageSize);
+                const isNew = isRecentNewUser(user);
                 return (
                   <tr
                     key={user.id}
-                    className={`${tableStyles.row} ${index % 2 === 0 ? tableStyles.rowEven : tableStyles.rowOdd}`}
+                    className={`${tableStyles.row} ${
+                      isNew
+                        ? "bg-blue-50/70"
+                        : index % 2 === 0
+                          ? tableStyles.rowEven
+                          : tableStyles.rowOdd
+                    }`}
                   >
                     <td className={tableStyles.cell}>
                       {rowNumber}
@@ -543,7 +630,24 @@ export default function UserListPage() {
                     </td>
 
                     <td className={tableStyles.cellStrong}>
-                      {getUserFullName(user)}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900">
+                            {getUserFullName(user)}
+                          </span>
+
+                          {isNew && (
+                            <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-blue-700 shadow-sm">
+                              <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                              Nuevo
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="text-xs text-slate-500">
+                          {user.position || getUserExtraField(user, "position", "puesto") || "—"}
+                        </div>
+                      </div>
                     </td>
 
                     <td className={tableStyles.cell}>
