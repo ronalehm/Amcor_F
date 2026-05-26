@@ -12,17 +12,11 @@ import {
 } from "../../../shared/data/userStorage";
 import { registerUserStatusChange } from "../../../shared/data/userStatusStorage";
 import { mockSendEmail } from "../../../shared/data/notificationStorage";
-import {
-  AREAS,
-  getPositionsByArea,
-  getRoleByAreaAndPosition,
-  getAllowedRolesByAreaAndPosition,
-} from "../../../shared/data/areaDepartmentConfig";
+import { getRoleByAreaAndPosition } from "../../../shared/data/areaDepartmentConfig";
 import { ROLE_LABELS } from "../../../shared/data/userStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
-import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import SystemIntegrationUserSearch from "../../../shared/components/forms/SystemIntegrationUserSearch";
 import { type VendorMirror } from "../../../shared/data/vendorMirrorStorage";
@@ -53,7 +47,6 @@ export default function UserCreatePage() {
   });
 
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null);
@@ -62,7 +55,7 @@ export default function UserCreatePage() {
   const currentUser = getCurrentUser();
 
   const handleSiUserSelect = (vendor: VendorMirror) => {
-    const suggestedRole = getRoleByAreaAndPosition(vendor.area, vendor.name);
+    const suggestedRole = getRoleByAreaAndPosition(vendor.area, vendor.position);
     setForm((prev) => ({
       ...prev,
       siUserId: vendor.id,
@@ -71,6 +64,7 @@ export default function UserCreatePage() {
       email: vendor.email || "",
       fullName: vendor.name,
       area: vendor.area,
+      position: vendor.position || "",
       role: suggestedRole,
     }));
     setSearchQuery("");
@@ -92,19 +86,6 @@ export default function UserCreatePage() {
     return () => resetHeader();
   }, [setHeader, resetHeader, userCode]);
 
-  const updateField = (field: keyof FormState, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const markFieldAsTouched = (field: keyof FormState) => {
-    setTouchedFields((prev) => ({ ...prev, [field]: true }));
-  };
-
-  const shouldShowFieldError = (field: keyof FormState) => {
-    return Boolean(
-      validationErrors[field] && (submitAttempted || touchedFields[field])
-    );
-  };
 
   const validationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
@@ -167,17 +148,6 @@ export default function UserCreatePage() {
     setDuplicateMessage(null);
 
     if (Object.keys(validationErrors).length > 0) {
-      const fieldsWithErrors = Object.keys(validationErrors).reduce(
-        (acc, field) => {
-          acc[field as keyof FormState] = true;
-          return acc;
-        },
-        {} as Partial<Record<keyof FormState, boolean>>
-      );
-      setTouchedFields((prev) => ({
-        ...prev,
-        ...fieldsWithErrors,
-      }));
       return;
     }
 
@@ -250,26 +220,6 @@ export default function UserCreatePage() {
     }
   };
 
-  const areaOptions = AREAS.map((area) => ({
-    value: area,
-    label: area,
-  }));
-
-  const positionOptions = useMemo(() => {
-    const positions = getPositionsByArea(form.area);
-    return positions.map((pos: string) => ({
-      value: pos,
-      label: pos,
-    }));
-  }, [form.area]);
-
-  const roleOptions = useMemo(() => {
-    const allowedRoles = getAllowedRolesByAreaAndPosition(form.area, form.position);
-    return allowedRoles.map((roleKey) => ({
-      value: roleKey,
-      label: ROLE_LABELS[roleKey],
-    }));
-  }, [form.area, form.position]);
 
   if (successMessage) {
     return (
@@ -307,75 +257,57 @@ export default function UserCreatePage() {
                   placeholder="Buscar usuario del Sistema Integral..."
                 />
 
-                {/* Fila 1: Código Trabajador, Nombre */}
+                {/* Fila 1: Código Trabajador, Nombre (Read-only) */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormInput
-                    label="Código Trabajador *"
+                    label="Código Trabajador"
                     value={form.workerCode}
-                    onChange={(v) => updateField("workerCode", v)}
-                    onBlur={() => markFieldAsTouched("workerCode")}
-                    error={shouldShowFieldError("workerCode") ? validationErrors.workerCode : ""}
-                    placeholder="Ej. EJC-000001"
+                    disabled
+                    placeholder="Importado desde Sistema Integral"
                   />
 
                   <FormInput
-                    label="Nombre *"
+                    label="Nombre"
                     value={form.fullName}
-                    onChange={(v) => updateField("fullName", v)}
-                    onBlur={() => markFieldAsTouched("fullName")}
-                    error={shouldShowFieldError("fullName") ? validationErrors.fullName : ""}
-                    placeholder="Ej. Juan Pérez"
+                    disabled
+                    placeholder="Importado desde Sistema Integral"
                   />
                 </div>
 
-                {/* Fila 2: Correo Corporativo, Puesto */}
+                {/* Fila 2: Correo Corporativo, Puesto (Read-only) */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormInput
-                    label="Correo Corporativo *"
+                    label="Correo Corporativo"
                     value={form.email}
-                    onChange={(v) => updateField("email", v)}
-                    onBlur={() => markFieldAsTouched("email")}
-                    error={shouldShowFieldError("email") ? validationErrors.email : ""}
-                    placeholder="usuario@amcor.com"
+                    disabled
                     type="email"
+                    placeholder="Importado desde Sistema Integral"
                   />
 
-                  <FormSelect
-                    label="Puesto *"
+                  <FormInput
+                    label="Puesto"
                     value={form.position}
-                    onChange={(v) => updateField("position", v)}
-                    onBlur={() => markFieldAsTouched("position")}
-                    error={shouldShowFieldError("position") ? validationErrors.position : ""}
-                    options={positionOptions}
-                    placeholder="-- Seleccione Puesto --"
-                    disabled={!form.area}
+                    disabled
+                    placeholder="Importado desde Sistema Integral"
                   />
                 </div>
 
-                {/* Fila 3: Área, Rol ODISEO */}
+                {/* Fila 3: Área, Rol ODISEO (Read-only) */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <FormSelect
-                    label="Área *"
+                  <FormInput
+                    label="Área"
                     value={form.area}
-                    onChange={(v) => {
-                      updateField("area", v);
-                      updateField("position", "");
-                    }}
-                    onBlur={() => markFieldAsTouched("area")}
-                    error={shouldShowFieldError("area") ? validationErrors.area : ""}
-                    options={areaOptions}
-                    placeholder="-- Seleccione Área --"
+                    disabled
+                    placeholder="Importado desde Sistema Integral"
                   />
 
-                  <FormSelect
-                    label="Rol ODISEO *"
-                    value={form.role}
-                    onChange={(v) => updateField("role", v)}
-                    onBlur={() => markFieldAsTouched("role")}
-                    error={shouldShowFieldError("role") ? validationErrors.role : ""}
-                    options={roleOptions}
-                    placeholder="-- Seleccione Rol ODISEO --"
-                  />
+                  <div>
+                    <p className="text-sm font-medium text-slate-700 mb-2">Rol ODISEO</p>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-sm font-semibold text-slate-900">{form.role ? ROLE_LABELS[form.role as any] : "No asignado"}</p>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">Se asigna automáticamente según Área y Puesto.</p>
+                  </div>
                 </div>
 
                 {/* Fila 4: Estado */}
