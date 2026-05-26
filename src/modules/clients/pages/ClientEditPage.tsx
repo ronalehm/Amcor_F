@@ -202,7 +202,7 @@ export default function ClientEditPage() {
               />
 
               <FormInput
-                label="Rubro *"
+                label="Sector *"
                 value={form.industry}
                 onChange={(value) => updateField("industry", value)}
                 onBlur={() => markFieldAsTouched("industry")}

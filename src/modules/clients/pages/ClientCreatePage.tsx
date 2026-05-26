@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, ArrowLeft, Download, Upload } from "lucide-react";
-import * as XLSX from "xlsx";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
   createClient,
@@ -45,17 +44,10 @@ export default function ClientCreatePage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const [duplicateClient, setDuplicateClient] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
   const [hasNoSiResults, setHasNoSiResults] = useState(false);
-  const [creationMode, setCreationMode] = useState<"manual" | "excel" | null>(null);
-  const [isExcelImported, setIsExcelImported] = useState(false);
-  const [excelError, setExcelError] = useState<string | null>(null);
-  const [excelWarning, setExcelWarning] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setHeader({
@@ -73,17 +65,6 @@ export default function ClientCreatePage() {
     return () => resetHeader();
   }, [setHeader, resetHeader, clientCode]);
 
-  const updateField = (field: keyof FormState, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const markFieldAsTouched = (field: keyof FormState) => {
-    setTouchedFields((prev) => ({ ...prev, [field]: true }));
-  };
-
-  const shouldShowFieldError = (field: keyof FormState) => {
-    return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
-  };
 
   const handleSiClientSelect = (client: ClientMirror) => {
     setForm((prev) => ({
@@ -95,126 +76,6 @@ export default function ClientCreatePage() {
       industry: "",
     }));
     setSearchQuery("");
-    setCreationMode(null);
-    setIsExcelImported(false);
-    setExcelError(null);
-    setExcelWarning(null);
-  };
-
-  const handleDownloadTemplate = () => {
-    const ws = XLSX.utils.json_to_sheet([
-      {
-        razonSocial: "",
-        correoElectronico: "",
-        numerodeRUC: "",
-        rubro: "",
-      },
-    ]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "PlantillaCliente");
-    XLSX.writeFile(wb, "Plantilla_Creacion_Cliente.xlsx");
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setExcelError(null);
-    setExcelWarning(null);
-
-    const validExtensions = [".xlsx", ".xls"];
-    const fileExtension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-    if (!validExtensions.includes(fileExtension)) {
-      setExcelError("Formato de archivo no válido. Solo se permiten archivos .xlsx o .xls.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onerror = () => {
-      setExcelError("Error al leer el archivo. Intente con otro archivo o verifique que no esté corrupto.");
-    };
-    reader.onload = (evt) => {
-      try {
-        const data = evt.target?.result;
-        if (!data) {
-          setExcelError("No se pudo leer el contenido del archivo.");
-          return;
-        }
-        const wb = XLSX.read(data, { type: "array" });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const rows = XLSX.utils.sheet_to_json<any>(ws);
-
-        if (rows.length === 0) {
-          setExcelError("El archivo no contiene datos para importar.");
-          return;
-        }
-
-        if (rows.length > 1) {
-          setExcelError("Faltan campos obligatorios. Para este flujo solo se permite registrar un cliente por vez.");
-          return;
-        }
-
-        const row = rows[0];
-
-        const expectedColumns = [
-          "razonSocial",
-          "correoElectronico",
-          "numerodeRUC",
-          "rubro",
-        ];
-
-        const headerData = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1 });
-        const headers = headerData.length > 0 ? headerData[0] : [];
-        const missingCols = expectedColumns.filter(c => !headers.includes(c));
-        if (missingCols.length > 0) {
-          setExcelError("La plantilla no tiene la estructura requerida. Descargue la plantilla oficial.");
-          return;
-        }
-
-        const businessName = (row.razonSocial || "").toString().trim();
-        const email = (row.correoElectronico || "").toString().trim();
-        const ruc = (row.numerodeRUC || "").toString().trim();
-
-        if (!businessName) {
-          setExcelError("La razón social es obligatoria.");
-        }
-
-        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          setExcelWarning("El correo importado no tiene un formato válido.");
-        }
-
-        let importedIndustry = (row.rubro || "").toString().trim();
-        let finalIndustry = "";
-        if (importedIndustry) {
-          const industryMatch = INDUSTRIES.find(a => a.toLowerCase() === importedIndustry.toLowerCase());
-          if (industryMatch) {
-            finalIndustry = industryMatch;
-          } else {
-            setExcelWarning("El rubro importado no existe en el catálogo. Seleccione un rubro válido.");
-          }
-        }
-
-        setForm(prev => ({
-          ...prev,
-          siClient: null,
-          ruc: ruc,
-          email: email,
-          businessName: businessName,
-          industry: finalIndustry,
-        }));
-
-        setIsExcelImported(true);
-
-      } catch (error) {
-        setExcelError("Error al procesar el archivo Excel. Asegúrese de que el formato sea correcto.");
-      }
-    };
-    reader.readAsArrayBuffer(file);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const isSiClientSelected = form.siClient !== null;
@@ -222,18 +83,9 @@ export default function ClientCreatePage() {
   const validationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
 
-    if (!form.ruc.trim()) {
-      errors.ruc = "Ingresa el RUC.";
-    }
-
-    if (!form.email.trim()) {
-      errors.email = "Ingresa el correo electrónico.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "El formato del correo no es válido.";
-    }
-
-    if (!form.businessName.trim()) {
-      errors.businessName = "Ingresa la razón social.";
+    if (!form.siClient) {
+      errors.siClient = "Selecciona un cliente válido del Sistema Integral.";
+      return errors;
     }
 
     if (!form.industry.trim()) {
@@ -245,9 +97,7 @@ export default function ClientCreatePage() {
 
   const completionPercentage = useMemo(() => {
     const requiredChecks = [
-      Boolean(form.ruc.trim()),
-      Boolean(form.email.trim()),
-      Boolean(form.businessName.trim()),
+      Boolean(form.siClient),
       Boolean(form.industry.trim()),
     ];
     const completed = requiredChecks.filter(Boolean).length;
@@ -263,18 +113,7 @@ export default function ClientCreatePage() {
     setSubmitAttempted(true);
     setSuccessMessage(null);
 
-    if (Object.keys(validationErrors).length > 0 || excelError) {
-      const fieldsWithErrors = Object.keys(validationErrors).reduce(
-        (acc, field) => {
-          acc[field as keyof FormState] = true;
-          return acc;
-        },
-        {} as Partial<Record<keyof FormState, boolean>>
-      );
-      setTouchedFields((prev) => ({
-        ...prev,
-        ...fieldsWithErrors,
-      }));
+    if (Object.keys(validationErrors).length > 0) {
       return;
     }
 
@@ -388,20 +227,6 @@ export default function ClientCreatePage() {
                   placeholder="Buscar por código, razón social, RUC..."
                 />
 
-                {!isSiClientSelected && (
-                  <button
-                    type="button"
-                    onClick={() => setCreationMode("excel")}
-                    className={`w-full px-4 py-2 text-sm font-semibold rounded-lg transition-colors border ${
-                      creationMode === "excel"
-                        ? "bg-amber-600 text-white border-amber-600"
-                        : "bg-white text-amber-700 border-amber-300 hover:bg-amber-100"
-                    }`}
-                  >
-                    Importar plantilla Excel
-                  </button>
-                )}
-
                 {isSiClientSelected && (
                   <div className="p-4 rounded-lg bg-green-50 border border-green-200">
                     <p className="text-sm font-semibold text-green-900 mb-2">
@@ -413,116 +238,45 @@ export default function ClientCreatePage() {
                   </div>
                 )}
               </div>
-
-              {creationMode === "excel" && (
-                <div className="mt-4 p-5 rounded-xl border border-brand-primary/20 bg-brand-primary/5 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h4 className="font-semibold text-brand-primary">Importar desde Excel</h4>
-                      <p className="text-xs text-slate-600 mt-1">
-                        Descarga la plantilla, completa los datos y súbela para autocompletar el formulario.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={handleDownloadTemplate}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-brand-primary bg-white border border-brand-primary/30 rounded-lg hover:bg-slate-50 transition-colors"
-                    >
-                      <Download size={16} />
-                      Descargar plantilla
-                    </button>
-
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      accept=".xlsx, .xls"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-primary rounded-lg hover:bg-[#002f4a] transition-colors shadow-sm"
-                    >
-                      <Upload size={16} />
-                      Importar Excel
-                    </button>
-                  </div>
-
-                  {excelError && (
-                    <div className="mt-4 flex items-start gap-2 p-3 rounded bg-red-50 border border-red-200">
-                      <AlertCircle size={16} className="text-red-600 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-red-800">{excelError}</p>
-                    </div>
-                  )}
-
-                  {excelWarning && (
-                    <div className="mt-4 flex items-start gap-2 p-3 rounded bg-amber-50 border border-amber-200">
-                      <AlertCircle size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-amber-800">{excelWarning}</p>
-                    </div>
-                  )}
-
-                  {isExcelImported && !excelError && (
-                    <div className="mt-4 p-3 rounded bg-green-50 border border-green-200">
-                      <p className="text-sm font-medium text-green-800">
-                        ✓ Datos importados desde plantilla Excel. Revise la información antes de crear el cliente.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
             </FormCard>
 
             <FormCard
-              title={isSiClientSelected ? "Datos del Sistema Integral" : "Datos del Cliente"}
+              title="Datos del Sistema Integral"
               icon="👤"
               color="#00395A"
               required
             >
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormInput
-                  label="Razón Social *"
+                  label="Nombre de Cliente"
                   value={form.businessName}
-                  onChange={(v) => updateField("businessName", v)}
-                  onBlur={() => markFieldAsTouched("businessName")}
-                  error={shouldShowFieldError("businessName") ? validationErrors.businessName : ""}
-                  placeholder="Ej. Empresa S.A.C."
-                  disabled={isSiClientSelected}
+                  disabled
+                  placeholder="Importado desde Sistema Integral"
                 />
 
                 <FormInput
-                  label="Correo Corporativo *"
+                  label="Correo empresa"
                   value={form.email}
-                  onChange={(v) => updateField("email", v)}
-                  onBlur={() => markFieldAsTouched("email")}
-                  error={shouldShowFieldError("email") ? validationErrors.email : ""}
-                  placeholder="contacto@empresa.com"
+                  disabled
                   type="email"
-                  disabled={isSiClientSelected}
+                  placeholder="Importado desde Sistema Integral"
                 />
 
                 <FormInput
-                  label="Número de RUC *"
+                  label="Número de RUC"
                   value={form.ruc}
-                  onChange={(v) => updateField("ruc", v)}
-                  onBlur={() => markFieldAsTouched("ruc")}
-                  error={shouldShowFieldError("ruc") ? validationErrors.ruc : ""}
-                  placeholder="Ej. 20123456789"
-                  disabled={isSiClientSelected}
+                  disabled
+                  placeholder="Importado desde Sistema Integral"
                 />
 
                 <FormSelect
-                  label="Rubro *"
+                  label="Sector *"
                   value={form.industry}
-                  onChange={(v) => updateField("industry", v)}
-                  onBlur={() => markFieldAsTouched("industry")}
-                  error={shouldShowFieldError("industry") ? validationErrors.industry : ""}
+                  onChange={() => {}}
+                  error={validationErrors.industry ? validationErrors.industry : ""}
                   options={industryOptions}
-                  placeholder="-- Seleccione Rubro --"
+                  placeholder="-- Seleccione Sector --"
+                  disabled={!isSiClientSelected}
                 />
               </div>
 
@@ -554,7 +308,7 @@ export default function ClientCreatePage() {
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase">Origen</p>
                   <p className="text-sm font-bold text-brand-primary">
-                    {isExcelImported ? "Plantilla Excel" : isSiClientSelected ? "Sistema Integral" : "Manual"}
+                    {isSiClientSelected ? "Sistema Integral" : "Pendiente de selección"}
                   </p>
                 </div>
 
@@ -606,10 +360,7 @@ export default function ClientCreatePage() {
         <div className="sticky bottom-0 z-40 mt-6 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
           <FormActionButtons
             onCancel={() => navigate("/clients")}
-            validationErrorList={[
-              ...validationErrorList,
-              ...(excelError ? [excelError] : []),
-            ]}
+            validationErrorList={validationErrorList}
             submitAttempted={submitAttempted}
             submitLabel="Crear Cliente"
             cancelLabel="Cancelar"
