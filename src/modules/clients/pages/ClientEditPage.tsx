@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 
 import FormCard from "../../../shared/components/forms/FormCard";
@@ -10,7 +10,6 @@ import FormActionButtons from "../../../shared/components/forms/FormActionButton
 import {
   getClientByCode,
   updateClient,
-  getClientByEmail,
   type ClientStatus,
   STATUS_LABELS,
 } from "../../../shared/data/clientStorage";
@@ -29,7 +28,6 @@ export default function ClientEditPage() {
 
   const [form, setForm] = useState<ClientFormData | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof ClientFormData, boolean>>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string>("");
@@ -76,61 +74,22 @@ export default function ClientEditPage() {
     if (!form) return {};
     const errors: Partial<Record<keyof ClientFormData, string>> = {};
 
-    if (!form.businessName.trim()) errors.businessName = "Ingresa la razón social.";
-    if (!form.email.trim()) {
-      errors.email = "Ingresa el correo electrónico.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "El formato del correo no es válido.";
-    } else {
-      const existingClient = getClientByEmail(form.email);
-      const currentClient = getClientByCode(clientCode || "");
-      if (existingClient && existingClient.id !== currentClient?.id) {
-        errors.email = "Este correo ya está registrado.";
-      }
-    }
-    if (!form.ruc.trim()) errors.ruc = "Ingresa el RUC.";
     if (!form.industry.trim()) errors.industry = "Selecciona el rubro.";
 
     return errors;
-  }, [form, clientCode]);
+  }, [form]);
 
   const validationErrorList = Object.values(validationErrors).filter(Boolean) as string[];
-
-  const updateField = (field: keyof ClientFormData, value: string) => {
-    setForm((prev) => (prev ? { ...prev, [field]: value } : null));
-  };
-
-  const markFieldAsTouched = (field: keyof ClientFormData) => {
-    setTouchedFields((prev) => ({ ...prev, [field]: true }));
-  };
-
-  const shouldShowFieldError = (field: keyof ClientFormData) => {
-    return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
-  };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitAttempted(true);
 
     if (Object.keys(validationErrors).length > 0 || !form || !clientCode) {
-      const fieldsWithErrors = Object.keys(validationErrors).reduce(
-        (acc, field) => {
-          acc[field as keyof ClientFormData] = true;
-          return acc;
-        },
-        {} as Partial<Record<keyof ClientFormData, boolean>>
-      );
-      setTouchedFields((prev) => ({
-        ...prev,
-        ...fieldsWithErrors,
-      }));
       return;
     }
 
     updateClient(clientId, {
-      businessName: form.businessName,
-      email: form.email,
-      ruc: form.ruc,
       industry: form.industry,
     });
 
@@ -172,44 +131,46 @@ export default function ClientEditPage() {
 
       <form onSubmit={handleSubmit}>
         <div className="max-w-3xl mx-auto">
-          <FormCard title="Datos del Cliente" icon="??" color="#00395A" required>
+          <FormCard title="Datos del Sistema Integral" icon="👤" color="#00395A">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormInput
-                label="Raz�n Social *"
+                label="Razón Social"
                 value={form.businessName}
-                onChange={(value) => updateField("businessName", value)}
-                onBlur={() => markFieldAsTouched("businessName")}
-                error={shouldShowFieldError("businessName") ? validationErrors.businessName : ""}
-                placeholder="Ej. Empresa S.A.C."
+                disabled
+                placeholder="Importado desde Sistema Integral"
               />
 
               <FormInput
-                label="Correo Electrónico *"
+                label="Correo Electrónico"
                 value={form.email}
-                onChange={(value) => updateField("email", value)}
-                onBlur={() => markFieldAsTouched("email")}
-                error={shouldShowFieldError("email") ? validationErrors.email : ""}
-                placeholder="Ej. contacto@empresa.com"
+                disabled
+                placeholder="Importado desde Sistema Integral"
               />
 
               <FormInput
-                label="Numero de RUC *"
+                label="Numero de RUC"
                 value={form.ruc}
-                onChange={(value) => updateField("ruc", value)}
-                onBlur={() => markFieldAsTouched("ruc")}
-                error={shouldShowFieldError("ruc") ? validationErrors.ruc : ""}
-                placeholder="Ej. 20123456789"
+                disabled
+                placeholder="Importado desde Sistema Integral"
               />
 
               <FormInput
                 label="Sector *"
                 value={form.industry}
-                onChange={(value) => updateField("industry", value)}
-                onBlur={() => markFieldAsTouched("industry")}
-                error={shouldShowFieldError("industry") ? validationErrors.industry : ""}
-                placeholder="Ej. Distribuci�n, Manufactura, etc."
+                onChange={(value) => setForm((prev) => (prev ? { ...prev, industry: value } : null))}
+                error={validationErrors.industry ? validationErrors.industry : ""}
+                placeholder="Seleccione sector"
               />
             </div>
+
+            {form && (
+              <div className="mt-4 p-3 rounded-lg bg-blue-50 border border-blue-200 flex gap-2">
+                <AlertCircle size={18} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-blue-800">
+                  Los campos provenientes del Sistema Integral están bloqueados y no pueden editarse.
+                </p>
+              </div>
+            )}
           </FormCard>
         </div>
 
