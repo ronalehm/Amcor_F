@@ -34,7 +34,6 @@ export type User = {
   status: UserStatus;
   workerCode: string;
   position: string;
-  company: string;
   area?: string;
   phone?: string;
   siUserId?: string;
@@ -61,7 +60,6 @@ const AREA_USERS: User[] = [
     status: "active",
     workerCode: "GEN-ADMIN",
     position: "Administrador del Portal",
-    company: "Amcor",
     area: "Sistema",
     createdAt: SEED_DATE,
     updatedAt: SEED_DATE,
@@ -78,7 +76,6 @@ const AREA_USERS: User[] = [
     status: "active",
     workerCode: "GEN-COMERCIAL",
     position: "Ejecutivo Comercial",
-    company: "Amcor",
     area: "Comercial",
     createdAt: SEED_DATE,
     updatedAt: SEED_DATE,
@@ -95,7 +92,6 @@ const AREA_USERS: User[] = [
     status: "active",
     workerCode: "GEN-ARTES",
     position: "Validador Artes Gráficas",
-    company: "Amcor",
     area: "Artes Gráficas",
     createdAt: SEED_DATE,
     updatedAt: SEED_DATE,
@@ -112,7 +108,6 @@ const AREA_USERS: User[] = [
     status: "active",
     workerCode: "GEN-RD",
     position: "Validador R&D",
-    company: "Amcor",
     area: "R&D",
     createdAt: SEED_DATE,
     updatedAt: SEED_DATE,
@@ -129,7 +124,6 @@ const AREA_USERS: User[] = [
     status: "active",
     workerCode: "GEN-FINANCE",
     position: "Commercial Finance",
-    company: "Amcor",
     area: "Commercial Finance",
     createdAt: SEED_DATE,
     updatedAt: SEED_DATE,
@@ -146,7 +140,6 @@ const AREA_USERS: User[] = [
     status: "active",
     workerCode: "GEN-SUPPLY",
     position: "Supply",
-    company: "Amcor",
     area: "Supply",
     createdAt: SEED_DATE,
     updatedAt: SEED_DATE,
@@ -163,7 +156,6 @@ const AREA_USERS: User[] = [
     status: "active",
     workerCode: "GEN-PRODUCCION",
     position: "Producción",
-    company: "Amcor",
     area: "Producción",
     createdAt: SEED_DATE,
     updatedAt: SEED_DATE,
@@ -180,7 +172,6 @@ const AREA_USERS: User[] = [
     status: "active",
     workerCode: "GEN-PLANIFICACION",
     position: "Planificación",
-    company: "Amcor",
     area: "Planificación",
     createdAt: SEED_DATE,
     updatedAt: SEED_DATE,
@@ -197,7 +188,6 @@ const AREA_USERS: User[] = [
     status: "active",
     workerCode: "GEN-CS",
     position: "Customer Service",
-    company: "Amcor",
     area: "Customer Service",
     createdAt: SEED_DATE,
     updatedAt: SEED_DATE,
@@ -214,7 +204,6 @@ const AREA_USERS: User[] = [
     status: "active",
     workerCode: "GEN-MD",
     position: "Master Data",
-    company: "Amcor",
     area: "Master Data",
     createdAt: SEED_DATE,
     updatedAt: SEED_DATE,
@@ -249,7 +238,6 @@ function buildPortalUsersFromExecutives(): User[] {
       status: "active",
       workerCode: executive.code,
       position: executive.position || "Ejecutivo Comercial",
-      company: email.includes("peruplast") ? "Peruplast" : "Amcor",
       area: "Comercial",
       createdAt: executive.createdAt || SEED_DATE,
       updatedAt: executive.updatedAt || SEED_DATE,
@@ -419,7 +407,7 @@ export function saveUserRecord(record: User): void {
 }
 
 export function createUser(
-  newUser: Partial<Pick<User, "workerCode" | "position" | "company">> &
+  newUser: Partial<Pick<User, "workerCode" | "position">> &
     Omit<
       User,
       | "id"
@@ -429,7 +417,6 @@ export function createUser(
       | "fullName"
       | "workerCode"
       | "position"
-      | "company"
     >
 ): User {
   const now = new Date().toISOString();
@@ -450,7 +437,6 @@ export function createUser(
     fullName: `${newUser.firstName} ${newUser.lastName}`.trim(),
     workerCode: newUser.workerCode || "",
     position: newUser.position || "",
-    company: newUser.company || "",
     status: newUser.status || "pending_activation",
     createdAt: now,
     updatedAt: now,
@@ -666,6 +652,19 @@ export const STATUS_COLORS: Record<UserStatus, string> = {
   pending_activation: "bg-amber-100 text-amber-700",
   pending_validation: "bg-blue-100 text-blue-700",
   blocked: "bg-red-100 text-red-700",
+};
+
+export const getUserFullName = (user: any) =>
+  user.fullName ||
+  `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+  "—";
+
+export const splitFullName = (value: string) => {
+  const parts = value.trim().split(/\s+/);
+  return {
+    firstName: parts[0] ?? "",
+    lastName: parts.slice(1).join(" "),
+  };
 };
 
 export async function saveSeedUsers(users: User[]): Promise<void> {

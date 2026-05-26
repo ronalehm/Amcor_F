@@ -6,7 +6,6 @@ import {
   getUserById,
   STATUS_LABELS,
   STATUS_COLORS,
-  ROLE_LABELS,
   getCurrentUser,
   activateUser,
   deactivateUser,
@@ -269,11 +268,11 @@ export default function UserDetailPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Cod. Trabajador</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Código Trabajador</p>
                   <p className="text-sm font-medium text-slate-900">{user.workerCode}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Nombre Completo</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Nombre</p>
                   <p className="text-sm font-medium text-slate-900">
                     {user.firstName} {user.lastName}
                   </p>
@@ -282,88 +281,31 @@ export default function UserDetailPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Correo</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Correo Corporativo</p>
                   <p className="text-sm font-medium text-slate-900">{user.email}</p>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Puesto</p>
-                  <p className="text-sm font-medium text-slate-900">{user.position}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase">Área</p>
                   <p className="text-sm font-medium text-slate-900">{user.area || "—"}</p>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Empresa</p>
-                  <p className="text-sm font-medium text-slate-900">{user.company}</p>
-                </div>
-              </div>
-            </div>
-          </FormCard>
-
-          <FormCard title="Cuenta y Rol" icon="🔐" color="#7E3FB2">
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Código Sistema</p>
-                  <p className="text-sm font-medium text-slate-900">{user.code}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Rol</p>
-                  <p className="text-sm font-medium text-slate-900">{ROLE_LABELS[user.role]}</p>
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Último Acceso</p>
-                  <p className="text-sm font-medium text-slate-900">
-                    {user.lastLoginAt
-                      ? new Date(user.lastLoginAt).toLocaleDateString("es-PE", {
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                        })
-                      : "Nunca"}
-                  </p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Puesto</p>
+                  <p className="text-sm font-medium text-slate-900">{user.position}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Fecha Registro</p>
-                  <p className="text-sm font-medium text-slate-900">
-                    {new Date(user.createdAt).toLocaleDateString("es-PE", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                    })}
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Estado</p>
+                  <p className="text-sm font-medium">
+                    <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${statusColor}`}>
+                      {STATUS_LABELS[user.status]}
+                    </span>
                   </p>
                 </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-100">
-                <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${statusColor}`}>
-                  {STATUS_LABELS[user.status]}
-                </span>
               </div>
             </div>
           </FormCard>
-
-          {user.siUserId && (
-            <FormCard title="Sistema Integral" icon="🔗" color="#0D9488">
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Cód. SI</p>
-                  <p className="text-sm font-medium text-slate-900">{user.siUserCode || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">ID SI</p>
-                  <p className="text-sm font-medium text-slate-900">{user.siUserId}</p>
-                </div>
-              </div>
-            </FormCard>
-          )}
 
           {statusHistory.length > 0 && (
             <FormCard title="Historial de Cambios" icon="📋" color="#EA580C">

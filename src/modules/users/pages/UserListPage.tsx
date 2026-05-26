@@ -20,8 +20,6 @@ import {
   getAllUsers,
   type User,
   type UserStatus,
-  ROLE_LABELS,
-  ROLE_COLORS,
   STATUS_LABELS,
   STATUS_COLORS,
 } from "../../../shared/data/userStorage";
@@ -34,14 +32,12 @@ type UserTab = "all" | UserStatus;
 type SortDirection = "asc" | "desc";
 
 type SortKey =
-  | "code"
+  | "workerCode"
   | "fullName"
   | "email"
-  | "role"
+  | "position"
   | "area"
-  | "status"
-  | "lastLoginAt"
-  | "createdAt";
+  | "status";
 
 const getText = (...values: any[]) => {
   const value = values.find(
@@ -92,8 +88,8 @@ const getLastLoginLabel = (user: User) => {
 
 const getSortValue = (user: User, key: SortKey): string | number => {
   switch (key) {
-    case "code":
-      return getText(user.code).toLowerCase();
+    case "workerCode":
+      return getText(user.workerCode || user.code).toLowerCase();
 
     case "fullName":
       return getUserFullName(user).toLowerCase();
@@ -101,33 +97,14 @@ const getSortValue = (user: User, key: SortKey): string | number => {
     case "email":
       return getText(user.email).toLowerCase();
 
-    case "role":
-      return getText(ROLE_LABELS[user.role], user.role).toLowerCase();
+    case "position":
+      return getText(user.position || getUserExtraField(user, "position", "puesto")).toLowerCase();
 
     case "area":
       return getText(user.area).toLowerCase();
 
     case "status":
       return STATUS_LABELS[getUserStatus(user)].toLowerCase();
-
-    case "lastLoginAt": {
-      const time = user.lastLoginAt ? new Date(user.lastLoginAt).getTime() : 0;
-      return Number.isNaN(time) ? 0 : time;
-    }
-
-    case "createdAt": {
-      const createdAt = getUserExtraField(
-        user,
-        "createdAt",
-        "createdDate",
-        "fechaCreacion",
-        "fecha_creacion",
-      );
-
-      const time = createdAt ? new Date(createdAt).getTime() : 0;
-
-      return Number.isNaN(time) ? 0 : time;
-    }
 
     default:
       return "";
@@ -141,7 +118,6 @@ export default function UserListPage() {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<UserTab>("all");
 
-  const [roleFilter, setRoleFilter] = useState<string>("");
   const [areaFilter, setAreaFilter] = useState<string>("");
 
   const [pageSize, setPageSize] = useState(25);
@@ -151,8 +127,8 @@ export default function UserListPage() {
     key: SortKey;
     direction: SortDirection;
   }>({
-    key: "createdAt",
-    direction: "desc",
+    key: "workerCode",
+    direction: "asc",
   });
 
   useEffect(() => {
@@ -191,15 +167,6 @@ export default function UserListPage() {
     [users],
   );
 
-  const roleOptions = useMemo(
-    () =>
-      Object.entries(ROLE_LABELS).map(([value, label]) => ({
-        value,
-        label,
-      })),
-    [],
-  );
-
   const areaOptions = useMemo(() => {
     const areas = new Set(users.map((user) => getText(user.area)).filter(Boolean));
 
@@ -211,28 +178,17 @@ export default function UserListPage() {
 
     const filtered = users.filter((user) => {
       const userStatus = getUserStatus(user);
-      const roleLabel = getText(ROLE_LABELS[user.role], user.role);
       const statusLabel = STATUS_LABELS[userStatus];
-
-      const createdAt = getUserExtraField(
-        user,
-        "createdAt",
-        "createdDate",
-        "fechaCreacion",
-        "fecha_creacion",
-      );
+      const workerCode = getText(user.workerCode || user.code);
+      const position = getText(user.position || getUserExtraField(user, "position", "puesto"));
 
       const searchableText = [
-        user.code,
+        workerCode,
+        getUserFullName(user),
         user.email,
-        user.firstName,
-        user.lastName,
-        user.fullName,
-        user.phone,
+        position,
         user.area,
-        roleLabel,
         statusLabel,
-        createdAt,
       ]
         .filter(Boolean)
         .join(" ")
@@ -240,10 +196,9 @@ export default function UserListPage() {
 
       const matchesSearch = !search || searchableText.includes(search);
       const matchesTab = activeTab === "all" || userStatus === activeTab;
-      const matchesRole = !roleFilter || user.role === roleFilter;
       const matchesArea = !areaFilter || user.area === areaFilter;
 
-      return matchesSearch && matchesTab && matchesRole && matchesArea;
+      return matchesSearch && matchesTab && matchesArea;
     });
 
     return [...filtered].sort((a, b) => {
@@ -263,7 +218,7 @@ export default function UserListPage() {
 
       return sortConfig.direction === "asc" ? result : result * -1;
     });
-  }, [users, query, activeTab, roleFilter, areaFilter, sortConfig]);
+  }, [users, query, activeTab, areaFilter, sortConfig]);
 
   const totalRecords = filteredUsers.length;
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
@@ -277,7 +232,7 @@ export default function UserListPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [query, activeTab, roleFilter, areaFilter, pageSize]);
+  }, [query, activeTab, areaFilter, pageSize]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -288,11 +243,10 @@ export default function UserListPage() {
   const clearFilters = () => {
     setQuery("");
     setActiveTab("all");
-    setRoleFilter("");
     setAreaFilter("");
     setPageSize(25);
     setCurrentPage(1);
-    setSortConfig({ key: "createdAt", direction: "desc" });
+    setSortConfig({ key: "workerCode", direction: "asc" });
   };
 
   const requestSort = (key: SortKey) => {
@@ -306,7 +260,7 @@ export default function UserListPage() {
 
       return {
         key,
-        direction: key === "createdAt" || key === "lastLoginAt" ? "desc" : "asc",
+        direction: "asc",
       };
     });
   };
@@ -520,7 +474,7 @@ export default function UserListPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 px-5 py-4 xl:grid-cols-[2.4fr_0.9fr_0.9fr_auto]">
+        <div className="grid grid-cols-1 gap-4 px-5 py-4 xl:grid-cols-[2.4fr_0.9fr_auto]">
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
               Buscar
@@ -535,30 +489,10 @@ export default function UserListPage() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar por nombre, email, código, rol o área..."
+                placeholder="Buscar por nombre, email, código, puesto o área..."
                 className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-              Rol
-            </label>
-
-            <select
-              value={roleFilter}
-              onChange={(event) => setRoleFilter(event.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm transition-colors focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
-            >
-              <option value="">Todos los roles</option>
-
-              {roleOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div>
@@ -604,13 +538,13 @@ export default function UserListPage() {
           <table className={tableStyles.table}>
             <thead>
               <tr className={tableStyles.headerRow}>
-                <SortableHeader label="Código" sortKey="code" />
-                <SortableHeader label="Usuario" sortKey="fullName" />
-                <SortableHeader label="Email" sortKey="email" />
-                <SortableHeader label="Rol" sortKey="role" />
+                <th className={tableStyles.headerCell}>N°</th>
+                <SortableHeader label="Código Trabajador" sortKey="workerCode" />
+                <SortableHeader label="Nombre" sortKey="fullName" />
+                <SortableHeader label="Correo Corporativo" sortKey="email" />
                 <SortableHeader label="Área" sortKey="area" />
+                <SortableHeader label="Puesto" sortKey="position" />
                 <SortableHeader label="Estado" sortKey="status" />
-                <SortableHeader label="Último acceso" sortKey="lastLoginAt" />
 
                 <th className={tableStyles.headerCellRight}>
                   Acciones
@@ -620,24 +554,22 @@ export default function UserListPage() {
 
             <tbody>
               {paginatedUsers.map((user, index) => {
+                const rowNumber = index + 1 + ((currentPage - 1) * pageSize);
                 return (
                   <tr
                     key={user.id}
                     className={`${tableStyles.row} ${index % 2 === 0 ? tableStyles.rowEven : tableStyles.rowOdd}`}
                   >
+                    <td className={tableStyles.cell}>
+                      {rowNumber}
+                    </td>
+
                     <td className={tableStyles.cellCode}>
-                      {user.code || "—"}
+                      {user.workerCode || user.code || "—"}
                     </td>
 
                     <td className={tableStyles.cellStrong}>
-                      <div>
-                        {getUserFullName(user)}
-                      </div>
-
-                      <div className={tableStyles.subText}>
-                        <Mail size={12} className="inline mr-1" />
-                        {user.phone || "Sin teléfono"}
-                      </div>
+                      {getUserFullName(user)}
                     </td>
 
                     <td className={tableStyles.cell}>
@@ -645,18 +577,11 @@ export default function UserListPage() {
                     </td>
 
                     <td className={tableStyles.cell}>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${
-                          ROLE_COLORS[user.role] || "bg-slate-100 text-slate-700"
-                        }`}
-                      >
-                        <ShieldCheck size={12} className="mr-1" />
-                        {ROLE_LABELS[user.role] || user.role}
-                      </span>
+                      {user.area || "—"}
                     </td>
 
                     <td className={tableStyles.cell}>
-                      {user.area || "—"}
+                      {user.position || getUserExtraField(user, "position", "puesto") || "—"}
                     </td>
 
                     <td className={tableStyles.cell}>
@@ -665,10 +590,6 @@ export default function UserListPage() {
                       >
                         {STATUS_LABELS[user.status]}
                       </span>
-                    </td>
-
-                    <td className={tableStyles.cell}>
-                      {getLastLoginLabel(user)}
                     </td>
 
                     <td className={tableStyles.actions}>
