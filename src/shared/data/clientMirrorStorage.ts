@@ -5,6 +5,7 @@ export type ClientMirror = {
   nombreComercial?: string;
   ruc: string;
   email?: string;
+  sector: string;
   status: "Activo" | "Inactivo";
 };
 
@@ -16,6 +17,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Alicorp",
     ruc: "20100055237",
     email: "contacto@alicorp.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -25,6 +27,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Kimberly-Clark",
     ruc: "20100152941",
     email: "contacto@kimberly-clark.com",
+    sector: "Cuidado personal",
     status: "Activo",
   },
   {
@@ -34,6 +37,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Gloria",
     ruc: "20100190797",
     email: "contacto@gloria.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -43,6 +47,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Nestlé",
     ruc: "20100028698",
     email: "a.vega@pe.nestle.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -52,6 +57,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Inka Crops",
     ruc: "20510893793",
     email: "f.lopez@inkachips.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -61,6 +67,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Intradevco",
     ruc: "20295567934",
     email: "l.vargas@intradevco.com",
+    sector: "Manufactura",
     status: "Activo",
   },
   {
@@ -70,6 +77,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "P&G",
     ruc: "20100132592",
     email: "herrera.s@pg.com",
+    sector: "Consumo masivo",
     status: "Activo",
   },
   {
@@ -79,6 +87,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Unacem",
     ruc: "20100137390",
     email: "m.sanchez@unacem.com.pe",
+    sector: "Manufactura",
     status: "Activo",
   },
   {
@@ -88,6 +97,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Haleon",
     ruc: "20100148712",
     email: "c.rios@haleon.com",
+    sector: "Cuidado personal",
     status: "Activo",
   },
   {
@@ -97,6 +107,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Rinti",
     ruc: "20100175182",
     email: "d.paredes@rinti.com.pe",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -106,6 +117,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Agroindustrias del Norte",
     ruc: "20604589123",
     email: "m.salazar@agronorte.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -115,6 +127,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Café Andino",
     ruc: "20547896321",
     email: "j.huaman@cafeandino.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -124,6 +137,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Snacks Peruanos",
     ruc: "20601987452",
     email: "c.medina@snacksperuanos.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -133,6 +147,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Salsas del Pacífico",
     ruc: "20563214789",
     email: "g.paredes@salsaspacifico.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -142,6 +157,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "NutriPet Foods",
     ruc: "20607894561",
     email: "v.castillo@nutripetfoods.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -151,6 +167,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Lácteos Andinos",
     ruc: "20598741236",
     email: "r.cardenas@lacteosandinos.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -160,6 +177,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Cuidado Hogar",
     ruc: "20601478523",
     email: "p.gomez@cuidadohogar.pe",
+    sector: "Cuidado personal",
     status: "Activo",
   },
   {
@@ -169,6 +187,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Belleza Natural",
     ruc: "20574125896",
     email: "d.reyes@bellezanatural.com",
+    sector: "Cuidado personal",
     status: "Activo",
   },
   {
@@ -178,6 +197,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Congelados del Sur",
     ruc: "20603258974",
     email: "h.flores@congeladossur.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
   {
@@ -187,6 +207,7 @@ const CLIENTS_MIRROR: ClientMirror[] = [
     nombreComercial: "Cereales y Granos",
     ruc: "20536987412",
     email: "l.vargas@cerealesperu.com",
+    sector: "Alimentos y bebidas",
     status: "Activo",
   },
 ];

@@ -13,13 +13,11 @@ import { type ClientMirror } from "../../../shared/data/clientMirrorStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
-import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import SystemIntegrationClientSearch from "../../../shared/components/forms/SystemIntegrationClientSearch";
 import ClientDuplicateHandler from "../../../shared/components/forms/ClientDuplicateHandler";
 
 const RECENT_NEW_CLIENT_KEY = "odiseo_recent_new_client";
-const INDUSTRIES = ["Distribución", "Manufactura", "Consumo masivo", "Cuidado personal", "Alimentos y bebidas", "Retail"];
 
 interface FormState {
   siClient: ClientMirror | null;
@@ -73,7 +71,7 @@ export default function ClientCreatePage() {
       ruc: client.ruc,
       email: client.email || "",
       businessName: client.razonSocial,
-      industry: "",
+      industry: client.sector,
     }));
     setSearchQuery("");
   };
@@ -85,23 +83,13 @@ export default function ClientCreatePage() {
 
     if (!form.siClient) {
       errors.siClient = "Selecciona un cliente válido del Sistema Integral.";
-      return errors;
-    }
-
-    if (!form.industry.trim()) {
-      errors.industry = "Selecciona el rubro.";
     }
 
     return errors;
   }, [form]);
 
   const completionPercentage = useMemo(() => {
-    const requiredChecks = [
-      Boolean(form.siClient),
-      Boolean(form.industry.trim()),
-    ];
-    const completed = requiredChecks.filter(Boolean).length;
-    return Math.round((completed / requiredChecks.length) * 100);
+    return form.siClient ? 100 : 0;
   }, [form]);
 
   const validationErrorList = Object.values(validationErrors).filter(
@@ -163,11 +151,6 @@ export default function ClientCreatePage() {
       setLoading(false);
     }
   };
-
-  const industryOptions = INDUSTRIES.map((industry) => ({
-    value: industry,
-    label: industry,
-  }));
 
   if (successMessage) {
     return (
@@ -269,14 +252,11 @@ export default function ClientCreatePage() {
                   placeholder="Importado desde Sistema Integral"
                 />
 
-                <FormSelect
+                <FormInput
                   label="Sector *"
                   value={form.industry}
-                  onChange={() => {}}
-                  error={validationErrors.industry ? validationErrors.industry : ""}
-                  options={industryOptions}
-                  placeholder="-- Seleccione Sector --"
-                  disabled={!isSiClientSelected}
+                  disabled
+                  placeholder="Importado desde Sistema Integral"
                 />
               </div>
 

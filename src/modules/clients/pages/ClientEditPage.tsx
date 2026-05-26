@@ -10,8 +10,6 @@ import FormActionButtons from "../../../shared/components/forms/FormActionButton
 import {
   getClientByCode,
   updateClient,
-  type ClientStatus,
-  STATUS_LABELS,
 } from "../../../shared/data/clientStorage";
 
 type ClientFormData = {
@@ -71,12 +69,7 @@ export default function ClientEditPage() {
   }, [clientCode, loading, setHeader, resetHeader]);
 
   const validationErrors = useMemo(() => {
-    if (!form) return {};
-    const errors: Partial<Record<keyof ClientFormData, string>> = {};
-
-    if (!form.industry.trim()) errors.industry = "Selecciona el rubro.";
-
-    return errors;
+    return {};
   }, [form]);
 
   const validationErrorList = Object.values(validationErrors).filter(Boolean) as string[];
@@ -157,9 +150,8 @@ export default function ClientEditPage() {
               <FormInput
                 label="Sector *"
                 value={form.industry}
-                onChange={(value) => setForm((prev) => (prev ? { ...prev, industry: value } : null))}
-                error={validationErrors.industry ? validationErrors.industry : ""}
-                placeholder="Seleccione sector"
+                disabled
+                placeholder="Importado desde Sistema Integral"
               />
             </div>
 
