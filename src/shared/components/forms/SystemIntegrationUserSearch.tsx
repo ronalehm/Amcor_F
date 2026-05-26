@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, AlertCircle } from "lucide-react";
 import { searchSistemaIntegralUsers, type VendorMirror } from "../../data/vendorMirrorStorage";
+import { getUserByEmail } from "../../data/userStorage";
 
 interface SystemIntegrationUserSearchProps {
   onSelect: (vendor: VendorMirror) => void;
@@ -131,37 +132,40 @@ export default function SystemIntegrationUserSearch({
 
       {isOpen && value && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg max-h-64 overflow-y-auto">
-          {results.map((vendor, index) => (
-            <button
-              key={vendor.id}
-              type="button"
-              onClick={() => handleSelectResult(vendor)}
-              onMouseEnter={() => setSelectedIndex(index)}
-              className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-0 transition-colors ${
-                index === selectedIndex ? "bg-brand-secondary-soft" : "hover:bg-slate-50"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 text-sm">{vendor.code}</p>
-                  <p className="text-sm text-slate-600">{vendor.name}</p>
-                  <div className="flex gap-4 mt-1 text-xs text-slate-500">
-                    <span>{vendor.email || "Sin email"}</span>
-                    <span>{vendor.area}</span>
+          {results.map((vendor, index) => {
+            const existsInOdiseo = vendor.email ? !!getUserByEmail(vendor.email) : false;
+            return (
+              <button
+                key={vendor.id}
+                type="button"
+                onClick={() => !existsInOdiseo && handleSelectResult(vendor)}
+                onMouseEnter={() => setSelectedIndex(index)}
+                className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-0 transition-colors ${
+                  index === selectedIndex ? "bg-brand-secondary-soft" : "hover:bg-slate-50"
+                } ${existsInOdiseo ? "opacity-60 cursor-not-allowed" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-slate-900 text-sm">{vendor.code}</p>
+                    <p className="text-sm text-slate-600">{vendor.name}</p>
+                    <div className="flex gap-4 mt-1 text-xs text-slate-500">
+                      <span>{vendor.email || "Sin email"}</span>
+                      <span>{vendor.area}</span>
+                    </div>
                   </div>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
+                      existsInOdiseo
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-green-100 text-green-700"
+                    }`}
+                  >
+                    {existsInOdiseo ? "Existe en ODISEO" : "Disponible para registrar"}
+                  </span>
                 </div>
-                <span
-                  className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
-                    vendor.status === "Activo"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {vendor.status}
-                </span>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
 

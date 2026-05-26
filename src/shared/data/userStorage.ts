@@ -553,11 +553,15 @@ export function getUserByWorkerCode(workerCode: string): User | undefined {
 export function findDuplicateUser(
   email: string,
   workerCode?: string,
+  siUserId?: string,
+  siUserCode?: string,
   excludeUserId?: string
 ): User | undefined {
   const allUsers = getAllUsers();
   const normalizedEmail = normalizeEmail(email);
   const normalizedWorkerCode = workerCode ? workerCode.trim().toLowerCase() : undefined;
+  const normalizedSiUserId = siUserId?.trim();
+  const normalizedSiUserCode = siUserCode ? siUserCode.trim().toLowerCase() : undefined;
 
   return allUsers.find((user) => {
     if (excludeUserId && user.id === excludeUserId) {
@@ -568,7 +572,11 @@ export function findDuplicateUser(
     const workerCodeMatch = normalizedWorkerCode
       ? user.workerCode?.toLowerCase() === normalizedWorkerCode
       : false;
-    return emailMatch || workerCodeMatch;
+    const siUserIdMatch = normalizedSiUserId ? user.siUserId === normalizedSiUserId : false;
+    const siUserCodeMatch = normalizedSiUserCode
+      ? user.siUserCode?.toLowerCase() === normalizedSiUserCode
+      : false;
+    return emailMatch || workerCodeMatch || siUserIdMatch || siUserCodeMatch;
   });
 }
 

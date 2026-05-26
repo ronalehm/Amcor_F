@@ -9,8 +9,6 @@ import {
   getNextUserCode,
   findDuplicateUser,
   getCurrentUser,
-  STATUS_LABELS,
-  STATUS_COLORS,
 } from "../../../shared/data/userStorage";
 import { registerUserStatusChange } from "../../../shared/data/userStatusStorage";
 import { mockSendEmail } from "../../../shared/data/notificationStorage";
@@ -29,6 +27,7 @@ interface FormState {
   workerCode: string;
   position: string;
   area: string;
+  role: string;
   siUserId?: string;
   siUserCode?: string;
 }
@@ -44,6 +43,7 @@ export default function UserCreatePage() {
     workerCode: "",
     position: "",
     area: "",
+    role: "",
   });
 
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -70,10 +70,10 @@ export default function UserCreatePage() {
 
   useEffect(() => {
     setHeader({
-      title: "Crear Nuevo Usuario",
+      title: "Registrar Acceso ODISEO",
       breadcrumbs: [
         { label: "Usuarios", href: "/users" },
-        { label: "Crear Usuario" },
+        { label: "Registrar Acceso" },
       ],
       badges: (
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
@@ -101,6 +101,10 @@ export default function UserCreatePage() {
   const validationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
 
+    if (!form.siUserId) {
+      errors.siUserId = "Selecciona un usuario válido del Sistema Integral.";
+    }
+
     if (!form.workerCode.trim()) {
       errors.workerCode = "Ingresa el código de trabajador.";
     }
@@ -123,16 +127,22 @@ export default function UserCreatePage() {
       errors.area = "Selecciona el área.";
     }
 
+    if (!form.role) {
+      errors.role = "Selecciona el Rol ODISEO que tendrá el usuario dentro del portal.";
+    }
+
     return errors;
   }, [form]);
 
   const completionPercentage = useMemo(() => {
     const requiredChecks = [
+      Boolean(form.siUserId),
       Boolean(form.workerCode.trim()),
       Boolean(form.fullName.trim()),
       Boolean(form.email.trim()),
       Boolean(form.position.trim()),
       Boolean(form.area),
+      Boolean(form.role),
     ];
     const completed = requiredChecks.filter(Boolean).length;
     return Math.round((completed / requiredChecks.length) * 100);
@@ -165,7 +175,12 @@ export default function UserCreatePage() {
 
     setLoading(true);
     try {
-      const duplicate = findDuplicateUser(form.email.trim(), form.workerCode.trim());
+      const duplicate = findDuplicateUser(
+        form.email.trim(),
+        form.workerCode.trim(),
+        form.siUserId,
+        form.siUserCode
+      );
 
       if (duplicate) {
         setDuplicateMessage(
@@ -183,9 +198,11 @@ export default function UserCreatePage() {
         fullName: form.fullName,
         workerCode: form.workerCode,
         position: form.position,
-        role: "operador",
+        role: form.role as any,
         status: "pending_activation",
         area: form.area || undefined,
+        siUserId: form.siUserId,
+        siUserCode: form.siUserCode,
       });
 
       registerUserStatusChange(
@@ -319,7 +336,7 @@ export default function UserCreatePage() {
                   />
                 </div>
 
-                {/* Fila 3: Área, Estado */}
+                {/* Fila 3: Área, Rol ODISEO */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormSelect
                     label="Área *"
@@ -334,15 +351,31 @@ export default function UserCreatePage() {
                     placeholder="-- Seleccione Área --"
                   />
 
-                  <div>
-                    <p className="text-sm font-medium text-slate-700 mb-2">Estado</p>
-                    <div className="flex items-center">
-                      <span className="inline-block rounded-full px-3 py-1 text-xs font-bold bg-amber-100 text-amber-700">
-                        Pendiente de activación
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">El usuario será creado en este estado.</p>
+                  <FormSelect
+                    label="Rol ODISEO *"
+                    value={form.role}
+                    onChange={(v) => updateField("role", v)}
+                    onBlur={() => markFieldAsTouched("role")}
+                    error={shouldShowFieldError("role") ? validationErrors.role : ""}
+                    options={[
+                      { value: "operador", label: "Operador" },
+                      { value: "validador", label: "Validador" },
+                      { value: "supervisor", label: "Supervisor" },
+                      { value: "administrador", label: "Administrador" },
+                    ]}
+                    placeholder="-- Seleccione Rol ODISEO --"
+                  />
+                </div>
+
+                {/* Fila 4: Estado */}
+                <div>
+                  <p className="text-sm font-medium text-slate-700 mb-2">Estado</p>
+                  <div className="flex items-center">
+                    <span className="inline-block rounded-full px-3 py-1 text-xs font-bold bg-amber-100 text-amber-700">
+                      Pendiente de activación
+                    </span>
                   </div>
+                  <p className="text-xs text-slate-500 mt-1">El usuario será creado en este estado.</p>
                 </div>
               </div>
             </FormCard>
@@ -354,7 +387,7 @@ export default function UserCreatePage() {
                 <div className="text-xs font-bold uppercase tracking-wide text-white/75">
                   Resumen
                 </div>
-                <div className="mt-2 text-lg font-extrabold">Nuevo Usuario</div>
+                <div className="mt-2 text-lg font-extrabold">Registro de Acceso</div>
               </div>
               <div className="p-5 space-y-4">
                 <div>
@@ -384,9 +417,12 @@ export default function UserCreatePage() {
 
                 <div className="border-t border-slate-100 pt-4">
                   <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
-                    6 Campos Requeridos
+                    7 Campos Requeridos
                   </p>
                   <ul className="text-sm space-y-1">
+                    <li className={form.siUserId ? "text-green-600" : "text-slate-400"}>
+                      {form.siUserId ? "✓" : "○"} Usuario Sistema Integral
+                    </li>
                     <li className={form.workerCode ? "text-green-600" : "text-slate-400"}>
                       {form.workerCode ? "✓" : "○"} Código Trabajador
                     </li>
@@ -402,8 +438,8 @@ export default function UserCreatePage() {
                     <li className={form.area ? "text-green-600" : "text-slate-400"}>
                       {form.area ? "✓" : "○"} Área
                     </li>
-                    <li className="text-green-600">
-                      ✓ Estado
+                    <li className={form.role ? "text-green-600" : "text-slate-400"}>
+                      {form.role ? "✓" : "○"} Rol ODISEO
                     </li>
                   </ul>
                 </div>
@@ -431,7 +467,7 @@ export default function UserCreatePage() {
             onCancel={() => navigate("/users")}
             validationErrorList={validationErrorList}
             submitAttempted={submitAttempted}
-            submitLabel="Crear Usuario"
+            submitLabel="Registrar Acceso"
             cancelLabel="Cancelar"
             isLoading={loading}
             validationTitle="Faltan campos obligatorios."

@@ -229,66 +229,50 @@ export default function UserEditPage() {
                 placeholder="Buscar usuario del Sistema Integral..."
               />
 
-              {/* Fila 1: Código Trabajador, Nombre */}
+              {/* Fila 1: Código Trabajador, Nombre (Read-only) */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormInput
-                  label="Código Trabajador *"
+                  label="Código Trabajador"
                   value={form.workerCode}
-                  onChange={(value) => updateField("workerCode", value)}
-                  onBlur={() => markFieldAsTouched("workerCode")}
-                  error={shouldShowFieldError("workerCode") ? validationErrors.workerCode : ""}
+                  disabled
                   placeholder="Ej. EMP-001"
                 />
 
                 <FormInput
-                  label="Nombre *"
+                  label="Nombre"
                   value={form.fullName}
-                  onChange={(value) => updateField("fullName", value)}
-                  onBlur={() => markFieldAsTouched("fullName")}
-                  error={shouldShowFieldError("fullName") ? validationErrors.fullName : ""}
+                  disabled
                   placeholder="Ej. Juan Pérez"
                 />
               </div>
 
-              {/* Fila 2: Correo Corporativo, Puesto */}
+              {/* Fila 2: Correo Corporativo, Puesto (Read-only) */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormInput
-                  label="Correo Corporativo *"
+                  label="Correo Corporativo"
                   value={form.email}
-                  onChange={(value) => updateField("email", value)}
-                  onBlur={() => markFieldAsTouched("email")}
-                  error={shouldShowFieldError("email") ? validationErrors.email : ""}
+                  disabled
                   placeholder="Ej. juan.perez@amcor.com"
                   type="email"
                 />
 
                 <FormSelect
-                  label="Puesto *"
+                  label="Puesto"
                   value={form.position}
-                  onChange={(value) => {
-                    updateField("position", value);
-                    markFieldAsTouched("position");
-                  }}
-                  onBlur={() => markFieldAsTouched("position")}
-                  error={shouldShowFieldError("position") ? validationErrors.position : ""}
+                  onChange={() => {}}
+                  disabled
                   options={positionOptions}
                   placeholder="-- Seleccione Puesto --"
-                  disabled={!form.area}
                 />
               </div>
 
-              {/* Fila 3: Área, Estado */}
+              {/* Fila 3: Área (Read-only) */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormSelect
-                  label="Área *"
+                  label="Área"
                   value={form.area}
-                  onChange={(value) => {
-                    updateField("area", value);
-                    updateField("position", "");
-                    markFieldAsTouched("area");
-                  }}
-                  onBlur={() => markFieldAsTouched("area")}
-                  error={shouldShowFieldError("area") ? validationErrors.area : ""}
+                  onChange={() => {}}
+                  disabled
                   options={areaOptions}
                   placeholder="-- Seleccione Área --"
                 />
