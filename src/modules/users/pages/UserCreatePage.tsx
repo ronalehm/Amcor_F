@@ -7,8 +7,6 @@ import {
   getNextUserCode,
   findDuplicateUser,
   getCurrentUser,
-  activateUser,
-  unblockUser,
   STATUS_LABELS,
   STATUS_COLORS,
 } from "../../../shared/data/userStorage";
@@ -21,7 +19,6 @@ import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import SystemIntegrationUserSearch from "../../../shared/components/forms/SystemIntegrationUserSearch";
-import UserDuplicateHandler from "../../../shared/components/forms/UserDuplicateHandler";
 import { type VendorMirror } from "../../../shared/data/vendorMirrorStorage";
 
 interface FormState {
@@ -49,7 +46,6 @@ export default function UserCreatePage() {
 
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof FormState, boolean>>>({});
-  const [duplicateUser, setDuplicateUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -143,88 +139,6 @@ export default function UserCreatePage() {
     (error): error is string => Boolean(error)
   );
 
-  const handleResendActivation = async () => {
-    if (!duplicateUser) return;
-    setLoading(true);
-
-    try {
-      mockSendEmail(
-        duplicateUser.email,
-        "Reenvío de Activación - ODISEO",
-        `Hola ${duplicateUser.fullName.split(" ")[0]},\n\nTe reenviamos el correo de activación de tu cuenta en ODISEO.\n\nEquipo ODISEO`,
-        duplicateUser.id,
-        "activation"
-      );
-
-      setSuccessMessage("Correo de activación reenviado correctamente.");
-      setTimeout(() => navigate("/users"), 2000);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReactivateUser = async () => {
-    if (!duplicateUser) return;
-
-    const confirmed = window.confirm(
-      `¿Reactivar usuario ${duplicateUser.fullName}?`
-    );
-    if (!confirmed) return;
-
-    setLoading(true);
-    try {
-      // Cambiar estado a pending_activation
-
-      registerUserStatusChange(
-        duplicateUser.id,
-        duplicateUser.status,
-        "pending_activation",
-        currentUser?.id || "system",
-        "Usuario reactivado desde formulario de creación"
-      );
-
-      mockSendEmail(
-        duplicateUser.email,
-        "Reactivación de Cuenta - ODISEO",
-        `Hola ${duplicateUser.fullName.split(" ")[0]},\n\nTu cuenta ha sido reactivada. Por favor completa el proceso de activación.\n\nEquipo ODISEO`,
-        duplicateUser.id,
-        "reactivation"
-      );
-
-      setSuccessMessage("Usuario reactivado correctamente. Se envió correo de activación.");
-      setTimeout(() => navigate("/users"), 2000);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUnblockUser = async () => {
-    if (!duplicateUser) return;
-
-    const confirmed = window.confirm(
-      `¿Desbloquear usuario ${duplicateUser.fullName}?`
-    );
-    if (!confirmed) return;
-
-    setLoading(true);
-    try {
-      unblockUser(duplicateUser.id);
-
-      registerUserStatusChange(
-        duplicateUser.id,
-        "blocked",
-        "active",
-        currentUser?.id || "system",
-        "Usuario desbloqueado desde formulario de creación"
-      );
-
-      setSuccessMessage("Usuario desbloqueado correctamente.");
-      setTimeout(() => navigate("/users"), 2000);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitAttempted(true);
@@ -249,7 +163,7 @@ export default function UserCreatePage() {
     try {
       const duplicate = findDuplicateUser(form.email, form.workerCode);
       if (duplicate) {
-        setDuplicateUser(duplicate);
+        navigate(`/users/${duplicate.id}/edit`);
         return;
       }
 
@@ -309,37 +223,6 @@ export default function UserCreatePage() {
           <div className="text-4xl mb-4">✓</div>
           <p className="text-lg font-bold text-green-900">{successMessage}</p>
           <p className="text-sm text-green-700 mt-2">Redirigiendo...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (duplicateUser) {
-    return (
-      <div className="w-full max-w-none bg-[#f6f8fb] p-5">
-        <div className="max-w-2xl mx-auto">
-          <button
-            type="button"
-            onClick={() => setDuplicateUser(null)}
-            className="mb-4 text-sm text-brand-primary hover:underline"
-          >
-            ← Volver al formulario
-          </button>
-
-          <UserDuplicateHandler
-            existingUser={duplicateUser}
-            loading={loading}
-            onResendActivation={
-              duplicateUser.status === "pending_activation" ? handleResendActivation : undefined
-            }
-            onReactiveUser={
-              duplicateUser.status === "inactive" ? handleReactivateUser : undefined
-            }
-            onUnblockUser={
-              duplicateUser.status === "blocked" ? handleUnblockUser : undefined
-            }
-            onViewDetails={() => navigate(`/users/${duplicateUser.id}`)}
-          />
         </div>
       </div>
     );
