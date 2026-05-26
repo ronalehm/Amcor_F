@@ -285,15 +285,15 @@ export default function UserDetailPage() {
                   <p className="text-sm font-medium text-slate-900">{user.email}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Área</p>
-                  <p className="text-sm font-medium text-slate-900">{user.area || "—"}</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Puesto</p>
+                  <p className="text-sm font-medium text-slate-900">{user.position}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Puesto</p>
-                  <p className="text-sm font-medium text-slate-900">{user.position}</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Área</p>
+                  <p className="text-sm font-medium text-slate-900">{user.area || "—"}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase">Estado</p>

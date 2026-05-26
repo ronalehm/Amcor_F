@@ -364,7 +364,7 @@ export default function UserCreatePage() {
                   />
                 </div>
 
-                {/* Fila 2: Correo Corporativo, Área */}
+                {/* Fila 2: Correo Corporativo, Puesto */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormInput
                     label="Correo Corporativo *"
@@ -377,6 +377,20 @@ export default function UserCreatePage() {
                   />
 
                   <FormSelect
+                    label="Puesto *"
+                    value={form.position}
+                    onChange={(v) => updateField("position", v)}
+                    onBlur={() => markFieldAsTouched("position")}
+                    error={shouldShowFieldError("position") ? validationErrors.position : ""}
+                    options={positionOptions}
+                    placeholder="-- Seleccione Puesto --"
+                    disabled={!form.area}
+                  />
+                </div>
+
+                {/* Fila 3: Área, Estado */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormSelect
                     label="Área *"
                     value={form.area}
                     onChange={(v) => {
@@ -387,20 +401,6 @@ export default function UserCreatePage() {
                     error={shouldShowFieldError("area") ? validationErrors.area : ""}
                     options={areaOptions}
                     placeholder="-- Seleccione Área --"
-                  />
-                </div>
-
-                {/* Fila 3: Puesto, Estado */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <FormSelect
-                    label="Puesto *"
-                    value={form.position}
-                    onChange={(v) => updateField("position", v)}
-                    onBlur={() => markFieldAsTouched("position")}
-                    error={shouldShowFieldError("position") ? validationErrors.position : ""}
-                    options={positionOptions}
-                    placeholder="-- Seleccione Puesto --"
-                    disabled={!form.area}
                   />
 
                   <div>

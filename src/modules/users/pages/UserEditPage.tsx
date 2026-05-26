@@ -220,7 +220,7 @@ export default function UserEditPage() {
                 />
               </div>
 
-              {/* Fila 2: Correo Corporativo, Área */}
+              {/* Fila 2: Correo Corporativo, Puesto */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormInput
                   label="Correo Corporativo *"
@@ -233,23 +233,6 @@ export default function UserEditPage() {
                 />
 
                 <FormSelect
-                  label="Área *"
-                  value={form.area}
-                  onChange={(value) => {
-                    updateField("area", value);
-                    updateField("position", "");
-                    markFieldAsTouched("area");
-                  }}
-                  onBlur={() => markFieldAsTouched("area")}
-                  error={shouldShowFieldError("area") ? validationErrors.area : ""}
-                  options={areaOptions}
-                  placeholder="-- Seleccione Área --"
-                />
-              </div>
-
-              {/* Fila 3: Puesto, Estado */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <FormSelect
                   label="Puesto *"
                   value={form.position}
                   onChange={(value) => {
@@ -261,6 +244,23 @@ export default function UserEditPage() {
                   options={positionOptions}
                   placeholder="-- Seleccione Puesto --"
                   disabled={!form.area}
+                />
+              </div>
+
+              {/* Fila 3: Área, Estado */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormSelect
+                  label="Área *"
+                  value={form.area}
+                  onChange={(value) => {
+                    updateField("area", value);
+                    updateField("position", "");
+                    markFieldAsTouched("area");
+                  }}
+                  onBlur={() => markFieldAsTouched("area")}
+                  error={shouldShowFieldError("area") ? validationErrors.area : ""}
+                  options={areaOptions}
+                  placeholder="-- Seleccione Área --"
                 />
 
                 {(() => {
