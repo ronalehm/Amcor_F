@@ -20,7 +20,9 @@ import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
+import SystemIntegrationUserSearch from "../../../shared/components/forms/SystemIntegrationUserSearch";
 import UserDuplicateHandler from "../../../shared/components/forms/UserDuplicateHandler";
+import { type VendorMirror } from "../../../shared/data/vendorMirrorStorage";
 
 interface FormState {
   email: string;
@@ -28,6 +30,8 @@ interface FormState {
   workerCode: string;
   position: string;
   area: string;
+  siUserId?: string;
+  siUserCode?: string;
 }
 
 export default function UserCreatePage() {
@@ -48,8 +52,22 @@ export default function UserCreatePage() {
   const [duplicateUser, setDuplicateUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const currentUser = getCurrentUser();
+
+  const handleSiUserSelect = (vendor: VendorMirror) => {
+    setForm((prev) => ({
+      ...prev,
+      siUserId: vendor.id,
+      siUserCode: vendor.code,
+      workerCode: vendor.code,
+      email: vendor.email || "",
+      fullName: vendor.name,
+      area: vendor.area,
+    }));
+    setSearchQuery("");
+  };
 
   useEffect(() => {
     setHeader({
@@ -343,6 +361,14 @@ export default function UserCreatePage() {
           <div className="space-y-5">
             <FormCard title="Datos del Usuario" icon="👤" color="#00395A" required>
               <div className="space-y-4">
+                {/* Búsqueda Sistema Integral */}
+                <SystemIntegrationUserSearch
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  onSelect={handleSiUserSelect}
+                  placeholder="Buscar usuario del Sistema Integral..."
+                />
+
                 {/* Fila 1: Código Trabajador, Nombre */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormInput

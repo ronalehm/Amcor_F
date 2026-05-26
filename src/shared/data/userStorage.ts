@@ -33,6 +33,8 @@ export type User = {
   workerCode: string;
   position: string;
   area?: string;
+  siUserId?: string;
+  siUserCode?: string;
   createdAt: string;
 };
 

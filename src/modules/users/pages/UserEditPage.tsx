@@ -8,6 +8,7 @@ import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
+import SystemIntegrationUserSearch from "../../../shared/components/forms/SystemIntegrationUserSearch";
 
 import {
   getUserById,
@@ -17,6 +18,7 @@ import {
   getUserByEmail,
 } from "../../../shared/data/userStorage";
 import { AREAS, getPositionsByArea } from "../../../shared/data/areaDepartmentConfig";
+import { type VendorMirror } from "../../../shared/data/vendorMirrorStorage";
 
 type UserFormData = {
   fullName: string;
@@ -24,6 +26,8 @@ type UserFormData = {
   workerCode: string;
   position: string;
   area: string;
+  siUserId?: string;
+  siUserCode?: string;
 };
 
 export default function UserEditPage() {
@@ -37,6 +41,24 @@ export default function UserEditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userCode, setUserCode] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSiUserSelect = (vendor: VendorMirror) => {
+    setForm((prev) =>
+      prev
+        ? {
+            ...prev,
+            siUserId: vendor.id,
+            siUserCode: vendor.code,
+            workerCode: vendor.code,
+            email: vendor.email || "",
+            fullName: vendor.name,
+            area: vendor.area,
+          }
+        : null
+    );
+    setSearchQuery("");
+  };
 
   useEffect(() => {
     if (!userId) {
@@ -199,6 +221,14 @@ export default function UserEditPage() {
         <div className="max-w-3xl mx-auto">
           <FormCard title="Datos del Usuario" icon="👤" color="#00395A" required>
             <div className="space-y-4">
+              {/* Búsqueda Sistema Integral */}
+              <SystemIntegrationUserSearch
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onSelect={handleSiUserSelect}
+                placeholder="Buscar usuario del Sistema Integral..."
+              />
+
               {/* Fila 1: Código Trabajador, Nombre */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormInput
