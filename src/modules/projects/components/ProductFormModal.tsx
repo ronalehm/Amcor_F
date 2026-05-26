@@ -573,8 +573,7 @@ export default function ProductFormModal({
                     label: unit === "g" ? "Gramos (g)" :
                            unit === "kg" ? "Kilogramos (kg)" :
                            unit === "ml" ? "Mililitros (ml)" :
-                           unit === "L" ? "Litros (L)" :
-                           unit === "un" ? "Unidades (un)" :
+                           unit === "l" ? "Litros (l)" :
                            unit === "m" ? "Metros (m)" :
                            unit === "cm" ? "Centímetros (cm)" :
                            unit === "mm" ? "Milímetros (mm)" :

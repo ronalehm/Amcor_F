@@ -27,20 +27,13 @@ export type User = {
   code: string;
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
   fullName: string;
   role: PortalRole;
   status: UserStatus;
   workerCode: string;
   position: string;
   area?: string;
-  phone?: string;
-  siUserId?: string;
-  siUserCode?: string;
   createdAt: string;
-  updatedAt: string;
-  lastLoginAt?: string;
 };
 
 export type UserPublic = Omit<User, "password">;
@@ -53,8 +46,6 @@ const AREA_USERS: User[] = [
     code: "US-000001",
     email: "admin@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
-    firstName: "Administrador",
-    lastName: "Sistema",
     fullName: "Administrador Sistema",
     role: "admin" as PortalRole,
     status: "active",
@@ -62,15 +53,12 @@ const AREA_USERS: User[] = [
     position: "Administrador del Portal",
     area: "Sistema",
     createdAt: SEED_DATE,
-    updatedAt: SEED_DATE,
   },
   {
     id: "USR-000002",
     code: "US-000002",
     email: "comercial@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
-    firstName: "Usuario",
-    lastName: "Comercial",
     fullName: "Usuario Comercial",
     role: "comercial" as PortalRole,
     status: "active",
@@ -78,15 +66,12 @@ const AREA_USERS: User[] = [
     position: "Ejecutivo Comercial",
     area: "Comercial",
     createdAt: SEED_DATE,
-    updatedAt: SEED_DATE,
   },
   {
     id: "USR-000003",
     code: "US-000003",
     email: "artes@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
-    firstName: "Usuario",
-    lastName: "Artes Gráficas",
     fullName: "Usuario Artes Gráficas",
     role: "artes" as PortalRole,
     status: "active",
@@ -94,15 +79,12 @@ const AREA_USERS: User[] = [
     position: "Validador Artes Gráficas",
     area: "Artes Gráficas",
     createdAt: SEED_DATE,
-    updatedAt: SEED_DATE,
   },
   {
     id: "USR-000004",
     code: "US-000004",
     email: "rnd@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
-    firstName: "Usuario",
-    lastName: "R&D",
     fullName: "Usuario R&D",
     role: "rd" as PortalRole,
     status: "active",
@@ -110,15 +92,12 @@ const AREA_USERS: User[] = [
     position: "Validador R&D",
     area: "R&D",
     createdAt: SEED_DATE,
-    updatedAt: SEED_DATE,
   },
   {
     id: "USR-000005",
     code: "US-000005",
     email: "finance@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
-    firstName: "Usuario",
-    lastName: "Commercial Finance",
     fullName: "Usuario Commercial Finance",
     role: "finance" as PortalRole,
     status: "active",
@@ -126,15 +105,12 @@ const AREA_USERS: User[] = [
     position: "Commercial Finance",
     area: "Commercial Finance",
     createdAt: SEED_DATE,
-    updatedAt: SEED_DATE,
   },
   {
     id: "USR-000006",
     code: "US-000006",
     email: "supply@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
-    firstName: "Usuario",
-    lastName: "Supply",
     fullName: "Usuario Supply",
     role: "viewer" as PortalRole,
     status: "active",
@@ -142,15 +118,12 @@ const AREA_USERS: User[] = [
     position: "Supply",
     area: "Supply",
     createdAt: SEED_DATE,
-    updatedAt: SEED_DATE,
   },
   {
     id: "USR-000007",
     code: "US-000007",
     email: "produccion@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
-    firstName: "Usuario",
-    lastName: "Producción",
     fullName: "Usuario Producción",
     role: "viewer" as PortalRole,
     status: "active",
@@ -158,15 +131,12 @@ const AREA_USERS: User[] = [
     position: "Producción",
     area: "Producción",
     createdAt: SEED_DATE,
-    updatedAt: SEED_DATE,
   },
   {
     id: "USR-000008",
     code: "US-000008",
     email: "planificacion@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
-    firstName: "Usuario",
-    lastName: "Planificación",
     fullName: "Usuario Planificación",
     role: "viewer" as PortalRole,
     status: "active",
@@ -174,15 +144,12 @@ const AREA_USERS: User[] = [
     position: "Planificación",
     area: "Planificación",
     createdAt: SEED_DATE,
-    updatedAt: SEED_DATE,
   },
   {
     id: "USR-000009",
     code: "US-000009",
     email: "customerservice@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
-    firstName: "Usuario",
-    lastName: "Customer Service",
     fullName: "Usuario Customer Service",
     role: "viewer" as PortalRole,
     status: "active",
@@ -190,15 +157,12 @@ const AREA_USERS: User[] = [
     position: "Customer Service",
     area: "Customer Service",
     createdAt: SEED_DATE,
-    updatedAt: SEED_DATE,
   },
   {
     id: "USR-000010",
     code: "US-000010",
     email: "masterdata@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
-    firstName: "Usuario",
-    lastName: "Master Data",
     fullName: "Usuario Master Data",
     role: "viewer" as PortalRole,
     status: "active",
@@ -206,7 +170,6 @@ const AREA_USERS: User[] = [
     position: "Master Data",
     area: "Master Data",
     createdAt: SEED_DATE,
-    updatedAt: SEED_DATE,
   },
 ];
 
@@ -215,15 +178,6 @@ const JSON_SEED_USERS: User[] = seedUsers as User[];
 function buildPortalUsersFromExecutives(): User[] {
   return getActiveExecutiveRecords().map((executive, index) => {
     const email = executive.email.toLowerCase().trim();
-    const localPart = email.split("@")[0];
-
-    const nameParts = executive.name
-      ? executive.name.split(" ").filter(Boolean)
-      : localPart.split(".").filter(Boolean);
-
-    const firstName = nameParts[0] || "Ejecutivo";
-    const lastName = nameParts.slice(1).join(" ") || "Comercial";
-
     const number = index + 1001;
 
     return {
@@ -231,16 +185,13 @@ function buildPortalUsersFromExecutives(): User[] {
       code: `US-EJC-${String(number).padStart(6, "0")}`,
       email,
       password: "123456",
-      firstName,
-      lastName,
-      fullName: executive.name || `${firstName} ${lastName}`,
+      fullName: executive.name || "Ejecutivo Comercial",
       role: "comercial" as PortalRole,
       status: "active",
       workerCode: executive.code,
       position: executive.position || "Ejecutivo Comercial",
       area: "Comercial",
       createdAt: executive.createdAt || SEED_DATE,
-      updatedAt: executive.updatedAt || SEED_DATE,
     };
   });
 }
@@ -262,7 +213,7 @@ function normalizeUser(user: any): User {
     ...user,
     password,
     email: normalizeEmail(user.email),
-    fullName: user.fullName || `${user.firstName} ${user.lastName}`.trim(),
+    fullName: user.fullName || user.name || "Usuario",
   };
 }
 
@@ -359,7 +310,6 @@ export function authenticateUser(
   const updatedUser = {
     ...user,
     password: storedPassword,
-    lastLoginAt: new Date().toISOString(),
   };
 
   saveUserRecord(updatedUser);
@@ -391,7 +341,6 @@ export function saveUserRecord(record: User): void {
 
   const normalizedRecord: User = normalizeUser({
     ...record,
-    updatedAt: record.updatedAt || new Date().toISOString(),
   });
 
   const filtered = saved.filter((user) => {
@@ -407,13 +356,12 @@ export function saveUserRecord(record: User): void {
 }
 
 export function createUser(
-  newUser: Partial<Pick<User, "workerCode" | "position">> &
+  newUser: Partial<Pick<User, "workerCode" | "position" | "fullName">> &
     Omit<
       User,
       | "id"
       | "code"
       | "createdAt"
-      | "updatedAt"
       | "fullName"
       | "workerCode"
       | "position"
@@ -434,12 +382,11 @@ export function createUser(
     id: `USR-${String(nextNumber).padStart(6, "0")}`,
     code: `US-${String(nextNumber).padStart(6, "0")}`,
     email: normalizeEmail(newUser.email),
-    fullName: `${newUser.firstName} ${newUser.lastName}`.trim(),
+    fullName: newUser.fullName || "Usuario",
     workerCode: newUser.workerCode || "",
     position: newUser.position || "",
     status: newUser.status || "pending_activation",
     createdAt: now,
-    updatedAt: now,
   };
 
   saveUserRecord(user);
@@ -478,12 +425,8 @@ export function updateUser(
     ...user,
     ...updates,
     email: updates.email ? normalizeEmail(updates.email) : user.email,
-    fullName:
-      updates.firstName || updates.lastName
-        ? `${updates.firstName || user.firstName} ${updates.lastName || user.lastName}`.trim()
-        : user.fullName,
+    fullName: updates.fullName || user.fullName,
     status: nextStatus,
-    updatedAt: new Date().toISOString(),
   };
 
   saveUserRecord(updated);
@@ -521,7 +464,6 @@ function changeUserStatus(
   saveUserRecord({
     ...user,
     status: toStatus,
-    updatedAt: new Date().toISOString(),
   });
 
   registerUserStatusChange(
@@ -662,8 +604,6 @@ export const getUserFullName = (user: any) =>
 export const splitFullName = (value: string) => {
   const parts = value.trim().split(/\s+/);
   return {
-    firstName: parts[0] ?? "",
-    lastName: parts.slice(1).join(" "),
   };
 };
 

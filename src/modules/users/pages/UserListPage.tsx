@@ -46,30 +46,8 @@ const getText = (...values: any[]) => {
 
   return value ? String(value) : "";
 };
-
-const formatDate = (...values: any[]) => {
-  const value = getText(...values);
-
-  if (!value) return "—";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleDateString("es-PE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-};
-
 const getUserFullName = (user: User) => {
-  return (
-    getText(
-      user.fullName,
-      `${getText(user.firstName)} ${getText(user.lastName)}`.trim(),
-    ) || "—"
-  );
+  return getText(user.fullName) || "—";
 };
 
 const getUserExtraField = (user: User, ...keys: string[]) => {
@@ -80,10 +58,6 @@ const getUserExtraField = (user: User, ...keys: string[]) => {
 
 const getUserStatus = (user: User): UserStatus => {
   return user.status;
-};
-
-const getLastLoginLabel = (user: User) => {
-  return user.lastLoginAt ? formatDate(user.lastLoginAt) : "Nunca";
 };
 
 const getSortValue = (user: User, key: SortKey): string | number => {

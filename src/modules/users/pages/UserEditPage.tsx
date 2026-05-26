@@ -15,7 +15,6 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
   getUserByEmail,
-  splitFullName,
 } from "../../../shared/data/userStorage";
 import { AREAS, getPositionsByArea } from "../../../shared/data/areaDepartmentConfig";
 
@@ -55,7 +54,7 @@ export default function UserEditPage() {
 
     setUserCode(user.code);
     setForm({
-      fullName: `${user.firstName} ${user.lastName}`.trim(),
+      fullName: user.fullName,
       email: user.email,
       workerCode: user.workerCode,
       position: user.position,
@@ -136,11 +135,8 @@ export default function UserEditPage() {
       return;
     }
 
-    const { firstName, lastName } = splitFullName(form.fullName);
-
     updateUser(userId, {
-      firstName,
-      lastName,
+      fullName: form.fullName,
       email: form.email,
       workerCode: form.workerCode,
       position: form.position,

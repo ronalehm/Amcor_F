@@ -9,7 +9,6 @@ import {
   getCurrentUser,
   activateUser,
   unblockUser,
-  splitFullName,
   STATUS_LABELS,
   STATUS_COLORS,
 } from "../../../shared/data/userStorage";
@@ -237,13 +236,11 @@ export default function UserCreatePage() {
       }
 
       const tempPassword = Math.random().toString(36).substring(2, 10);
-      const { firstName, lastName } = splitFullName(form.fullName);
 
       const newUser = createUser({
         email: form.email,
         password: tempPassword,
-        firstName,
-        lastName,
+        fullName: form.fullName,
         workerCode: form.workerCode,
         position: form.position,
         role: "operador",
@@ -262,7 +259,7 @@ export default function UserCreatePage() {
       mockSendEmail(
         newUser.email,
         "Bienvenido a ODISEO - Activación de Cuenta",
-        `Hola ${firstName},\n\nTu cuenta ha sido creada en ODISEO. Por favor actívala para continuar.\n\nEquipo ODISEO`,
+        `Hola ${newUser.fullName.split(" ")[0]},\n\nTu cuenta ha sido creada en ODISEO. Por favor actívala para continuar.\n\nEquipo ODISEO`,
         newUser.id,
         "activation"
       );

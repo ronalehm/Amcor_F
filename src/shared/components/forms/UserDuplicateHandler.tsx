@@ -34,8 +34,7 @@ export default function UserDuplicateHandler({
 
           <div className="mt-3 space-y-2">
             <p className="text-sm text-amber-800">
-              <strong>{existingUser.firstName} {existingUser.lastName}</strong>{" "}
-              ({existingUser.email})
+              <strong>{existingUser.fullName}</strong> ({existingUser.email})
             </p>
 
             <div className="flex items-center gap-2">

@@ -1497,6 +1497,8 @@ const [visibleLayerCount, setVisibleLayerCount] = useState(1);
     message: string;
   } | null>(null);
 
+  const [previewProject, setPreviewProject] = useState<ProjectRecord | null>(null);
+
   const stepNoticeTimeoutRef = useRef<number | null>(null);
 
   const showStepNotice = (key: string, message: string) => {
@@ -1806,6 +1808,8 @@ const nombreTecnicoCalculado = useMemo(() => {
   useEffect(() => {
     if (!isOpen) {
       setStepNotice(null);
+      setSelectedReference(null);
+      setPreviewProject(null);
       if (stepNoticeTimeoutRef.current) {
         window.clearTimeout(stepNoticeTimeoutRef.current);
         stepNoticeTimeoutRef.current = null;
@@ -1848,6 +1852,8 @@ const nombreTecnicoCalculado = useMemo(() => {
     setSimilarityMatches([]);
     setErrors({});
     setStepNotice(null);
+    setSelectedReference(null);
+    setPreviewProject(null);
   }, [isOpen, initialPortfolioCode, propPortfolio]);
 
   useEffect(() => {
@@ -1937,13 +1943,6 @@ const nombreTecnicoCalculado = useMemo(() => {
         })),
       );
     }
-const [similarityDiagnostics, setSimilarityDiagnostics] = useState<{
-  totalProjects: number;
-  contextCandidates: Array<SimilarityMatch>;
-  visibleCandidates: Array<SimilarityMatch>;
-} | null>(null);
-
-
     const results = projectsForSimilarity
       .filter((project) => doesProjectPassMandatoryFilter(candidateData, project))
       .map((project) => ({
@@ -2337,98 +2336,91 @@ const handleRemoveLastLayer = () => {
     return Object.keys(validateForm).length === 0;
   };
 
+  const isProjectValidReference = (project: ProjectRecord): boolean => {
+    const status = normalizeText(getProjectStatus(project));
+    const estadoValidacion = normalizeText(
+      getRecordValue(project, ["estadoValidacion", "validationStatus"])
+    );
+
+    return (
+      status.includes("validado") ||
+      status.includes("aprobado") ||
+      estadoValidacion.includes("validado") ||
+      estadoValidacion.includes("aprobado")
+    );
+  };
+
+  const buildMoment2ReferenceData = (project: ProjectRecord): AnyRecord => {
+    return {
+      sourceProjectId: getRecordValue(project, ["id", "projectId"]),
+      sourceProjectCode: getProjectCode(project),
+      sourceProjectName: getProjectName(project),
+
+      estructuraCalculada: project.estructuraCalculada,
+      cantidadCapasReferencial: project.cantidadCapasReferencial,
+      estructuraMateriales: project.estructuraMateriales,
+      estructuraMaterialesReferencial: project.estructuraMaterialesReferencial,
+
+      layer1Material: project.layer1Material,
+      layer1MaterialLabel: project.layer1MaterialLabel,
+      layer1Micraje: project.layer1Micraje ?? project.layer1Micron,
+
+      layer2Material: project.layer2Material,
+      layer2MaterialLabel: project.layer2MaterialLabel,
+      layer2Micraje: project.layer2Micraje ?? project.layer2Micron,
+
+      layer3Material: project.layer3Material,
+      layer3MaterialLabel: project.layer3MaterialLabel,
+      layer3Micraje: project.layer3Micraje ?? project.layer3Micron,
+
+      layer4Material: project.layer4Material,
+      layer4MaterialLabel: project.layer4MaterialLabel,
+      layer4Micraje: project.layer4Micraje ?? project.layer4Micron,
+
+      ancho: project.ancho,
+      largo: project.largo,
+      anchoFuelle: project.anchoFuelle,
+      espesorTotal: project.espesorTotal,
+      gramaje: project.gramaje,
+      barrera: project.barrera,
+      tipoImpresion: project.tipoImpresion,
+      cantidadColores: project.cantidadColores,
+      acabado: project.acabado,
+      accesorios: project.accesorios,
+      tipoSellado: project.tipoSellado,
+      zipper: project.zipper,
+      valvula: project.valvula,
+      troquel: project.troquel,
+      disenoEspecial: project.disenoEspecial,
+      criteriosTecnicos: project.criteriosTecnicos,
+      comentariosTecnicos: project.comentariosTecnicos,
+    };
+  };
+
   const applyReferenceProject = (match: SimilarityMatch) => {
     const project = match.project;
 
-    setProjectName(
-      getRecordValue(project, ["projectName", "name"]) || projectName
-    );
-
-    const refVolumen = getRecordValue(project, [
-      "volumenReferencial",
-      "volumenCantidadReferencial",
-      "volumen",
-    ]);
-    if (refVolumen) {
-      setVolumen(String(refVolumen));
-    }
-
-    const refUnidad = getRecordValue(project, ["unidad", "unidadVolumen"]);
-    if (refUnidad) {
-      setUnidad(String(refUnidad));
-    }
-
-    const refDescripcion = getRecordValue(project, [
-      "descripcionNecesidad",
-      "descripcion",
-    ]);
-    if (refDescripcion) {
-      setDescripcion(String(refDescripcion));
-    }
-
-    const refLayer1Material = getRecordValue(project, ["layer1Material"]);
-    if (refLayer1Material) setLayer1(String(refLayer1Material));
-
-    const refLayer2Material = getRecordValue(project, ["layer2Material"]);
-    if (refLayer2Material) setLayer2(String(refLayer2Material));
-
-    const refLayer3Material = getRecordValue(project, ["layer3Material"]);
-    if (refLayer3Material) setLayer3(String(refLayer3Material));
-
-    const refLayer4Material = getRecordValue(project, ["layer4Material"]);
-    if (refLayer4Material) setLayer4(String(refLayer4Material));
-
-    const refLayer1Micron = getRecordValue(project, ["layer1Micraje", "layer1Micron"]);
-    if (refLayer1Micron) setLayer1Micron(String(refLayer1Micron));
-
-    const refLayer2Micron = getRecordValue(project, ["layer2Micraje", "layer2Micron"]);
-    if (refLayer2Micron) setLayer2Micron(String(refLayer2Micron));
-
-    const refLayer3Micron = getRecordValue(project, ["layer3Micraje", "layer3Micron"]);
-    if (refLayer3Micron) setLayer3Micron(String(refLayer3Micron));
-
-    const refLayer4Micron = getRecordValue(project, ["layer4Micraje", "layer4Micron"]);
-    if (refLayer4Micron) setLayer4Micron(String(refLayer4Micron));
-
-    const copiedLayers = [
-      getRecordValue(project, ["layer1Material"]),
-      getRecordValue(project, ["layer2Material"]),
-      getRecordValue(project, ["layer3Material"]),
-      getRecordValue(project, ["layer4Material"]),
-    ].filter(Boolean).length;
-
-    setVisibleLayerCount(Math.max(1, copiedLayers));
-
-    const refComentarios = getRecordValue(project, ["comentarios"]);
-    if (refComentarios) {
-      setComentarios(String(refComentarios));
-    }
-
     setSelectedReference({
-      projectId: getRecordValue(project, ["id"]),
+      projectId: getRecordValue(project, ["id", "projectId", "code", "projectCode"]),
       projectCode: getProjectCode(project),
       projectName: getProjectName(project),
       score: match.score,
-      datosSugeridosMomento2: {
-        layer1Material: project.layer1Material,
-        layer1Micraje: project.layer1Micraje,
-        layer2Material: project.layer2Material,
-        layer2Micraje: project.layer2Micraje,
-        layer3Material: project.layer3Material,
-        layer3Micraje: project.layer3Micraje,
-        layer4Material: project.layer4Material,
-        layer4Micraje: project.layer4Micraje,
-        ancho: project.ancho,
-        largo: project.largo,
-        anchoFuelle: project.anchoFuelle,
-        disenoEspecial: project.disenoEspecial,
-        tipoImpresion: project.tipoImpresion,
-        accesorios: project.accesorios,
-        criteriosTecnicos: project.criteriosTecnicos,
-        comentariosTecnicos: project.comentariosTecnicos,
-      },
+      datosSugeridosMomento2: buildMoment2ReferenceData(project),
     });
 
+    setErrors({});
+  };
+
+  const applyReferenceProjectFromProject = (project: ProjectRecord, score: number = 0) => {
+    setSelectedReference({
+      projectId: getRecordValue(project, ["id", "projectId", "code", "projectCode"]),
+      projectCode: getProjectCode(project),
+      projectName: getProjectName(project),
+      score: score,
+      datosSugeridosMomento2: buildMoment2ReferenceData(project),
+    });
+
+    setPreviewProject(null);
     setErrors({});
   };
 
@@ -2475,7 +2467,7 @@ const handleRemoveLastLayer = () => {
 
           projectName: projectName.trim(),
           volumenCantidadReferencial: volumen.trim(),
-          unidad,
+          unidad: normalizeUnitValue(unidad),
           descripcionNecesidad: descripcion.trim(),
 
           layer1Material: layer1,
@@ -3462,11 +3454,7 @@ const handleRemoveLastLayer = () => {
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
-                          onClick={() =>
-                            navigate(
-                              `/projects/${getProjectCode(topMatch.project)}`,
-                            )
-                          }
+                          onClick={() => setPreviewProject(topMatch.project)}
                         >
                           Ver proyecto
                         </Button>
@@ -3517,6 +3505,47 @@ const handleRemoveLastLayer = () => {
                   )}
                 </div>
               )}
+
+              {selectedReference && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-green-700">
+                        Referencia seleccionada para Momento 2
+                      </h4>
+                      <p className="mt-1 text-xs text-green-600">
+                        Los datos técnicos de este proyecto se usarán para precargar el Momento 2
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 rounded border border-green-100 bg-white p-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-xs font-semibold text-slate-900">
+                          {selectedReference.projectCode}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-600">
+                          {selectedReference.projectName}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-green-700">
+                          {Math.round(selectedReference.score)}% similitud
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReference(null)}
+                      className="mt-2 w-full rounded border border-green-300 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 transition hover:bg-green-100"
+                    >
+                      Quitar referencia
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3563,6 +3592,227 @@ const handleRemoveLastLayer = () => {
           </div>
         )}
       </div>
+
+      {previewProject && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4 py-6">
+          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4">
+              <h3 className="text-lg font-bold text-slate-900">
+                Ficha de proyecto de referencia
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPreviewProject(null)}
+                className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Cerrar"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <PreviewRow
+                    label="Código"
+                    value={getProjectCode(previewProject) || "—"}
+                  />
+                  <PreviewRow
+                    label="Estado"
+                    value={getProjectStatus(previewProject) || "—"}
+                  />
+                  <PreviewRow
+                    label="Cliente"
+                    value={
+                      getRecordValue(previewProject, ["clientName", "cliente", "nombreCliente"]) ||
+                      "—"
+                    }
+                  />
+                  <PreviewRow
+                    label="Portafolio"
+                    value={
+                      getRecordValue(previewProject, [
+                        "portfolioName",
+                        "portafolioNombre",
+                        "portfolioCode",
+                      ]) || "—"
+                    }
+                  />
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <h4 className="mb-3 text-sm font-bold text-slate-900">
+                    Información Momento 1
+                  </h4>
+                  <div className="space-y-2">
+                    <PreviewRow
+                      label="Nombre técnico"
+                      value={getProjectName(previewProject) || "—"}
+                    />
+                    <PreviewRow
+                      label="Clasificación / Motivo"
+                      value={
+                        getRecordValue(previewProject, [
+                          "motivo",
+                          "clasificacion",
+                        ]) || "—"
+                      }
+                    />
+                    <PreviewRow
+                      label="Tipo / Causal"
+                      value={
+                        getRecordValue(previewProject, [
+                          "causal",
+                          "tipoProyecto",
+                          "motivoNuevaValidacion",
+                        ]) || "—"
+                      }
+                    />
+                    <PreviewRow
+                      label="Volumen referencial"
+                      value={
+                        (getRecordValue(previewProject, [
+                          "volumenReferencial",
+                          "volumenCantidadReferencial",
+                        ]) ||
+                          "") &&
+                        `${getRecordValue(previewProject, [
+                          "volumenReferencial",
+                          "volumenCantidadReferencial",
+                        ])} ${getRecordValue(previewProject, ["unidad", "unidadVolumen"]) || ""}`
+                      }
+                    />
+                    <PreviewRow
+                      label="Descripción"
+                      value={
+                        getRecordValue(previewProject, [
+                          "descripcionNecesidad",
+                          "descripcion",
+                        ]) || "—"
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <h4 className="mb-3 text-sm font-bold text-slate-900">
+                    Estructura y Materiales
+                  </h4>
+                  <div className="space-y-2">
+                    <PreviewRow
+                      label="Estructura calculada"
+                      value={String(previewProject.estructuraCalculada || "") || "—"}
+                    />
+                    <PreviewRow
+                      label="Materiales"
+                      value={String(previewProject.estructuraMaterialesReferencial || "") || "—"}
+                    />
+                  </div>
+
+                  {[0, 1, 2, 3].map((index) => {
+                    const material = getExistingLayerMaterial(previewProject, index);
+                    if (!material) return null;
+
+                    const micron = getExistingLayerMicron(previewProject, index);
+                    return (
+                      <div key={`layer-${index}`} className="mt-3 border-t border-slate-200 pt-3">
+                        <PreviewRow
+                          label={`Capa ${index + 1}`}
+                          value={material || "—"}
+                        />
+                        {micron !== null && (
+                          <PreviewRow
+                            label={`Micraje ${index + 1}`}
+                            value={`${micron} µ`}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {[
+                  ["ancho", "Ancho"],
+                  ["largo", "Largo"],
+                  ["anchoFuelle", "Ancho Fuelle"],
+                  ["tipoImpresion", "Tipo de Impresión"],
+                  ["accesorios", "Accesorios"],
+                  ["criteriosTecnicos", "Criterios Técnicos"],
+                  ["comentariosTecnicos", "Comentarios Técnicos"],
+                ].some(([key]) => previewProject[key as keyof typeof previewProject]) && (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <h4 className="mb-3 text-sm font-bold text-slate-900">
+                      Información Momento 2
+                    </h4>
+                    <div className="space-y-2">
+                      {[
+                        ["ancho", "Ancho"],
+                        ["largo", "Largo"],
+                        ["anchoFuelle", "Ancho Fuelle"],
+                        ["tipoImpresion", "Tipo de Impresión"],
+                        ["accesorios", "Accesorios"],
+                        ["criteriosTecnicos", "Criterios Técnicos"],
+                        ["comentariosTecnicos", "Comentarios Técnicos"],
+                      ].map(([key, label]) => {
+                        const value = previewProject[key as keyof typeof previewProject];
+                        if (!value) return null;
+                        return (
+                          <PreviewRow
+                            key={key}
+                            label={label}
+                            value={String(value) || "—"}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {getRecordValue(previewProject, [
+                  "comentarios",
+                  "comentariosTecnicos",
+                ]) && (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <h4 className="mb-2 text-sm font-bold text-slate-900">
+                      Comentarios
+                    </h4>
+                    <p className="text-xs text-slate-700">
+                      {getRecordValue(previewProject, [
+                        "comentarios",
+                        "comentariosTecnicos",
+                      ])}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+              <Button
+                variant="outline"
+                onClick={() => setPreviewProject(null)}
+              >
+                Cerrar
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const topMatchIdx = similarityMatches.findIndex(
+                    (m) => getProjectCode(m.project) === getProjectCode(previewProject),
+                  );
+                  if (topMatchIdx >= 0) {
+                    applyReferenceProject(similarityMatches[topMatchIdx]);
+                  } else {
+                    applyReferenceProjectFromProject(previewProject, 0);
+                  }
+                }}
+              >
+                Usar como referencia
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>,
     document.body,
   );

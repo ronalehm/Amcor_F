@@ -41,6 +41,7 @@ import {
   normalizeFormatPlan,
   type DimensionRange,
 } from "../../../shared/data/dimensionRestrictionRules";
+import { normalizeUnit, UNITS_OF_MEASURE, UNIT_LABELS } from "../../../shared/data/unitOfMeasureStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -86,7 +87,6 @@ type ProjectEditFormData = {
 
   printClass: string;
   printType: string;
-  requiresDesignWork: string;
   hasDesignPlan: string;
   hasEdagReference: string;
   referenceEdagCode: string;
@@ -95,7 +95,6 @@ type ProjectEditFormData = {
   specialDesignComments: string;
   edagCode: string;
   edagVersion: string;
-  designWorkInstructions: string;
 
   hasReferenceStructure: string;
   referenceEmCode: string;
@@ -178,9 +177,114 @@ const YES_NO_OPTIONS = [
 ];
 
 const CLASSIFICATION_OPTIONS = [
-  { value: "Nuevo", label: "Nuevo" },
-  { value: "Modificado", label: "Modificado" },
+  { value: "Nuevo", label: "Producto nuevo" },
+  { value: "Modificado", label: "Producto modificado" },
 ];
+
+const CAUSAL_OPTIONS_NUEVO = [
+  { value: "Nueva estructura", label: "Nueva estructura" },
+  { value: "Nuevos insumos", label: "Nuevos insumos" },
+  { value: "Nuevo formato de envasado", label: "Nuevo formato de envasado" },
+  { value: "Diseño nuevo", label: "Diseño nuevo" },
+];
+
+const CAUSAL_OPTIONS_MODIFICADO = [
+  { value: "Nuevo equipamiento / proceso / temperatura", label: "Nuevo equipamiento / proceso / temperatura" },
+  { value: "Modifica dimensiones", label: "Modifica dimensiones" },
+  { value: "Modifica propiedades", label: "Modifica propiedades" },
+  { value: "Cambia estructura", label: "Cambia estructura" },
+  { value: "Cambia materia prima", label: "Cambia materia prima" },
+  { value: "Cambia diseño", label: "Cambia diseño" },
+];
+
+const getCausalOptions = (classification: string) => {
+  if (classification === "Nuevo") return CAUSAL_OPTIONS_NUEVO;
+  if (classification === "Modificado") return CAUSAL_OPTIONS_MODIFICADO;
+  return [];
+};
+
+// Material configuration for Moment 1 (ProjectInitialCreateModal style)
+const MATERIAL_MICRON_CONFIG: Record<
+  string,
+  {
+    label: string;
+    micronOptions?: string[];
+    defaultMicron?: string;
+  }
+> = {
+  BOPP: {
+    label: "BOPP",
+    micronOptions: ["13.5", "15", "17", "20", "25", "27", "30", "35"],
+  },
+  PET: {
+    label: "PET / Poliéster",
+    micronOptions: ["10", "12"],
+    defaultMicron: "12",
+  },
+  BOPA: {
+    label: "BOPA / Nylon",
+    micronOptions: ["15"],
+    defaultMicron: "15",
+  },
+  PAPEL: {
+    label: "Papel",
+    micronOptions: ["40", "60", "70"],
+  },
+  COEX: {
+    label: "COEX",
+    micronOptions: [],
+  },
+  ALUMINIO: {
+    label: "Aluminio / Foil",
+    micronOptions: ["7", "8", "9"],
+    defaultMicron: "7",
+  },
+  AMPRIMA: {
+    label: "AmPrima",
+    micronOptions: ["25"],
+  },
+  PPCAST: {
+    label: "PP Cast",
+    micronOptions: ["20", "25", "30", "60"],
+  },
+  PE: {
+    label: "PE / Polietileno",
+    micronOptions: ["70", "80", "90"],
+  },
+  PE_SELLANTE: {
+    label: "PE sellante",
+    micronOptions: ["70", "80", "90"],
+    defaultMicron: "80",
+  },
+  TERMOFORMADOS: {
+    label: "Termoformados",
+    micronOptions: ["75", "90", "100", "110", "150", "178", "200"],
+  },
+};
+
+const MATERIAL_OPTIONS = Object.entries(MATERIAL_MICRON_CONFIG).map(
+  ([value, config]) => ({
+    value,
+    label: config.label,
+  }),
+);
+
+const getMaterialLabel = (material: string) =>
+  MATERIAL_MICRON_CONFIG[material]?.label || material;
+
+const getMicronOptionsByMaterial = (material: string): string[] => {
+  return MATERIAL_MICRON_CONFIG[material]?.micronOptions ?? [];
+};
+
+const getDefaultMicronByMaterial = (material: string): string => {
+  return MATERIAL_MICRON_CONFIG[material]?.defaultMicron ?? "";
+};
+
+const formatLayerForTechnicalName = (material: string, micron?: string): string => {
+  const label = getMaterialLabel(material);
+  if (!micron || !material) return label;
+  return `${label} ${micron} µ`;
+};
 
 const SUBCLASSIFICATION_NUEVO_OPTIONS = [
   { value: "Desarrollo_RD", label: "Desarrollo_RD" },
@@ -511,6 +615,12 @@ const UNIT_OPTIONS = [
   { value: "UNI", label: "UNI" },
 ];
 
+// Moment 1 unit options (from modal)
+const UNIT_OPTIONS_MOMENT1 = UNITS_OF_MEASURE.map((unit) => ({
+  value: unit,
+  label: (UNIT_LABELS as Record<string, string>)[unit] || unit,
+}));
+
 const PRINT_CLASS_OPTIONS = [
   { value: "Flexo", label: "Flexo" },
   { value: "Huecograbado", label: "Huecograbado" },
@@ -753,13 +863,11 @@ const STEPS = [
   { label: "Proyecto" },
   { label: "Diseño" },
   { label: "Estructura" },
-  { label: "Condiciones comerciales" },
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
   // 0. Proyecto
   0: [
-    "salesforceAction",
     "projectName",
     "projectDescription",
     "portfolioCode",
@@ -786,7 +894,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "printClass",
     "printType",
     "hasDesignPlan",
-    "designWorkInstructions",
     "tipoFamiliaPouch",
     "tipoStandUpPouch",
     "formaDoyPackPouch",
@@ -827,22 +934,10 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "coreMaterial", "coreDiameter", "externalDiameter",
     "externalVariationPlus", "externalVariationMinus", "maxRollWeight",
   ],
-
-  // 3. Condiciones comerciales
-  3: [
-    "estimatedVolume",
-    "unitOfMeasure",
-    "saleType",
-    "incoterm",
-    "destinationCountry",
-    "targetPrice",
-    "currencyType",
-  ],
 };
 const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   portfolioCode: "Portafolio base",
   executiveId: "Ejecutivo Comercial",
-  salesforceAction: "Acción Salesforce",
   projectName: "Nombre del proyecto",
   projectDescription: "Descripción del proyecto",
 
@@ -858,9 +953,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
 
   estimatedVolume: "Cantidad / Volumen estimado",
   unitOfMeasure: "Unidad de medida",
-  saleType: "Venta nacional / internacional",
-  targetPrice: "Precio objetivo",
-  currencyType: "Tipo de moneda",
   coreMaterial: "Material del core",
   coreDiameter: "Diámetro core",
   externalDiameter: "Diámetro externo",
@@ -880,7 +972,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   hasEdagReference: "¿Tiene Diseño de referencia?",
   edagCode: "Código EDAG",
   edagVersion: "Versión EDAG",
-  designWorkInstructions: "Instrucciones de trabajo para diseño",
   tipoFormatoLamina: "Tipo de Lámina",
   tipoFamiliaPouch: "Familia de pouch",
   tipoStandUpPouch: "Tipo de Stand Up",
@@ -932,12 +1023,12 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Información General
   "portfolioCode",
-  "salesforceAction",
   "projectName",
   "projectDescription",
 
   // Producto Comercial
   "classification",
+  "projectType",
   "blueprintFormat",
 
   // Diseño
@@ -1037,7 +1128,6 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     unitOfMeasure: form.unitOfMeasure,
     printClass: form.printClass,
     printType: form.printType,
-    requiresDesignWork: form.requiresDesignWork,
     hasEdagReference: form.hasEdagReference,
     referenceEdagCode: form.referenceEdagCode,
     referenceEdagVersion: form.referenceEdagVersion,
@@ -1159,7 +1249,6 @@ export default function ProjectEditPage() {
     unitOfMeasure: "",
     printClass: "",
     printType: "",
-    requiresDesignWork: "",
     hasDesignPlan: "",
     hasEdagReference: "",
     referenceEdagCode: "",
@@ -1168,7 +1257,6 @@ export default function ProjectEditPage() {
     specialDesignComments: "",
     edagCode: "",
     edagVersion: "",
-    designWorkInstructions: "",
     hasReferenceStructure: "",
     referenceEmCode: "",
     referenceEmVersion: "",
@@ -1257,6 +1345,7 @@ export default function ProjectEditPage() {
     documents: true,
   });
   const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+  const [visibleLayerCount, setVisibleLayerCount] = useState(1);
   const allowIncompleteSaveRef = useRef(false);
   const initialFormStateRef = useRef<Record<string, any> | null>(null);
 
@@ -1337,7 +1426,6 @@ export default function ProjectEditPage() {
       unitOfMeasure: initialUnit || project.unitOfMeasure || "KGS",
       printClass: project.printClass || "",
       printType: project.printType || "",
-      requiresDesignWork: shouldGoGraphicArts ? "Sí" : toYesNo(project.requiresDesignWork),
       hasDesignPlan: toYesNo((project as any).hasDesignPlan),
       hasEdagReference: shouldBeNewDesign
         ? "No"
@@ -1352,7 +1440,6 @@ export default function ProjectEditPage() {
       specialDesignComments: project.specialDesignComments || "",
       edagCode: project.edagCode || "",
       edagVersion: project.edagVersion || "",
-      designWorkInstructions: (project as any).designWorkInstructions || (project as any).instruccionesTrabajoDiseno || "",
       hasReferenceStructure: toYesNo(project.hasReferenceStructure),
       referenceEmCode: project.referenceEmCode || "",
       referenceEmVersion: project.referenceEmVersion || "",
@@ -1423,6 +1510,16 @@ export default function ProjectEditPage() {
     };
 
     setForm(convertedForm);
+
+    // Initialize visibleLayerCount based on existing layers
+    const layerCount = [
+      convertedForm.layer1Material,
+      convertedForm.layer2Material,
+      convertedForm.layer3Material,
+      convertedForm.layer4Material,
+    ].filter(Boolean).length;
+    setVisibleLayerCount(Math.max(1, layerCount));
+
     setInitialClassification(initialClassification);
     setInitialProjectType(initialProjectType);
     setInitialVolume(initialVolume);
@@ -1543,6 +1640,66 @@ export default function ProjectEditPage() {
 
     return formatGrammageValue(layerGrammageTotal + fixedInkAdhesiveGrammage);
   }, [form.structureType, layerGrammageTotal, fixedInkAdhesiveGrammage]);
+
+  const estructuraCalculada = useMemo(() => {
+    const layers = [
+      form.layer1Material,
+      form.layer2Material,
+      form.layer3Material,
+      form.layer4Material,
+    ].filter(Boolean);
+
+    if (layers.length === 1) return "Monocapa";
+    if (layers.length === 2) return "Bilaminado";
+    if (layers.length === 3) return "Trilaminado";
+    if (layers.length === 4) return "Tetralaminado";
+    return "";
+  }, [form.layer1Material, form.layer2Material, form.layer3Material, form.layer4Material]);
+
+  const nombreTecnicoCalculado = useMemo(() => {
+    const formatLayerForName = (material: string, micron?: string): string => {
+      if (!material) return "";
+
+      // Try Moment 1 material config first (MATERIAL_MICRON_CONFIG)
+      const moment1Label = getMaterialLabel(material);
+      if (moment1Label && moment1Label !== material) {
+        if (!micron) return moment1Label;
+        return `${moment1Label} ${micron} µ`;
+      }
+
+      // Fallback to Moment 2+ material catalog (MATERIAL_CATALOG)
+      const entry = Object.values(MATERIAL_CATALOG)
+        .flat()
+        .find(m => m.value === material || m.label === material);
+      const label = entry?.label || material;
+      if (!micron) return label;
+      return `${label} ${micron} µ`;
+    };
+
+    const capasStr = [
+      form.layer1Material ? formatLayerForName(form.layer1Material, form.layer1Micron) : "",
+      form.layer2Material ? formatLayerForName(form.layer2Material, form.layer2Micron) : "",
+      form.layer3Material ? formatLayerForName(form.layer3Material, form.layer3Micron) : "",
+      form.layer4Material ? formatLayerForName(form.layer4Material, form.layer4Micron) : "",
+    ]
+      .filter(Boolean)
+      .join(" - ");
+
+    return [
+      form.projectName.trim(),
+      form.estimatedVolume.trim() && form.unitOfMeasure ? `${form.estimatedVolume.trim()} ${form.unitOfMeasure}` : "",
+      inheritedWrapping,
+      capasStr,
+    ]
+      .filter(Boolean)
+      .join(" - ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }, [
+    form.layer1Material, form.layer2Material, form.layer3Material, form.layer4Material,
+    form.layer1Micron, form.layer2Micron, form.layer3Micron, form.layer4Micron,
+    form.projectName, form.estimatedVolume, form.unitOfMeasure, inheritedWrapping,
+  ]);
 
   useEffect(() => {
     setForm((prev) => {
@@ -1807,6 +1964,99 @@ export default function ProjectEditPage() {
       ...prev,
       [field]: true,
     }));
+  };
+
+  // Layer helper functions for Moment 1 materials
+  const getLayerValue = (index: number) => {
+    const values = [
+      form.layer1Material,
+      form.layer2Material,
+      form.layer3Material,
+      form.layer4Material,
+    ];
+    return values[index] || "";
+  };
+
+  const getLayerMicronValue = (index: number) => {
+    const values = [
+      form.layer1Micron,
+      form.layer2Micron,
+      form.layer3Micron,
+      form.layer4Micron,
+    ];
+    return values[index] || "";
+  };
+
+  const getLayerMaterialField = (index: number): keyof ProjectEditFormData => {
+    return `layer${index + 1}Material` as keyof ProjectEditFormData;
+  };
+
+  const getLayerMicronField = (index: number): keyof ProjectEditFormData => {
+    return `layer${index + 1}Micron` as keyof ProjectEditFormData;
+  };
+
+  const getLayerGroupField = (index: number): keyof ProjectEditFormData => {
+    return `layer${index + 1}MaterialGroup` as keyof ProjectEditFormData;
+  };
+
+  const getLayerGrammageField = (index: number): keyof ProjectEditFormData => {
+    return `layer${index + 1}Grammage` as keyof ProjectEditFormData;
+  };
+
+  const clearLayersAfter = (index: number) => {
+    setForm((prev) => {
+      const next = { ...prev };
+      for (let i = index + 1; i < 4; i++) {
+        next[getLayerMaterialField(i)] = "" as never;
+        next[getLayerMicronField(i)] = "" as never;
+        next[getLayerGroupField(i)] = "" as never;
+        next[getLayerGrammageField(i)] = "" as never;
+      }
+      return next;
+    });
+  };
+
+  const handleLayerChange = (index: number, value: string) => {
+    const materialField = getLayerMaterialField(index);
+    const micronField = getLayerMicronField(index);
+    const defaultMicron = getDefaultMicronByMaterial(value);
+
+    setForm((prev) => ({
+      ...prev,
+      [materialField]: value,
+      [micronField]: defaultMicron || "",
+    }));
+
+    if (!value) {
+      clearLayersAfter(index);
+      setVisibleLayerCount(Math.max(1, index + 1));
+    }
+  };
+
+  const handleLayerMicronChange = (index: number, value: string) => {
+    const micronField = getLayerMicronField(index);
+    updateField(micronField, value);
+  };
+
+  const handleAddLayer = () => {
+    if (visibleLayerCount >= 4) return;
+    const lastVisibleLayerValue = getLayerValue(visibleLayerCount - 1);
+    if (!lastVisibleLayerValue) return;
+    setVisibleLayerCount((prev) => Math.min(prev + 1, 4));
+  };
+
+  const handleRemoveLastLayer = () => {
+    if (visibleLayerCount <= 1) return;
+    const layerIndexToRemove = visibleLayerCount - 1;
+    setForm((prev) => ({
+      ...prev,
+      [getLayerMaterialField(layerIndexToRemove)]: "",
+      [getLayerMicronField(layerIndexToRemove)]: "",
+      [getLayerGroupField(layerIndexToRemove)]: "",
+      [getLayerGrammageField(layerIndexToRemove)]: "",
+    }));
+    clearLayersAfter(layerIndexToRemove);
+    setVisibleLayerCount((prev) => Math.max(prev - 1, 1));
   };
 
   // Efecto para calcular Formato de Plano (Bolsa)
@@ -2159,11 +2409,6 @@ export default function ProjectEditPage() {
       }
     }
 
-
-    if (form.salesforceAction && !isValidSalesforceAction(form.salesforceAction)) {
-      errors.salesforceAction = "La Acción Salesforce debe tener el formato A- seguido de 6 dígitos. Ejemplo: A-123456.";
-    }
-
     // Validar Especificación Técnica del Cliente
     // Si selecciona "Sí", debe haber al menos un archivo cargado en ProjectDocumentsSection
     if (form.hasCustomerTechnicalSpec === "Sí" && projectCode) {
@@ -2409,14 +2654,14 @@ export default function ProjectEditPage() {
       causal: form.projectType,
       motivoNuevaValidacion: form.projectType,
       motivoModificacion: form.motivoModificacion,
-      salesforceAction: normalizeSalesforceAction(form.salesforceAction),
+      salesforceAction: originalProject?.salesforceAction || "",
 
       blueprintFormat: form.blueprintFormat,
       estimatedVolume: form.estimatedVolume,
       volumenReferencial: form.estimatedVolume,
       volumenCantidadReferencial: form.estimatedVolume,
-      unitOfMeasure: form.unitOfMeasure,
-      unidad: form.unitOfMeasure,
+      unitOfMeasure: normalizeUnit(form.unitOfMeasure),
+      unidad: normalizeUnit(form.unitOfMeasure),
 
       // LÁMINA guided format fields
       tipoFormatoLamina: form.tipoFormatoLamina || "",
@@ -2448,13 +2693,10 @@ export default function ProjectEditPage() {
       specialDesignComments: form.specialDesignComments,
       edagCode: form.edagCode,
       edagVersion: form.edagVersion,
-      designWorkInstructions: form.designWorkInstructions || "",
-      instruccionesTrabajoDiseno: form.designWorkInstructions || "",
       isPreviousDesign: form.hasEdagReference as BooleanLike,
       hasEdagReference: form.hasEdagReference as BooleanLike,
       previousEdagCode: form.referenceEdagCode,
       previousEdagVersion: form.referenceEdagVersion,
-      requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
       hasDesignPlan: form.hasDesignPlan as BooleanLike,
 
       hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
@@ -2481,6 +2723,11 @@ export default function ProjectEditPage() {
       microns: [form.layer1Micron, form.layer2Micron, form.layer3Micron, form.layer4Micron]
         .filter(Boolean)
         .join(" / "),
+
+      estructuraCalculada: estructuraCalculada,
+      estructura: estructuraCalculada,
+      estructuraMateriales: nombreTecnicoCalculado,
+      nombreTecnicoCalculado: nombreTecnicoCalculado,
 
       specialStructureSpecs: form.specialStructureSpecs,
       grammage: form.grammage,
@@ -2666,14 +2913,14 @@ export default function ProjectEditPage() {
       causal: form.projectType,
       motivoNuevaValidacion: form.projectType,
       motivoModificacion: form.motivoModificacion,
-      salesforceAction: normalizeSalesforceAction(form.salesforceAction),
+      salesforceAction: originalProject?.salesforceAction || "",
 
       blueprintFormat: form.blueprintFormat,
       estimatedVolume: form.estimatedVolume,
       volumenReferencial: form.estimatedVolume,
       volumenCantidadReferencial: form.estimatedVolume,
-      unitOfMeasure: form.unitOfMeasure,
-      unidad: form.unitOfMeasure,
+      unitOfMeasure: normalizeUnit(form.unitOfMeasure),
+      unidad: normalizeUnit(form.unitOfMeasure),
 
       // LÁMINA guided format fields
       tipoFormatoLamina: form.tipoFormatoLamina || "",
@@ -2705,13 +2952,10 @@ export default function ProjectEditPage() {
       specialDesignComments: form.specialDesignComments,
       edagCode: form.edagCode,
       edagVersion: form.edagVersion,
-      designWorkInstructions: form.designWorkInstructions || "",
-      instruccionesTrabajoDiseno: form.designWorkInstructions || "",
       isPreviousDesign: form.hasEdagReference as BooleanLike,
       hasEdagReference: form.hasEdagReference as BooleanLike,
       previousEdagCode: form.referenceEdagCode,
       previousEdagVersion: form.referenceEdagVersion,
-      requiresDesignWork: form.printClass === "Sin impresión" ? "No" : "Sí",
       hasDesignPlan: form.hasDesignPlan as BooleanLike,
 
       hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
@@ -2738,6 +2982,11 @@ export default function ProjectEditPage() {
       microns: [form.layer1Micron, form.layer2Micron, form.layer3Micron, form.layer4Micron]
         .filter(Boolean)
         .join(" / "),
+
+      estructuraCalculada: estructuraCalculada,
+      estructura: estructuraCalculada,
+      estructuraMateriales: nombreTecnicoCalculado,
+      nombreTecnicoCalculado: nombreTecnicoCalculado,
 
       specialStructureSpecs: form.specialStructureSpecs,
       grammage: form.grammage,
@@ -2988,208 +3237,258 @@ export default function ProjectEditPage() {
             {/* PASO 0: Información de Producto */}
             {activeStep === 0 && (
               <div className="space-y-5">
-                {originalProject && (initialClassification || initialProjectType || initialVolume || initialDescription) && (
-                  <FormCard title="Base registrada del proyecto" icon="📄" color="#00395A">
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <PreviewRow
-                        label="Clasificación"
-                        value={initialClassification ? `Producto ${initialClassification.toLowerCase()}` : "—"}
-                      />
+                <FormCard title="Información inicial del proyecto" icon="📋" color="#00395A" required>
+                  {/* ========== CLASIFICACIÓN Y MOTIVO ========== */}
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <FormSelect
+                      label="Clasificación *"
+                      value={form.classification}
+                      onChange={(value) => {
+                        updateField("classification", value);
+                        updateField("projectType", "");
+                        markFieldAsTouched("classification");
+                      }}
+                      onBlur={() => markFieldAsTouched("classification")}
+                      error={getError("classification")}
+                      options={CLASSIFICATION_OPTIONS}
+                      placeholder="-- Seleccione --"
+                    />
 
-                      <PreviewRow
-                        label="Motivo"
-                        value={initialProjectType || "—"}
+                    {form.classification && (
+                      <FormSelect
+                        label="Motivo *"
+                        value={form.projectType}
+                        onChange={(value) => {
+                          updateField("projectType", value);
+                          markFieldAsTouched("projectType");
+                        }}
+                        onBlur={() => markFieldAsTouched("projectType")}
+                        error={getError("projectType")}
+                        options={getCausalOptions(form.classification)}
+                        placeholder="-- Seleccione --"
                       />
+                    )}
+                  </div>
 
-                      <PreviewRow
-                        label="Volumen referencial"
-                        value={
-                          initialVolume
-                            ? `${initialVolume} ${initialUnit || ""}`
-                            : "—"
-                        }
-                      />
-
-                      <PreviewRow
-                        label="Estructura referencial"
-                        value={
-                          (originalProject as any)?.estructuraCalculada ||
-                          originalProject?.structureType ||
-                          "—"
-                        }
-                      />
-
-                      <PreviewRow
-                        label="Materiales referenciales"
-                        value={
-                          (originalProject as any)?.estructuraMaterialesReferencial ||
-                          (originalProject as any)?.estructuraMateriales ||
-                          [
-                            originalProject?.layer1Material,
-                            originalProject?.layer2Material,
-                            originalProject?.layer3Material,
-                            originalProject?.layer4Material,
-                          ].filter(Boolean).join(" - ") ||
-                          "—"
-                        }
-                      />
-
-                      <PreviewRow
-                        label="Referencia previa"
-                        value={
-                          (originalProject as any)?.proyectoReferenciaCodigo
-                            ? `${(originalProject as any).proyectoReferenciaCodigo} - ${(originalProject as any).proyectoReferenciaNombre || ""}`
-                            : "—"
-                        }
-                      />
-                    </div>
-                  </FormCard>
-                )}
-
-                <FormCard title="Información del Proyecto y Producto" icon="▦" color="#00395A" required>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div>
-                      <label className="block">
-                        <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                          Acción Salesforce *
-                        </span>
-                      </label>
-                      <div className="relative flex items-center">
-                        <span className="absolute left-3 text-sm font-semibold text-slate-700">A-</span>
-                        <input
-                          type="text"
-                          value={form.salesforceAction.replace(/^A-/i, "")}
-                          onChange={(e) => {
-                            const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
-                            updateField("salesforceAction", digits ? `A-${digits}` : "");
-                          }}
-                          onBlur={() => markFieldAsTouched("salesforceAction")}
-                          placeholder="123456"
-                          maxLength={6}
-                          inputMode="numeric"
-                          pattern="\d{0,6}"
-                          className={`w-full rounded-md border px-3 py-2 pl-8 text-sm outline-none transition-colors ${
-                            getError("salesforceAction")
-                              ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                              : "border-slate-300 bg-white focus:ring-2 focus:border-slate-500 focus:ring-slate-200"
-                          }`}
+                  {/* ========== PRODUCTO BASE (Condicional para Modificado) ========== */}
+                  {form.classification === "Modificado" && isModifiedProject && originalProject?.approvedProductSnapshot && (
+                    <div className="rounded-xl border-2 border-orange-200 bg-orange-50 p-5 space-y-3 mt-4">
+                      <h3 className="flex items-center gap-2 text-sm font-bold text-orange-900">
+                        <span>⚠️</span>
+                        Producto base aprobado
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <PreviewRow
+                          label="SKU"
+                          value={originalProject.approvedProductSnapshot.sku}
+                        />
+                        <PreviewRow
+                          label="Versión"
+                          value={originalProject.approvedProductSnapshot.version}
+                        />
+                        <PreviewRow
+                          label="Producto"
+                          value={originalProject.approvedProductSnapshot.productName}
+                        />
+                        <PreviewRow
+                          label="Cliente"
+                          value={originalProject.approvedProductSnapshot.clientName}
+                        />
+                        <PreviewRow
+                          label="Envoltura"
+                          value={originalProject.approvedProductSnapshot.envoltura}
+                        />
+                        <PreviewRow
+                          label="Formato"
+                          value={originalProject.approvedProductSnapshot.formatoPlano}
                         />
                       </div>
-                      {getError("salesforceAction") && (
-                        <span className="mt-1 block text-xs font-normal text-red-600">
-                          {getError("salesforceAction")}
-                        </span>
-                      )}
+                    </div>
+                  )}
+
+                  {/* ========== NOMBRE, VOLUMEN Y UNIDAD (3 COLUMNAS) ========== */}
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3 mt-4">
+                    <FormInput
+                      label="Nombre del Proyecto *"
+                      value={form.projectName}
+                      onChange={(value) => updateField("projectName", value)}
+                      onBlur={() => markFieldAsTouched("projectName")}
+                      error={getError("projectName")}
+                      placeholder="Ej. Mayonesa Light 100ml"
+                    />
+
+                    <FormInput
+                      label="Volumen Referencial *"
+                      value={form.estimatedVolume}
+                      onChange={(value) => updateField("estimatedVolume", value)}
+                      onBlur={() => markFieldAsTouched("estimatedVolume")}
+                      error={getError("estimatedVolume")}
+                      placeholder="Ej. 500"
+                    />
+
+                    <FormSelect
+                      label="Unidad *"
+                      value={form.unitOfMeasure}
+                      onChange={(value) => updateField("unitOfMeasure", value)}
+                      onBlur={() => markFieldAsTouched("unitOfMeasure")}
+                      error={getError("unitOfMeasure")}
+                      options={UNIT_OPTIONS_MOMENT1}
+                      placeholder="-- Seleccione --"
+                    />
+                  </div>
+
+                  {/* ========== DESCRIPCIÓN BREVE ========== */}
+                  <div className="space-y-1 mt-4">
+                    <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
+                      Descripción breve de la necesidad *
+                    </label>
+                    <textarea
+                      value={form.projectDescription}
+                      onChange={(e) => updateField("projectDescription", e.target.value)}
+                      onBlur={() => markFieldAsTouched("projectDescription")}
+                      placeholder="Describe la necesidad técnica o comercial..."
+                      className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary ${
+                        getError("projectDescription")
+                          ? "border-red-300 bg-red-50 text-slate-800"
+                          : "border-slate-300 bg-white text-slate-800"
+                      }`}
+                      rows={2}
+                    />
+                    {getError("projectDescription") && (
+                      <span className="block text-xs text-red-600">
+                        {getError("projectDescription")}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* ========== MATERIALES POR CAPA (CAPAS PROGRESIVAS) ========== */}
+                  <div className="space-y-3 border-t border-slate-200 pt-4 mt-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
+                          Materiales por capa
+                        </label>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Opcional. El micraje mejora la precisión de búsqueda de similitudes.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {visibleLayerCount > 1 && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveLastLayer}
+                            className="h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                          >
+                            Quitar capa
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={handleAddLayer}
+                          disabled={
+                            visibleLayerCount >= 4 ||
+                            !getLayerValue(visibleLayerCount - 1)
+                          }
+                          className={[
+                            "h-9 rounded-lg px-3 text-xs font-semibold transition",
+                            visibleLayerCount >= 4 || !getLayerValue(visibleLayerCount - 1)
+                              ? "cursor-not-allowed bg-slate-100 text-slate-400"
+                              : "border border-brand-primary bg-white text-brand-primary hover:bg-brand-primary/5",
+                          ].join(" ")}
+                        >
+                          + Nueva capa
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="md:col-span-3">
-                      <FormInput
-                        label="Nombre del Proyecto *"
-                        value={form.projectName}
-                        onChange={(value) => updateField("projectName", value)}
-                        onBlur={() => markFieldAsTouched("projectName")}
-                        error={getError("projectName")}
-                        placeholder="Ej. Mayonesa Light 100ml Doypack"
-                      />
-                    </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                      {Array.from({ length: visibleLayerCount }).map((_, index) => {
+                        const layerNumber = index + 1;
+                        const selectedMaterial = getLayerValue(index);
+                        const selectedMicron = getLayerMicronValue(index);
+                        const micronOptions = getMicronOptionsByMaterial(selectedMaterial);
 
-                    <div className="md:col-span-3">
-                      <FormTextarea
-                        label="Descripción del Proyecto *"
-                        value={form.projectDescription}
-                        onChange={(value) => updateField("projectDescription", value)}
-                        onBlur={() => markFieldAsTouched("projectDescription")}
-                        error={getError("projectDescription")}
-                        placeholder="Descripción comercial y técnica del proyecto..."
-                      />
+                        return (
+                          <div
+                            key={layerNumber}
+                            className="rounded-xl border border-slate-200 bg-slate-50/50 p-3"
+                          >
+                            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                              Capa {layerNumber}
+                            </label>
+
+                            <FormSelect
+                              label=""
+                              value={selectedMaterial}
+                              onChange={(value) => handleLayerChange(index, value)}
+                              options={MATERIAL_OPTIONS}
+                              placeholder="Material"
+                            />
+
+                            <div className="mt-3">
+                              <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                                Micraje {layerNumber}
+                              </label>
+
+                              <FormSelect
+                                label=""
+                                value={selectedMicron}
+                                onChange={(value) => handleLayerMicronChange(index, value)}
+                                options={micronOptions.map((micron) => ({
+                                  value: micron,
+                                  label: `${micron} µ`,
+                                }))}
+                                placeholder="Micraje"
+                                disabled={!selectedMaterial || micronOptions.length === 0}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
+
+                  {/* ========== COMENTARIOS ========== */}
+                  <div className="space-y-1 border-t border-slate-200 pt-4 mt-4">
+                    <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
+                      Comentarios
+                    </label>
+                    <textarea
+                      value={form.additionalComment}
+                      onChange={(e) => updateField("additionalComment", e.target.value)}
+                      onBlur={() => markFieldAsTouched("additionalComment")}
+                      placeholder="Comentarios técnicos iniciales..."
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary bg-white text-slate-800"
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* ========== RESULTADO CALCULADO ========== */}
+                  {(estructuraCalculada || nombreTecnicoCalculado) && (
+                    <div className="rounded-xl border border-green-100 bg-green-50/50 p-4 mt-4">
+                      <h4 className="mb-3 border-b border-green-100 pb-2 text-sm font-bold text-green-700">
+                        Resultado
+                      </h4>
+                      <div className="space-y-2">
+                        {estructuraCalculada && (
+                          <PreviewRow
+                            label="Estructura"
+                            value={estructuraCalculada}
+                          />
+                        )}
+                        {nombreTecnicoCalculado && (
+                          <PreviewRow
+                            label="Nombre técnico"
+                            value={nombreTecnicoCalculado}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </FormCard>
 
-                {isModifiedProject && originalProject?.approvedProductSnapshot && (
-                  <div className="rounded-xl border-2 border-orange-200 bg-orange-50 p-5">
-                    <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-orange-900">
-                      <span>⚠️</span>
-                      Producto Aprobado Base (Proyecto Modificado)
-                    </h3>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <PreviewRow
-                        label="SKU"
-                        value={originalProject.approvedProductSnapshot.sku}
-                      />
-                      <PreviewRow
-                        label="Versión"
-                        value={originalProject.approvedProductSnapshot.version}
-                      />
-                      <PreviewRow
-                        label="Producto"
-                        value={originalProject.approvedProductSnapshot.productName}
-                      />
-                      <PreviewRow
-                        label="Cliente"
-                        value={originalProject.approvedProductSnapshot.clientName}
-                      />
-                      <PreviewRow
-                        label="Envoltura"
-                        value={originalProject.approvedProductSnapshot.envoltura}
-                      />
-                      <PreviewRow
-                        label="Formato de Plano"
-                        value={originalProject.approvedProductSnapshot.formatoPlano}
-                      />
-                      <PreviewRow
-                        label="Tipo de Estructura"
-                        value={originalProject.approvedProductSnapshot.structureType}
-                      />
-                      <PreviewRow
-                        label="Materiales"
-                        value={originalProject.approvedProductSnapshot.materialDescription || "—"}
-                      />
-                      <PreviewRow
-                        label="Dimensiones"
-                        value={
-                          originalProject.approvedProductSnapshot.width || originalProject.approvedProductSnapshot.length
-                            ? `${originalProject.approvedProductSnapshot.width || "—"} × ${originalProject.approvedProductSnapshot.length || "—"} × ${originalProject.approvedProductSnapshot.gussetWidth || "—"} mm`
-                            : "—"
-                        }
-                      />
-                      <PreviewRow
-                        label="Motivo de Modificación"
-                        value={motivoModificacion || "—"}
-                      />
-                    </div>
-                    <p className="mt-4 text-xs text-orange-700">
-                      Este producto es la base para crear el nuevo proyecto modificado. Solo podrás editar las secciones permitidas según el motivo seleccionado.
-                    </p>
-                  </div>
-                )}
-
-                <FormCard title="Datos adicionales del cliente" icon="📌" color="#e67e22">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="md:col-span-3">
-                      <FormTextarea
-                        label="Información adicional cliente"
-                        value={form.customerAdditionalInfo}
-                        onChange={(value) => updateField("customerAdditionalInfo", value)}
-                        onBlur={() => markFieldAsTouched("customerAdditionalInfo")}
-                        error={getError("customerAdditionalInfo")}
-                        placeholder="Información adicional proporcionada por el cliente..."
-                        disabled={!canEditAdditionalCustomerData}
-                      />
-                    </div>
-                    <div className="md:col-span-3">
-                      <FormTextarea
-                        label="Comentario Ejecutivo Comercial"
-                        value={form.additionalComment}
-                        onChange={(value) => updateField("additionalComment", value)}
-                        onBlur={() => markFieldAsTouched("additionalComment")}
-                        error={getError("additionalComment")}
-                        placeholder="Comentarios adicionales..."
-                        disabled={!canEditAdditionalCustomerData}
-                      />
-                    </div>
-                  </div>
-                </FormCard>
               </div>
             )}
 
@@ -3303,27 +3602,7 @@ export default function ProjectEditPage() {
                           />
                         )}
 
-                        {/* Línea final: Requiere trabajo de diseño */}
-                        {form.printClass && (
-                          <FormSelect
-                            label="¿Requiere trabajo de diseño?"
-                            value={form.printClass === "Sin impresión" ? "No" : "Sí"}
-                            onChange={() => { }}
-                            options={YES_NO_OPTIONS}
-                            disabled={true}
-                          />
-                        )}
-
                         {/* Objetivo de color - Multi selección */}
-                        {/* Instrucciones de trabajo para diseño */}
-                        <FormTextarea
-                          label="Instrucciones de trabajo para diseño"
-                          value={form.designWorkInstructions}
-                          onChange={(value) => updateField("designWorkInstructions", value)}
-                          onBlur={() => markFieldAsTouched("designWorkInstructions")}
-                          error={getError("designWorkInstructions")}
-                          placeholder="Indica instrucciones específicas para Artes Gráficas o diseño. Campo opcional."
-                        />
 
                         {/* Configuración de Formato - POUCH, BOLSA, LÁMINA o genérico */}
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -4205,66 +4484,6 @@ export default function ProjectEditPage() {
               </div>
             )}
 
-            {/* PASO 3: CONDICIONES COMERCIALES */}
-            {activeStep === 3 && (
-              <div className="space-y-5">
-                <FormCard title="4. Condiciones comerciales" icon="💰" color="#0d4c5c">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormInput
-                      label="Cantidad / Volumen estimado *"
-                      value={form.estimatedVolume}
-                      onChange={(value) => updateField("estimatedVolume", value)}
-                      onBlur={() => markFieldAsTouched("estimatedVolume")}
-                      error={getError("estimatedVolume")}
-                      placeholder="Ej. 500"
-                      disabled={!canEditCommercial}
-                    />
-
-                    <FormSelect
-                      label="Unidad de Medida *"
-                      value={form.unitOfMeasure}
-                      onChange={(value) => updateField("unitOfMeasure", value)}
-                      onBlur={() => markFieldAsTouched("unitOfMeasure")}
-                      error={getError("unitOfMeasure")}
-                      options={UNIT_OPTIONS}
-                      placeholder="-- Seleccione --"
-                      disabled={!canEditCommercial}
-                    />
-
-                    <FormSelect
-                      label="Incoterm"
-                      value={form.incoterm}
-                      onChange={(value) => updateField("incoterm", value)}
-                      options={INCOTERM_OPTIONS}
-                      placeholder="-- Seleccione --"
-                      disabled={!canEditCommercial}
-                    />
-
-                    <FormInput
-                      label="Precio Objetivo"
-                      value={form.targetPrice}
-                      onChange={(value) => updateField("targetPrice", value)}
-                      placeholder="Ej. 45"
-                      disabled={!canEditCommercial}
-                    />
-
-                    <FormSelect
-                      label="Tipo de Moneda"
-                      value={form.currencyType}
-                      onChange={(value) => updateField("currencyType", value)}
-                      options={[
-                        { value: "USD", label: "USD" },
-                        { value: "PEN", label: "PEN" },
-                        { value: "EUR", label: "EUR" },
-                      ]}
-                      placeholder="-- Seleccione --"
-                      disabled={!canEditCommercial}
-                    />
-                  </div>
-                </FormCard>
-              </div>
-            )}
-
           </div>
 
           {/* ========== COLUMNA DERECHA: PANEL DE CONTEXTO (STICKY) ========== */}
@@ -4318,27 +4537,14 @@ export default function ProjectEditPage() {
                     value={form.blueprintFormat}
                   />
                 )}
-              </div>
 
-              {form.classification === "Nuevo" && (
-                <div className="mt-4 border-t border-slate-100 pt-4">
-                  <FormSelect
-                    label="¿Licitación? *"
-                    value={form.licitacion}
-                    onChange={(value) => {
-                      handleLicitacionChange(value);
-                      markFieldAsTouched("licitacion");
-                    }}
-                    onBlur={() => markFieldAsTouched("licitacion")}
-                    error={getError("licitacion")}
-                    options={[
-                      { value: "Sí", label: "Sí" },
-                      { value: "No", label: "No" },
-                    ]}
-                    placeholder="-- Seleccione --"
+                {form.printClass && (
+                  <PreviewRow
+                    label="¿Requiere trabajo de diseño?"
+                    value={form.printClass === "Sin impresión" ? "No" : "Sí"}
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* HERENCIA DEL PORTAFOLIO */}

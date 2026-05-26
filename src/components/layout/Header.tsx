@@ -203,7 +203,7 @@ const handleLogout = () => {
           >
             <div className="w-9 h-9 rounded-full bg-brand-primary flex items-center justify-center">
               <span className="text-white font-bold text-sm">
-                {currentUser ? currentUser.firstName.charAt(0) + currentUser.lastName.charAt(0) : "U"}
+                {currentUser ? (currentUser.fullName.split(" ")[0]?.charAt(0) || "U") + (currentUser.fullName.split(" ")[1]?.charAt(0) || "") : "U"}
               </span>
             </div>
             <div className="hidden sm:block text-left leading-tight">
