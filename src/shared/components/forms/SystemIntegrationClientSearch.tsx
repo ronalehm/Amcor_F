@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, AlertCircle } from "lucide-react";
 import { type VendorMirror } from "../../../shared/data/vendorMirrorStorage";
 import { getAllClientsMirror } from "../../../shared/data/clientMirrorStorage";
+import { getClientByRuc, getClientByEmail } from "../../../shared/data/clientStorage";
 
 interface SystemIntegrationClientSearchProps {
   value: string;
@@ -74,25 +75,55 @@ export default function SystemIntegrationClientSearch({
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+          <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-80 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
             {filteredClients.length > 0 ? (
               <div className="divide-y divide-slate-100">
-                {filteredClients.map((client: any) => (
-                  <button
-                    key={client.id}
-                    type="button"
-                    onClick={() => {
-                      onSelect(client);
-                      setIsOpen(false);
-                    }}
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="font-semibold text-slate-900">{client.razonSocial || client.nombreComercial}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">
-                      {client.code} • RUC: {client.ruc}
-                    </div>
-                  </button>
-                ))}
+                {filteredClients.map((client: any) => {
+                  const existsInOdiseo = client.ruc
+                    ? !!getClientByRuc(client.ruc)
+                    : (client.email ? !!getClientByEmail(client.email) : false);
+                  return (
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => {
+                        if (!existsInOdiseo) {
+                          onSelect(client);
+                          setIsOpen(false);
+                        }
+                      }}
+                      disabled={existsInOdiseo}
+                      className={`w-full text-left px-4 py-3 transition-colors ${
+                        existsInOdiseo ? "opacity-60 cursor-not-allowed" : "hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 text-sm">{client.razonSocial || client.nombreComercial}</p>
+                          <div className="flex flex-wrap gap-2 mt-1 text-xs text-slate-500">
+                            <span>{client.code}</span>
+                            <span>â€¢</span>
+                            <span>RUC: {client.ruc}</span>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-slate-100">
+                            <p className="text-xs text-slate-500">
+                              {existsInOdiseo ? "Cliente ya registrado en ODISEO." : "Cliente disponible para registrar en ODISEO."}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap mt-1 ${
+                            existsInOdiseo
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-green-100 text-green-700"
+                          }`}
+                        >
+                          {existsInOdiseo ? "Existe en ODISEO" : "Disponible"}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               <div className="px-4 py-6 text-center text-sm text-slate-500">
