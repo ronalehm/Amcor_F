@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, AlertCircle } from "lucide-react";
 import { searchSistemaIntegralUsers, type VendorMirror } from "../../data/vendorMirrorStorage";
-import { getUserByEmail } from "../../data/userStorage";
+import { getUserByEmail, ROLE_LABELS } from "../../data/userStorage";
+import { getRoleByAreaAndPosition } from "../../data/areaDepartmentConfig";
 
 interface SystemIntegrationUserSearchProps {
   onSelect: (vendor: VendorMirror) => void;
@@ -131,9 +132,10 @@ export default function SystemIntegrationUserSearch({
       )}
 
       {isOpen && value && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg max-h-64 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg max-h-80 overflow-y-auto">
           {results.map((vendor, index) => {
             const existsInOdiseo = vendor.email ? !!getUserByEmail(vendor.email) : false;
+            const suggestedRole = getRoleByAreaAndPosition(vendor.area, vendor.position);
             return (
               <button
                 key={vendor.id}
@@ -148,19 +150,28 @@ export default function SystemIntegrationUserSearch({
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-slate-900 text-sm">{vendor.code}</p>
                     <p className="text-sm text-slate-600">{vendor.name}</p>
-                    <div className="flex gap-4 mt-1 text-xs text-slate-500">
-                      <span>{vendor.email || "Sin email"}</span>
+                    <div className="flex flex-wrap gap-2 mt-1 text-xs text-slate-500">
+                      <span>{vendor.position || "Posición no definida"}</span>
+                      <span>•</span>
                       <span>{vendor.area}</span>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-slate-100">
+                      <p className="text-xs text-slate-600">
+                        Rol ODISEO sugerido: <span className="font-semibold text-slate-900">{ROLE_LABELS[suggestedRole]}</span>
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {existsInOdiseo ? "Usuario ya registrado en ODISEO." : "Usuario disponible para registrar acceso ODISEO."}
+                      </p>
                     </div>
                   </div>
                   <span
-                    className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
+                    className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap mt-1 ${
                       existsInOdiseo
                         ? "bg-blue-100 text-blue-700"
                         : "bg-green-100 text-green-700"
                     }`}
                   >
-                    {existsInOdiseo ? "Existe en ODISEO" : "Disponible para registrar"}
+                    {existsInOdiseo ? "Existe en ODISEO" : "Disponible"}
                   </span>
                 </div>
               </button>
