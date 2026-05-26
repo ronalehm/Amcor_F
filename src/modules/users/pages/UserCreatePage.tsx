@@ -133,7 +133,7 @@ export default function UserCreatePage() {
       mockSendEmail(
         duplicateUser.email,
         "Reenvío de Activación - ODISEO",
-        `Hola ${duplicateUser.firstName},\n\nTe reenviamos el correo de activación de tu cuenta en ODISEO.\n\nEquipo ODISEO`,
+        `Hola ${duplicateUser.fullName.split(" ")[0]},\n\nTe reenviamos el correo de activación de tu cuenta en ODISEO.\n\nEquipo ODISEO`,
         duplicateUser.id,
         "activation"
       );
@@ -149,7 +149,7 @@ export default function UserCreatePage() {
     if (!duplicateUser) return;
 
     const confirmed = window.confirm(
-      `¿Reactivar usuario ${duplicateUser.firstName} ${duplicateUser.lastName}?`
+      `¿Reactivar usuario ${duplicateUser.fullName}?`
     );
     if (!confirmed) return;
 
@@ -168,7 +168,7 @@ export default function UserCreatePage() {
       mockSendEmail(
         duplicateUser.email,
         "Reactivación de Cuenta - ODISEO",
-        `Hola ${duplicateUser.firstName},\n\nTu cuenta ha sido reactivada. Por favor completa el proceso de activación.\n\nEquipo ODISEO`,
+        `Hola ${duplicateUser.fullName.split(" ")[0]},\n\nTu cuenta ha sido reactivada. Por favor completa el proceso de activación.\n\nEquipo ODISEO`,
         duplicateUser.id,
         "reactivation"
       );
@@ -184,7 +184,7 @@ export default function UserCreatePage() {
     if (!duplicateUser) return;
 
     const confirmed = window.confirm(
-      `¿Desbloquear usuario ${duplicateUser.firstName} ${duplicateUser.lastName}?`
+      `¿Desbloquear usuario ${duplicateUser.fullName}?`
     );
     if (!confirmed) return;
 
