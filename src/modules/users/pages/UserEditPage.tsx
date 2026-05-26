@@ -17,7 +17,12 @@ import {
   STATUS_COLORS,
   getUserByEmail,
 } from "../../../shared/data/userStorage";
-import { AREAS, getPositionsByArea } from "../../../shared/data/areaDepartmentConfig";
+import {
+  AREAS,
+  getPositionsByArea,
+  getAllowedRolesByAreaAndPosition,
+} from "../../../shared/data/areaDepartmentConfig";
+import { ROLE_LABELS } from "../../../shared/data/userStorage";
 import { type VendorMirror } from "../../../shared/data/vendorMirrorStorage";
 
 type UserFormData = {
@@ -26,6 +31,7 @@ type UserFormData = {
   workerCode: string;
   position: string;
   area: string;
+  role: string;
   siUserId?: string;
   siUserCode?: string;
 };
@@ -81,6 +87,7 @@ export default function UserEditPage() {
       workerCode: user.workerCode,
       position: user.position,
       area: user.area || "",
+      role: user.role,
     });
     setLoading(false);
   }, [userId]);
@@ -163,6 +170,7 @@ export default function UserEditPage() {
       workerCode: form.workerCode,
       position: form.position,
       area: form.area || undefined,
+      role: form.role as any,
     });
 
     navigate("/users");
@@ -183,6 +191,15 @@ export default function UserEditPage() {
       label: pos,
     }));
   }, [form?.area]);
+
+  const roleOptions = useMemo(() => {
+    if (!form?.area) return [];
+    const allowedRoles = getAllowedRolesByAreaAndPosition(form.area, form.position);
+    return allowedRoles.map((roleKey) => ({
+      value: roleKey,
+      label: ROLE_LABELS[roleKey],
+    }));
+  }, [form?.area, form?.position]);
 
   if (loading) {
     return (
@@ -266,7 +283,7 @@ export default function UserEditPage() {
                 />
               </div>
 
-              {/* Fila 3: Área (Read-only) */}
+              {/* Fila 3: Área (Read-only), Rol ODISEO (Editable) */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormSelect
                   label="Área"
@@ -277,22 +294,16 @@ export default function UserEditPage() {
                   placeholder="-- Seleccione Área --"
                 />
 
-                {(() => {
-                  const currentUser = getUserById(userId || "");
-                  const statusLabel = currentUser ? STATUS_LABELS[currentUser.status] : "Desconocido";
-                  const statusColor = currentUser ? STATUS_COLORS[currentUser.status] || "bg-slate-100 text-slate-700" : "bg-slate-100 text-slate-700";
-                  return (
-                    <div>
-                      <p className="text-sm font-medium text-slate-700 mb-2">Estado</p>
-                      <div className="flex items-center">
-                        <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${statusColor}`}>
-                          {statusLabel}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1">Se gestiona desde detalle.</p>
-                    </div>
-                  );
-                })()}
+                <FormSelect
+                  label="Rol ODISEO"
+                  value={form.role}
+                  onChange={(value) => {
+                    updateField("role", value);
+                    markFieldAsTouched("role");
+                  }}
+                  options={roleOptions}
+                  placeholder="-- Seleccione Rol ODISEO --"
+                />
               </div>
             </div>
           </FormCard>

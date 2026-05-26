@@ -41,7 +41,7 @@ export default function ClientDetailPage() {
   const [modalAction, setModalAction] = useState<"activate" | "deactivate" | "block" | "unblock" | "delete" | null>(null);
 
   const currentUser = getCurrentUser();
-  const isAdmin = currentUser?.role === "administrador";
+  const isAdmin = currentUser?.role === "administrator";
 
   const handleStatusChange = () => {
     if (!client || !modalAction) return;

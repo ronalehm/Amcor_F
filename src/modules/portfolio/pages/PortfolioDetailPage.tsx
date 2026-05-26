@@ -71,7 +71,7 @@ export default function PortfolioDetailPage() {
   const [showStatusModal, setShowStatusModal] = useState(false);
 
   const currentUser = getCurrentUser();
-  const isAdmin = currentUser?.role === "administrador";
+  const isAdmin = currentUser?.role === "administrator";
 
   const loadRelatedRecords = (code: string) => {
     const portfolioProjects = getProjectsByPortfolioCode(code);

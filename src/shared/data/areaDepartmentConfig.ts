@@ -1,3 +1,5 @@
+import type { UserRole } from "./userStorage";
+
 export type PortalRole = "operador" | "validador" | "supervisor" | "administrador";
 
 export interface AreaConfig {
@@ -97,4 +99,119 @@ export function getPositionsByArea(area: string): string[] {
 
 export function getRoleByPosition(position: string): PortalRole {
   return POSITION_TO_ROLE_MAP[position] || "operador";
+}
+
+const normalizeText = (value?: string) =>
+  value?.trim().toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") || "";
+
+export const isLeadershipPosition = (position?: string): boolean => {
+  const normalizedPosition = normalizeText(position);
+
+  return (
+    normalizedPosition.includes("lider") ||
+    normalizedPosition.includes("jefe") ||
+    normalizedPosition.includes("coordinador") ||
+    normalizedPosition.includes("supervisor") ||
+    normalizedPosition.includes("gerente") ||
+    normalizedPosition.includes("manager") ||
+    normalizedPosition.includes("head")
+  );
+};
+
+export function getRoleByAreaAndPosition(
+  area?: string,
+  position?: string
+): UserRole {
+  const normalizedArea = normalizeText(area);
+  const normalizedPosition = normalizeText(position);
+  const isLeadership = isLeadershipPosition(position);
+
+  if (
+    normalizedArea.includes("customer service") ||
+    normalizedArea.includes("costumer service") ||
+    normalizedArea.includes("servicio al cliente")
+  ) {
+    return isLeadership
+      ? "customer_service_leader"
+      : "customer_service_operator";
+  }
+
+  if (normalizedArea.includes("comercial")) {
+    return isLeadership
+      ? "commercial_leader"
+      : "sales_executive";
+  }
+
+  if (
+    normalizedArea.includes("r&d") ||
+    normalizedArea.includes("rd") ||
+    normalizedArea.includes("investigacion") ||
+    normalizedArea.includes("desarrollo")
+  ) {
+    if (isLeadership) {
+      return "rd_manager";
+    }
+
+    if (
+      normalizedArea.includes("desarrollo") ||
+      normalizedPosition.includes("desarrollo")
+    ) {
+      return "rd_development";
+    }
+
+    return "rd_development";
+  }
+
+  if (
+    normalizedArea.includes("area tecnica") ||
+    normalizedArea.includes("tecnica") ||
+    normalizedPosition.includes("area tecnica") ||
+    normalizedPosition.includes("tecnico") ||
+    normalizedPosition.includes("tecnica")
+  ) {
+    return "technical_area";
+  }
+
+  if (
+    normalizedArea.includes("master data") ||
+    normalizedArea.includes("datos maestros") ||
+    normalizedArea.includes("maestro de datos")
+  ) {
+    return "master_data";
+  }
+
+  if (
+    normalizedArea.includes("ti") ||
+    normalizedArea.includes("sistemas") ||
+    normalizedArea.includes("administracion") ||
+    normalizedArea.includes("administrador")
+  ) {
+    return "administrator";
+  }
+
+  if (
+    normalizedArea.includes("supply") ||
+    normalizedArea.includes("planeamiento") ||
+    normalizedArea.includes("abastecimiento") ||
+    normalizedArea.includes("logistica")
+  ) {
+    return "viewer";
+  }
+
+  return "viewer";
+}
+
+export function getAllowedRolesByAreaAndPosition(
+  area?: string,
+  position?: string
+): UserRole[] {
+  const mainRole = getRoleByAreaAndPosition(area, position);
+
+  if (mainRole === "viewer") {
+    return ["viewer"];
+  }
+
+  return [mainRole, "viewer"];
 }

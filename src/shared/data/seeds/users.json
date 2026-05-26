@@ -5,7 +5,7 @@
     "fullName": "MARCIO SOTO",
     "workerCode": "EJC-000011",
     "position": "Ejecutivo Comercial",
-    "role": "operador",
+    "role": "sales_executive",
     "status": "pending_activation",
     "area": "Comercial",
     "id": "USR-001048",
@@ -18,7 +18,7 @@
     "fullName": "ARLYS SALINAS",
     "workerCode": "EJC-000012",
     "position": "Ingeniero de Desarrollo",
-    "role": "operador",
+    "role": "rd_development",
     "status": "pending_activation",
     "area": "R&D",
     "id": "USR-001047",
@@ -30,17 +30,12 @@
     "code": "US-000001",
     "email": "admin@amcor.com",
     "password": "123456",
-    "firstName": "Administrador",
-    "lastName": "Sistema",
     "fullName": "Administrador Sistema",
-    "role": "admin",
+    "role": "administrator",
     "status": "active",
     "workerCode": "GEN-ADMIN",
     "position": "Administrador del Portal",
-    "company": "Amcor",
-    "area": "Sistema",
-    "createdAt": "2026-01-01T00:00:00.000Z",
-    "updatedAt": "2026-01-01T00:00:00.000Z",
-    "lastLoginAt": "2026-05-13T01:38:02.647Z"
+    "area": "TI",
+    "createdAt": "2026-01-01T00:00:00.000Z"
   }
 ]

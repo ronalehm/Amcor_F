@@ -379,7 +379,7 @@ export default function UserDetailPage() {
                       label="Reenviar Link de Activación"
                       fullWidth
                     />
-                    {currentUser?.role === "administrador" && (
+                    {currentUser?.role === "administrator" && (
                       <ActionButton
                         onClick={() => setModalState({ type: "delete", isOpen: true })}
                         disabled={actionInProgress}
@@ -410,7 +410,7 @@ export default function UserDetailPage() {
                       label="Rechazar → Inactivo"
                       fullWidth
                     />
-                    {currentUser?.role === "administrador" && (
+                    {currentUser?.role === "administrator" && (
                       <ActionButton
                         onClick={() => setModalState({ type: "delete", isOpen: true })}
                         disabled={actionInProgress}
@@ -433,7 +433,7 @@ export default function UserDetailPage() {
                       label="Desactivar"
                       fullWidth
                     />
-                    {currentUser?.role === "administrador" && (
+                    {currentUser?.role === "administrator" && (
                       <ActionButton
                         onClick={() => setModalState({ type: "block", isOpen: true })}
                         disabled={actionInProgress}
@@ -457,7 +457,7 @@ export default function UserDetailPage() {
                   />
                 )}
 
-                {user.status === "blocked" && currentUser?.role === "administrador" && (
+                {user.status === "blocked" && currentUser?.role === "administrator" && (
                   <ActionButton
                     onClick={() => setModalState({ type: "unblock", isOpen: true })}
                     disabled={actionInProgress}

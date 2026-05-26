@@ -12,7 +12,13 @@ import {
 } from "../../../shared/data/userStorage";
 import { registerUserStatusChange } from "../../../shared/data/userStatusStorage";
 import { mockSendEmail } from "../../../shared/data/notificationStorage";
-import { AREAS, getPositionsByArea } from "../../../shared/data/areaDepartmentConfig";
+import {
+  AREAS,
+  getPositionsByArea,
+  getRoleByAreaAndPosition,
+  getAllowedRolesByAreaAndPosition,
+} from "../../../shared/data/areaDepartmentConfig";
+import { ROLE_LABELS } from "../../../shared/data/userStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -56,6 +62,7 @@ export default function UserCreatePage() {
   const currentUser = getCurrentUser();
 
   const handleSiUserSelect = (vendor: VendorMirror) => {
+    const suggestedRole = getRoleByAreaAndPosition(vendor.area, vendor.name);
     setForm((prev) => ({
       ...prev,
       siUserId: vendor.id,
@@ -64,6 +71,7 @@ export default function UserCreatePage() {
       email: vendor.email || "",
       fullName: vendor.name,
       area: vendor.area,
+      role: suggestedRole,
     }));
     setSearchQuery("");
   };
@@ -255,6 +263,14 @@ export default function UserCreatePage() {
     }));
   }, [form.area]);
 
+  const roleOptions = useMemo(() => {
+    const allowedRoles = getAllowedRolesByAreaAndPosition(form.area, form.position);
+    return allowedRoles.map((roleKey) => ({
+      value: roleKey,
+      label: ROLE_LABELS[roleKey],
+    }));
+  }, [form.area, form.position]);
+
   if (successMessage) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
@@ -357,12 +373,7 @@ export default function UserCreatePage() {
                     onChange={(v) => updateField("role", v)}
                     onBlur={() => markFieldAsTouched("role")}
                     error={shouldShowFieldError("role") ? validationErrors.role : ""}
-                    options={[
-                      { value: "operador", label: "Operador" },
-                      { value: "validador", label: "Validador" },
-                      { value: "supervisor", label: "Supervisor" },
-                      { value: "administrador", label: "Administrador" },
-                    ]}
+                    options={roleOptions}
                     placeholder="-- Seleccione Rol ODISEO --"
                   />
                 </div>

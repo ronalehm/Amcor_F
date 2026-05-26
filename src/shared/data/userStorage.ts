@@ -1,6 +1,6 @@
 import { getActiveExecutiveRecords } from "./executiveStorage";
 import seedUsers from "./seeds/users.json";
-import { type PortalRole } from "./areaDepartmentConfig";
+import { type PortalRole, getRoleByAreaAndPosition } from "./areaDepartmentConfig";
 import { canTransitionUserStatus, registerUserStatusChange } from "./userStatusStorage";
 
 const USERS_STORAGE_KEY = "odiseo_users";
@@ -8,11 +8,15 @@ const CURRENT_USER_KEY = "odiseo_current_user";
 const DEFAULT_DEMO_PASSWORD = "123456";
 
 export type UserRole =
-  | "admin"
-  | "comercial"
-  | "artes"
-  | "rd"
-  | "finance"
+  | "customer_service_operator"
+  | "customer_service_leader"
+  | "sales_executive"
+  | "commercial_leader"
+  | "rd_manager"
+  | "rd_development"
+  | "technical_area"
+  | "master_data"
+  | "administrator"
   | "viewer";
 
 export type UserStatus =
@@ -28,7 +32,7 @@ export type User = {
   email: string;
   password: string;
   fullName: string;
-  role: PortalRole;
+  role: UserRole;
   status: UserStatus;
   workerCode: string;
   position: string;
@@ -49,11 +53,11 @@ const AREA_USERS: User[] = [
     email: "admin@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
     fullName: "Administrador Sistema",
-    role: "admin" as PortalRole,
+    role: "administrator",
     status: "active",
     workerCode: "GEN-ADMIN",
     position: "Administrador del Portal",
-    area: "Sistema",
+    area: "TI",
     createdAt: SEED_DATE,
   },
   {
@@ -62,7 +66,7 @@ const AREA_USERS: User[] = [
     email: "comercial@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
     fullName: "Usuario Comercial",
-    role: "comercial" as PortalRole,
+    role: "sales_executive",
     status: "active",
     workerCode: "GEN-COMERCIAL",
     position: "Ejecutivo Comercial",
@@ -75,7 +79,7 @@ const AREA_USERS: User[] = [
     email: "artes@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
     fullName: "Usuario Artes Gráficas",
-    role: "artes" as PortalRole,
+    role: "viewer",
     status: "active",
     workerCode: "GEN-ARTES",
     position: "Validador Artes Gráficas",
@@ -88,7 +92,7 @@ const AREA_USERS: User[] = [
     email: "rnd@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
     fullName: "Usuario R&D",
-    role: "rd" as PortalRole,
+    role: "rd_development",
     status: "active",
     workerCode: "GEN-RD",
     position: "Validador R&D",
@@ -101,11 +105,11 @@ const AREA_USERS: User[] = [
     email: "finance@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
     fullName: "Usuario Commercial Finance",
-    role: "finance" as PortalRole,
+    role: "viewer",
     status: "active",
     workerCode: "GEN-FINANCE",
     position: "Commercial Finance",
-    area: "Commercial Finance",
+    area: "Master Data",
     createdAt: SEED_DATE,
   },
   {
@@ -114,7 +118,7 @@ const AREA_USERS: User[] = [
     email: "supply@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
     fullName: "Usuario Supply",
-    role: "viewer" as PortalRole,
+    role: "viewer",
     status: "active",
     workerCode: "GEN-SUPPLY",
     position: "Supply",
@@ -127,7 +131,7 @@ const AREA_USERS: User[] = [
     email: "produccion@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
     fullName: "Usuario Producción",
-    role: "viewer" as PortalRole,
+    role: "viewer",
     status: "active",
     workerCode: "GEN-PRODUCCION",
     position: "Producción",
@@ -140,7 +144,7 @@ const AREA_USERS: User[] = [
     email: "planificacion@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
     fullName: "Usuario Planificación",
-    role: "viewer" as PortalRole,
+    role: "viewer",
     status: "active",
     workerCode: "GEN-PLANIFICACION",
     position: "Planificación",
@@ -153,7 +157,7 @@ const AREA_USERS: User[] = [
     email: "customerservice@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
     fullName: "Usuario Customer Service",
-    role: "viewer" as PortalRole,
+    role: "viewer",
     status: "active",
     workerCode: "GEN-CS",
     position: "Customer Service",
@@ -166,7 +170,7 @@ const AREA_USERS: User[] = [
     email: "masterdata@amcor.com",
     password: DEFAULT_DEMO_PASSWORD,
     fullName: "Usuario Master Data",
-    role: "viewer" as PortalRole,
+    role: "viewer",
     status: "active",
     workerCode: "GEN-MD",
     position: "Master Data",
@@ -181,6 +185,8 @@ function buildPortalUsersFromExecutives(): User[] {
   return getActiveExecutiveRecords().map((executive, index) => {
     const email = executive.email.toLowerCase().trim();
     const number = index + 1001;
+    const position = executive.position || "Ejecutivo Comercial";
+    const area = "Comercial";
 
     return {
       id: `USR-EJC-${String(number).padStart(6, "0")}`,
@@ -188,11 +194,11 @@ function buildPortalUsersFromExecutives(): User[] {
       email,
       password: "123456",
       fullName: executive.name || "Ejecutivo Comercial",
-      role: "comercial" as PortalRole,
+      role: getRoleByAreaAndPosition(area, position),
       status: "active",
       workerCode: executive.code,
-      position: executive.position || "Ejecutivo Comercial",
-      area: "Comercial",
+      position,
+      area,
       createdAt: executive.createdAt || SEED_DATE,
     };
   });
@@ -532,7 +538,7 @@ export function getNextUserCode(): string {
   return `US-${String(maxNumber + 1).padStart(6, "0")}`;
 }
 
-export function getUsersByRole(role: PortalRole): User[] {
+export function getUsersByRole(role: UserRole): User[] {
   return getAllUsers().filter((user) => user.role === role);
 }
 
@@ -581,20 +587,28 @@ export function findDuplicateUser(
 }
 
 export const ROLE_LABELS: Record<UserRole, string> = {
-  admin: "Administrador",
-  comercial: "Ejecutivo Comercial",
-  artes: "Artes Gráficas",
-  rd: "R&D",
-  finance: "Commercial Finance",
-  viewer: "Solo Visualización",
+  customer_service_operator: "Operador Customer Service",
+  customer_service_leader: "Líder Customer Service",
+  sales_executive: "Ejecutivo Comercial",
+  commercial_leader: "Líder Comercial",
+  rd_manager: "Gerente R&D",
+  rd_development: "Desarrollo R&D",
+  technical_area: "Área Técnica",
+  master_data: "Master Data",
+  administrator: "Administrador",
+  viewer: "Consulta",
 };
 
 export const ROLE_COLORS: Record<UserRole, string> = {
-  admin: "bg-purple-100 text-purple-700",
-  comercial: "bg-blue-100 text-blue-700",
-  artes: "bg-pink-100 text-pink-700",
-  rd: "bg-green-100 text-green-700",
-  finance: "bg-amber-100 text-amber-700",
+  customer_service_operator: "bg-blue-100 text-blue-700",
+  customer_service_leader: "bg-blue-200 text-blue-800",
+  sales_executive: "bg-green-100 text-green-700",
+  commercial_leader: "bg-green-200 text-green-800",
+  rd_manager: "bg-purple-100 text-purple-700",
+  rd_development: "bg-purple-200 text-purple-800",
+  technical_area: "bg-orange-100 text-orange-700",
+  master_data: "bg-amber-100 text-amber-700",
+  administrator: "bg-red-100 text-red-700",
   viewer: "bg-slate-100 text-slate-700",
 };
 
