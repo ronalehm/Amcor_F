@@ -50,6 +50,7 @@ export default function UserCreatePage() {
   const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const currentUser = getCurrentUser();
@@ -145,6 +146,7 @@ export default function UserCreatePage() {
     e.preventDefault();
     setSubmitAttempted(true);
     setSuccessMessage(null);
+    setDuplicateMessage(null);
 
     if (Object.keys(validationErrors).length > 0) {
       const fieldsWithErrors = Object.keys(validationErrors).reduce(
@@ -163,9 +165,13 @@ export default function UserCreatePage() {
 
     setLoading(true);
     try {
-      const duplicate = findDuplicateUser(form.email, form.workerCode);
+      const duplicate = findDuplicateUser(form.email.trim(), form.workerCode.trim());
+
       if (duplicate) {
-        navigate(`/users/${duplicate.id}/edit`);
+        setDuplicateMessage(
+          `No se puede registrar el usuario porque ya existe un registro con el mismo correo corporativo o código de trabajador. Usuario existente: ${duplicate.fullName}.`
+        );
+        setLoading(false);
         return;
       }
 
@@ -411,6 +417,14 @@ export default function UserCreatePage() {
             </div>
           </div>
         </div>
+
+        {duplicateMessage && (
+          <div className="mx-auto max-w-3xl mt-4">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {duplicateMessage}
+            </div>
+          </div>
+        )}
 
         <div className="sticky bottom-0 z-40 mt-6 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
           <FormActionButtons

@@ -1,5 +1,18 @@
 [
   {
+    "email": "marcio.soto@amcor.com",
+    "password": "dhaufgo1",
+    "fullName": "MARCIO SOTO",
+    "workerCode": "EJC-000011",
+    "position": "Ejecutivo Comercial",
+    "role": "operador",
+    "status": "pending_activation",
+    "area": "Comercial",
+    "id": "USR-001048",
+    "code": "US-001048",
+    "createdAt": "2026-05-26T06:15:29.100Z"
+  },
+  {
     "email": "arlys.salinas@amcor.com",
     "password": "7jwq4ak8",
     "fullName": "ARLYS SALINAS",

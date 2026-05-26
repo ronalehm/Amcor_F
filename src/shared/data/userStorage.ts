@@ -552,14 +552,22 @@ export function getUserByWorkerCode(workerCode: string): User | undefined {
 
 export function findDuplicateUser(
   email: string,
-  workerCode?: string
+  workerCode?: string,
+  excludeUserId?: string
 ): User | undefined {
   const allUsers = getAllUsers();
   const normalizedEmail = normalizeEmail(email);
+  const normalizedWorkerCode = workerCode ? workerCode.trim().toLowerCase() : undefined;
 
   return allUsers.find((user) => {
+    if (excludeUserId && user.id === excludeUserId) {
+      return false;
+    }
+
     const emailMatch = normalizeEmail(user.email) === normalizedEmail;
-    const workerCodeMatch = workerCode ? user.workerCode === workerCode : false;
+    const workerCodeMatch = normalizedWorkerCode
+      ? user.workerCode?.toLowerCase() === normalizedWorkerCode
+      : false;
     return emailMatch || workerCodeMatch;
   });
 }
