@@ -4708,7 +4708,7 @@ export default function ProjectEditPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md mx-4">
             <div className="bg-green-50 border-b border-green-200 px-6 py-4">
-              <h3 className="text-lg font-bold text-green-900">Solicitud de validación enviada</h3>
+              <h3 className="text-lg font-bold text-green-900">Solicitud de aprobación enviada</h3>
             </div>
             <div className="px-6 py-4 space-y-4">
               <p className="text-sm text-slate-700">
@@ -4724,7 +4724,7 @@ export default function ProjectEditPage() {
                 onClick={() => navigate(`/validaciones?projectCode=${projectCode}`)}
                 className="flex-1 px-4 py-2 bg-brand-primary text-white rounded font-medium hover:bg-brand-primary/90 transition-colors text-sm"
               >
-                Ir a validaciones
+                Ir a aprobaciones
               </button>
               <button
                 onClick={() => {
