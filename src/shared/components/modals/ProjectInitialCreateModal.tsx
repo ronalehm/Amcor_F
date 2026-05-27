@@ -2712,9 +2712,26 @@ const handleRemoveLastLayer = () => {
                             );
                           })
                         ) : (
-                          <div className="px-4 py-3 text-sm text-slate-500">
-                            Este cliente no tiene portafolios disponibles con
-                            ese criterio.
+                          <div className="space-y-2">
+                            <div className="px-4 py-3 text-sm text-slate-500">
+                              Este cliente no tiene portafolios disponibles con
+                              ese criterio.
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose();
+                                navigate("/portfolios/create");
+                              }}
+                              className="w-full border-t border-slate-100 bg-gradient-to-r from-blue-50 to-blue-50 px-4 py-3 text-left transition hover:bg-blue-100"
+                            >
+                              <p className="text-sm font-semibold text-blue-600">
+                                + Crear Portafolio Base
+                              </p>
+                              <p className="mt-0.5 text-xs text-blue-500">
+                                Crear un nuevo portafolio para este cliente
+                              </p>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -2947,7 +2964,7 @@ const handleRemoveLastLayer = () => {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className={`space-y-1 transition-all duration-300 ${!projectName.trim() ? "opacity-100" : "opacity-100"}`}>
                   <FormInput
-                    label="Nombre del Proyecto *"
+                    label="Nombre del Producto *"
                     value={projectName}
                     onChange={(value) => {
                       const wasEmpty = !projectName.trim();
