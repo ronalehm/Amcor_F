@@ -7,6 +7,7 @@ import Button from "../ui/Button";
 import FormSelect from "../forms/FormSelect";
 import FormInput from "../forms/FormInput";
 import ClientSearch from "../forms/ClientSearch";
+import ApprovedProductSearch from "../forms/ApprovedProductSearch";
 import PreviewRow from "../display/PreviewRow";
 
 import * as portfolioStorage from "../../data/portfolioStorage";
@@ -2892,51 +2893,57 @@ const handleRemoveLastLayer = () => {
 
               {causal !== "Nueva estructura" && causal && (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <FormInput
-                    label="Producto base / SKU vigente *"
-                    value={productoBaseCodigo || productoBaseNombre}
-                    onChange={(value) => {
-                      const wasEmpty = !productoBaseCodigo.trim() && !productoBaseNombre.trim();
-                      setProductoBaseCodigo(value);
-                      setProductoBaseNombre(value);
-                      setProjectName("");
-                      setVolumen("");
-                      setUnidad("");
-                      setDescripcion("");
-                      setLayer1("");
-                      setLayer2("");
-                      setLayer3("");
-                      setLayer4("");
-                      setLayer1Micron("");
-                      setLayer2Micron("");
-                      setLayer3Micron("");
-                      setLayer4Micron("");
-                      setVisibleLayerCount(1);
-                      setComentarios("");
-                      setSimilarityMatches([]);
-                      setSelectedReference(null);
-                      setErrors((prev) => ({
-                        ...prev,
-                        productoBase: "",
-                        projectName: "",
-                        volumen: "",
-                        unidad: "",
-                        descripcion: "",
-                        layer1: "",
-                        comentarios: "",
-                      }));
+                  <div className="space-y-1">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Producto base / SKU vigente *
+                    </label>
+                    <ApprovedProductSearch
+                      value={productoBaseNombre}
+                      onChange={setProductoBaseNombre}
+                      onSelect={(product) => {
+                        setProductoBaseCodigo(product.code);
+                        setProductoBaseNombre(product.name);
+                        setProjectName("");
+                        setVolumen("");
+                        setUnidad("");
+                        setDescripcion("");
+                        setLayer1("");
+                        setLayer2("");
+                        setLayer3("");
+                        setLayer4("");
+                        setLayer1Micron("");
+                        setLayer2Micron("");
+                        setLayer3Micron("");
+                        setLayer4Micron("");
+                        setVisibleLayerCount(1);
+                        setComentarios("");
+                        setSimilarityMatches([]);
+                        setSelectedReference(null);
+                        setErrors((prev) => ({
+                          ...prev,
+                          productoBase: "",
+                          projectName: "",
+                          volumen: "",
+                          unidad: "",
+                          descripcion: "",
+                          layer1: "",
+                          comentarios: "",
+                        }));
 
-                      if (wasEmpty && value.trim()) {
                         showStepNotice(
                           "productoBase",
                           "Producto base completado. Versión se habilitó.",
                         );
-                      }
-                    }}
-                    placeholder="Buscar o ingresar producto vigente"
-                    error={errors.productoBase}
-                    disabled={!canEditProductoBase}
-                  />
+                      }}
+                      portfolioCode={portfolioCode}
+                      disabled={!canEditProductoBase}
+                    />
+                    {errors.productoBase && (
+                      <span className="block text-xs text-red-600">
+                        {errors.productoBase}
+                      </span>
+                    )}
+                  </div>
 
                   <FormInput
                     label="Versión del producto base *"

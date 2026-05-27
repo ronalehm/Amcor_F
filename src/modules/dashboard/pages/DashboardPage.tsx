@@ -69,8 +69,8 @@ function DashboardCommandBar({
   const options = useMemo<NewOption[]>(
     () => [
       {
-        label: "Crear Proyecto",
-        description: "Registrar un nuevo proyecto para validación técnica.",
+        label: "Crear Producto Preliminar 1",
+        description: "Registrar un nuevo producto preliminar.",
         enabled: true,
         icon: <FolderPlus size={17} />,
         onClick: () => {
