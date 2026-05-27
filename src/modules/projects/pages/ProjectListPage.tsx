@@ -145,7 +145,7 @@ const getCurrentActionLabel = (project: any): string => {
 
   if (status === "Registrado") return "Completar ficha";
   if (status === "En Preparación") return "Completar información";
-  if (status === "Ficha Completa") return "Solicitar validación";
+  if (status === "Ficha Completa") return "Solicitar aprobación";
 
   if (status === "En validación") {
     if (area?.includes("Artes")) return "En Revisión Artes Gráficas";

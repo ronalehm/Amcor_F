@@ -2496,7 +2496,7 @@ export default function ProjectEditPage() {
   const isProjectCompleteForValidation = completionPercentage === 100;
 
   const primaryButtonLabel = isProjectCompleteForValidation
-    ? "Solicitar validación"
+    ? "Solicitar aprobación"
     : "Actualizar producto";
 
   const missingFieldCount = useMemo(() => {
@@ -2607,7 +2607,7 @@ export default function ProjectEditPage() {
     const needsRevalidation = wasValidated && hasModifications;
 
     if (needsRevalidation) {
-      if (!window.confirm("Al guardar estos cambios el producto requerirá una nueva validación (cambio de versión de línea base). ¿Desea continuar?")) {
+      if (!window.confirm("Al guardar estos cambios el producto requerirá una nueva aprobación (cambio de versión de línea base). ¿Desea continuar?")) {
         return;
       }
     }
@@ -2824,12 +2824,12 @@ export default function ProjectEditPage() {
 
     // Block submission if "Máquina genérica" is selected
     if (shouldSubmitForValidation && isGenericPackingMachine(inheritedMachine)) {
-      alert("No se puede enviar el producto para validación mientras se tiene seleccionado 'Máquina genérica'. Por favor, seleccione una máquina específica.");
+      alert("No se puede enviar el producto para aprobación mientras se tiene seleccionado 'Máquina genérica'. Por favor, seleccione una máquina específica.");
       return;
     }
 
     if (needsRevalidation && !shouldSubmitForValidation) {
-      if (!window.confirm("Al guardar estos cambios el producto requerirá una nueva validación (cambio de versión de línea base). ¿Desea continuar?")) {
+      if (!window.confirm("Al guardar estos cambios el producto requerirá una nueva aprobación (cambio de versión de línea base). ¿Desea continuar?")) {
         return;
       }
     }
@@ -4712,11 +4712,11 @@ export default function ProjectEditPage() {
             </div>
             <div className="px-6 py-4 space-y-4">
               <p className="text-sm text-slate-700">
-                La ficha ha sido enviada para validación a los equipos de R&D y Artes Gráficas.
+                La ficha ha sido enviada para aprobación a los equipos de R&D y Artes Gráficas.
               </p>
               <div className="bg-slate-50 rounded p-3 space-y-1 text-sm">
                 <p><span className="font-semibold">Producto:</span> {projectCode}</p>
-                <p><span className="font-semibold">Estado:</span> Pendiente de validación</p>
+                <p><span className="font-semibold">Estado:</span> Pendiente de aprobación</p>
               </div>
             </div>
             <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex gap-3">

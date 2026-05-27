@@ -52,7 +52,7 @@ export default function ProjectActionPanel({
         return (
           <>
             <Button variant="primary" onClick={onRequestValidation || onAdvance}>
-              Solicitar validación
+              Solicitar aprobación
             </Button>
           </>
         );
@@ -60,7 +60,7 @@ export default function ProjectActionPanel({
         return (
           <>
             <Button variant="primary" onClick={onRequestValidation || onAdvance}>
-              Solicitar validación
+              Solicitar aprobación
             </Button>
           </>
         );

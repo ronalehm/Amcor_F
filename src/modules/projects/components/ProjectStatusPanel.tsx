@@ -64,7 +64,7 @@ export default function ProjectStatusPanel({ project }: ProjectStatusPanelProps)
       case "En Preparación":
         return "Completar información del proyecto";
       case "Ficha Completa":
-        return "Solicitar validación técnica";
+        return "Solicitar aprobación";
       case "En validación":
         return "Esperar validación técnica";
       case "Observado":
