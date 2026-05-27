@@ -253,8 +253,8 @@ export default function ProjectListPage() {
 
   useEffect(() => {
     setHeader({
-      title: "Gestión de Proyectos",
-      breadcrumbs: [{ label: "Proyectos" }, { label: "Lista de Proyectos" }],
+      title: "Gestión de Productos",
+      breadcrumbs: [{ label: "Productos" }, { label: "Lista de Productos" }],
     });
 
     return () => resetHeader();
@@ -621,7 +621,7 @@ export default function ProjectListPage() {
   const tabs = [
     {
       key: "all" as ProjectTab,
-      label: "Todos los proyectos",
+      label: "Todos los productos",
       count: augmentedProjects.length,
     },
     ...PROJECT_STATUSES.map((status) => ({
@@ -640,7 +640,7 @@ export default function ProjectListPage() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Total proyectos
+                Total productos
               </p>
               <p className="mt-2 text-3xl font-extrabold text-slate-900">
                 {totalProjects}
@@ -760,7 +760,7 @@ export default function ProjectListPage() {
               />
 
               <ActionButton
-                label="Nuevo Proyecto"
+                label="Nuevo Producto"
                 onClick={() => setShowCreateModal(true)}
                 variant="primary"
                 icon={<Plus size={16} />}
@@ -776,7 +776,7 @@ export default function ProjectListPage() {
             <thead>
               <tr className="bg-brand-primary text-white">
                 <SortableHeader label="Código" sortKey="code" />
-                <SortableHeader label="Proyecto" sortKey="projectName" />
+                <SortableHeader label="Producto" sortKey="projectName" />
                 <SortableHeader label="Cliente" sortKey="clientName" />
                 <SortableHeader label="Etapa" sortKey="stage" />
                 <SortableHeader label="Responsable" sortKey="responsible" />
@@ -807,7 +807,7 @@ export default function ProjectListPage() {
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-slate-800">
-                        {item.projectNameLabel || "Proyecto sin nombre"}
+                        {item.projectNameLabel || "Producto sin nombre"}
                       </span>
                       {isNew && (
                         <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-blue-700 shadow-sm">
@@ -913,7 +913,7 @@ export default function ProjectListPage() {
                       </div>
 
                       <p className="text-sm font-bold text-slate-700">
-                        No se encontraron proyectos
+                        No se encontraron productos
                       </p>
 
                       <p className="mt-1 text-xs text-slate-400">
