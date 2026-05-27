@@ -29,9 +29,9 @@ export default function ValidationDetailPage() {
   useEffect(() => {
     if (project) {
       setHeader({
-        title: `Validación: ${project.code}`,
+        title: `Aprobación: ${project.code}`,
         breadcrumbs: [
-          { label: "Validaciones", href: "/validaciones" },
+          { label: "Aprobaciones", href: "/validaciones" },
           { label: project.code },
         ],
       });
@@ -44,7 +44,7 @@ export default function ValidationDetailPage() {
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <div className="text-red-600 font-semibold">Proyecto no encontrado</div>
         <Button variant="ghost" onClick={() => navigate("/validaciones")}>
-          Volver a Validaciones
+          Volver a Aprobaciones
         </Button>
       </div>
     );
@@ -151,9 +151,9 @@ export default function ValidationDetailPage() {
     }
 
     return {
-      title: "Validación sin área asignada",
+      title: "Aprobación sin área asignada",
       area: "",
-      action: "No hay responsable asignado para esta validación.",
+      action: "No hay responsable asignado para esta aprobación.",
       tone: "neutral" as const,
       showActions: false,
     };
@@ -164,7 +164,7 @@ export default function ValidationDetailPage() {
   const handleObservar = async () => {
     try {
       if (!canValidateCurrentStep || !validationArea) {
-        alert("No hay un área de validación activa para este proyecto.");
+        alert("No hay un área de aprobación activa para este producto.");
         return;
       }
 
@@ -194,7 +194,7 @@ export default function ValidationDetailPage() {
   const handleValidar = async () => {
     try {
       if (!canValidateCurrentStep || !validationArea) {
-        alert("No hay un área de validación activa para este proyecto.");
+        alert("No hay un área de aprobación activa para este producto.");
         return;
       }
 
@@ -288,7 +288,7 @@ export default function ValidationDetailPage() {
               "—";
 
             return (
-              <FormCard title="Datos para Validación de Artes Gráficas" icon="🎨" color="#7E3FB2">
+              <FormCard title="Datos para Aprobación de Artes Gráficas" icon="🎨" color="#7E3FB2">
                 <div className="space-y-6">
                   {/* Bloque A: Impresión y diseño */}
                   <div>
@@ -459,7 +459,7 @@ export default function ValidationDetailPage() {
 
           {/* Datos para R&D / Área Técnica */}
           {isTechnicalStep && (
-            <FormCard title="Datos para Validación Técnica" icon="⚙" color="#00A1DE">
+            <FormCard title="Datos para Aprobación Técnica" icon="⚙" color="#00A1DE">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
                 <PreviewRow label="Tipo de Estructura" value={project.structureType || "—"} />
                 <PreviewRow label="Formato" value={project.blueprintFormat || "—"} />
@@ -508,7 +508,7 @@ export default function ValidationDetailPage() {
             </FormCard>
           )}
 
-          {/* Datos para Validación Técnica (R&D Área Técnica o R&D Desarrollo) */}
+          {/* Datos para Aprobación Técnica (R&D Área Técnica o R&D Desarrollo) */}
           {isTechnicalStep && (() => {
             // Detect wrapping type
             const wrappingLower = (projectAny.wrapping || projectAny.envoltura || "").toLowerCase();
@@ -517,7 +517,7 @@ export default function ValidationDetailPage() {
             const isBolsa = wrappingLower.includes("bolsa");
 
             return (
-              <FormCard title={`Datos para Validación Técnica - ${displayValidationArea}`} icon="⚙" color="#00A1DE">
+              <FormCard title={`Datos para Aprobación Técnica - ${displayValidationArea}`} icon="⚙" color="#00A1DE">
                 <div className="space-y-8">
                   {/* SECCIÓN 1: Proyecto y producto */}
                   <div>
@@ -774,7 +774,7 @@ export default function ValidationDetailPage() {
           {/* Formulario de acción */}
           {projectAny.status === "En validación" && validationSummary.showActions && (
             <FormCard
-              title="Acción de Validación"
+              title="Acción de Aprobación"
               icon="📋"
               color="#e74c3c"
             >

@@ -42,11 +42,11 @@ export default function ValidationListPage() {
 
   useEffect(() => {
     setHeader({
-      title: "Bandeja de Validaciones",
-      subtitle: "Proyectos pendientes de validación por áreas",
+      title: "Monitoreo de Aprobaciones",
+      subtitle: "Seguimiento de estados de productos en aprobación",
       breadcrumbs: [
-        { label: "Validaciones" },
-        { label: "Bandeja de Validaciones" },
+        { label: "Aprobaciones" },
+        { label: "Monitoreo de Aprobaciones" },
       ],
     });
     return () => resetHeader();
@@ -502,7 +502,7 @@ export default function ValidationListPage() {
             <div className={tableStyles.emptyCell}>
               <div className="text-slate-600 font-medium">
                 {projectsInValidation.length === 0
-                  ? "No hay proyectos en validación ni observados"
+                  ? "No hay productos en aprobación ni observados"
                   : "No hay proyectos que coincidan con los filtros"}
               </div>
             </div>
@@ -510,7 +510,7 @@ export default function ValidationListPage() {
         ) : (
           <div>
             <div className="text-sm text-slate-600 font-medium mb-3">
-              {filteredBySearch.length} proyecto{filteredBySearch.length !== 1 ? "s" : ""} en validación u observado{filteredBySearch.length !== 1 ? "s" : ""}
+              {filteredBySearch.length} proyecto{filteredBySearch.length !== 1 ? "s" : ""} en aprobación u observado{filteredBySearch.length !== 1 ? "s" : ""}
             </div>
 
             <div className={tableStyles.wrapper}>
@@ -531,10 +531,10 @@ export default function ValidationListPage() {
                         <SortableHeader label="Tipo de Envoltura" sortColumn="wrappingName" />
                       </th>
                       <th className={tableStyles.headerCell}>
-                        <SortableHeader label="Área Validadora" sortColumn="validationArea" />
+                        <SortableHeader label="Área Aprobadora" sortColumn="validationArea" />
                       </th>
                       <th className={tableStyles.headerCell}>
-                        <SortableHeader label="Estado Validación" sortColumn="validationStatus" />
+                        <SortableHeader label="Estado Aprobación" sortColumn="validationStatus" />
                       </th>
                       <th className={tableStyles.headerCell}>
                         <SortableHeader label="Fecha solicitud" sortColumn="validationRequestedAt" />
