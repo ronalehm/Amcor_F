@@ -1537,7 +1537,7 @@ const [visibleLayerCount, setVisibleLayerCount] = useState(1);
   const isMotivoStepComplete = Boolean(motivo);
   const isCausalStepComplete = Boolean(causal);
 
-  const requiresProductoBase = motivo === "Producto modificado";
+  const requiresProductoBase = causal !== "Nueva estructura" && Boolean(causal);
 
   const isProductoBaseStepComplete = Boolean(
     !requiresProductoBase ||
@@ -2890,7 +2890,7 @@ const handleRemoveLastLayer = () => {
                 />
               </div>
 
-              {motivo === "Producto modificado" && (
+              {causal !== "Nueva estructura" && causal && (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <FormInput
                     label="Producto base / SKU vigente *"
