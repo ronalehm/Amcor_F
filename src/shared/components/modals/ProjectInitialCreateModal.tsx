@@ -1479,6 +1479,7 @@ const [visibleLayerCount, setVisibleLayerCount] = useState(1);
   const [productoBaseNombre, setProductoBaseNombre] = useState("");
   const [productoBaseCodigo, setProductoBaseCodigo] = useState("");
   const [productoBaseVersion, setProductoBaseVersion] = useState("");
+  const [isInheritedFromBase, setIsInheritedFromBase] = useState(false);
 
   const [similarityMatches, setSimilarityMatches] = useState<SimilarityMatch[]>(
     [],
@@ -2903,9 +2904,15 @@ const handleRemoveLastLayer = () => {
                       onSelect={(product) => {
                         setProductoBaseCodigo(product.code);
                         setProductoBaseNombre(product.name);
+                        setProductoBaseVersion(product.version || "");
+                        setIsInheritedFromBase(true);
+
+                        // Heredar datos del producto base
+                        setUnidad(product.capacityUnit || "");
+                        setVolumen(product.capacityValue || "");
+
+                        // Limpiar campos no heredables
                         setProjectName("");
-                        setVolumen("");
-                        setUnidad("");
                         setDescripcion("");
                         setLayer1("");
                         setLayer2("");
@@ -2932,7 +2939,7 @@ const handleRemoveLastLayer = () => {
 
                         showStepNotice(
                           "productoBase",
-                          "Producto base completado. Versión se habilitó.",
+                          "Producto base completado. Datos heredados automáticamente.",
                         );
                       }}
                       portfolioCode={portfolioCode}
@@ -3053,6 +3060,7 @@ const handleRemoveLastLayer = () => {
                     label="Volumen referencial *"
                     value={volumen}
                     onChange={(value) => {
+                      if (isInheritedFromBase) return;
                       const wasEmpty = !volumen.trim();
                       setVolumen(value);
                       setUnidad("");
@@ -3087,7 +3095,7 @@ const handleRemoveLastLayer = () => {
                     }}
                     placeholder="Ej. 500"
                     error={errors.volumen}
-                    disabled={!canEditVolumen}
+                    disabled={!canEditVolumen || isInheritedFromBase}
                   />
                   {stepNotice?.key === "volumen" && (
                     <p className="text-xs font-medium text-green-600">
@@ -3105,6 +3113,7 @@ const handleRemoveLastLayer = () => {
                     label="Unidad *"
                     value={unidad}
                     onChange={(value) => {
+                      if (isInheritedFromBase) return;
                       setUnidad(value);
                       setDescripcion("");
                       setLayer1("");
@@ -3137,7 +3146,7 @@ const handleRemoveLastLayer = () => {
                     options={UNIT_OPTIONS}
                     placeholder="-- Seleccione --"
                     error={errors.unidad}
-                    disabled={!canEditUnidad}
+                    disabled={!canEditUnidad || isInheritedFromBase}
                   />
                   {stepNotice?.key === "unidad" && (
                     <p className="text-xs font-medium text-green-600">

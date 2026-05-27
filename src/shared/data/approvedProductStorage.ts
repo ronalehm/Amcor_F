@@ -6,6 +6,13 @@ export type ApprovedProduct = {
   type: "base" | "approved";
   version?: string;
   status: "Activo" | "Inactivo";
+  // Heredable fields
+  wrappingName?: string;
+  useFinalName?: string;
+  packingMachineName?: string;
+  capacityValue?: string;
+  capacityUnit?: string;
+  hasSpecialDesign?: "Sí" | "No";
 };
 
 const APPROVED_PRODUCTS: ApprovedProduct[] = [
@@ -18,6 +25,12 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     type: "base",
     version: "1.0",
     status: "Activo",
+    wrappingName: "POUCH",
+    useFinalName: "Wet Condiments & Sauces",
+    packingMachineName: "HFFS - Stand up Pouch - Sello Doy Pack",
+    capacityValue: "500",
+    capacityUnit: "ml",
+    hasSpecialDesign: "No",
   },
   {
     id: "APR-002",
@@ -27,6 +40,12 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     type: "base",
     version: "1.0",
     status: "Activo",
+    wrappingName: "SOBRE",
+    useFinalName: "Retail - Dispensers",
+    packingMachineName: "Sachets - Horizontal Form Fill Seal",
+    capacityValue: "20",
+    capacityUnit: "ml",
+    hasSpecialDesign: "No",
   },
   {
     id: "APR-003",
@@ -36,6 +55,12 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     type: "base",
     version: "1.0",
     status: "Activo",
+    wrappingName: "BALDE",
+    useFinalName: "Food Service - Bulk",
+    packingMachineName: "Llenadora de Baldes",
+    capacityValue: "5",
+    capacityUnit: "kg",
+    hasSpecialDesign: "No",
   },
   // Productos Aprobados para Portafolio Mayonesa Premium
   {
@@ -46,6 +71,12 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     type: "approved",
     version: "2.1",
     status: "Activo",
+    wrappingName: "POUCH",
+    useFinalName: "Wet Condiments & Sauces",
+    packingMachineName: "HFFS - Stand up Pouch - Sello Doy Pack",
+    capacityValue: "500",
+    capacityUnit: "ml",
+    hasSpecialDesign: "No",
   },
   {
     id: "APR-005",
@@ -55,6 +86,12 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     type: "approved",
     version: "2.0",
     status: "Activo",
+    wrappingName: "SOBRE",
+    useFinalName: "Retail - Dispensers",
+    packingMachineName: "Sachets - Horizontal Form Fill Seal",
+    capacityValue: "20",
+    capacityUnit: "ml",
+    hasSpecialDesign: "No",
   },
   {
     id: "APR-006",
@@ -64,6 +101,12 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     type: "approved",
     version: "1.5",
     status: "Activo",
+    wrappingName: "BALDE",
+    useFinalName: "Food Service - Bulk",
+    packingMachineName: "Llenadora de Baldes",
+    capacityValue: "5",
+    capacityUnit: "kg",
+    hasSpecialDesign: "No",
   },
 ];
 
