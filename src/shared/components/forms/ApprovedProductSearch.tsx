@@ -7,6 +7,7 @@ interface ApprovedProductSearchProps {
   onChange: (value: string) => void;
   onSelect: (product: ApprovedProduct) => void;
   portfolioCode?: string;
+  productType?: "base" | "approved";
   placeholder?: string;
   disabled?: boolean;
 }
@@ -16,6 +17,7 @@ export default function ApprovedProductSearch({
   onChange,
   onSelect,
   portfolioCode,
+  productType,
   placeholder = "Buscar producto por código o nombre...",
   disabled = false,
 }: ApprovedProductSearchProps) {
@@ -23,8 +25,8 @@ export default function ApprovedProductSearch({
 
   const results = useMemo(() => {
     if (!value.trim() || !portfolioCode) return [];
-    return searchApprovedProducts(value, portfolioCode).slice(0, 8);
-  }, [value, portfolioCode]);
+    return searchApprovedProducts(value, portfolioCode, productType).slice(0, 8);
+  }, [value, portfolioCode, productType]);
 
   const handleSelectResult = (product: ApprovedProduct) => {
     onSelect(product);

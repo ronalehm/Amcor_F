@@ -2936,6 +2936,7 @@ const handleRemoveLastLayer = () => {
                         );
                       }}
                       portfolioCode={portfolioCode}
+                      productType={motivo === "Producto nuevo" ? "base" : motivo === "Producto modificado" ? "approved" : undefined}
                       disabled={!canEditProductoBase}
                     />
                     {errors.productoBase && (

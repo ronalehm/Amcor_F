@@ -81,7 +81,11 @@ export function getApprovedProductByCode(code: string): ApprovedProduct | undefi
   return APPROVED_PRODUCTS.find((product) => product.code === code);
 }
 
-export function searchApprovedProducts(query: string, portfolioCode?: string): ApprovedProduct[] {
+export function searchApprovedProducts(
+  query: string,
+  portfolioCode?: string,
+  productType?: "base" | "approved"
+): ApprovedProduct[] {
   const searchTerm = query.toLowerCase().trim();
   if (!searchTerm) return [];
 
@@ -91,6 +95,10 @@ export function searchApprovedProducts(query: string, portfolioCode?: string): A
 
   if (portfolioCode) {
     results = results.filter((product) => product.portfolioCode === portfolioCode);
+  }
+
+  if (productType) {
+    results = results.filter((product) => product.type === productType);
   }
 
   return results.filter((product) => {
