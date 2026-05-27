@@ -2583,7 +2583,7 @@ const handleRemoveLastLayer = () => {
       <div className="flex max-h-[90vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Crear Producto Preliminar 1</h3>
+            <h3 className="text-lg font-bold text-slate-900">Nueva solicitud</h3>
           </div>
 
           <button
@@ -3686,7 +3686,7 @@ const handleRemoveLastLayer = () => {
             onClick={handleCreateClick}
             disabled={!canCreate || isCreating}
           >
-            {isCreating ? "Creando Proyecto..." : "Crear Producto Preliminar 1"}
+            {isCreating ? "Creando Proyecto..." : "Nueva solicitud"}
           </Button>
         </div>
 
