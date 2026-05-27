@@ -4,9 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FilePlus2,
   FolderPlus,
-  GitBranchPlus,
   Search,
   Upload,
 } from "lucide-react";
@@ -22,21 +20,12 @@ import { WORK_QUEUE } from "../data/homeMockData";
 
 type DashboardCommandBarProps = {
   onCreateProject: () => void;
-  onCreatePreliminaryProduct: () => void;
 };
 
 function DashboardCommandBar({
   onCreateProject,
-  onCreatePreliminaryProduct,
 }: DashboardCommandBarProps) {
   const navigate = useNavigate();
-
-  /**
-   * TODO ODISEO:
-   * Reemplazar por contexto real del portafolio/proyecto seleccionado.
-   */
-  const hasValidatedOrApprovedProject = true;
-  const hasApprovedPreviousProduct = true;
 
   const options = useMemo<NewActionOption[]>(
     () => [
@@ -45,49 +34,17 @@ function DashboardCommandBar({
         description: "Registrar un nuevo producto preliminar.",
         enabled: true,
         icon: <FolderPlus size={17} />,
-        onClick: () => {
-          setOpen(false);
-          onCreateProject();
-        },
+        onClick: () => onCreateProject(),
       },
       {
-        label: "Crear Producto Preliminar",
-        description: "Crear producto desde un proyecto validado o aprobado.",
-        enabled: hasValidatedOrApprovedProject,
-        icon: <FilePlus2 size={17} />,
-        onClick: () => {
-          setOpen(false);
-          onCreatePreliminaryProduct();
-        },
-      },
-      {
-        label: "Importar Productos Preliminares",
-        description: "Carga masiva de productos preliminares desde plantilla.",
-        enabled: hasValidatedOrApprovedProject,
+        label: "Importar Productos",
+        description: "Carga masiva de productos desde plantilla.",
+        enabled: true,
         icon: <Upload size={17} />,
-        onClick: () => {
-          setOpen(false);
-          navigate("/products/import");
-        },
-      },
-      {
-        label: "Crear Producto Modificado / Nueva Versión",
-        description: "Crear una nueva versión desde un producto previo aprobado.",
-        enabled: hasApprovedPreviousProduct,
-        icon: <GitBranchPlus size={17} />,
-        onClick: () => {
-          setOpen(false);
-          navigate("/products/create?mode=modified");
-        },
+        onClick: () => navigate("/products/import"),
       },
     ],
-    [
-      hasValidatedOrApprovedProject,
-      hasApprovedPreviousProduct,
-      navigate,
-      onCreateProject,
-      onCreatePreliminaryProduct,
-    ],
+    [navigate, onCreateProject],
   );
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -146,9 +103,6 @@ export default function DashboardPage() {
       toolbar: (
         <DashboardCommandBar
           onCreateProject={() => setIsProjectCreateModalOpen(true)}
-          onCreatePreliminaryProduct={() =>
-            setIsPreliminaryProductModalOpen(true)
-          }
         />
       ),
     });

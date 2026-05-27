@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, X, FolderPlus, FilePlus2, GitBranchPlus, Upload } from "lucide-react";
+import { ArrowLeft, X, FolderPlus, Upload } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
@@ -71,7 +71,6 @@ export default function PortfolioDetailPage() {
   const [productCount, setProductCount] = useState(0);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
-  const [showCreatePreliminaryModal, setShowCreatePreliminaryModal] = useState(false);
 
   const currentUser = getCurrentUser();
   const isAdmin = currentUser?.role === "administrator";
@@ -86,28 +85,14 @@ export default function PortfolioDetailPage() {
         onClick: () => setShowCreateProjectModal(true),
       },
       {
-        label: "Crear Producto Preliminar",
-        description: "Crear producto desde un proyecto validado o aprobado.",
-        enabled: validationProjects.length > 0,
-        icon: <FilePlus2 size={17} />,
-        onClick: () => setShowCreatePreliminaryModal(true),
-      },
-      {
-        label: "Importar Productos Preliminares",
-        description: "Carga masiva de productos preliminares desde plantilla.",
-        enabled: validationProjects.length > 0,
+        label: "Importar Productos",
+        description: "Carga masiva de productos desde plantilla.",
+        enabled: true,
         icon: <Upload size={17} />,
         onClick: () => navigate("/products/import"),
       },
-      {
-        label: "Crear Producto Modificado / Nueva Versión",
-        description: "Crear una nueva versión desde un producto previo aprobado.",
-        enabled: productCount > 0,
-        icon: <GitBranchPlus size={17} />,
-        onClick: () => navigate("/products/create?mode=modified"),
-      },
     ],
-    [validationProjects.length, productCount, navigate]
+    [navigate]
   );
 
   const loadRelatedRecords = (code: string) => {
