@@ -2719,7 +2719,9 @@ const handleRemoveLastLayer = () => {
                             </div>
                             <button
                               type="button"
+                              onMouseDown={(event) => event.preventDefault()}
                               onClick={() => {
+                                setIsPortfolioDropdownOpen(false);
                                 onClose();
                                 navigate("/portfolios/create");
                               }}
