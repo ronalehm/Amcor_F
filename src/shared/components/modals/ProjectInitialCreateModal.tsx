@@ -2723,7 +2723,7 @@ const handleRemoveLastLayer = () => {
                               onClick={() => {
                                 setIsPortfolioDropdownOpen(false);
                                 onClose();
-                                navigate("/portfolios/create");
+                                navigate("/portfolio/new");
                               }}
                               className="w-full border-t border-slate-100 bg-gradient-to-r from-blue-50 to-blue-50 px-4 py-3 text-left transition hover:bg-blue-100"
                             >
