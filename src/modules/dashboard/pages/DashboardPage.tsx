@@ -30,7 +30,7 @@ function DashboardCommandBar({
   const options = useMemo<NewActionOption[]>(
     () => [
       {
-        label: "Nuevo Producto",
+        label: "Nueva solicitud",
         description: "Registrar un nuevo producto preliminar.",
         enabled: true,
         icon: <FolderPlus size={17} />,
