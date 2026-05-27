@@ -1,8 +1,8 @@
 // src/modules/portfolio/pages/PortfolioDetailPage.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, FolderPlus, FilePlus2, GitBranchPlus, Upload } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
@@ -22,6 +22,7 @@ import PreviewRow from "../../../shared/components/display/PreviewRow";
 import ProjectStatusBadge from "../../../shared/components/display/ProjectStatusBadge";
 import FormCard from "../../../shared/components/forms/FormCard";
 import RowActionButtons from "../../../shared/components/table/RowActionButtons";
+import NewActionDropdown, { type NewActionOption } from "../../../shared/components/NewActionDropdown";
 
 import { PortfolioProductsPanel } from "../components/PortfolioProductsPanel";
 
@@ -69,9 +70,45 @@ export default function PortfolioDetailPage() {
   const [validationProjects, setValidationProjects] = useState<any[]>([]);
   const [productCount, setProductCount] = useState(0);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
+  const [showCreatePreliminaryModal, setShowCreatePreliminaryModal] = useState(false);
 
   const currentUser = getCurrentUser();
   const isAdmin = currentUser?.role === "administrator";
+
+  const newActionOptions = useMemo<NewActionOption[]>(
+    () => [
+      {
+        label: "Crear Producto Preliminar 1",
+        description: "Registrar un nuevo producto preliminar.",
+        enabled: true,
+        icon: <FolderPlus size={17} />,
+        onClick: () => setShowCreateProjectModal(true),
+      },
+      {
+        label: "Crear Producto Preliminar",
+        description: "Crear producto desde un proyecto validado o aprobado.",
+        enabled: validationProjects.length > 0,
+        icon: <FilePlus2 size={17} />,
+        onClick: () => setShowCreatePreliminaryModal(true),
+      },
+      {
+        label: "Importar Productos Preliminares",
+        description: "Carga masiva de productos preliminares desde plantilla.",
+        enabled: validationProjects.length > 0,
+        icon: <Upload size={17} />,
+        onClick: () => navigate("/products/import"),
+      },
+      {
+        label: "Crear Producto Modificado / Nueva Versión",
+        description: "Crear una nueva versión desde un producto previo aprobado.",
+        enabled: productCount > 0,
+        icon: <GitBranchPlus size={17} />,
+        onClick: () => navigate("/products/create?mode=modified"),
+      },
+    ],
+    [validationProjects.length, productCount, navigate]
+  );
 
   const loadRelatedRecords = (code: string) => {
     const portfolioProjects = getProjectsByPortfolioCode(code);
@@ -116,6 +153,8 @@ export default function PortfolioDetailPage() {
       ],
       actions: (
         <div className="flex gap-2">
+          <NewActionDropdown options={newActionOptions} />
+
           {isAdmin && productCount === 0 && validationProjects.length === 0 && (
             <Button
               variant="danger"
@@ -157,6 +196,7 @@ export default function PortfolioDetailPage() {
     isAdmin,
     setHeader,
     navigate,
+    newActionOptions,
   ]);
 
   const handleTogglePortfolioStatus = () => {
@@ -325,7 +365,7 @@ export default function PortfolioDetailPage() {
         <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-6 py-4">
           <div>
             <h3 className="font-bold text-gray-800">
-              Proyectos de Validación Asociados
+              Productos en validación
             </h3>
             <p className="text-xs text-gray-500">
               Los proyectos ya no se crean manualmente desde el portafolio. Se

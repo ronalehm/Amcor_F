@@ -80,16 +80,16 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     if (projectCode && project) {
       setHeader({
-        title: "Tracking de Proyecto",
+        title: "Tracking de Producto",
         breadcrumbs: [
-          { label: "Proyectos", href: "/projects" },
+          { label: "Productos", href: "/projects" },
           { label: projectCode },
           { label: "Tracking" },
         ],
         actions: (
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate(`/projects/${projectCode}/edit`)}>
-              Editar Proyecto
+              Editar Producto
             </Button>
             <Button variant="primary" onClick={() => exportProjectToExcelMock(projectCode as string)}>
               Exportar Ficha
@@ -104,8 +104,8 @@ export default function ProjectDetailPage() {
   if (!project || !trackingState) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <div className="text-red-600 font-semibold">Proyecto no encontrado o sin inicializar tracking</div>
-        <Button variant="ghost" onClick={() => navigate("/projects")}>Volver a Proyectos</Button>
+        <div className="text-red-600 font-semibold">Producto no encontrado o sin inicializar tracking</div>
+        <Button variant="ghost" onClick={() => navigate("/projects")}>Volver a Productos</Button>
       </div>
     );
   }
@@ -181,12 +181,12 @@ export default function ProjectDetailPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Lado Izquierdo: Ficha Única del Proyecto */}
+        {/* Lado Izquierdo: Ficha Única del Producto */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-6 bg-gradient-to-br from-brand-primary to-brand-secondary text-white">
               <div className="text-xs font-bold uppercase tracking-wide text-white/75 mb-1">
-                Proyecto {project.code}
+                Producto {project.code}
               </div>
               <h2 className="text-2xl font-bold">{project.projectName}</h2>
               <p className="text-sm opacity-90 mt-1">{project.projectDescription || "Sin descripción"}</p>
@@ -201,10 +201,10 @@ export default function ProjectDetailPage() {
               <PreviewRow label="Planta de Origen" value={project.plantaName} />
               <PreviewRow label="Cliente" value={project.clientName} />
               <PreviewRow label="Ejecutivo Comercial" value={project.ejecutivoName} />
-              <PreviewRow label="Nombre del Proyecto" value={project.projectName} />
+              <PreviewRow label="Nombre del Producto" value={project.projectName} />
               <PreviewRow label="Clasificación" value={project.classification} />
               <PreviewRow label="Sub-clasificación" value={project.subClassification} />
-              <PreviewRow label="Tipo de Proyecto" value={project.projectType} />
+              <PreviewRow label="Tipo de Producto" value={project.projectType} />
               <PreviewRow label="Acción Salesforce" value={project.salesforceAction} />
 
               <PreviewRow label="Fecha Registro" value={new Date(project.createdAt).toLocaleDateString()} />
@@ -339,14 +339,14 @@ export default function ProjectDetailPage() {
         {/* Lado Derecho: Estado, Acciones y Observaciones */}
         <div className="space-y-6">
 
-          {/* Estado del Proyecto - Nueva vista centralizada */}
+          {/* Estado del Producto - Nueva vista centralizada */}
           <ProjectStatusPanel project={project} />
 
           {/* TEST CONTROLS: Manual State Transition (Dev/Testing Only) */}
           <FormCard title="🧪 Controles de Prueba" icon="⚙" color="#e74c3c">
             <div className="space-y-3">
               <div className="text-xs text-slate-600 bg-yellow-50 p-2 rounded border border-yellow-200">
-                Cambiar manualmente el estado del proyecto para pruebas de flujo.
+                Cambiar manualmente el estado del producto para pruebas de flujo.
               </div>
               <select
                 value={project?.status || ""}
@@ -395,7 +395,7 @@ export default function ProjectDetailPage() {
               onRequestCreditEvaluation={() => alert("Solicitando evaluación a Crédito...")}
               onApproveManufacturing={() => handleAdvance()}
               onApproveSample={() => handleAdvance()}
-              onReject={() => alert("Proyecto desestimado.")}
+              onReject={() => alert("Producto desestimado.")}
               onRequestValidation={handleRequestValidation}
             />
           )}

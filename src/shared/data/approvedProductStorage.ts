@@ -13,6 +13,16 @@ export type ApprovedProduct = {
   capacityValue?: string;
   capacityUnit?: string;
   hasSpecialDesign?: "Sí" | "No";
+  description?: string;
+  // Materiales por capa
+  layer1Material?: string;
+  layer1Micron?: string;
+  layer2Material?: string;
+  layer2Micron?: string;
+  layer3Material?: string;
+  layer3Micron?: string;
+  layer4Material?: string;
+  layer4Micron?: string;
 };
 
 const APPROVED_PRODUCTS: ApprovedProduct[] = [
@@ -31,6 +41,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "500",
     capacityUnit: "ml",
     hasSpecialDesign: "No",
+    description: "Mayonesa Premium en formato botella de 500ml. Producto base para salsas y condimentos húmedos.",
+    layer1Material: "BOPP",
+    layer1Micron: "20",
+    layer2Material: "PET / Poliéster",
+    layer2Micron: "12",
+    layer3Material: "COEX",
+    layer3Micron: "25",
   },
   {
     id: "APR-002",
@@ -46,6 +63,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "20",
     capacityUnit: "ml",
     hasSpecialDesign: "No",
+    description: "Mayonesa Premium en formato sachet de 20ml. Ideal para dispensadores retail.",
+    layer1Material: "BOPP",
+    layer1Micron: "15",
+    layer2Material: "PET / Poliéster",
+    layer2Micron: "10",
+    layer3Material: "COEX",
+    layer3Micron: "20",
   },
   {
     id: "APR-003",
@@ -61,6 +85,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "5",
     capacityUnit: "kg",
     hasSpecialDesign: "No",
+    description: "Mayonesa Premium en formato balde de 5kg. Presentación para food service y distribución a granel.",
+    layer1Material: "BOPP",
+    layer1Micron: "25",
+    layer2Material: "PET / Poliéster",
+    layer2Micron: "12",
+    layer3Material: "COEX",
+    layer3Micron: "30",
   },
   // Productos Aprobados para Portafolio Mayonesa Premium
   {
@@ -77,6 +108,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "500",
     capacityUnit: "ml",
     hasSpecialDesign: "No",
+    description: "Mayonesa Premium aprobada en formato botella de 500ml. Versión 2.1 con mejoras en formulación.",
+    layer1Material: "BOPP",
+    layer1Micron: "20",
+    layer2Material: "PET / Poliéster",
+    layer2Micron: "12",
+    layer3Material: "COEX",
+    layer3Micron: "25",
   },
   {
     id: "APR-005",
@@ -92,6 +130,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "20",
     capacityUnit: "ml",
     hasSpecialDesign: "No",
+    description: "Mayonesa Premium aprobada en formato sachet de 20ml. Perfecto para dispensadores retail.",
+    layer1Material: "BOPP",
+    layer1Micron: "15",
+    layer2Material: "PET / Poliéster",
+    layer2Micron: "10",
+    layer3Material: "COEX",
+    layer3Micron: "20",
   },
   {
     id: "APR-006",
@@ -107,6 +152,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "5",
     capacityUnit: "kg",
     hasSpecialDesign: "No",
+    description: "Mayonesa Premium aprobada en formato balde de 5kg. Para food service y distribución a granel.",
+    layer1Material: "BOPP",
+    layer1Micron: "25",
+    layer2Material: "PET / Poliéster",
+    layer2Micron: "12",
+    layer3Material: "COEX",
+    layer3Micron: "30",
   },
   // Productos Base adicionales para Portafolio Mayonesa Premium - Alicorp
   {
@@ -123,6 +175,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "400",
     capacityUnit: "ml",
     hasSpecialDesign: "Sí",
+    description: "Mayonesa Light base en botella de 400ml con diseño especial. Versión reducida en calorías.",
+    layer1Material: "BOPP",
+    layer1Micron: "17",
+    layer2Material: "PET / Poliéster",
+    layer2Micron: "12",
+    layer3Material: "COEX",
+    layer3Micron: "22",
   },
   {
     id: "APR-008",
@@ -138,6 +197,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "150",
     capacityUnit: "ml",
     hasSpecialDesign: "No",
+    description: "Mayonesa Extra base en tubo de 150ml. Formato portátil ideal para viajes y uso personal.",
+    layer1Material: "Aluminio / Foil",
+    layer1Micron: "9",
+    layer2Material: "BOPA / Nylon",
+    layer2Micron: "15",
+    layer3Material: "PE sellante",
+    layer3Micron: "90",
   },
   {
     id: "APR-009",
@@ -153,6 +219,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "750",
     capacityUnit: "ml",
     hasSpecialDesign: "No",
+    description: "Mayonesa Económica base en pote de 750ml. Opción de precio accesible para distribución a granel.",
+    layer1Material: "BOPP",
+    layer1Micron: "16",
+    layer2Material: "PET / Poliéster",
+    layer2Micron: "10",
+    layer3Material: "COEX",
+    layer3Micron: "21",
   },
   // Productos Aprobados adicionales para Portafolio Mayonesa Premium - Alicorp
   {
@@ -169,6 +242,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "400",
     capacityUnit: "ml",
     hasSpecialDesign: "Sí",
+    description: "Mayonesa Light aprobada en botella de 400ml con diseño especial premium. Versión 1.2.",
+    layer1Material: "BOPP",
+    layer1Micron: "17",
+    layer2Material: "PET / Poliéster",
+    layer2Micron: "12",
+    layer3Material: "COEX",
+    layer3Micron: "22",
   },
   {
     id: "APR-011",
@@ -184,6 +264,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "150",
     capacityUnit: "ml",
     hasSpecialDesign: "No",
+    description: "Mayonesa Extra aprobada en tubo de 150ml. Formato portátil ideal para viajes.",
+    layer1Material: "Aluminio / Foil",
+    layer1Micron: "9",
+    layer2Material: "BOPA / Nylon",
+    layer2Micron: "15",
+    layer3Material: "PE sellante",
+    layer3Micron: "90",
   },
   {
     id: "APR-012",
@@ -199,6 +286,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "750",
     capacityUnit: "ml",
     hasSpecialDesign: "No",
+    description: "Mayonesa Económica aprobada en pote de 750ml. Versión 1.1 mejorada para distribución.",
+    layer1Material: "BOPP",
+    layer1Micron: "16",
+    layer2Material: "PET / Poliéster",
+    layer2Micron: "10",
+    layer3Material: "COEX",
+    layer3Micron: "21",
   },
 ];
 

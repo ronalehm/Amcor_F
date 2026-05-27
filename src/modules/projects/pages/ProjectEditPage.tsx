@@ -860,13 +860,13 @@ const POUCH_DOY_PACK_DIMENSION_RESTRICTIONS = {
 } as const;
 
 const STEPS = [
-  { label: "Proyecto" },
+  { label: "Producto" },
   { label: "Diseño" },
   { label: "Estructura" },
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
-  // 0. Proyecto
+  // 0. Producto
   0: [
     "projectName",
     "projectDescription",
@@ -938,8 +938,8 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
 const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   portfolioCode: "Portafolio base",
   executiveId: "Ejecutivo Comercial",
-  projectName: "Nombre del proyecto",
-  projectDescription: "Descripción del proyecto",
+  projectName: "Nombre del producto",
+  projectDescription: "Descripción del producto",
 
   blueprintFormat: "Formato de plano",
 
@@ -966,7 +966,7 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   customerAdditionalInfo: "Información adicional cliente",
   additionalComment: "Comentario del Ejecutivo Comercial",
   classification: "Clasificación",
-  projectType: "Tipo de Proyecto",
+  projectType: "Tipo de Producto",
 
   hasDesignPlan: "¿Tiene plano de diseño?",
   hasEdagReference: "¿Tiene Diseño de referencia?",
@@ -1532,18 +1532,18 @@ export default function ProjectEditPage() {
   useEffect(() => {
     if (projectCode && !loading) {
       const projectTitle = form.projectName?.trim()
-        ? `Editar Proyecto: ${form.projectName}`
-        : "Editar Proyecto";
+        ? `Editar Producto: ${form.projectName}`
+        : "Editar Producto";
 
       const projectSubtitle = form.projectDescription?.trim()
         ? form.projectDescription
-        : "Completa y gestiona todos los detalles de tu proyecto";
+        : "Completa y gestiona todos los detalles de tu producto";
 
       setHeader({
         title: projectTitle,
         subtitle: projectSubtitle,
         breadcrumbs: [
-          { label: "Proyectos", href: "/projects" },
+          { label: "Productos", href: "/projects" },
           { label: projectCode },
           { label: "Editar" },
         ],
@@ -2497,7 +2497,7 @@ export default function ProjectEditPage() {
 
   const primaryButtonLabel = isProjectCompleteForValidation
     ? "Solicitar validación"
-    : "Actualizar proyecto";
+    : "Actualizar producto";
 
   const missingFieldCount = useMemo(() => {
     return Object.values(missingFieldsByStep).flat().length;
@@ -2607,7 +2607,7 @@ export default function ProjectEditPage() {
     const needsRevalidation = wasValidated && hasModifications;
 
     if (needsRevalidation) {
-      if (!window.confirm("Al guardar estos cambios el proyecto requerirá una nueva validación (cambio de versión de línea base). ¿Desea continuar?")) {
+      if (!window.confirm("Al guardar estos cambios el producto requerirá una nueva validación (cambio de versión de línea base). ¿Desea continuar?")) {
         return;
       }
     }
@@ -2824,12 +2824,12 @@ export default function ProjectEditPage() {
 
     // Block submission if "Máquina genérica" is selected
     if (shouldSubmitForValidation && isGenericPackingMachine(inheritedMachine)) {
-      alert("No se puede enviar el proyecto para validación mientras se tiene seleccionado 'Máquina genérica'. Por favor, seleccione una máquina específica.");
+      alert("No se puede enviar el producto para validación mientras se tiene seleccionado 'Máquina genérica'. Por favor, seleccione una máquina específica.");
       return;
     }
 
     if (needsRevalidation && !shouldSubmitForValidation) {
-      if (!window.confirm("Al guardar estos cambios el proyecto requerirá una nueva validación (cambio de versión de línea base). ¿Desea continuar?")) {
+      if (!window.confirm("Al guardar estos cambios el producto requerirá una nueva validación (cambio de versión de línea base). ¿Desea continuar?")) {
         return;
       }
     }
@@ -3134,13 +3134,13 @@ export default function ProjectEditPage() {
   );
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500">Cargando proyecto...</div>;
+    return <div className="p-8 text-center text-slate-500">Cargando producto...</div>;
   }
 
   if (!originalProject || !projectCode) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <div className="text-red-600 font-semibold">Proyecto no encontrado</div>
+        <div className="text-red-600 font-semibold">Producto no encontrado</div>
         <button
           onClick={() => navigate("/projects")}
           className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium"
@@ -3237,7 +3237,7 @@ export default function ProjectEditPage() {
             {/* PASO 0: Información de Producto */}
             {activeStep === 0 && (
               <div className="space-y-5">
-                <FormCard title="Información inicial del proyecto" icon="📋" color="#00395A" required>
+                <FormCard title="Información inicial del producto" icon="📋" color="#00395A" required>
                   {/* ========== CLASIFICACIÓN Y MOTIVO ========== */}
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <FormSelect
@@ -3309,7 +3309,7 @@ export default function ProjectEditPage() {
                   {/* ========== NOMBRE, VOLUMEN Y UNIDAD (3 COLUMNAS) ========== */}
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3 mt-4">
                     <FormInput
-                      label="Nombre del Proyecto *"
+                      label="Nombre del Producto *"
                       value={form.projectName}
                       onChange={(value) => updateField("projectName", value)}
                       onBlur={() => markFieldAsTouched("projectName")}
@@ -3499,7 +3499,7 @@ export default function ProjectEditPage() {
                   <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm text-purple-800">
                     <p className="font-bold">Diseño nuevo</p>
                     <p className="mt-1 text-xs">
-                      Este proyecto no tiene EDAG de referencia. La información de diseño será
+                      Este producto no tiene EDAG de referencia. La información de diseño será
                       completada y validada por Artes Gráficas en el Momento 2.
                     </p>
                   </div>
@@ -3509,7 +3509,7 @@ export default function ProjectEditPage() {
                   <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-800">
                     <p className="font-bold">Cambio de diseño</p>
                     <p className="mt-1 text-xs">
-                      Este proyecto parte de un producto vigente. Solo se habilitan los campos
+                      Este producto parte de un producto vigente. Solo se habilitan los campos
                       relacionados con diseño y dimensiones según corresponda.
                     </p>
                   </div>
@@ -4488,9 +4488,9 @@ export default function ProjectEditPage() {
 
           {/* ========== COLUMNA DERECHA: PANEL DE CONTEXTO (STICKY) ========== */}
           <div className="space-y-5">
-            {/* TARJETA: PROYECTO CORE */}
+            {/* TARJETA: PRODUCTO CORE */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="font-semibold text-sm text-slate-900 mb-3">Proyecto</h3>
+              <h3 className="font-semibold text-sm text-slate-900 mb-3">Producto</h3>
 
               <div className="space-y-2 text-sm">
                 <PreviewRow
@@ -4638,7 +4638,7 @@ export default function ProjectEditPage() {
                 Campos obligatorios pendientes
               </h3>
               <p className="mt-1 text-sm text-amber-800">
-                Este proyecto tiene campos obligatorios sin completar. Puedes revisar
+                Este producto tiene campos obligatorios sin completar. Puedes revisar
                 los campos pendientes antes de actualizar o guardar el avance actual.
               </p>
             </div>
@@ -4649,7 +4649,7 @@ export default function ProjectEditPage() {
                   Completitud actual: {completionPercentage}%
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Faltan {missingFieldCount} campo(s) obligatorio(s) para completar el proyecto.
+                  Faltan {missingFieldCount} campo(s) obligatorio(s) para completar el producto.
                 </p>
               </div>
 
@@ -4715,7 +4715,7 @@ export default function ProjectEditPage() {
                 La ficha ha sido enviada para validación a los equipos de R&D y Artes Gráficas.
               </p>
               <div className="bg-slate-50 rounded p-3 space-y-1 text-sm">
-                <p><span className="font-semibold">Proyecto:</span> {projectCode}</p>
+                <p><span className="font-semibold">Producto:</span> {projectCode}</p>
                 <p><span className="font-semibold">Estado:</span> Pendiente de validación</p>
               </div>
             </div>
@@ -4749,7 +4749,7 @@ export default function ProjectEditPage() {
                 ¿Descartar cambios?
               </h3>
               <p className="mt-2 text-sm text-slate-600">
-                Tienes cambios sin guardar en este proyecto.
+                Tienes cambios sin guardar en este producto.
               </p>
             </div>
 
