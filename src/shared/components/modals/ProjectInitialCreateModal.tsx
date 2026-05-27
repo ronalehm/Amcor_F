@@ -1435,6 +1435,12 @@ const getProjectStatus = (project: ProjectRecord) =>
 
 const DEBUG_PORTFOLIO_FILTER = false;
 
+const incrementVersion = (currentVersion: string): string => {
+  const versionNum = parseInt(currentVersion || "00", 10);
+  const nextVersion = versionNum + 1;
+  return String(nextVersion).padStart(2, "0");
+};
+
 export default function ProjectInitialCreateModal({
   isOpen,
   onClose,
@@ -1480,6 +1486,7 @@ const [visibleLayerCount, setVisibleLayerCount] = useState(1);
   const [productoBaseCodigo, setProductoBaseCodigo] = useState("");
   const [productoBaseVersion, setProductoBaseVersion] = useState("");
   const [isInheritedFromBase, setIsInheritedFromBase] = useState(false);
+  const [newSkuCode, setNewSkuCode] = useState("");
 
   const [similarityMatches, setSimilarityMatches] = useState<SimilarityMatch[]>(
     [],
@@ -2811,6 +2818,25 @@ const handleRemoveLastLayer = () => {
                       setProductoBaseNombre("");
                       setProductoBaseCodigo("");
                       setProductoBaseVersion("");
+                      setIsInheritedFromBase(false);
+                    }
+
+                    // Generar código SKU para producto nuevo
+                    if (value === "Producto nuevo") {
+                      setProductoBaseVersion("00");
+                      // Si hay un producto base seleccionado, generar el nuevo SKU
+                      if (productoBaseCodigo) {
+                        const baseParts = productoBaseCodigo.split("-");
+                        if (baseParts.length >= 2) {
+                          const newCode = `${baseParts[0]}-${baseParts[1]}-E-00`;
+                          setNewSkuCode(newCode);
+                        }
+                      } else {
+                        setNewSkuCode("");
+                      }
+                    } else {
+                      setProductoBaseVersion("");
+                      setNewSkuCode("");
                     }
 
                     setSimilarityMatches([]);
@@ -2904,25 +2930,48 @@ const handleRemoveLastLayer = () => {
                       onSelect={(product) => {
                         setProductoBaseCodigo(product.code);
                         setProductoBaseNombre(product.name);
-                        setProductoBaseVersion(product.version || "");
+                        // Para "Producto nuevo", la versión debe ser "00"; para "Producto modificado", incrementar la versión
+                        if (motivo === "Producto nuevo") {
+                          setProductoBaseVersion("00");
+                        } else if (motivo === "Producto modificado") {
+                          const nextVersion = incrementVersion(product.version || "00");
+                          setProductoBaseVersion(nextVersion);
+                        }
                         setIsInheritedFromBase(true);
 
                         // Heredar datos del producto base
                         setUnidad(product.capacityUnit || "");
                         setVolumen(product.capacityValue || "");
+                        setDescripcion(product.description || "");
+
+                        // Heredar materiales por capa
+                        setLayer1(product.layer1Material || "");
+                        setLayer1Micron(product.layer1Micron || "");
+                        setLayer2(product.layer2Material || "");
+                        setLayer2Micron(product.layer2Micron || "");
+                        setLayer3(product.layer3Material || "");
+                        setLayer3Micron(product.layer3Micron || "");
+                        setLayer4(product.layer4Material || "");
+                        setLayer4Micron(product.layer4Micron || "");
+
+                        // Determinar cantidad visible de capas según lo que hereda
+                        let visibleLayers = 1;
+                        if (product.layer2Material) visibleLayers = 2;
+                        if (product.layer3Material) visibleLayers = 3;
+                        if (product.layer4Material) visibleLayers = 4;
+                        setVisibleLayerCount(visibleLayers);
+
+                        // Generar nuevo SKU si es "Producto nuevo"
+                        if (motivo === "Producto nuevo") {
+                          const baseParts = product.code.split("-");
+                          if (baseParts.length >= 2) {
+                            const newCode = `${baseParts[0]}-${baseParts[1]}-E-00`;
+                            setNewSkuCode(newCode);
+                          }
+                        }
 
                         // Limpiar campos no heredables
                         setProjectName("");
-                        setDescripcion("");
-                        setLayer1("");
-                        setLayer2("");
-                        setLayer3("");
-                        setLayer4("");
-                        setLayer1Micron("");
-                        setLayer2Micron("");
-                        setLayer3Micron("");
-                        setLayer4Micron("");
-                        setVisibleLayerCount(1);
                         setComentarios("");
                         setSimilarityMatches([]);
                         setSelectedReference(null);
@@ -2995,8 +3044,19 @@ const handleRemoveLastLayer = () => {
                     }}
                     placeholder="Ej. V1"
                     error={errors.productoBaseVersion}
-                    disabled={!canEditProductoBaseVersion}
+                    disabled={motivo === "Producto nuevo" || !canEditProductoBaseVersion}
                   />
+                </div>
+              )}
+
+              {motivo === "Producto nuevo" && newSkuCode && (
+                <div className="space-y-1">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Código SKU generado
+                  </label>
+                  <div className="flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2">
+                    <span className="text-sm font-mono text-slate-900">{newSkuCode}</span>
+                  </div>
                 </div>
               )}
 
@@ -3008,28 +3068,35 @@ const handleRemoveLastLayer = () => {
                     onChange={(value) => {
                       const wasEmpty = !projectName.trim();
                       setProjectName(value);
-                      setVolumen("");
-                      setUnidad("");
-                      setDescripcion("");
-                      setLayer1("");
-                      setLayer2("");
-                      setLayer3("");
-                      setLayer4("");
-                      setLayer1Micron("");
-                      setLayer2Micron("");
-                      setLayer3Micron("");
-                      setLayer4Micron("");
-                      setVisibleLayerCount(1);
+
+                      // Si hay datos heredados, mantenerlos; de lo contrario, limpiar
+                      if (!isInheritedFromBase) {
+                        setVolumen("");
+                        setUnidad("");
+                        setDescripcion("");
+                        setLayer1("");
+                        setLayer2("");
+                        setLayer3("");
+                        setLayer4("");
+                        setLayer1Micron("");
+                        setLayer2Micron("");
+                        setLayer3Micron("");
+                        setLayer4Micron("");
+                        setVisibleLayerCount(1);
+                      }
+
                       setComentarios("");
                       setSimilarityMatches([]);
                       setSelectedReference(null);
                       setErrors((prev) => ({
                         ...prev,
                         projectName: "",
-                        volumen: "",
-                        unidad: "",
-                        descripcion: "",
-                        layer1: "",
+                        ...(isInheritedFromBase ? {} : {
+                          volumen: "",
+                          unidad: "",
+                          descripcion: "",
+                          layer1: "",
+                        }),
                         comentarios: "",
                       }));
 
@@ -3164,6 +3231,7 @@ const handleRemoveLastLayer = () => {
                 <textarea
                   value={descripcion}
                   onChange={(event) => {
+                    if (isInheritedFromBase) return;
                     const wasEmpty = !descripcion.trim();
                     setDescripcion(event.target.value);
                     setLayer1("");
@@ -3193,7 +3261,7 @@ const handleRemoveLastLayer = () => {
                     }
                   }}
                   placeholder="Describe la necesidad técnica o comercial..."
-                  disabled={!canEditDescripcion}
+                  disabled={!canEditDescripcion || isInheritedFromBase}
                   className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary ${
                     canEditDescripcion
                       ? "border-slate-300 bg-white text-slate-800"
@@ -3285,7 +3353,7 @@ const handleRemoveLastLayer = () => {
           options={MATERIAL_OPTIONS}
           placeholder="Material"
           error={isFirstLayer ? errors.layer1 : undefined}
-          disabled={!canEditMateriales}
+          disabled={!canEditMateriales || isInheritedFromBase}
         />
 
         {selectedMaterial && (
@@ -3300,7 +3368,7 @@ const handleRemoveLastLayer = () => {
                   label: `${option} µ`,
                 }))}
                 placeholder="Opcional"
-                disabled={!canEditMateriales}
+                disabled={!canEditMateriales || isInheritedFromBase}
               />
             ) : (
               <FormInput
@@ -3308,7 +3376,7 @@ const handleRemoveLastLayer = () => {
                 value={selectedMicron}
                 onChange={(value) => setLayerMicronValue(index, value)}
                 placeholder="Opcional (µ)"
-                disabled={!canEditMateriales}
+                disabled={!canEditMateriales || isInheritedFromBase}
               />
             )}
           </div>
