@@ -1448,6 +1448,7 @@ export default function ProjectInitialCreateModal({
   const [selectedClient, setSelectedClient] = useState<ClientRecord | null>(
     null,
   );
+  const [quotationFile, setQuotationFile] = useState<File | null>(null);
   const [portfolioCode, setPortfolioCode] = useState(
     initialPortfolioCode || "",
   );
@@ -2589,6 +2590,27 @@ const handleRemoveLastLayer = () => {
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="space-y-5 lg:col-span-2">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Importar sustento de cotización aprobada
+                </label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setQuotationFile(file);
+                    }}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-600 hover:file:bg-blue-100"
+                  />
+                </div>
+                {quotationFile && (
+                  <p className="text-xs text-green-600 font-medium">
+                    ✓ Archivo cargado: {quotationFile.name}
+                  </p>
+                )}
+              </div>
+
               {!isPortfolioLocked && (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-1">
