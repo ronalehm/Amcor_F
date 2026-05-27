@@ -27,7 +27,7 @@ const MENU_ITEMS: MenuItem[] = [
   { path: "/clients", label: "Clientes", icon: Building2 },
   { path: "/portfolio", label: "Portafolio", icon: FolderKanban },
   { path: "/projects", label: "Productos", icon: BriefcaseBusiness },
-  { path: "/validaciones", label: "Validaciones", icon: ClipboardCheck },
+  { path: "/validaciones", label: "Bandeja de Aprobaciones", icon: ClipboardCheck },
   { path: "/datasheets", label: "Fichas de Producto", icon: ScanBarcode },
   { path: "/users", label: "Usuarios", icon: Users },
 ];
