@@ -764,16 +764,16 @@ export default function ProjectCreatePage() {
   const projectDescription = form.projectDescription?.trim();
 
   const defaultTitle = isDuplicateMode
-    ? "Proyectos >> Duplicar Proyecto"
-    : "Proyectos >> Crear Proyecto";
+    ? "Productos >> Duplicar Producto"
+    : "Productos >> Crear Producto";
 
   const dynamicTitle = projectName
-    ? `${isDuplicateMode ? "Duplicar Proyecto" : "Crear Proyecto"}: ${projectName}`
+    ? `${isDuplicateMode ? "Duplicar Producto" : "Crear Producto"}: ${projectName}`
     : defaultTitle;
 
   const defaultSubtitle = isDuplicateMode
-    ? `Duplicando proyecto ${duplicateFromParam}. La estructura está bloqueada y debe mantenerse igual. Modifica solo los datos de diseño y comercial.`
-    : "Selecciona un portafolio base, hereda su información común y completa la ficha única del proyecto.";
+    ? `Duplicando producto ${duplicateFromParam}. La estructura está bloqueada y debe mantenerse igual. Modifica solo los datos de diseño y comercial.`
+    : "Selecciona un portafolio base, hereda su información común y completa la ficha única del producto.";
 
   const dynamicSubtitle = projectDescription || defaultSubtitle;
 
@@ -781,7 +781,7 @@ export default function ProjectCreatePage() {
           title: dynamicTitle,
           subtitle: dynamicSubtitle,
           breadcrumbs: [
-            { label: "Proyectos", href: "/projects" },
+            { label: "Productos", href: "/products" },
             { label: isDuplicateMode ? "Duplicar Proyecto" : "Crear Proyecto" },
           ],
           badges: (
@@ -1216,14 +1216,14 @@ export default function ProjectCreatePage() {
     }));
 
     // Redirect to Edit page with optional completion prompt
-    navigate(`/projects/${projectCode}/edit`, { replace: true });
+    navigate(`/products/${projectCode}/edit`, { replace: true });
   };
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] pb-12">
       <button
         type="button"
-        onClick={() => navigate("/projects")}
+        onClick={() => navigate("/products")}
         className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
       >
         <ArrowLeft size={16} />
@@ -2057,7 +2057,7 @@ export default function ProjectCreatePage() {
     {/* ========== FOOTER STICKY: BOTONES DE ACCIÓN ========== */}
     <div className="sticky bottom-0 z-40 mt-6 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
       <FormActionButtons
-        onCancel={() => navigate("/projects")}
+        onCancel={() => navigate("/products")}
         validationErrorList={Object.values(validationErrors).filter(
           (error): error is string => Boolean(error)
         )}

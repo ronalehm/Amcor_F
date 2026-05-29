@@ -118,7 +118,7 @@ export default function ClientCreatePage() {
         email: form.email,
         ruc: form.ruc,
         industry: form.industry,
-        status: "pending_validation",
+        status: "Por aprobar",
         siClientId: form.siClient?.id,
         siClientCode: form.siClient?.code,
       });
@@ -126,7 +126,7 @@ export default function ClientCreatePage() {
       registerClientStatusChange(
         newClient.id,
         null,
-        "pending_validation",
+        "Por aprobar",
         "system",
         `Cliente creado - ${form.siClient ? "Información autocompleta de SI" : "Ingreso manual - pendiente validación en SI"}`
       );
@@ -352,3 +352,4 @@ export default function ClientCreatePage() {
     </div>
   );
 }
+

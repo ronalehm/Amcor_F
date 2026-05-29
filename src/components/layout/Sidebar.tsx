@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   FolderKanban,
   BriefcaseBusiness,
-  ClipboardCheck,
   Building2,
   ScanBarcode,
   Users,
@@ -26,8 +25,7 @@ const MENU_ITEMS: MenuItem[] = [
   { path: "/dashboard", label: "Inicio", icon: LayoutDashboard },
   { path: "/clients", label: "Clientes", icon: Building2 },
   { path: "/portfolio", label: "Portafolio", icon: FolderKanban },
-  { path: "/projects", label: "Productos", icon: BriefcaseBusiness },
-  { path: "/validaciones", label: "Bandeja de Aprobaciones", icon: ClipboardCheck },
+  { path: "/products", label: "Productos", icon: BriefcaseBusiness },
   { path: "/datasheets", label: "Fichas de Producto", icon: ScanBarcode },
   { path: "/users", label: "Usuarios", icon: Users },
 ];

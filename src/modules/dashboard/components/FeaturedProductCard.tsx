@@ -82,7 +82,7 @@ export default function FeaturedProductCard({ product }: FeaturedProductCardProp
         <InfoTooltip content={tooltipContent} size="sm" />
 
         <button
-          onClick={() => navigate(`/projects/clone/${product.code}`)}
+          onClick={() => navigate(`/products/clone/${product.code}`)}
           className="ml-auto inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200 group-hover:bg-blue-700 group-hover:text-white group-hover:border-blue-700 transition-all duration-200"
         >
           Usar como base

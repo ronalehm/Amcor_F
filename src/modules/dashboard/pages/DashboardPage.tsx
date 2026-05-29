@@ -1,51 +1,18 @@
 // src/modules/dashboard/pages/DashboardPage.tsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  FolderPlus,
-  Search,
-  Upload,
-} from "lucide-react";
+import { Search } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import QuickCreatePanel from "../components/QuickCreatePanel";
 import WorkQueuePanel from "../components/WorkQueuePanel";
-import ProjectInitialCreateModal from "../../../shared/components/modals/ProjectInitialCreateModal";
 import ProductPreliminaryCreateModal from "../../../shared/components/modals/ProductPreliminaryCreateModal";
-import NewActionDropdown, { type NewActionOption } from "../../../shared/components/NewActionDropdown";
+import { ProductActionButton } from "../../../shared/components/ProductActionButton";
 
 import { WORK_QUEUE } from "../data/homeMockData";
 
-type DashboardCommandBarProps = {
-  onCreateProject: () => void;
-};
-
-function DashboardCommandBar({
-  onCreateProject,
-}: DashboardCommandBarProps) {
-  const navigate = useNavigate();
-
-  const options = useMemo<NewActionOption[]>(
-    () => [
-      {
-        label: "Nueva solicitud",
-        description: "Registrar un nuevo producto preliminar.",
-        enabled: true,
-        icon: <FolderPlus size={17} />,
-        onClick: () => onCreateProject(),
-      },
-      {
-        label: "Importar Productos",
-        description: "Carga masiva de productos desde plantilla.",
-        enabled: true,
-        icon: <Upload size={17} />,
-        onClick: () => navigate("/products/import"),
-      },
-    ],
-    [navigate, onCreateProject],
-  );
+function DashboardCommandBar() {
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -81,7 +48,7 @@ function DashboardCommandBar({
           />
         </div>
 
-        <NewActionDropdown options={options} />
+        <ProductActionButton source="dashboard" />
       </form>
     </div>
   );
@@ -90,9 +57,6 @@ function DashboardCommandBar({
 export default function DashboardPage() {
   const { setHeader, resetHeader } = useLayout();
 
-  const [isProjectCreateModalOpen, setIsProjectCreateModalOpen] =
-    useState(false);
-
   const [isPreliminaryProductModalOpen, setIsPreliminaryProductModalOpen] =
     useState(false);
 
@@ -100,11 +64,7 @@ export default function DashboardPage() {
     setHeader({
       title: "Portal Web ODISEO",
       subtitle: undefined,
-      toolbar: (
-        <DashboardCommandBar
-          onCreateProject={() => setIsProjectCreateModalOpen(true)}
-        />
-      ),
+      toolbar: <DashboardCommandBar />,
     });
 
     return () => resetHeader();
@@ -130,12 +90,6 @@ export default function DashboardPage() {
           <WorkQueuePanel items={WORK_QUEUE} />
         </div>
       </div>
-
-      <ProjectInitialCreateModal
-        isOpen={isProjectCreateModalOpen}
-        onClose={() => setIsProjectCreateModalOpen(false)}
-        onProjectCreated={() => setIsProjectCreateModalOpen(false)}
-      />
 
       <ProductPreliminaryCreateModal
         isOpen={isPreliminaryProductModalOpen}

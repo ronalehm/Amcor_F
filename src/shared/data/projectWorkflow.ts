@@ -26,6 +26,15 @@ export type ProjectStatus =
   | "Alta Producto"
   | "Desestimado";
 
+export type ProductStatus =
+  | "Registrado"
+  | "En Preparación"
+  | "Completado";
+
+export type SkuLifecycleCode = "A" | "E" | "B";
+
+export type SkuLifecycleLabel = "Aprobado" | "Muestra" | "Base";
+
 export type GraphicArtsValidationStatus =
   | "Sin solicitar"
   | "En Revisión"
@@ -339,6 +348,69 @@ export function normalizeProjectStatus(rawStatus?: string): ProjectStatus {
       return "Desestimado";
     default:
       return "Registrado";
+  }
+}
+
+export function normalizeProductStatus(rawStatus?: string): ProductStatus {
+  if (!rawStatus) return "Registrado";
+
+  const status = String(rawStatus).trim();
+
+  switch (status) {
+    case "Registrado":
+      return "Registrado";
+    case "En Preparación":
+    case "En Curso":
+    case "En preparación":
+    case "Ficha Completa":
+    case "Ficha completa":
+    case "En Validación":
+    case "En validación":
+    case "En Evaluación":
+    case "En evaluación":
+    case "Observada":
+    case "Observado":
+    case "Productos preliminares":
+    case "En Cotización":
+      return "En Preparación";
+    case "Validado":
+    case "Lista para RFQ":
+    case "Cotización Completa":
+    case "Cotización completa":
+    case "Cotización Enviada":
+    case "Aprobado por Cliente":
+    case "Validación Tesorería":
+    case "Alta Producto":
+      return "Completado";
+    case "Desestimado":
+    case "Rechazado":
+    case "Cancelado":
+      return "Registrado";
+    default:
+      return "Registrado";
+  }
+}
+
+export function normalizeSkuLifecycleCode(rawCode?: string): SkuLifecycleCode | null {
+  if (!rawCode) return null;
+
+  const code = String(rawCode).trim().toUpperCase();
+
+  if (code === "A" || code === "APROBADO") return "A";
+  if (code === "E" || code === "MUESTRA") return "E";
+  if (code === "B" || code === "BASE") return "B";
+
+  return null;
+}
+
+export function getSkuLifecycleLabel(code: SkuLifecycleCode): SkuLifecycleLabel {
+  switch (code) {
+    case "A":
+      return "Aprobado";
+    case "E":
+      return "Muestra";
+    case "B":
+      return "Base";
   }
 }
 

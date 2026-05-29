@@ -1,22 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
   getClientByCode,
   STATUS_LABELS,
-  activateClient,
-  deactivateClient,
-  blockClient,
-  unblockClient,
-  deleteClient,
+  type ClientStatus,
   canClientHavePortfolio,
   getClientPortfolioEligibilityMessage,
-  type ClientStatus,
 } from "../../../shared/data/clientStorage";
 import { getPortfoliosByClient, type PortfolioRecord } from "../../../shared/data/portfolioStorage";
-import { getCurrentUser } from "../../../shared/data/userStorage";
-import Button from "../../../shared/components/ui/Button";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import FormCard from "../../../shared/components/forms/FormCard";
 import RowActionButtons from "../../../shared/components/table/RowActionButtons";
@@ -36,36 +29,6 @@ export default function ClientDetailPage() {
 
   const [client, setClient] = useState<any>(null);
   const [portfolios, setPortfolios] = useState<PortfolioRecord[]>([]);
-  
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [modalAction, setModalAction] = useState<"activate" | "deactivate" | "block" | "unblock" | "delete" | null>(null);
-
-  const currentUser = getCurrentUser();
-  const isAdmin = currentUser?.role === "administrator";
-
-  const handleStatusChange = () => {
-    if (!client || !modalAction) return;
-
-    if (modalAction === "activate") {
-      activateClient(client.id);
-    } else if (modalAction === "deactivate") {
-      deactivateClient(client.id);
-    } else if (modalAction === "block") {
-      blockClient(client.id);
-    } else if (modalAction === "unblock") {
-      unblockClient(client.id);
-    } else if (modalAction === "delete") {
-      deleteClient(client.id);
-      navigate("/clients");
-      return;
-    }
-
-    const updatedClient = getClientByCode(client.code);
-    setClient(updatedClient);
-    setPortfolios(getPortfoliosByClient(updatedClient));
-    setShowStatusModal(false);
-    setModalAction(null);
-  };
 
   useEffect(() => {
     if (clientCode) {
@@ -99,99 +62,11 @@ export default function ClientDetailPage() {
         ],
         actions: (
           <div className="flex gap-2">
-            {isAdmin && portfolios.length === 0 && (
-              <Button
-                variant="danger"
-                onClick={() => {
-                  setModalAction("delete");
-                  setShowStatusModal(true);
-                }}
-              >
-                Eliminar
-              </Button>
-            )}
-            
-            {client.status === "active" && (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setModalAction("deactivate");
-                    setShowStatusModal(true);
-                  }}
-                >
-                  Inactivar Cliente
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={() => {
-                    setModalAction("block");
-                    setShowStatusModal(true);
-                  }}
-                >
-                  Bloquear Cliente
-                </Button>
-              </>
-            )}
-
-            {client.status === "inactive" && (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setModalAction("activate");
-                  setShowStatusModal(true);
-                }}
-              >
-                Activar Cliente
-              </Button>
-            )}
-
-            {client.status === "blocked" && (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setModalAction("unblock");
-                  setShowStatusModal(true);
-                }}
-              >
-                Desbloquear Cliente
-              </Button>
-            )}
-
-            {(client.status === "pending_validation" || client.status === "pending_activation") && (
-              <>
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    setModalAction("activate");
-                    setShowStatusModal(true);
-                  }}
-                >
-                  Activar Cliente
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={() => {
-                    setModalAction("block");
-                    setShowStatusModal(true);
-                  }}
-                >
-                  Bloquear Cliente
-                </Button>
-              </>
-            )}
-
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/clients/${client.code}/edit`)}
-            >
-              Editar Cliente
-            </Button>
           </div>
         )
       });
     }
-  }, [client, portfolios.length, isAdmin, setHeader, navigate]);
+  }, [client, portfolios.length, setHeader, navigate]);
 
   if (!client) {
     return (
@@ -214,53 +89,16 @@ export default function ClientDetailPage() {
   
   // Custom badges for Client Status similar to Portfolio Status
   const getBadgeStyle = (status: string) => {
-    if (status === "active") return "border-green-200 bg-green-50 text-green-700";
-    if (status === "inactive") return "border-slate-300 bg-slate-50 text-slate-700";
-    if (status === "blocked") return "border-red-200 bg-red-50 text-red-700";
-    return "border-blue-200 bg-blue-50 text-blue-700";
+    if (status === "Activo") return "border-green-200 bg-green-50 text-green-700";
+    if (status === "Inactivo") return "border-slate-300 bg-slate-50 text-slate-700";
+    if (status === "Aprobado") return "border-blue-200 bg-blue-50 text-blue-700";
+    if (status === "Por aprobar") return "border-amber-200 bg-amber-50 text-amber-700";
+    if (status === "Anulado") return "border-red-200 bg-red-50 text-red-700";
+    return "border-slate-200 bg-slate-50 text-slate-700";
   };
 
   const statusLabel = STATUS_LABELS[client.status as ClientStatus] || client.status;
 
-  const renderModalContent = () => {
-    switch (modalAction) {
-      case "deactivate":
-        return {
-          title: "¿Inactivar cliente?",
-          message: "El cliente quedará inactivo. Sus portafolios existentes se mantendrán para consulta y seguimiento.",
-          buttonText: "Inactivar",
-          buttonVariant: "danger" as const
-        };
-      case "activate":
-      case "unblock":
-        return {
-          title: modalAction === "activate" ? "¿Activar cliente?" : "¿Desbloquear cliente?",
-          message: modalAction === "activate" 
-            ? "El cliente volverá a estar disponible para la gestión de portafolios." 
-            : "El cliente volverá a quedar disponible según su estado operativo.",
-          buttonText: modalAction === "activate" ? "Activar" : "Desbloquear",
-          buttonVariant: "primary" as const
-        };
-      case "block":
-        return {
-          title: "¿Bloquear cliente?",
-          message: "El cliente quedará bloqueado y no podrá utilizarse para nuevos portafolios.",
-          buttonText: "Bloquear",
-          buttonVariant: "danger" as const
-        };
-      case "delete":
-        return {
-          title: "¿Eliminar cliente?",
-          message: "¿Está seguro de que desea eliminar este cliente? Esta acción no se puede deshacer.",
-          buttonText: "Eliminar",
-          buttonVariant: "danger" as const
-        };
-      default:
-        return null;
-    }
-  };
-
-  const modalContent = renderModalContent();
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] space-y-6">
@@ -351,7 +189,7 @@ export default function ClientDetailPage() {
               <th className="px-6 py-3 text-left font-semibold">Envoltura</th>
               <th className="px-6 py-3 text-left font-semibold">Envasado / Máquina</th>
               <th className="px-6 py-3 text-left font-semibold">Estado</th>
-              <th className="px-6 py-3 text-left font-semibold text-center">Proyectos</th>
+              <th className="px-6 py-3 text-left font-semibold text-center">Producto</th>
               <th className="px-6 py-3 text-center font-semibold">Acciones</th>
             </tr>
           </thead>
@@ -391,49 +229,6 @@ export default function ClientDetailPage() {
         </table>
       </div>
 
-      {/* Confirmación Modal */}
-      {showStatusModal && modalContent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm mx-4">
-            <div className="flex items-start justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900">
-                {modalContent.title}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowStatusModal(false);
-                  setModalAction(null);
-                }}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <p className="text-sm text-slate-600 mb-6">
-              {modalContent.message}
-            </p>
-
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowStatusModal(false);
-                  setModalAction(null);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant={modalContent.buttonVariant}
-                onClick={handleStatusChange}
-              >
-                {modalContent.buttonText}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

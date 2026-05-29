@@ -6,29 +6,28 @@ import {
   ArrowUp,
   ArrowUpDown,
   BriefcaseBusiness,
-  Clock3,
   Layers3,
-  Plus,
   RotateCcw,
   Search,
 } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getProjectRecords } from "../../../shared/data/projectStorage";
-import { getProjectSlaSummary } from "../../../shared/data/slaStorage";
-import { getProjectObservations } from "../../../shared/data/observationStorage";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
 import {
   normalizeProjectWorkflow,
   getResponsibleAreaForProject,
-  PROJECT_STAGE_LABELS,
-  type ProjectStatus,
+  normalizeProductStatus,
+  normalizeSkuLifecycleCode,
+  getSkuLifecycleLabel,
+  type ProductStatus,
+  type SkuLifecycleCode,
 } from "../../../shared/data/projectWorkflow";
 import ProjectStatusBadge from "../../../shared/components/display/ProjectStatusBadge";
 import ActionButton from "../../../shared/components/buttons/ActionButton";
-import ProjectInitialCreateModal from "../../../shared/components/modals/ProjectInitialCreateModal";
+import { ProductActionButton } from "../../../shared/components/ProductActionButton";
 
-type ProjectTab = "all" | ProjectStatus;
+type ProjectTab = "all" | ProductStatus;
 
 type SortDirection = "asc" | "desc";
 
@@ -38,28 +37,18 @@ type SortKey =
   | "clientName"
   | "classification"
   | "status"
-  | "stage"
+  | "skuCode"
+  | "skuLifecycle"
   | "responsible"
-  | "sla"
   | "createdAt"
   | "updatedAt";
 
 const RECENT_NEW_PROJECT_KEY = "odiseo_recent_new_project";
 
-const PROJECT_STATUSES: ProjectStatus[] = [
+const PRODUCT_STATUSES: ProductStatus[] = [
   "Registrado",
   "En Preparación",
-  "Ficha Completa",
-  "En validación",
-  "Observado",
-  "Validado",
-  "Productos preliminares",
-  "En Cotización",
-  "Cotización Completa",
-  "Aprobado por Cliente",
-  "Validación Tesorería",
-  "Alta Producto",
-  "Desestimado",
+  "Completado",
 ];
 
 const getText = (...values: any[]) => {
@@ -68,6 +57,40 @@ const getText = (...values: any[]) => {
   );
 
   return value ? String(value) : "";
+};
+
+const getUnitAbbreviation = (unitValue: any) => {
+  const unit = getText(unitValue);
+  if (!unit) return "";
+  const match = unit.match(/\(([^)]+)\)/);
+  if (match) return match[1].trim();
+  if (unit.toLowerCase().includes("gramos")) return "g";
+  if (unit.toLowerCase().includes("mililitros")) return "ml";
+  if (unit.toLowerCase().includes("kilogramos")) return "kg";
+  if (unit.toLowerCase().includes("litros")) return "L";
+  return unit;
+};
+
+const formatProductDisplayName = (item: any) => {
+  const name = getText(
+    item.productName,
+    item.nombreProducto,
+    item.projectName,
+    item.name
+  );
+  const volume = getText(
+    item.referenceVolume,
+    item.volumenReferencial,
+    item.volume,
+    item.volumen
+  );
+  const unit = getUnitAbbreviation(
+    item.unit ||
+    item.unidad ||
+    item.referenceUnit ||
+    item.unidadReferencia
+  );
+  return [name, volume, unit].filter(Boolean).join(" ");
 };
 
 const formatDate = (...values: any[]) => {
@@ -105,66 +128,12 @@ const formatDateTime = (...values: any[]) => {
   }).format(date);
 };
 
-const getDaysRemaining = (dateValue: any) => {
-  const value = getText(dateValue);
+const getCurrentActionLabel = (product: any): string => {
+  const normalizedStatus = normalizeProductStatus(product.status);
 
-  if (!value) return null;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const dueDate = new Date(value);
-  dueDate.setHours(0, 0, 0, 0);
-
-  if (Number.isNaN(dueDate.getTime())) return null;
-
-  const diffTime = dueDate.getTime() - today.getTime();
-
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-};
-
-const getSlaRemainingLabel = (sla: any) => {
-  if (!sla) return "Sin SLA";
-
-  if (sla.completedAt) return "Completado";
-
-  const days = getDaysRemaining(sla.dueAt);
-
-  if (days === null) return "Sin fecha";
-
-  if (days > 1) return `Faltan ${days} días`;
-  if (days === 1) return "Falta 1 día";
-  if (days === 0) return "Vence hoy";
-
-  return `Vencido hace ${Math.abs(days)} días`;
-};
-
-const getCurrentActionLabel = (project: any): string => {
-  const status = project.status;
-  const area = project.responsibleArea;
-
-  if (status === "Registrado") return "Completar ficha";
-  if (status === "En Preparación") return "Completar información";
-  if (status === "Ficha Completa") return "Solicitar aprobación";
-
-  if (status === "En validación") {
-    if (area?.includes("Artes")) return "En Revisión Artes Gráficas";
-    if (area?.includes("R&D Desarrollo")) return "En Revisión R&D Desarrollo";
-    if (area?.includes("R&D Técnica") || area?.includes("R&D Área Técnica")) {
-      return "En Revisión R&D Área Técnica";
-    }
-    return "En Revisión";
-  }
-
-  if (status === "Observado") return "Corregir observaciones";
-  if (status === "Validado") return "Crear productos preliminares";
-  if (status === "Productos preliminares") return "Gestionar productos";
-  if (status === "En Cotización") return "Cotización en curso";
-  if (status === "Cotización Completa") return "Cotización completa";
-  if (status === "Aprobado por Cliente") return "Listo para siguiente etapa";
-  if (status === "Validación Tesorería") return "Revisión Tesorería";
-  if (status === "Alta Producto") return "Alta completada";
-  if (status === "Desestimado") return "Proyecto desestimado";
+  if (normalizedStatus === "Registrado") return "Completar registro";
+  if (normalizedStatus === "En Preparación") return "Completar información";
+  if (normalizedStatus === "Completado") return "Producto completado";
 
   return "—";
 };
@@ -172,7 +141,7 @@ const getCurrentActionLabel = (project: any): string => {
 const getSortValue = (project: any, key: SortKey): string | number => {
   switch (key) {
     case "code":
-      return getText(project.code, project.id).toLowerCase();
+      return getText(project.currentSkuCode, project.skuCode, project.code, project.id).toLowerCase();
 
     case "projectName":
       return getText(project.projectName, project.name).toLowerCase();
@@ -186,16 +155,14 @@ const getSortValue = (project: any, key: SortKey): string | number => {
     case "status":
       return getText(project.status).toLowerCase();
 
-    case "stage":
-      return getText(project.stageName, project.responsibleName).toLowerCase();
+    case "skuCode":
+      return getText(project.skuCode, project.siProductCode, project.productRequestCode).toLowerCase();
+
+    case "skuLifecycle":
+      return getText(project.skuLifecycleCode || "").toLowerCase();
 
     case "responsible":
       return getText(project.responsibleLabel, project.responsibleArea).toLowerCase();
-
-    case "sla":
-      return typeof project.slaDaysRemaining === "number"
-        ? project.slaDaysRemaining
-        : 99999;
 
     case "createdAt": {
       const dateValue = getText(
@@ -236,7 +203,6 @@ export default function ProjectListPage() {
 
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<ProjectTab>("all");
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const [sortConfig, setSortConfig] = useState<{
     key: SortKey;
@@ -325,23 +291,12 @@ export default function ProjectListPage() {
 
   const projects = useMemo(() => getProjectRecords(), [refreshKey]);
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), [refreshKey]);
-  const observations = useMemo(() => getProjectObservations(), [refreshKey]);
 
   const augmentedProjects = useMemo(() => {
     return projects.map((project) => {
       const normalizedProject = normalizeProjectWorkflow(project);
       const code = getText(project.code, project.id);
-
-      const slas = getProjectSlaSummary(code);
-      const activeSla = slas.find((sla) => !sla.completedAt) || slas[0];
-
-      const projectObservations = observations.filter(
-        (observation) => observation.projectCode === code
-      );
-
-      const openObs = projectObservations.filter(
-        (observation) => observation.status === "Abierta"
-      ).length;
+      const normalizedStatus = normalizeProductStatus(project.status);
 
       const portfolioCode = getText(
         project.portfolioCode,
@@ -361,27 +316,6 @@ export default function ProjectListPage() {
         relatedPortfolio?.nom
       );
 
-      const slaDaysRemaining = activeSla
-        ? getDaysRemaining(activeSla.dueAt)
-        : null;
-
-      const slaStatus = getText(activeSla?.slaStatus);
-      const normalizedSlaStatus = slaStatus.toLowerCase();
-
-      const isSlaOverdue =
-        Boolean(activeSla) &&
-        !activeSla?.completedAt &&
-        (normalizedSlaStatus.includes("vencido") ||
-          (typeof slaDaysRemaining === "number" && slaDaysRemaining < 0));
-
-      const isSlaDueSoon =
-        Boolean(activeSla) &&
-        !activeSla?.completedAt &&
-        typeof slaDaysRemaining === "number" &&
-        slaDaysRemaining >= 0 &&
-        slaDaysRemaining <= 2;
-
-      const stageName = PROJECT_STAGE_LABELS[normalizedProject.stage];
       const responsibleArea = getResponsibleAreaForProject(normalizedProject);
       const responsibleName =
         getText(
@@ -444,27 +378,42 @@ export default function ProjectListPage() {
           (project as any).usuario
         ) || "—";
 
+      const projectNameLabel = getText(project.projectName, (project as any).name);
+      const productDisplayNameLabel = formatProductDisplayName(project);
+      const skuCode = getText(project.siProductCode, project.skuCode, (project as any).codigoSku, (project as any).skuCode);
+      const skuLifecycleCodeRaw = getText(
+        project.skuLifecycleCode,
+        (project as any).cicloVidaSku,
+        (project as any).skuLifecycleCode
+      );
+      const skuLifecycleCode = normalizeSkuLifecycleCode(skuLifecycleCodeRaw);
+      const skuLifecycleLabel = skuLifecycleCode ? getSkuLifecycleLabel(skuLifecycleCode) : null;
+
+      const currentSkuCode = getText(
+        project.currentSkuCode,
+        skuCode,
+        (project as any).currentSkuCode
+      );
+
       return {
         ...normalizedProject,
         code,
-        projectNameLabel: getText(project.projectName, (project as any).name),
+        currentSkuCode,
+        projectNameLabel,
+        productDisplayNameLabel,
         clientNameLabel: getText(project.clientName, (project as any).cli),
         portfolioCodeLabel: portfolioCode,
         portfolioNameLabel: portfolioName,
         classification,
         wrappingName,
         blueprintFormat,
-        stageName,
+        skuCode,
+        skuLifecycleCode,
+        skuLifecycleLabel,
         responsibleArea,
         responsibleName,
         responsibleLabel,
         currentAction: getCurrentActionLabel(normalizedProject),
-        activeSla,
-        slaStatus,
-        slaDaysRemaining,
-        isSlaOverdue,
-        isSlaDueSoon,
-        openObs,
         updatedAtLabel,
         updatedByLabel,
         createdAtLabel: formatDate(
@@ -483,24 +432,16 @@ export default function ProjectListPage() {
           ) || "—",
       };
     });
-  }, [projects, observations, portfolios]);
+  }, [projects, portfolios]);
 
   const totalProjects = augmentedProjects.length;
 
-  const portalProjects = useMemo(
+  const completedProjects = useMemo(
     () =>
-      augmentedProjects.filter(
-        (project) => project.status !== "Desestimado"
-      ),
-    [augmentedProjects]
-  );
-
-  const observedProjects = useMemo(
-    () =>
-      augmentedProjects.filter(
-        (project) =>
-          project.openObs > 0 || project.status === "Observado"
-      ),
+      augmentedProjects.filter((project) => {
+        const normalizedStatus = normalizeProductStatus(project.status);
+        return normalizedStatus === "Completado";
+      }),
     [augmentedProjects]
   );
 
@@ -510,19 +451,22 @@ export default function ProjectListPage() {
 
     const filtered = augmentedProjects.filter((project) => {
       const searchableText = [
-        project.code,
+        project.currentSkuCode,
+        project.skuCode,
         project.projectNameLabel,
         project.clientNameLabel,
         project.portfolioCodeLabel,
         project.portfolioNameLabel,
         project.status,
+        project.skuLifecycleLabel,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
       const matchesSearch = !search || searchableText.includes(search);
-      const matchesTab = activeTab === "all" || project.status === activeTab;
+      const normalizedStatus = normalizeProductStatus(project.status);
+      const matchesTab = activeTab === "all" || normalizedStatus === activeTab;
 
       return matchesSearch && matchesTab;
     });
@@ -573,7 +517,7 @@ export default function ProjectListPage() {
   };
 
   const handleDuplicate = (projectCode: string) => {
-    navigate(`/projects/new?duplicateFrom=${projectCode}`);
+    navigate(`/products/new?duplicateFrom=${projectCode}`);
   };
 
   const SortIcon = ({ sortKey }: { sortKey: SortKey }) => {
@@ -624,12 +568,13 @@ export default function ProjectListPage() {
       label: "Todos los productos",
       count: augmentedProjects.length,
     },
-    ...PROJECT_STATUSES.map((status) => ({
+    ...PRODUCT_STATUSES.map((status) => ({
       key: status as ProjectTab,
       label: status,
-      count: augmentedProjects.filter(
-        (project) => project.status === status
-      ).length,
+      count: augmentedProjects.filter((project) => {
+        const normalizedStatus = normalizeProductStatus(project.status);
+        return normalizedStatus === status;
+      }).length,
     })),
   ];
 
@@ -660,13 +605,13 @@ export default function ProjectListPage() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-blue-700">
-                En Portal Web
+                En Preparación
               </p>
               <p className="mt-2 text-3xl font-extrabold text-slate-900">
-                {portalProjects.length}
+                {augmentedProjects.filter((p) => normalizeProductStatus(p.status) === "En Preparación").length}
               </p>
               <p className="mt-1 text-xs text-slate-500">
-                Seguimiento P1-P3
+                Requieren información
               </p>
             </div>
 
@@ -680,13 +625,13 @@ export default function ProjectListPage() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-emerald-600">
-                Observados
+                Completados
               </p>
               <p className="mt-2 text-3xl font-extrabold text-slate-900">
-                {observedProjects.length}
+                {completedProjects.length}
               </p>
               <p className="mt-1 text-xs text-slate-500">
-                Requieren corrección
+                Listos para siguiente fase
               </p>
             </div>
 
@@ -746,7 +691,7 @@ export default function ProjectListPage() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar por código, proyecto, cliente..."
+                placeholder="Buscar por código SKU, producto, cliente..."
                 className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
               />
             </div>
@@ -759,11 +704,20 @@ export default function ProjectListPage() {
                 icon={<RotateCcw size={16} />}
               />
 
-              <ActionButton
-                label="Nuevo Producto"
-                onClick={() => setShowCreateModal(true)}
-                variant="primary"
-                icon={<Plus size={16} />}
+              <ProductActionButton
+                source="products"
+                onProductCreated={(product) => {
+                  const projectId = product?.id || product?.code;
+                  setRefreshKey((prev) => prev + 1);
+                  setRecentNewProjectId(projectId);
+
+                  const timer = window.setTimeout(() => {
+                    setRecentNewProjectId(null);
+                    localStorage.removeItem(RECENT_NEW_PROJECT_KEY);
+                  }, 25000);
+
+                  return () => window.clearTimeout(timer);
+                }}
               />
             </div>
           </div>
@@ -775,13 +729,13 @@ export default function ProjectListPage() {
           <table className="w-full min-w-[1280px] border-collapse text-sm">
             <thead>
               <tr className="bg-brand-primary text-white">
-                <SortableHeader label="Código" sortKey="code" />
+                <SortableHeader label="Código SKU" sortKey="code" />
                 <SortableHeader label="Producto" sortKey="projectName" />
+                <SortableHeader label="Código SKU actual" sortKey="skuCode" />
                 <SortableHeader label="Cliente" sortKey="clientName" />
-                <SortableHeader label="Etapa" sortKey="stage" />
                 <SortableHeader label="Responsable" sortKey="responsible" />
-                <SortableHeader label="Estado" sortKey="status" />
-                <SortableHeader label="SLA" sortKey="sla" />
+                <SortableHeader label="Estado ODISEO" sortKey="status" />
+                <SortableHeader label="Ciclo de vida" sortKey="skuLifecycle" />
                 <SortableHeader label="Fecha Actualización" sortKey="updatedAt" />
 
                 <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
@@ -800,14 +754,14 @@ export default function ProjectListPage() {
                     isNew ? "bg-blue-50/70" : index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
                   } hover:bg-brand-secondary-soft`}
                 >
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary">
-                    {item.code || item.id || "—"}
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary font-mono">
+                    {item.currentSkuCode || item.skuCode || item.code || item.id || "—"}
                   </td>
 
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-slate-800">
-                        {item.projectNameLabel || "Producto sin nombre"}
+                        {item.productDisplayNameLabel || item.projectNameLabel || "Producto sin nombre"}
                       </span>
                       {isNew && (
                         <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-blue-700 shadow-sm">
@@ -822,14 +776,12 @@ export default function ProjectListPage() {
                     </div>
                   </td>
 
-                  <td className="px-4 py-3 text-sm font-medium text-slate-700">
-                    {item.clientNameLabel || "—"}
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-600">
+                    {item.skuCode || "—"}
                   </td>
 
-                  <td className="px-4 py-3 text-sm">
-                    <div className="font-semibold text-slate-800">
-                      {item.stageName || "—"}
-                    </div>
+                  <td className="px-4 py-3 text-sm font-medium text-slate-700">
+                    {item.clientNameLabel || "—"}
                   </td>
 
                   <td className="px-4 py-3 text-sm">
@@ -843,23 +795,21 @@ export default function ProjectListPage() {
                   </td>
 
                   <td className="px-4 py-3 text-sm">
-                    {item.activeSla ? (
-                      <span
-                        className={`inline-flex items-center gap-1 text-xs font-semibold ${
-                          item.isSlaOverdue
-                            ? "text-red-600"
-                            : item.isSlaDueSoon
-                            ? "text-amber-600"
-                            : "text-slate-600"
-                        }`}
-                      >
-                        <Clock3 size={12} />
-                        {getSlaRemainingLabel(item.activeSla)}
+                    {item.skuLifecycleCode ? (
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${
+                        item.skuLifecycleCode === "A"
+                          ? "border border-green-200 bg-green-50 text-green-700"
+                          : item.skuLifecycleCode === "E"
+                          ? "border border-amber-200 bg-amber-50 text-amber-700"
+                          : "border border-purple-200 bg-purple-50 text-purple-700"
+                      }`}>
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-current/20 text-xs">
+                          {item.skuLifecycleCode}
+                        </span>
+                        {item.skuLifecycleLabel || "—"}
                       </span>
                     ) : (
-                      <span className="text-xs italic text-slate-400">
-                        Sin SLA
-                      </span>
+                      <span className="text-xs text-slate-400">Sin ciclo</span>
                     )}
                   </td>
 
@@ -879,7 +829,7 @@ export default function ProjectListPage() {
                         label="Ver"
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/projects/${item.code || item.id}`)}
+                        onClick={() => navigate(`/products/${item.code || item.id}`)}
                       />
 
                       <ActionButton
@@ -887,7 +837,7 @@ export default function ProjectListPage() {
                         variant="outline"
                         size="sm"
                         onClick={() =>
-                          navigate(`/projects/${item.code || item.id}/edit`)
+                          navigate(`/products/${item.code || item.id}/edit`)
                         }
                       />
 
@@ -974,22 +924,6 @@ export default function ProjectListPage() {
         </div>
       </div>
 
-      <ProjectInitialCreateModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onProjectCreated={(projectId) => {
-          setRefreshKey((prev) => prev + 1);
-          setRecentNewProjectId(projectId);
-
-          // Auto-clear badge after 25 seconds
-          const timer = window.setTimeout(() => {
-            setRecentNewProjectId(null);
-            localStorage.removeItem(RECENT_NEW_PROJECT_KEY);
-          }, 25000);
-
-          return () => window.clearTimeout(timer);
-        }}
-      />
     </div>
   );
 }

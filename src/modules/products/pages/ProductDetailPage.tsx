@@ -10,13 +10,11 @@ import { getProjectTrackingState, advanceProjectStage, initializeProjectTracking
 import { getStageConfig, isPortalStage, type ProjectStage } from "../../../shared/data/projectStageConfig";
 import { PHASE_CONFIGS } from "../../../shared/data/projectPhaseConfig";
 import { type ProjectStatus, resolveProjectStage } from "../../../shared/data/projectWorkflow";
-import { exportProjectToExcelMock } from "../services/projectExportService";
-import { requestValidation } from "../../../modules/validaciones/services/validationService";
+import { exportProjectToExcelMock } from "../services/productExportService";
 
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import FormCard from "../../../shared/components/forms/FormCard";
 import Button from "../../../shared/components/ui/Button";
-import ValidationObservationsTable from "../../../shared/components/display/ValidationObservationsTable";
 
 import ProjectStageStepper from "../../../shared/components/projectTracking/ProjectStageStepper";
 import ProjectStatusPanel from "../components/ProjectStatusPanel";
@@ -82,13 +80,13 @@ export default function ProjectDetailPage() {
       setHeader({
         title: "Tracking de Producto",
         breadcrumbs: [
-          { label: "Productos", href: "/projects" },
+          { label: "Productos", href: "/products" },
           { label: projectCode },
           { label: "Tracking" },
         ],
         actions: (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate(`/projects/${projectCode}/edit`)}>
+            <Button variant="outline" onClick={() => navigate(`/products/${projectCode}/edit`)}>
               Editar Producto
             </Button>
             <Button variant="primary" onClick={() => exportProjectToExcelMock(projectCode as string)}>
@@ -105,7 +103,7 @@ export default function ProjectDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <div className="text-red-600 font-semibold">Producto no encontrado o sin inicializar tracking</div>
-        <Button variant="ghost" onClick={() => navigate("/projects")}>Volver a Productos</Button>
+        <Button variant="ghost" onClick={() => navigate("/products")}>Volver a Productos</Button>
       </div>
     );
   }
@@ -151,19 +149,13 @@ export default function ProjectDetailPage() {
     handleAdvanceStage(determineNextStage(currentStage));
   };
 
-  const handleRequestValidation = () => {
-    if (!project) return;
-    const updated = requestValidation(project);
-    setRefreshTrigger(prev => prev + 1);
-  };
-
   const phaseConfig = PHASE_CONFIGS[currentStage as keyof typeof PHASE_CONFIGS];
 
   return (
     <div className="w-full max-w-none bg-[#f6f8fb] space-y-6 pb-12">
       <button
         type="button"
-        onClick={() => navigate("/projects")}
+        onClick={() => navigate("/products")}
         className="flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
       >
         <ArrowLeft size={16} />
@@ -396,19 +388,12 @@ export default function ProjectDetailPage() {
               onApproveManufacturing={() => handleAdvance()}
               onApproveSample={() => handleAdvance()}
               onReject={() => alert("Producto desestimado.")}
-              onRequestValidation={handleRequestValidation}
             />
           )}
 
           <ProjectSlaPanel sla={slaSummary} isPortalStage={isPortal} />
 
-          {project.validaciones && project.validaciones.length > 0 && (
-            <FormCard title="Observaciones y comentarios de validación" icon="✓" color="#00395A">
-              <ValidationObservationsTable validaciones={project.validaciones} />
-            </FormCard>
-          )}
-
-          {/* Historial Unificado: Estados, Validaciones y Observaciones */}
+          {/* Historial Unificado: Estados y Observaciones */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <div className="flex items-center gap-2 mb-6">
               <h3 className="text-lg font-semibold text-slate-900">Historial Completo</h3>

@@ -11,10 +11,10 @@ export const APP_ROUTES = {
   },
 
   PROJECTS: {
-    LIST: '/projects',
-    CREATE: '/projects/new',
-    DETAIL: (code: string) => `/projects/${code}`,
-    EDIT: (code: string) => `/projects/${code}/edit`,
+    LIST: '/products',
+    CREATE: '/products/new',
+    DETAIL: (code: string) => `/products/${code}`,
+    EDIT: (code: string) => `/products/${code}/edit`,
   },
 
   CLIENTS: {

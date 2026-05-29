@@ -350,7 +350,7 @@ export default function ValidationDetailPage() {
           />
           <ActionButton
             label="Ver Proyecto"
-            onClick={() => navigate(`/projects/${projectCode}`)}
+            onClick={() => navigate(`/products/${projectCode}`)}
             variant="primary"
           />
         </div>

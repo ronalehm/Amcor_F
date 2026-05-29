@@ -29,7 +29,7 @@ export default function ApprovedProductSearch({
   }, [value, portfolioCode, productType]);
 
   const handleSelectResult = (product: ApprovedProduct) => {
-    onChange(product.code);
+    onChange(product.name);
     onSelect(product);
     setIsOpen(false);
   };

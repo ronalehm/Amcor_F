@@ -203,7 +203,7 @@ const getCausalOptions = (classification: string) => {
   return [];
 };
 
-// Material configuration for Moment 1 (ProjectInitialCreateModal style)
+// Material configuration for Moment 1 (ProductInitialCreateModal style)
 const MATERIAL_MICRON_CONFIG: Record<
   string,
   {
@@ -1543,7 +1543,7 @@ export default function ProjectEditPage() {
         title: projectTitle,
         subtitle: projectSubtitle,
         breadcrumbs: [
-          { label: "Productos", href: "/projects" },
+          { label: "Productos", href: "/products" },
           { label: projectCode },
           { label: "Editar" },
         ],
@@ -2549,7 +2549,7 @@ export default function ProjectEditPage() {
   };
 
   const navigateToProjectList = () => {
-    navigate("/projects");
+    navigate("/products");
   };
 
   const handleCancel = () => {
@@ -3087,7 +3087,7 @@ export default function ProjectEditPage() {
       setShowValidationSuccessModal(true);
     } else {
       // Navigate back to projects list
-      navigate("/projects");
+      navigate("/products");
     }
   }; // <-- cierra handleSubmit
 
@@ -3142,7 +3142,7 @@ export default function ProjectEditPage() {
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <div className="text-red-600 font-semibold">Producto no encontrado</div>
         <button
-          onClick={() => navigate("/projects")}
+          onClick={() => navigate("/products")}
           className="px-4 py-2 bg-brand-primary text-white rounded-md text-sm font-medium"
         >
           Atrás
@@ -3159,7 +3159,7 @@ export default function ProjectEditPage() {
         <div className="border-b border-slate-200 px-4 py-3">
           <button
             type="button"
-            onClick={() => navigate("/projects")}
+            onClick={() => navigate("/products")}
             className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
           >
             <ArrowLeft size={16} />
@@ -4721,15 +4721,9 @@ export default function ProjectEditPage() {
             </div>
             <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex gap-3">
               <button
-                onClick={() => navigate(`/validaciones?projectCode=${projectCode}`)}
-                className="flex-1 px-4 py-2 bg-brand-primary text-white rounded font-medium hover:bg-brand-primary/90 transition-colors text-sm"
-              >
-                Ir a aprobaciones
-              </button>
-              <button
                 onClick={() => {
                   setShowValidationSuccessModal(false);
-                  navigate(`/projects/${projectCode}`);
+                  navigate(`/products/${projectCode}`);
                 }}
                 className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded font-medium hover:bg-slate-300 transition-colors text-sm"
               >

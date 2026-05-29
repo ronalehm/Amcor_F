@@ -7,6 +7,6 @@ export interface Client {
   email: string
   telefono: string
   estado: "Activo" | "Inactivo"
-  proyectos: number
+  productos: number
   fechaRegistro: string
 }

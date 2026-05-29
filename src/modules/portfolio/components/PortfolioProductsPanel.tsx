@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
-import { Plus, Eye, Edit2, Trash2 } from "lucide-react";
+import { Eye, Edit2, Trash2 } from "lucide-react";
 import type { PortfolioRecord } from "../../../shared/data/portfolioStorage";
 import type { ProductPreliminaryRecord } from "../../../shared/data/productPreliminaryTypes";
 import {
   getProductsByPortfolio,
   deleteProductPreliminaryRecord,
 } from "../../../shared/data/productPreliminaryStorage";
-import Button from "../../../shared/components/ui/Button";
-import CreateProductPreliminaryModal from "../../../shared/components/modals/ProductPreliminaryCreateModal";
+import { ProductActionButton } from "../../../shared/components/ProductActionButton";
 
 export interface PortfolioProductsPanelProps {
   portfolio: PortfolioRecord;
@@ -40,11 +39,11 @@ export function PortfolioProductsPanel({
   onPortfolioUpdated,
 }: PortfolioProductsPanelProps) {
   const [products, setProducts] = useState<ProductPreliminaryRecord[]>([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const portfolioCode = portfolio?.codigo || portfolio?.id || "";
   const portfolioStatus = getPortfolioStatus(portfolio);
   const isPortfolioActive = portfolioStatus === "active";
+
 
   const loadProducts = () => {
     const loaded = getProductsByPortfolio(portfolioCode);
@@ -57,10 +56,6 @@ export function PortfolioProductsPanel({
     }
   }, [portfolioCode]);
 
-  const handleCreateProduct = (product: ProductPreliminaryRecord) => {
-    loadProducts();
-    onPortfolioUpdated?.();
-  };
 
   const handleDeleteProduct = (productCode: string) => {
     if (
@@ -83,22 +78,24 @@ export function PortfolioProductsPanel({
               Productos Aprobados
             </h3>
             <p className="text-xs text-gray-500">
-              Gestiona los productos preliminares asociados a este portafolio.
-              Cuando un producto requiera validación de Artes Gráficas o R&D, se
-              crearán automáticamente los proyectos de validación asociados.
+              Gestiona los productos aprobados dados de alta asociados a este portafolio.
             </p>
           </div>
 
-          <Button
-            variant={isPortfolioActive ? "primary" : "outline"}
-            size="sm"
-            onClick={() => setShowCreateModal(true)}
+          <ProductActionButton
+            source="portfolio"
             disabled={!isPortfolioActive}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <Plus size={16} />
-            Crear Producto
-          </Button>
+            portfolioContext={{
+              portfolioId: portfolio?.id,
+              portfolioCode: portfolioCode,
+              portfolioName: portfolio?.nom || portfolio?.name || portfolio?.nombre,
+              clientName: (portfolio as any)?.clientName || (portfolio as any)?.cli,
+            }}
+            onProductCreated={() => {
+              loadProducts();
+              onPortfolioUpdated?.();
+            }}
+          />
         </div>
 
         <table className="w-full border-collapse text-sm">
@@ -220,7 +217,7 @@ export function PortfolioProductsPanel({
                   className="px-6 py-8 text-center italic text-gray-500"
                 >
                   {isPortfolioActive
-                    ? "Aún no hay productos preliminares. Haz clic en '+ Crear Producto' para comenzar."
+                    ? "Aún no hay productos aprobados. Haz clic en '+ Nuevo' para comenzar."
                     : "Este portafolio está inactivo. No se pueden crear productos preliminares."}
                 </td>
               </tr>
@@ -229,12 +226,6 @@ export function PortfolioProductsPanel({
         </table>
       </div>
 
-      <CreateProductPreliminaryModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onProductCreated={handleCreateProduct}
-        portfolio={portfolio}
-      />
     </>
   );
 }

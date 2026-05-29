@@ -40,7 +40,7 @@ export default function WorkQueueTable({
     if (code.startsWith("PP-")) {
       navigate(`/portfolio`);
     } else if (code.startsWith("PRJ-")) {
-      navigate(`/projects`);
+      navigate(`/products`);
     } else if (code.startsWith("PO-")) {
       navigate(`/portfolio`);
     }

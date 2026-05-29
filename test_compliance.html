@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Compliance Document</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-button { padding: 10px 20px; background-color: #0066cc; color: white; border: none; cursor: pointer; border-radius: 5px; font-size: 14px; }
+        .test-button:hover { background-color: #0052a3; }
+        .info { margin-top: 20px; padding: 10px; background-color: #f0f0f0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Prueba de Documento de Cumplimiento Normativo</h1>
+
+    <button class="test-button" onclick="openComplianceDocument()">
+        Abrir Documento en Nueva Pestaña
+    </button>
+
+    <div class="info">
+        <h3>Instrucciones:</h3>
+        <ol>
+            <li>Haz clic en el botón para abrir el documento de cumplimiento normativo</li>
+            <li>Verifica que se abre una nueva pestaña con el documento</li>
+            <li>El documento debe mostrar:
+                <ul>
+                    <li>Título: "AMCOR - DECLARACIÓN DE CUMPLIMIENTO NORMATIVO"</li>
+                    <li>Fecha de generación</li>
+                    <li>ID del documento</li>
+                    <li>Propósito del documento</li>
+                    <li>Normativas aplicables (FDA, ISO, etc.)</li>
+                    <li>Requisitos de cumplimiento</li>
+                    <li>Botón de descargar/imprimir</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <script>
+        function openComplianceDocument() {
+            const url = window.location.origin + "/compliance-document";
+            console.log("Abriendo URL:", url);
+            window.open(url, "_blank", "width=1000,height=800");
+        }
+    </script>
+</body>
+</html>

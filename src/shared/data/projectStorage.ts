@@ -30,6 +30,7 @@ export type ValidationStatus =
   | "En validación"
   | "Observada"
   | "Rechazada"
+  | "En Preparación"
   | "Validada por áreas";
 
 export type AreaValidation = "Artes Gráficas" | "R&D Técnica" | "R&D Desarrollo";
@@ -94,6 +95,13 @@ export type ProjectRecord = {
   siExternalStatus?: SiExternalStatus;
   siExternalStage?: SiProjectStage;
   completionPercentage?: number;
+
+  // SKU y ciclo de vida del producto
+  currentSkuCode?: string;
+  siProductCode?: string;
+  skuCode?: string;
+  skuLifecycleCode?: "A" | "E" | "B";
+  skuLifecycleLabel?: "Aprobado" | "Muestra" | "Base";
 
   // Workflow v2: Etapa y validaciones técnicas internas
   stage?: ProjectStage;
@@ -653,16 +661,22 @@ const INITIAL_PROJECTS: ProjectRecord[] = [
     routeType: "Con diseño",
     designRoute: "Con diseño",
 
-    status: "En validación",
+    status: "En Preparación",
     currentPortalStage: "P2",
     siExternalStatus: "No enviado",
 
     completionPercentage: 100,
 
+    currentSkuCode: "SKU-00001-E-01",
+    siProductCode: "SKU-00001-E-01",
+    skuCode: "SKU-00001-E-01",
+    skuLifecycleCode: "E",
+    skuLifecycleLabel: "Muestra",
+
     requiereValidacion: true,
     validacionSolicitada: true,
     fechaSolicitudValidacion: "2026-04-20T10:30:00.000Z",
-    estadoValidacionGeneral: "En validación",
+    estadoValidacionGeneral: "En Preparación",
     validaciones: [
       {
         area: "Artes Gráficas",
@@ -742,6 +756,12 @@ const INITIAL_PROJECTS: ProjectRecord[] = [
     siExternalStatus: "No enviado",
 
     completionPercentage: 80,
+
+    currentSkuCode: "SKU-00002-A-01",
+    siProductCode: "SKU-00002-A-01",
+    skuCode: "SKU-00002-A-01",
+    skuLifecycleCode: "A",
+    skuLifecycleLabel: "Aprobado",
 
     requiereValidacion: true,
     validacionSolicitada: false,

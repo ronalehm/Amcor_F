@@ -158,10 +158,10 @@ export const QUICK_RECOMMENDATIONS: Recommendation[] = [
   },
   {
     type: "validated",
-    title: "Proyectos validados",
-    description: "Proyectos listos para generar producto preliminar.",
-    actionLabel: "Ver proyectos",
-    route: "/projects",
+    title: "Productos validados",
+    description: "Productos listos para generar producto preliminar.",
+    actionLabel: "Ver Productos",
+    route: "/products",
   },
   {
     type: "portfolio",
@@ -212,7 +212,7 @@ export const WORK_QUEUE: WorkQueueItem[] = [
     area: "Comercial",
     priority: "Alta",
     dueLabel: "Hoy",
-    route: "/projects/PRJ-2450",
+    route: "/products/PRJ-2450",
   },
   {
     code: "PRJ-2451",
@@ -226,7 +226,7 @@ export const WORK_QUEUE: WorkQueueItem[] = [
     area: "R&D",
     priority: "Alta",
     dueLabel: "Vence mañana",
-    route: "/projects/PRJ-2451",
+    route: "/products/PRJ-2451",
   },
   {
     code: "PRJ-2452",

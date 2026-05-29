@@ -156,7 +156,7 @@ export default function WorkQueuePanel({ items }: WorkQueuePanelProps) {
 
       <button
         type="button"
-        onClick={() => navigate("/projects")}
+        onClick={() => navigate("/products")}
         className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-black text-[#003B5C] transition hover:bg-white"
       >
         Ver toda mi bandeja

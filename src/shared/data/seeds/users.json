@@ -1,31 +1,5 @@
 [
   {
-    "email": "marcio.soto@amcor.com",
-    "password": "dhaufgo1",
-    "fullName": "MARCIO SOTO",
-    "workerCode": "EJC-000011",
-    "position": "Ejecutivo Comercial",
-    "role": "sales_executive",
-    "status": "pending_activation",
-    "area": "Comercial",
-    "id": "USR-001048",
-    "code": "US-001048",
-    "createdAt": "2026-05-26T06:15:29.100Z"
-  },
-  {
-    "email": "arlys.salinas@amcor.com",
-    "password": "7jwq4ak8",
-    "fullName": "ARLYS SALINAS",
-    "workerCode": "EJC-000012",
-    "position": "Ingeniero de Desarrollo",
-    "role": "rd_development",
-    "status": "pending_activation",
-    "area": "R&D",
-    "id": "USR-001047",
-    "code": "US-001047",
-    "createdAt": "2026-05-26T06:06:29.887Z"
-  },
-  {
     "id": "USR-000001",
     "code": "US-000001",
     "email": "admin@amcor.com",

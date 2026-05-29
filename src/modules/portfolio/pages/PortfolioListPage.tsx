@@ -14,13 +14,12 @@ import {
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
-import { getProjectRecords } from "../../../shared/data/projectStorage";
 import ActionButton from "../../../shared/components/buttons/ActionButton";
 import { tableStyles } from "../../../shared/ui/tableStyles";
 
 type PortfolioTab = "all" | "active" | "inactive";
 type SortDirection = "asc" | "desc";
-type SortKey = "codigo" | "nombre" | "clientName" | "planta" | "envoltura" | "maquinaCliente" | "proyectos" | "updatedAt" | "updatedBy";
+type SortKey = "codigo" | "nombre" | "clientName" | "planta" | "envoltura" | "maquinaCliente" | "updatedAt" | "updatedBy";
 
 const RECENT_NEW_PORTFOLIO_KEY = "odiseo_recent_new_portfolio";
 
@@ -116,7 +115,6 @@ const getSortValue = (portfolio: any, key: SortKey): string | number => {
     }
     case "updatedBy":
       return getPortfolioUpdatedBy(portfolio).toLowerCase();
-    case "proyectos": return portfolio.activeProjectCount || 0;
     default: return "";
   }
 };
@@ -178,16 +176,7 @@ export default function PortfolioListPage() {
     }
   }, []);
 
-  const portfolios = useMemo(() => {
-    const records = getPortfolioDisplayRecords();
-    const projects = getProjectRecords();
-    
-    return records.map(portfolio => {
-      const portfolioId = portfolio.id || portfolio.codigo;
-      const count = projects.filter(p => p.portfolioCode === portfolioId && p.status !== "Desestimado").length;
-      return { ...portfolio, activeProjectCount: count };
-    });
-  }, []);
+  const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
 
   const activePortfolios = useMemo(
     () => portfolios.filter((p) => getPortfolioStatus(p) === "active"),
@@ -492,7 +481,6 @@ export default function PortfolioListPage() {
                 <SortableHeader label="Planta de Origen" sortKey="planta" />
                 <SortableHeader label="Envoltura" sortKey="envoltura" />
                 <SortableHeader label="Envasado / Máquina de Cliente" sortKey="maquinaCliente" />
-                <SortableHeader label="Proyectos" sortKey="proyectos" align="right" />
                 <th className={tableStyles.headerCell}>
                   Estado
                 </th>
@@ -549,12 +537,6 @@ export default function PortfolioListPage() {
                       {(portfolio as any).maq || "—"}
                     </td>
 
-                    <td className={`${tableStyles.cellRight}`}>
-                      <span className={`inline-flex min-w-[2rem] items-center justify-center rounded-full px-2.5 py-1 text-xs font-bold ${(portfolio as any).activeProjectCount > 0 ? 'bg-brand-secondary-soft text-brand-primary' : 'bg-red-50 text-red-600'}`}>
-                        {(portfolio as any).activeProjectCount}
-                      </span>
-                    </td>
-
                     <td className={tableStyles.cell}>
                       <span
                         className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[status]}`}
@@ -591,7 +573,7 @@ export default function PortfolioListPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={11} className={tableStyles.emptyCell}>
+                  <td colSpan={10} className={tableStyles.emptyCell}>
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <BriefcaseBusiness size={26} className="text-slate-400" />

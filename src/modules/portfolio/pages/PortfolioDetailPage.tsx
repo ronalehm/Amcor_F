@@ -1,8 +1,8 @@
 // src/modules/portfolio/pages/PortfolioDetailPage.tsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, X, FolderPlus, Upload } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
@@ -22,7 +22,6 @@ import PreviewRow from "../../../shared/components/display/PreviewRow";
 import ProjectStatusBadge from "../../../shared/components/display/ProjectStatusBadge";
 import FormCard from "../../../shared/components/forms/FormCard";
 import RowActionButtons from "../../../shared/components/table/RowActionButtons";
-import NewActionDropdown, { type NewActionOption } from "../../../shared/components/NewActionDropdown";
 
 import { PortfolioProductsPanel } from "../components/PortfolioProductsPanel";
 
@@ -70,30 +69,9 @@ export default function PortfolioDetailPage() {
   const [validationProjects, setValidationProjects] = useState<any[]>([]);
   const [productCount, setProductCount] = useState(0);
   const [showStatusModal, setShowStatusModal] = useState(false);
-  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
 
   const currentUser = getCurrentUser();
   const isAdmin = currentUser?.role === "administrator";
-
-  const newActionOptions = useMemo<NewActionOption[]>(
-    () => [
-      {
-        label: "Nueva solicitud",
-        description: "Registrar un nuevo producto preliminar.",
-        enabled: true,
-        icon: <FolderPlus size={17} />,
-        onClick: () => setShowCreateProjectModal(true),
-      },
-      {
-        label: "Importar Productos",
-        description: "Carga masiva de productos desde plantilla.",
-        enabled: true,
-        icon: <Upload size={17} />,
-        onClick: () => navigate("/products/import"),
-      },
-    ],
-    [navigate]
-  );
 
   const loadRelatedRecords = (code: string) => {
     const portfolioProjects = getProjectsByPortfolioCode(code);
@@ -138,8 +116,6 @@ export default function PortfolioDetailPage() {
       ],
       actions: (
         <div className="flex gap-2">
-          <NewActionDropdown options={newActionOptions} />
-
           {isAdmin && productCount === 0 && validationProjects.length === 0 && (
             <Button
               variant="danger"
@@ -181,7 +157,6 @@ export default function PortfolioDetailPage() {
     isAdmin,
     setHeader,
     navigate,
-    newActionOptions,
   ]);
 
   const handleTogglePortfolioStatus = () => {
@@ -345,7 +320,7 @@ export default function PortfolioDetailPage() {
         onPortfolioUpdated={() => loadRelatedRecords(portfolioCodeValue)}
       />
 
-      {/* Sección secundaria / transición: Proyectos de validación asociados */}
+      {/* Sección secundaria de validación asociados */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-6 py-4">
           <div>
@@ -353,9 +328,8 @@ export default function PortfolioDetailPage() {
               Productos en validación
             </h3>
             <p className="text-xs text-gray-500">
-              Los proyectos ya no se crean manualmente desde el portafolio. Se
-              generan automáticamente cuando un producto requiere validación de
-              Artes Gráficas o R&D.
+              Los productos preliminares que requieren validación de
+              Artes Gráficas o R&D, debe realizarse una muestra.
             </p>
           </div>
         </div>
@@ -398,8 +372,8 @@ export default function PortfolioDetailPage() {
 
                 <td className="px-6 py-4">
                   <RowActionButtons
-                    viewPath={`/projects/${project.code || project.id}`}
-                    editPath={`/projects/${project.code || project.id}/edit`}
+                    viewPath={`/products/${project.code || project.id}`}
+                    editPath={`/products/${project.code || project.id}/edit`}
                   />
                 </td>
               </tr>
@@ -411,8 +385,7 @@ export default function PortfolioDetailPage() {
                   colSpan={5}
                   className="px-6 py-8 text-center italic text-gray-500"
                 >
-                  Aún no hay proyectos de validación asociados. Se crearán
-                  automáticamente cuando un producto preliminar requiera AG o R&D.
+                  Aún no hay productos preliminares en validación.
                 </td>
               </tr>
             )}
@@ -442,7 +415,7 @@ export default function PortfolioDetailPage() {
 
             <p className="mb-6 text-sm text-slate-600">
               {isPortfolioActive
-                ? "Este portafolio dejará de estar disponible para crear nuevos productos preliminares. Los productos y proyectos ya asociados se mantendrán para consulta y seguimiento."
+                ? "Este portafolio dejará de estar disponible para crear nuevos productos preliminares. Los productos y Productos ya asociados se mantendrán para consulta y seguimiento."
                 : "Este portafolio volverá a estar disponible para crear productos preliminares."}
             </p>
 

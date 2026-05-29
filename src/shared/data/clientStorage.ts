@@ -2,7 +2,7 @@ import seedClients from "./seeds/clients.json";
 
 const CLIENTS_STORAGE_KEY = "odiseo_clients";
 
-export type ClientStatus = "active" | "inactive" | "pending_activation" | "pending_validation" | "blocked";
+export type ClientStatus = "Activo" | "Inactivo" | "Aprobado" | "Por aprobar" | "Anulado";
 
 export type Client = {
   id: string;
@@ -103,7 +103,7 @@ export function createClient(data: {
     email: data.email,
     ruc: data.ruc,
     industry: data.industry,
-    status: data.status || "pending_activation",
+    status: data.status || "Por aprobar",
     siClientId: data.siClientId,
     siClientCode: data.siClientCode,
     createdAt: new Date().toISOString(),
@@ -146,39 +146,39 @@ export function deleteClient(id: string): boolean {
 }
 
 export function activateClient(id: string): void {
-  updateClient(id, { status: "active" });
+  updateClient(id, { status: "Activo" });
 }
 
 export function deactivateClient(id: string): void {
-  updateClient(id, { status: "inactive" });
+  updateClient(id, { status: "Inactivo" });
 }
 
 export function blockClient(id: string): void {
-  updateClient(id, { status: "blocked" });
+  updateClient(id, { status: "Anulado" });
 }
 
 export function unblockClient(id: string): void {
-  updateClient(id, { status: "active" });
+  updateClient(id, { status: "Activo" });
 }
 
 export function setPendingValidationClient(id: string): void {
-  updateClient(id, { status: "pending_validation" });
+  updateClient(id, { status: "Por aprobar" });
 }
 
 export const STATUS_LABELS: Record<ClientStatus, string> = {
-  active: "Activo",
-  inactive: "Inactivo",
-  pending_activation: "Pendiente de Activación",
-  pending_validation: "Pendiente de Validación",
-  blocked: "Bloqueado",
+  "Activo": "Activo",
+  "Inactivo": "Inactivo",
+  "Aprobado": "Aprobado",
+  "Por aprobar": "Por aprobar",
+  "Anulado": "Anulado",
 };
 
 export const STATUS_COLORS: Record<ClientStatus, string> = {
-  active: "border-green-200 bg-green-50 text-green-700 font-bold",
-  inactive: "border-slate-300 bg-slate-50 text-slate-700 font-bold",
-  pending_activation: "border-amber-200 bg-amber-50 text-amber-700 font-bold",
-  pending_validation: "border-blue-200 bg-blue-50 text-blue-700 font-bold",
-  blocked: "border-red-200 bg-red-50 text-red-700 font-bold",
+  "Activo": "border-green-200 bg-green-50 text-green-700 font-bold",
+  "Inactivo": "border-slate-300 bg-slate-50 text-slate-700 font-bold",
+  "Aprobado": "border-blue-200 bg-blue-50 text-blue-700 font-bold",
+  "Por aprobar": "border-amber-200 bg-amber-50 text-amber-700 font-bold",
+  "Anulado": "border-red-200 bg-red-50 text-red-700 font-bold",
 };
 
 export function getClientCatalogRecords(): Client[] {
@@ -199,22 +199,22 @@ export async function saveSeedClients(clients: Client[]): Promise<void> {
 }
 
 export function canClientHavePortfolio(status?: ClientStatus): boolean {
-  return status === "active" || status === "inactive";
+  return status === "Activo" || status === "Aprobado";
 }
 
 export function getClientPortfolioEligibilityMessage(status?: ClientStatus): string {
   if (!status) return "";
 
-  if (status === "pending_activation") {
-    return "El cliente debe estar Activo para tener portafolios asignados. Estado actual: Pendiente de Activación";
+  if (status === "Inactivo") {
+    return "El cliente debe estar Activo o Aprobado para tener portafolios asignados. Estado actual: Inactivo";
   }
 
-  if (status === "pending_validation") {
-    return "El cliente debe estar Activo para tener portafolios asignados. Estado actual: Pendiente de Validación";
+  if (status === "Por aprobar") {
+    return "El cliente debe estar Activo o Aprobado para tener portafolios asignados. Estado actual: Por aprobar";
   }
 
-  if (status === "blocked") {
-    return "El cliente bloqueado no puede tener portafolios asignados.";
+  if (status === "Anulado") {
+    return "El cliente anulado no puede tener portafolios asignados.";
   }
 
   return "";

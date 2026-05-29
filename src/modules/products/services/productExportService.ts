@@ -14,7 +14,7 @@ export const exportProjectToExcelMock = (projectCode: string) => {
   const tracking = getProjectTrackingState(projectCode);
   const observations = getProjectObservations().filter(o => o.projectCode === projectCode);
 
-  console.group(`Exportando Ficha Técnica de Proyecto: ${project.code}`);
+  console.group(`Exportando Ficha Técnica de Producto: ${project.code}`);
   console.log("Datos del Cliente y Portafolio:", {
     Cliente: project.clientName,
     Portafolio: project.portfolioCode,
@@ -30,7 +30,7 @@ export const exportProjectToExcelMock = (projectCode: string) => {
   console.log("Observaciones Abiertas:", observations.filter(o => o.status === "Abierta"));
   console.groupEnd();
 
-  alert(`Ficha del Proyecto ${project.code} exportada exitosamente a Excel para Commercial Finance.`);
+  alert(`Ficha del Producto ${project.code} exportada exitosamente a Excel para Commercial Finance.`);
 };
 
 export const exportProductsToExcel = (projectCode: string): void => {

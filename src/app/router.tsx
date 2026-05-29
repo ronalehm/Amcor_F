@@ -8,18 +8,16 @@ import DashboardPage from "../modules/dashboard/pages/DashboardPage";
 import UserListPage from "../modules/users/pages/UserListPage";
 import UserCreatePage from "../modules/users/pages/UserCreatePage";
 import ClientListPage from "../modules/clients/pages/ClientListPage";
-import ClientCreatePage from "../modules/clients/pages/ClientCreatePage";
-import ClientEditPage from "../modules/clients/pages/ClientEditPage";
 
 import PortfolioListPage from "../modules/portfolio/pages/PortfolioListPage";
 import PortfolioCreatePage from "../modules/portfolio/pages/PortfolioCreatePage";
 import PortfolioEditPage from "../modules/portfolio/pages/PortfolioEditPage";
 import PortfolioDetailPage from "../modules/portfolio/pages/PortfolioDetailPage";
 
-import ProjectListPage from "../modules/projects/pages/ProjectListPage";
-import ProjectCreatePage from "../modules/projects/pages/ProjectCreatePage";
-import ProjectDetailPage from "../modules/projects/pages/ProjectDetailPage";
-import ProjectEditPage from "../modules/projects/pages/ProjectEditPage";
+import ProjectListPage from "../modules/products/pages/ProductListPage";
+import ProjectCreatePage from "../modules/products/pages/ProductCreatePage";
+import ProjectDetailPage from "../modules/products/pages/ProductDetailPage";
+import ProjectEditPage from "../modules/products/pages/ProductEditPage";
 
 import DataSheetListPage from "../modules/datasheets/pages/DataSheetListPage";
 import ProductSheetPage from "../modules/datasheets/pages/ProductSheetPage";
@@ -29,8 +27,7 @@ import UserEditPage from "../modules/users/pages/UserEditPage";
 import UserDetailPage from "../modules/users/pages/UserDetailPage";
 import ClientDetailPage from "../modules/clients/pages/ClientDetailPage";
 
-import ValidationListPage from "../modules/validaciones/pages/ValidationListPage";
-import ValidationDetailPage from "../modules/validaciones/pages/ValidationDetailPage";
+import ComplianceDocumentPage from "../shared/pages/ComplianceDocumentPage";
 
 import { getCurrentUser, logoutUser } from "../shared/data/userStorage";
 
@@ -55,6 +52,7 @@ export default function AppRouter() {
     return (
       <Routes>
         <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/compliance-document" element={<ComplianceDocumentPage />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
@@ -62,14 +60,12 @@ export default function AppRouter() {
           <Route path="portfolio/new" element={<PortfolioCreatePage />} />
           <Route path="portfolio/:portfolioCode" element={<PortfolioDetailPage />} />
           <Route path="portfolio/:portfolioCode/edit" element={<PortfolioEditPage />} />
-          <Route path="projects" element={<ProjectListPage />} />
-          <Route path="projects/new" element={<ProjectCreatePage />} />
-          <Route path="projects/:projectCode" element={<ProjectDetailPage />} />
-          <Route path="projects/:projectCode/edit" element={<ProjectEditPage />} />
+          <Route path="products" element={<ProjectListPage />} />
+          <Route path="products/new" element={<ProjectCreatePage />} />
+          <Route path="products/:projectCode" element={<ProjectDetailPage />} />
+          <Route path="products/:projectCode/edit" element={<ProjectEditPage />} />
           <Route path="clients" element={<ClientListPage />} />
-          <Route path="clients/new" element={<ClientCreatePage />} />
           <Route path="clients/:clientCode" element={<ClientDetailPage />} />
-          <Route path="clients/:clientCode/edit" element={<ClientEditPage />} />
           <Route path="datasheets" element={<DataSheetListPage />} />
           <Route path="datasheets/new" element={<ProductSheetPage />} />
           <Route path="datasheets/:datasheetId" element={<div className="p-4">Detalle de Ficha (Ver)</div>} />
@@ -78,8 +74,6 @@ export default function AppRouter() {
           <Route path="users/new" element={<UserCreatePage />} />
           <Route path="users/:userId" element={<UserDetailPage />} />
           <Route path="users/:userId/edit" element={<UserEditPage />} />
-          <Route path="validaciones" element={<ValidationListPage />} />
-          <Route path="validaciones/:projectCode" element={<ValidationDetailPage />} />
           <Route path="soporte" element={<div className="p-4">Soporte TI</div>} />
           <Route path="configuracion" element={<div className="p-4">Configuración</div>} />
         </Route>
@@ -97,6 +91,7 @@ export default function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+      <Route path="/compliance-document" element={<ComplianceDocumentPage />} />
 
       <Route
         path="/"
@@ -119,7 +114,7 @@ export default function AppRouter() {
         <Route path="portfolio/:portfolioCode" element={<PortfolioDetailPage />} />
         <Route path="portfolio/:portfolioCode/edit" element={<PortfolioEditPage />} />
 
-        {/* Proyectos */}
+        {/* Productos */}
         <Route path="projects" element={<ProjectListPage />} />
         <Route path="projects/new" element={<ProjectCreatePage />} />
         <Route path="projects/:projectCode" element={<ProjectDetailPage />} />
@@ -127,9 +122,7 @@ export default function AppRouter() {
 
         {/* Clientes */}
         <Route path="clients" element={<ClientListPage />} />
-        <Route path="clients/new" element={<ClientCreatePage />} />
         <Route path="clients/:clientCode" element={<ClientDetailPage />} />
-        <Route path="clients/:clientCode/edit" element={<ClientEditPage />} />
 
         {/* Fichas de Producto */}
         <Route path="datasheets" element={<DataSheetListPage />} />
@@ -142,10 +135,6 @@ export default function AppRouter() {
         <Route path="users/new" element={<UserCreatePage />} />
         <Route path="users/:userId" element={<UserDetailPage />} />
         <Route path="users/:userId/edit" element={<UserEditPage />} />
-
-        {/* Validaciones */}
-        <Route path="validaciones" element={<ValidationListPage />} />
-        <Route path="validaciones/:projectCode" element={<ValidationDetailPage />} />
 
         {/* Rutas temporales del sidebar */}
         <Route

@@ -36,7 +36,7 @@ export default function WorkQueueItemCard({ item }: WorkQueueItemCardProps) {
     if (item.code.startsWith("PP-")) {
       navigate(`/portfolio`);
     } else if (item.code.startsWith("PRJ-")) {
-      navigate(`/projects`);
+      navigate(`/products`);
     } else if (item.code.startsWith("PO-")) {
       navigate(`/portfolio`);
     }

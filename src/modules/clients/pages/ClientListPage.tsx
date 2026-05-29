@@ -5,7 +5,6 @@ import {
   ArrowUp,
   ArrowUpDown,
   Mail,
-  Plus,
   RotateCcw,
   Search,
   UserX,
@@ -108,27 +107,27 @@ export default function ClientListPage() {
   const clients = useMemo(() => getAllClients(), []);
 
   const activeClients = useMemo(
-    () => clients.filter((client) => getClientStatus(client) === "active"),
+    () => clients.filter((client) => getClientStatus(client) === "Activo"),
     [clients],
   );
 
   const inactiveClients = useMemo(
-    () => clients.filter((client) => getClientStatus(client) === "inactive"),
+    () => clients.filter((client) => getClientStatus(client) === "Inactivo"),
     [clients],
   );
 
-  const pendingActivationClients = useMemo(
-    () => clients.filter((client) => getClientStatus(client) === "pending_activation"),
+  const approvedClients = useMemo(
+    () => clients.filter((client) => getClientStatus(client) === "Aprobado"),
     [clients],
   );
 
-  const pendingValidationClients = useMemo(
-    () => clients.filter((client) => getClientStatus(client) === "pending_validation"),
+  const unapprovedClients = useMemo(
+    () => clients.filter((client) => getClientStatus(client) === "Por aprobar"),
     [clients],
   );
 
-  const blockedClients = useMemo(
-    () => clients.filter((client) => getClientStatus(client) === "blocked"),
+  const cancelledClients = useMemo(
+    () => clients.filter((client) => getClientStatus(client) === "Anulado"),
     [clients],
   );
 
@@ -248,11 +247,11 @@ export default function ClientListPage() {
 
   const tabs = [
     { key: "all" as ClientTab, label: "Todos", count: clients.length },
-    { key: "active" as ClientTab, label: "Activos", count: activeClients.length },
-    { key: "pending_activation" as ClientTab, label: "Pendiente Act.", count: pendingActivationClients.length },
-    { key: "pending_validation" as ClientTab, label: "Pendiente Val.", count: pendingValidationClients.length },
-    { key: "blocked" as ClientTab, label: "Bloqueados", count: blockedClients.length },
-    { key: "inactive" as ClientTab, label: "Inactivos", count: inactiveClients.length },
+    { key: "Activo" as ClientTab, label: "Activos", count: activeClients.length },
+    { key: "Inactivo" as ClientTab, label: "Inactivos", count: inactiveClients.length },
+    { key: "Aprobado" as ClientTab, label: "Aprobados", count: approvedClients.length },
+    { key: "Por aprobar" as ClientTab, label: "Por aprobar", count: unapprovedClients.length },
+    { key: "Anulado" as ClientTab, label: "Anulados", count: cancelledClients.length },
   ];
 
   const startRecord = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -273,28 +272,28 @@ export default function ClientListPage() {
             <div className="rounded-lg bg-green-50 p-2 text-green-600"><Users size={18} /></div>
           </div>
         </div>
-        <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-amber-600">Pend. Activación</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{pendingActivationClients.length}</p></div>
-            <div className="rounded-lg bg-amber-50 p-2 text-amber-600"><Mail size={18} /></div>
+            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-slate-600">Inactivos</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{inactiveClients.length}</p></div>
+            <div className="rounded-lg bg-slate-100 p-2 text-slate-600"><Users size={18} /></div>
           </div>
         </div>
         <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-blue-600">Pend. Validación</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{pendingValidationClients.length}</p></div>
+            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-blue-600">Aprobados</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{approvedClients.length}</p></div>
             <div className="rounded-lg bg-blue-50 p-2 text-blue-600"><ShieldCheck size={18} /></div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-amber-600">Por aprobar</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{unapprovedClients.length}</p></div>
+            <div className="rounded-lg bg-amber-50 p-2 text-amber-600"><Mail size={18} /></div>
           </div>
         </div>
         <div className="rounded-2xl border border-red-100 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-red-600">Bloqueados</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{blockedClients.length}</p></div>
+            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-red-600">Anulados</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{cancelledClients.length}</p></div>
             <div className="rounded-lg bg-red-50 p-2 text-red-600"><UserX size={18} /></div>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1"><p className="text-xs font-bold uppercase tracking-wide text-slate-600">Inactivos</p><p className="mt-2 text-2xl font-extrabold text-slate-900">{inactiveClients.length}</p></div>
-            <div className="rounded-lg bg-slate-100 p-2 text-slate-600"><UserX size={18} /></div>
           </div>
         </div>
       </section>
@@ -343,7 +342,6 @@ export default function ClientListPage() {
 
           <div className="flex items-end gap-2">
             <ActionButton label="Limpiar Filtros" onClick={clearFilters} variant="outline" icon={<RotateCcw size={16} />} />
-            <ActionButton label="Crear Cliente" onClick={() => navigate("/clients/new")} variant="primary" icon={<Plus size={16} />} />
           </div>
         </div>
       </section>
@@ -391,7 +389,6 @@ export default function ClientListPage() {
                     </td>
                     <td className={tableStyles.actions}>
                       <ActionButton label="Ver" size="sm" variant="primary" onClick={() => navigate(`/clients/${client.code}`)} />
-                      <ActionButton label="Editar" variant="outline" size="sm" onClick={() => navigate(`/clients/${client.code}/edit`)} />
                     </td>
                   </tr>
                 );

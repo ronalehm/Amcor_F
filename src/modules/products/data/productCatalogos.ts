@@ -23,7 +23,7 @@ export const SUBSECCION_CLASIFICACION: CatalogoOption[] = [
   { value: "Area_Tecnica", label: "Área Técnica" },
 ]
 
-export const TIPO_PROYECTO: SegmentoOption[] = [
+export const TIPO_PRODUCTO: SegmentoOption[] = [
   { value: "Producto nuevo", label: "Producto nuevo", group: "Desarrollo R&D" },
   { value: "Nuevo equipamiento de envasado", label: "Nuevo equipamiento de envasado", group: "Desarrollo R&D" },
   { value: "Nuevos insumos", label: "Nuevos insumos", group: "Desarrollo R&D" },
@@ -39,7 +39,7 @@ export const TIPO_PROYECTO: SegmentoOption[] = [
   { value: "ICO / BCP", label: "ICO / BCP", group: "Área Técnica" },
 ]
 
-export const TIPO_PROYECTO_GROUPS = [...new Set(TIPO_PROYECTO.map((s) => s.group))]
+export const TIPO_PRODUCTO_GROUPS = [...new Set(TIPO_PRODUCTO.map((s) => s.group))]
 
 export const RUBROS: CatalogoOption[] = [
   { value: "Food", label: "Food" },
