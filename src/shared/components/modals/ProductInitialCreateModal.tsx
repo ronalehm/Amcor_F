@@ -64,6 +64,7 @@ const CAUSAL_OPTIONS_NUEVO = [
   { value: "Nuevo formato de envasado", label: "Nuevo formato de envasado" },
   { value: "Diseño nuevo", label: "Diseño nuevo" },
   { value: "Nuevo equipamiento / proceso / temperatura", label: "Nuevo equipamiento / proceso / temperatura" },
+  { value: "Extensión de Línea", label: "Extensión de Línea" },
 ];
 
 const CAUSAL_OPTIONS_MODIFICADO = [
@@ -72,6 +73,7 @@ const CAUSAL_OPTIONS_MODIFICADO = [
   { value: "Cambia estructura", label: "Cambia estructura" },
   { value: "Cambia materia prima", label: "Cambia materia prima" },
   { value: "Cambia diseño", label: "Cambia diseño" },
+  { value: "Portafolio estándar", label: "Portafolio estándar" },
 ];
 
 const getCausalOptions = (motivo: string) => {
