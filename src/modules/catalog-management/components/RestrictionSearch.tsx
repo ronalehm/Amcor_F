@@ -17,7 +17,7 @@ export default function RestrictionSearch({
   value,
   onChange,
   error,
-  placeholder = "Buscar restricción por nombre...",
+  placeholder = "Buscar restricción...",
   disabled = false,
 }: RestrictionSearchProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -141,14 +141,7 @@ export default function RestrictionSearch({
                 index === selectedIndex ? "bg-brand-secondary-soft" : "hover:bg-slate-50"
               }`}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 text-sm">{restriction.name}</p>
-                </div>
-                <span className="px-2 py-1 rounded text-xs font-semibold whitespace-nowrap bg-blue-100 text-blue-700">
-                  Disponible
-                </span>
-              </div>
+              <p className="font-semibold text-slate-900 text-sm">{restriction.name}</p>
             </button>
           ))}
         </div>
@@ -157,7 +150,6 @@ export default function RestrictionSearch({
       {isOpen && value && results.length === 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg p-4 text-center">
           <p className="text-sm text-slate-500">No se encontró la restricción.</p>
-          <p className="text-xs text-slate-400 mt-1">Intenta con otro nombre.</p>
         </div>
       )}
     </div>

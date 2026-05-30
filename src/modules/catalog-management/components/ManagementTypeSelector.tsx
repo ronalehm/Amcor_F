@@ -1,37 +1,41 @@
 import type { ManagementType } from "../types/catalogRestriction.types";
+import FormCard from "../../../shared/components/forms/FormCard";
 
 interface ManagementTypeSelectorProps {
   value: ManagementType;
-  onChange: (value: ManagementType) => void;
+  onChange: (type: ManagementType) => void;
 }
 
-export default function ManagementTypeSelector({ value, onChange }: ManagementTypeSelectorProps) {
-  const options: { value: ManagementType; label: string }[] = [
-    { value: "catalog", label: "Catálogo" },
-    { value: "restriction", label: "Restricción" },
-  ];
-
+export default function ManagementTypeSelector({
+  value,
+  onChange,
+}: ManagementTypeSelectorProps) {
   return (
-    <div className="overflow-x-auto">
-      <div className="flex gap-6 border-b border-slate-200">
-        {options.map((option) => {
-          const isActive = value === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChange(option.value)}
-              className={`whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-colors ${
-                isActive
-                  ? "border-brand-primary text-brand-primary"
-                  : "border-transparent text-slate-500 hover:text-brand-primary"
-              }`}
-            >
-              {option.label}
-            </button>
-          );
-        })}
+    <FormCard title="Tipo de Gestión" icon="📋" color="#7E3FB2" required>
+      <div className="flex gap-4">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name="managementType"
+            value="catalog"
+            checked={value === "catalog"}
+            onChange={(e) => onChange(e.target.value as ManagementType)}
+            className="w-4 h-4"
+          />
+          <span className="text-sm font-medium text-slate-700">Catálogos</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name="managementType"
+            value="restriction"
+            checked={value === "restriction"}
+            onChange={(e) => onChange(e.target.value as ManagementType)}
+            className="w-4 h-4"
+          />
+          <span className="text-sm font-medium text-slate-700">Restricciones</span>
+        </label>
       </div>
-    </div>
+    </FormCard>
   );
 }

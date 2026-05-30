@@ -1,4 +1,4 @@
-import { tableStyles } from "../../../shared/ui/tableStyles";
+import FormCard from "../../../shared/components/forms/FormCard";
 import type { ChangeLogEntry } from "../types/catalogRestriction.types";
 
 interface ChangeLogPanelProps {
@@ -6,79 +6,38 @@ interface ChangeLogPanelProps {
 }
 
 export default function ChangeLogPanel({ entries }: ChangeLogPanelProps) {
-  const actionLabels: Record<string, string> = {
-    create: "Crear",
-    modify: "Modificar",
-    block: "Bloquear",
-    inactive: "Inactivar",
-  };
-
-  const typeLabels: Record<string, string> = {
-    catalog: "Catálogo",
-    restriction: "Restricción",
-  };
-
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Bitácora reciente</p>
-        <p className="text-sm text-slate-500">Historial de cambios aplicados en catálogos y restricciones</p>
-      </div>
-
+    <FormCard title="Bitácora de Cambios" icon="📜" color="#f39c12">
       {entries.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center">
-          <p className="text-sm text-slate-500">No hay cambios registrados</p>
-        </div>
+        <p className="text-sm text-slate-500">No hay cambios registrados aún.</p>
       ) : (
-        <div className={tableStyles.wrapper}>
-          <div className={tableStyles.scroll}>
-            <table className={tableStyles.table}>
-              <thead>
-                <tr className={tableStyles.headerRow}>
-                  <th className={tableStyles.headerCell}>Fecha/Hora</th>
-                  <th className={tableStyles.headerCell}>Usuario</th>
-                  <th className={tableStyles.headerCell}>Tipo</th>
-                  <th className={tableStyles.headerCell}>Elemento</th>
-                  <th className={tableStyles.headerCell}>Acción</th>
-                  <th className={tableStyles.headerCell}>Registros</th>
-                  <th className={tableStyles.headerCell}>Resultado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((entry, idx) => (
-                  <tr key={entry.id} className={idx % 2 === 0 ? tableStyles.rowEven : tableStyles.rowOdd}>
-                    <td className={tableStyles.cell}>{entry.timestamp}</td>
-                    <td className={tableStyles.cell}>{entry.user}</td>
-                    <td className={tableStyles.cell}>
-                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold bg-blue-100 text-blue-700">
-                        {typeLabels[entry.managementType]}
-                      </span>
-                    </td>
-                    <td className={tableStyles.cell}>{entry.element}</td>
-                    <td className={tableStyles.cell}>
-                      <span className="text-sm font-semibold text-slate-700">{actionLabels[entry.action] || entry.action}</span>
-                    </td>
-                    <td className={tableStyles.cell}>
-                      <span className="text-sm font-semibold text-slate-700">{entry.processedRecords}</span>
-                    </td>
-                    <td className={tableStyles.cell}>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                          entry.result === "success"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {entry.result === "success" ? "✓ Exitoso" : "✗ Error"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="space-y-3">
+          {entries.map((entry) => (
+            <div key={entry.id} className="border-l-4 border-blue-300 bg-blue-50 p-3 rounded">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-slate-900">{entry.action}</p>
+                  <p className="text-xs text-slate-600">{entry.element}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Registros procesados: {entry.processedRecords}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">{entry.timestamp}</p>
+                  <p className="text-xs text-slate-600 font-medium">{entry.user}</p>
+                  <span className={`inline-flex items-center mt-1 rounded-full px-2 py-0.5 text-xs font-bold ${
+                    entry.result === "success"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}>
+                    {entry.result === "success" ? "✓ Éxito" : "✗ Error"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
-    </div>
+    </FormCard>
   );
 }

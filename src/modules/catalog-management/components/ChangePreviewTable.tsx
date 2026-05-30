@@ -117,6 +117,8 @@ export default function ChangePreviewTable({ type, rows }: ChangePreviewTablePro
                       ? "Nuevo"
                       : row.detectedAction === "modified"
                       ? "Modificado"
+                      : row.detectedAction === "status_changed"
+                      ? "Cambio de estado"
                       : row.detectedAction === "inactive"
                       ? "Inactivado"
                       : row.detectedAction === "blocked"

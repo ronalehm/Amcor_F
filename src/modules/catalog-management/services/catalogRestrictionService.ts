@@ -148,7 +148,7 @@ export async function confirmChanges(
   // Emitir evento global para que otros módulos se actualicen
   emitCatalogsUpdated({
     catalogCode,
-    catalogName: getCatalogByCode(catalogCode)?.name || catalogCode,
+    catalogName: result.catalogName,
     logId: result.logId,
     newRecords: result.newRecords,
     modifiedRecords: result.modifiedRecords,
@@ -158,11 +158,9 @@ export async function confirmChanges(
   });
 }
 
-// Obtener bitácora de cambios del catálogo
-export function getChangeLog(catalogCode?: string): ChangeLogEntry[] {
-  const logs = getCatalogChangeLogs(catalogCode);
-
-  return logs.map((log) => ({
+// Obtener historial de cambios
+export function getChangeLog(): ChangeLogEntry[] {
+  return getCatalogChangeLogs().map((log) => ({
     id: log.id,
     timestamp: log.timestamp,
     user: log.user,
@@ -173,30 +171,4 @@ export function getChangeLog(catalogCode?: string): ChangeLogEntry[] {
       log.newRecords + log.modifiedRecords + log.inactivatedRecords + log.blockedRecords,
     result: log.result,
   }));
-}
-
-// Obtener catalogo por ID (para compatibilidad con componentes existentes)
-export function getCatalogById(catalogId: string): CatalogItem | undefined {
-  const catalogs = getCatalogs();
-  const cat = catalogs.find((c) => c.id === catalogId);
-  if (!cat) return undefined;
-
-  return {
-    id: cat.id,
-    code: cat.code,
-    name: cat.name,
-  };
-}
-
-// Obtener catálogo por código
-export function getCatalogByCodeLocal(code: string): CatalogItem | undefined {
-  const catalogs = getCatalogs();
-  const cat = catalogs.find((c) => c.code === code);
-  if (!cat) return undefined;
-
-  return {
-    id: cat.id,
-    code: cat.code,
-    name: cat.name,
-  };
 }
