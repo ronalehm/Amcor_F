@@ -50,7 +50,6 @@ export function validateFileUpload(file: File | null): Record<string, string> {
 
 export function canConfirmChanges(summary: ValidationSummary | null): boolean {
   if (!summary) return false;
-  if (summary.status !== "valid") return false;
   if (summary.criticalErrors > 0) return false;
   const totalChanges = summary.newRecords + summary.modifiedRecords + summary.inactivatedRecords + summary.blockedRecords;
   return totalChanges > 0;

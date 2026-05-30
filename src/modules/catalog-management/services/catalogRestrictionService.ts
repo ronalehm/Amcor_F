@@ -101,13 +101,22 @@ export async function uploadAndValidateTemplate(
         );
 
         const criticalErrors = validation.errors.length;
+        const newRecords = previewRows.filter((r) => r.detectedAction === "new").length;
+        const modifiedRecords = previewRows.filter((r) => r.detectedAction === "modified").length;
+        const inactivatedRecords = previewRows.filter((r) => r.detectedAction === "inactive").length;
+        const blockedRecords = previewRows.filter((r) => r.detectedAction === "blocked").length;
+        const totalChanges = newRecords + modifiedRecords + inactivatedRecords + blockedRecords;
+
+        // Status is "valid" if no critical errors and there are changes
+        // Status is "with_observations" if there are critical errors or no changes detected
+        const status = criticalErrors === 0 && totalChanges > 0 ? "valid" : "with_observations";
 
         const summary: ValidationSummary = {
-          status: criticalErrors > 0 ? "with_observations" : validation.valid ? "valid" : "with_observations",
-          newRecords: previewRows.filter((r) => r.detectedAction === "new").length,
-          modifiedRecords: previewRows.filter((r) => r.detectedAction === "modified").length,
-          inactivatedRecords: previewRows.filter((r) => r.detectedAction === "inactive").length,
-          blockedRecords: previewRows.filter((r) => r.detectedAction === "blocked").length,
+          status,
+          newRecords,
+          modifiedRecords,
+          inactivatedRecords,
+          blockedRecords,
           observations: validation.warnings.length,
           criticalErrors,
           rows: previewRows,
