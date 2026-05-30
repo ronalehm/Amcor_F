@@ -106,20 +106,9 @@ export default function TemplateDownloadCard({
               {statusLabels[uploadStatus]}
             </div>
           )}
-
-          <FormTextarea
-            label="Motivo del cambio"
-            value={reason}
-            onChange={onReasonChange}
-            placeholder="Describe el motivo de esta actualización..."
-            helper="Este motivo será registrado en la bitácora del sistema."
-            error={submitAttempted ? reasonError : undefined}
-            rows={3}
-            maxLength={500}
-          />
         </div>
 
-        <div className="flex flex-col gap-2 pt-2">
+        <div className="flex flex-col gap-2 pt-4">
           <input
             ref={fileInputRef}
             type="file"
@@ -142,6 +131,19 @@ export default function TemplateDownloadCard({
           >
             {isValidating ? "Validando..." : "Cargar y validar"}
           </button>
+
+          <div className="pt-2">
+            <FormTextarea
+              label="Motivo del cambio"
+              value={reason}
+              onChange={onReasonChange}
+              placeholder="Describe el motivo de esta actualización..."
+              helper="Este motivo será registrado en la bitácora del sistema."
+              error={submitAttempted ? reasonError : undefined}
+              rows={3}
+              maxLength={500}
+            />
+          </div>
         </div>
       </div>
     </FormCard>
