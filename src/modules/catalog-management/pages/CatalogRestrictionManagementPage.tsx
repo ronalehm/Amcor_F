@@ -199,10 +199,18 @@ export default function CatalogRestrictionManagementPage() {
   return (
     <div className="w-full max-w-none bg-[#f6f8fb]">
       <div className="space-y-6 pb-6">
-        <div className="rounded-lg border-l-4 border-brand-primary bg-brand-secondary-soft p-4">
-          <p className="text-sm text-slate-700">
-            Administra catálogos propios y restricciones del sistema mediante plantillas controladas, asegurando validación, trazabilidad y disponibilidad de la información actualizada.
-          </p>
+        <div className="flex items-center justify-between gap-4">
+          <div className="rounded-lg border-l-4 border-brand-primary bg-brand-secondary-soft p-4 flex-1">
+            <p className="text-sm text-slate-700">
+              Administra catálogos propios y restricciones del sistema mediante plantillas controladas, asegurando validación, trazabilidad y disponibilidad de la información actualizada.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/catalogs")}
+            className="inline-flex items-center gap-2 rounded-lg border border-brand-primary bg-white px-4 py-2 text-sm font-semibold text-brand-primary hover:bg-brand-primary hover:text-white transition-colors whitespace-nowrap"
+          >
+            👁️ Ver todo
+          </button>
         </div>
 
         <ManagementTypeSelector value={managementType} onChange={handleTypeChange} />
