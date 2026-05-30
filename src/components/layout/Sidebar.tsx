@@ -31,8 +31,7 @@ const MENU_ITEMS: MenuItem[] = [
   { path: "/products", label: "Productos", icon: BriefcaseBusiness },
   { path: "/datasheets", label: "Fichas de Producto", icon: ScanBarcode },
   { path: "/users", label: "Usuarios", icon: Users },
-  { path: "/catalog-management", label: "Catálogos", icon: BookOpen, roles: ["administrator"],
-  },
+  { path: "/catalogs", label: "Catálogos", icon: BookOpen, roles: ["administrator"] },
 ];
 
 const BOTTOM_ITEMS: MenuItem[] = [
