@@ -4,7 +4,6 @@ import {
   FolderKanban,
   BriefcaseBusiness,
   Building2,
-  ScanBarcode,
   Users,
   LifeBuoy,
   Settings2,
@@ -29,7 +28,6 @@ const MENU_ITEMS: MenuItem[] = [
   { path: "/clients", label: "Clientes", icon: Building2 },
   { path: "/portfolio", label: "Portafolio", icon: FolderKanban },
   { path: "/products", label: "Productos", icon: BriefcaseBusiness },
-  { path: "/datasheets", label: "Fichas de Producto", icon: ScanBarcode },
   { path: "/users", label: "Usuarios", icon: Users },
   { path: "/catalog-management", label: "Catálogos", icon: BookOpen, roles: ["administrator"] },
 ];
