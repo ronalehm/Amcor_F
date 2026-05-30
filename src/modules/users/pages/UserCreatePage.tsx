@@ -8,33 +8,33 @@ import {
   createUser,
   getNextUserCode,
   findDuplicateUser,
+  findActiveSiCodeDuplicate,
   getCurrentUser,
-  type User,
 } from "../../../shared/data/userStorage";
 import { registerUserStatusChange } from "../../../shared/data/userStatusStorage";
 import { mockSendEmail } from "../../../shared/data/notificationStorage";
+import { getCatalogOptions } from "../../../shared/catalogs";
 import { ROLE_LABELS } from "../../../shared/data/userStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
+import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import SystemIntegrationUserSearch from "../../../shared/components/forms/SystemIntegrationUserSearch";
-import OdiseoUserSearch from "../../../shared/components/forms/OdiseoUserSearch";
-import { type VendorMirror } from "../../../shared/data/vendorMirrorStorage";
 
 interface FormState {
-  email: string;
-  fullName: string;
+  // Datos ODISEO (todos editables)
   workerCode: string;
+  fullName: string;
+  email: string;
   position: string;
   area: string;
   role: string;
-  siUserId?: string;
+
+  // Sincronización SI (opcional)
   siUserCode?: string;
+  siUserName?: string;
   siStatus?: string;
-  odiseoUserId?: string;
-  odiseoUserCode?: string;
-  odiseoUserName?: string;
 }
 
 export default function UserCreatePage() {
@@ -43,9 +43,9 @@ export default function UserCreatePage() {
   const [userCode] = useState(getNextUserCode());
 
   const [form, setForm] = useState<FormState>({
-    email: "",
-    fullName: "",
     workerCode: "",
+    fullName: "",
+    email: "",
     position: "",
     area: "",
     role: "",
@@ -54,63 +54,44 @@ export default function UserCreatePage() {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [siSearchQuery, setSiSearchQuery] = useState("");
-  const [selectedOdiseoUser, setSelectedOdiseoUser] = useState<User | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const currentUser = getCurrentUser();
 
-  const handleSiUserSelect = (vendor: VendorMirror) => {
+  const areaOptions = useMemo(() => getCatalogOptions("area"), []);
+  const roleOptions = useMemo(() =>
+    Object.entries(ROLE_LABELS).map(([value, label]) => ({
+      value,
+      label,
+    })), []);
+
+  const handleSiUserSelect = (vendor: any) => {
     setForm((prev) => ({
       ...prev,
-      siUserId: vendor.id,
       siUserCode: vendor.code,
-      siStatus: "Activo",
+      siUserName: vendor.name,
+      siStatus: vendor.status,
     }));
     setSiSearchQuery("");
   };
 
-  const handleOdiseoUserSelect = (user: User) => {
+  const handleClearSiUser = () => {
     setForm((prev) => ({
       ...prev,
-      odiseoUserId: user.id,
-      odiseoUserCode: user.code,
-      odiseoUserName: user.fullName,
-      email: user.email,
-      fullName: user.fullName,
-      workerCode: user.workerCode,
-      position: user.position,
-      area: user.area || "",
-      role: user.role,
+      siUserCode: undefined,
+      siUserName: undefined,
+      siStatus: undefined,
     }));
-    setSelectedOdiseoUser(user);
-    setSearchQuery("");
-  };
-
-  const handleClearOdiseoUser = () => {
-    setForm((prev) => ({
-      ...prev,
-      odiseoUserId: undefined,
-      odiseoUserCode: undefined,
-      odiseoUserName: undefined,
-      email: "",
-      fullName: "",
-      workerCode: "",
-      position: "",
-      area: "",
-      role: "",
-    }));
-    setSelectedOdiseoUser(null);
-    setSearchQuery("");
+    setSiSearchQuery("");
   };
 
   useEffect(() => {
     setHeader({
-      title: "Registrar Acceso ODISEO",
+      title: "Registrar Usuario ODISEO",
       breadcrumbs: [
         { label: "Usuarios", href: "/users" },
-        { label: "Registrar Acceso" },
+        { label: "Registrar Usuario" },
       ],
       badges: (
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
@@ -121,21 +102,8 @@ export default function UserCreatePage() {
     return () => resetHeader();
   }, [setHeader, resetHeader, userCode]);
 
-
   const validationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
-
-    if (!form.siUserId) {
-      errors.siUserId = "Selecciona un usuario válido del Sistema Integral.";
-    }
-
-    if (!form.siStatus) {
-      errors.siStatus = "El estado del Sistema Integral es requerido.";
-    }
-
-    if (!form.odiseoUserId) {
-      errors.odiseoUserId = "Selecciona un usuario ODISEO existente.";
-    }
 
     if (!form.workerCode.trim()) {
       errors.workerCode = "Ingresa el código de trabajador.";
@@ -152,7 +120,7 @@ export default function UserCreatePage() {
     }
 
     if (!form.position.trim()) {
-      errors.position = "Selecciona el puesto.";
+      errors.position = "Ingresa el puesto.";
     }
 
     if (!form.area) {
@@ -160,7 +128,7 @@ export default function UserCreatePage() {
     }
 
     if (!form.role) {
-      errors.role = "Selecciona el Rol ODISEO que tendrá el usuario dentro del portal.";
+      errors.role = "Selecciona el rol ODISEO.";
     }
 
     return errors;
@@ -168,9 +136,6 @@ export default function UserCreatePage() {
 
   const completionPercentage = useMemo(() => {
     const requiredChecks = [
-      Boolean(form.siUserId),
-      Boolean(form.siStatus),
-      Boolean(form.odiseoUserId),
       Boolean(form.workerCode.trim()),
       Boolean(form.fullName.trim()),
       Boolean(form.email.trim()),
@@ -190,30 +155,41 @@ export default function UserCreatePage() {
     e.preventDefault();
     setSubmitAttempted(true);
     setSuccessMessage(null);
-    setDuplicateMessage(null);
+    setErrorMessage(null);
 
     if (Object.keys(validationErrors).length > 0) {
       return;
     }
 
-    setLoading(true);
-    try {
-      const duplicate = findDuplicateUser(
-        form.email.trim(),
-        form.workerCode.trim(),
-        form.siUserId,
-        form.siUserCode
-      );
+    // Validar duplicados en ODISEO
+    const duplicate = findDuplicateUser(
+      form.email.trim(),
+      form.workerCode.trim()
+    );
 
-      if (duplicate) {
-        setDuplicateMessage(
-          `No se puede registrar el acceso porque ya existe un usuario con el mismo correo, código trabajador, usuario del Sistema Integral o usuario ODISEO.`
+    if (duplicate) {
+      setErrorMessage(
+        "No se puede registrar porque ya existe un usuario con el mismo correo o código de trabajador."
+      );
+      return;
+    }
+
+    // Validar duplicado de SI si está vinculado
+    if (form.siUserCode) {
+      const siDuplicate = findActiveSiCodeDuplicate(form.siUserCode);
+      if (siDuplicate) {
+        setErrorMessage(
+          "Este usuario del Sistema Integral ya está vinculado a otro usuario ODISEO activo."
         );
-        setLoading(false);
         return;
       }
+    }
 
+    setLoading(true);
+    try {
       const tempPassword = Math.random().toString(36).substring(2, 10);
+      const syncStatus = form.siUserCode ? "synced" : "pending_sync";
+      const userStatus = form.siUserCode ? "pending_activation" : "pending_sync";
 
       const newUser = createUser({
         email: form.email,
@@ -222,24 +198,28 @@ export default function UserCreatePage() {
         workerCode: form.workerCode,
         position: form.position,
         role: form.role as any,
-        status: "pending_activation",
+        status: userStatus as any,
         area: form.area || undefined,
-        siUserId: form.siUserId,
         siUserCode: form.siUserCode,
+        siUserName: form.siUserName,
+        siStatus: form.siStatus,
+        syncStatus: syncStatus as any,
       });
 
       registerUserStatusChange(
         newUser.id,
         null,
-        "pending_activation",
+        userStatus as any,
         currentUser?.id || "system",
-        "Usuario creado - pendiente activación"
+        syncStatus === "synced"
+          ? "Usuario creado - vinculado con Sistema Integral"
+          : "Usuario creado - pendiente de sincronización"
       );
 
       mockSendEmail(
         newUser.email,
         "Bienvenido a ODISEO - Activación de Cuenta",
-        `Hola ${newUser.fullName.split(" ")[0]},\n\nTu cuenta ha sido creada en ODISEO. Por favor actívala para continuar.\n\nEquipo ODISEO`,
+        `Hola ${newUser.fullName.split(" ")[0]},\n\nTu cuenta ha sido creada en ODISEO.\n\nEquipo ODISEO`,
         newUser.id,
         "activation"
       );
@@ -258,13 +238,12 @@ export default function UserCreatePage() {
         })
       );
 
-      setSuccessMessage("Usuario creado correctamente. Se envió el correo de activación.");
+      setSuccessMessage("Usuario registrado correctamente.");
       setTimeout(() => navigate("/users"), 2000);
     } finally {
       setLoading(false);
     }
   };
-
 
   if (successMessage) {
     return (
@@ -292,109 +271,161 @@ export default function UserCreatePage() {
       <form onSubmit={handleSubmit}>
         <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
-            <FormCard title="Datos del Usuario" icon="👤" color="#00395A" required>
+            {/* Bloque 1: Datos del Usuario ODISEO */}
+            <FormCard title="Datos del Usuario ODISEO" icon="👤" color="#00395A" required>
               <div className="space-y-4">
-                {/* Fila 1: Usuario Sistema Integral y Estado SI */}
+                {/* Fila 1: Código Trabajador, Nombre */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
+                  <FormInput
+                    label="Código Trabajador"
+                    value={form.workerCode}
+                    onChange={(value) => setForm({ ...form, workerCode: value })}
+                    placeholder="Ej: EJC-000001"
+                    error={submitAttempted ? validationErrors.workerCode : undefined}
+                  />
+                  <FormInput
+                    label="Nombre Completo"
+                    value={form.fullName}
+                    onChange={(value) => setForm({ ...form, fullName: value })}
+                    placeholder="Ej: Juan Pérez García"
+                    error={submitAttempted ? validationErrors.fullName : undefined}
+                  />
+                </div>
+
+                {/* Fila 2: Correo Corporativo, Puesto */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormInput
+                    label="Correo Corporativo"
+                    value={form.email}
+                    onChange={(value) => setForm({ ...form, email: value })}
+                    type="email"
+                    placeholder="Ej: juan.perez@amcor.com"
+                    error={submitAttempted ? validationErrors.email : undefined}
+                  />
+                  <FormInput
+                    label="Puesto"
+                    value={form.position}
+                    onChange={(value) => setForm({ ...form, position: value })}
+                    placeholder="Ej: Ejecutivo de Ventas"
+                    error={submitAttempted ? validationErrors.position : undefined}
+                  />
+                </div>
+
+                {/* Fila 3: Área, Rol ODISEO */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormSelect
+                    label="Área"
+                    value={form.area}
+                    onChange={(value) => setForm({ ...form, area: value })}
+                    options={areaOptions}
+                    placeholder="Selecciona el área"
+                    error={submitAttempted ? validationErrors.area : undefined}
+                  />
+                  <FormSelect
+                    label="Rol ODISEO"
+                    value={form.role}
+                    onChange={(value) => setForm({ ...form, role: value })}
+                    options={roleOptions}
+                    placeholder="Selecciona el rol"
+                    error={submitAttempted ? validationErrors.role : undefined}
+                  />
+                </div>
+
+                {/* Estado ODISEO */}
+                <div>
+                  <p className="text-sm font-medium text-slate-700 mb-2">Estado ODISEO</p>
+                  <div className="flex items-center">
+                    <span
+                      className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
+                        form.siUserCode
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-purple-100 text-purple-700"
+                      }`}
+                    >
+                      {form.siUserCode ? "Pendiente de activación" : "Pendiente de sincronización"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {form.siUserCode
+                      ? "Usuario vinculado con Sistema Integral."
+                      : "Usuario sin vincular. Podrás hacerlo después o desde esta pantalla."}
+                  </p>
+                </div>
+              </div>
+            </FormCard>
+
+            {/* Bloque 2: Sincronización con Sistema Integral */}
+            <FormCard title="Sincronización con Sistema Integral (Opcional)" icon="🔗" color="#00A1DE">
+              <div className="space-y-4">
+                {!form.siUserCode ? (
+                  <>
                     <SystemIntegrationUserSearch
                       value={siSearchQuery}
                       onChange={setSiSearchQuery}
                       onSelect={handleSiUserSelect}
                       placeholder="Buscar usuario del Sistema Integral..."
+                      disabled={false}
                     />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700 mb-2">Estado Sistema Integral</p>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                      <p className="text-sm font-semibold text-slate-900">{form.siStatus || "No seleccionado"}</p>
+                    <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3">
+                      <span className="font-semibold">Información:</span> Si no vinculas ahora, el usuario quedará como "Pendiente de sincronización" y podrás vincularlo después desde la lista de usuarios.
+                    </p>
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
+                        Código Sistema Integral
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-mono font-semibold text-slate-900">
+                          {form.siUserCode}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Fila 2: Usuario ODISEO */}
-                <OdiseoUserSearch
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  onSelect={handleOdiseoUserSelect}
-                  selectedUser={selectedOdiseoUser}
-                  onClear={handleClearOdiseoUser}
-                  placeholder="Buscar usuario registrado en ODISEO..."
-                />
-
-                {/* Fila 3: Código Trabajador, Nombre (Read-only) */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <FormInput
-                    label="Código Trabajador"
-                    value={form.workerCode}
-                    disabled
-                    placeholder="Importado desde Usuario ODISEO"
-                  />
-
-                  <FormInput
-                    label="Nombre"
-                    value={form.fullName}
-                    disabled
-                    placeholder="Importado desde Usuario ODISEO"
-                  />
-                </div>
-
-                {/* Fila 4: Correo Corporativo, Puesto (Read-only) */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <FormInput
-                    label="Correo Corporativo"
-                    value={form.email}
-                    disabled
-                    type="email"
-                    placeholder="Importado desde Usuario ODISEO"
-                  />
-
-                  <FormInput
-                    label="Puesto"
-                    value={form.position}
-                    disabled
-                    placeholder="Importado desde Usuario ODISEO"
-                  />
-                </div>
-
-                {/* Fila 5: Área, Rol ODISEO (Read-only) */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <FormInput
-                    label="Área"
-                    value={form.area}
-                    disabled
-                    placeholder="Importado desde Usuario ODISEO"
-                  />
-
-                  <div>
-                    <p className="text-sm font-medium text-slate-700 mb-2">Rol ODISEO</p>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                      <p className="text-sm font-semibold text-slate-900">{form.role ? ROLE_LABELS[form.role as any] : "No asignado"}</p>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
+                        Nombre Sistema Integral
+                      </p>
+                      <p className="text-sm text-slate-700 font-medium">{form.siUserName}</p>
                     </div>
-                  </div>
-                </div>
 
-                {/* Fila 6: Estado ODISEO */}
-                <div>
-                  <p className="text-sm font-medium text-slate-700 mb-2">Estado ODISEO</p>
-                  <div className="flex items-center">
-                    <span className="inline-block rounded-full px-3 py-1 text-xs font-bold bg-amber-100 text-amber-700">
-                      Pendiente de activación
-                    </span>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
+                        Estado Sistema Integral
+                      </p>
+                      <span
+                        className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
+                          form.siStatus === "Activo"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        {form.siStatus}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleClearSiUser}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      Quitar vinculación
+                    </button>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">El acceso será activado manualmente.</p>
-                </div>
+                )}
               </div>
             </FormCard>
           </div>
 
+          {/* Resumen lateral */}
           <div className="space-y-5">
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="px-5 py-4 bg-gradient-to-br from-brand-primary to-brand-secondary text-white">
                 <div className="text-xs font-bold uppercase tracking-wide text-white/75">
                   Resumen
                 </div>
-                <div className="mt-2 text-lg font-extrabold">Registro de Acceso</div>
+                <div className="mt-2 text-lg font-extrabold">Registro de Usuario</div>
               </div>
               <div className="p-5 space-y-4">
                 <div>
@@ -403,9 +434,54 @@ export default function UserCreatePage() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Estado</p>
-                  <p className="text-sm font-bold text-amber-600">Pendiente de activación</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Estado ODISEO</p>
+                  <p
+                    className={`text-sm font-bold ${
+                      form.siUserCode
+                        ? "text-amber-600"
+                        : "text-purple-600"
+                    }`}
+                  >
+                    {form.siUserCode ? "Pendiente de activación" : "Pendiente de sincronización"}
+                  </p>
                 </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Sincronización</p>
+                  <span
+                    className={`inline-block rounded-full px-2 py-1 text-xs font-bold ${
+                      form.siUserCode
+                        ? "bg-green-100 text-green-700"
+                        : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    {form.siUserCode ? "Sincronizado" : "Pendiente"}
+                  </span>
+                </div>
+
+                {form.siUserCode && (
+                  <>
+                    <div className="border-t border-slate-100 pt-4">
+                      <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
+                        Datos Sistema Integral
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <p className="text-xs text-slate-600">Código:</p>
+                          <p className="font-mono font-semibold text-slate-900">{form.siUserCode}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-600">Nombre:</p>
+                          <p className="font-semibold text-slate-900">{form.siUserName}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-600">Estado:</p>
+                          <p className="font-semibold text-slate-900">{form.siStatus}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase">Progreso</p>
@@ -424,23 +500,14 @@ export default function UserCreatePage() {
 
                 <div className="border-t border-slate-100 pt-4">
                   <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
-                    9 Campos Requeridos
+                    6 Campos Requeridos
                   </p>
                   <ul className="text-sm space-y-1">
-                    <li className={form.siUserId ? "text-green-600" : "text-slate-400"}>
-                      {form.siUserId ? "✓" : "○"} Usuario Sistema Integral
-                    </li>
-                    <li className={form.siStatus ? "text-green-600" : "text-slate-400"}>
-                      {form.siStatus ? "✓" : "○"} Estado Sistema Integral
-                    </li>
-                    <li className={form.odiseoUserId ? "text-green-600" : "text-slate-400"}>
-                      {form.odiseoUserId ? "✓" : "○"} Usuario ODISEO
-                    </li>
                     <li className={form.workerCode ? "text-green-600" : "text-slate-400"}>
                       {form.workerCode ? "✓" : "○"} Código Trabajador
                     </li>
                     <li className={form.fullName ? "text-green-600" : "text-slate-400"}>
-                      {form.fullName ? "✓" : "○"} Nombre
+                      {form.fullName ? "✓" : "○"} Nombre Completo
                     </li>
                     <li className={form.email ? "text-green-600" : "text-slate-400"}>
                       {form.email ? "✓" : "○"} Correo Corporativo
@@ -467,10 +534,10 @@ export default function UserCreatePage() {
           </div>
         </div>
 
-        {duplicateMessage && (
+        {errorMessage && (
           <div className="mx-auto max-w-3xl mt-4">
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              {duplicateMessage}
+              {errorMessage}
             </div>
           </div>
         )}
@@ -480,7 +547,7 @@ export default function UserCreatePage() {
             onCancel={() => navigate("/users")}
             validationErrorList={validationErrorList}
             submitAttempted={submitAttempted}
-            submitLabel="Registrar Acceso"
+            submitLabel="Registrar Usuario"
             cancelLabel="Cancelar"
             isLoading={loading}
             validationTitle="Faltan campos obligatorios."

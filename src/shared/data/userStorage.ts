@@ -24,6 +24,7 @@ export type UserStatus =
   | "inactive"
   | "pending_activation"
   | "pending_validation"
+  | "pending_sync"
   | "blocked";
 
 export type User = {
@@ -39,6 +40,9 @@ export type User = {
   area?: string;
   siUserId?: string;
   siUserCode?: string;
+  siUserName?: string;
+  siStatus?: string;
+  syncStatus?: "pending_sync" | "synced";
   createdAt: string;
 };
 
@@ -394,6 +398,10 @@ export function createUser(
     workerCode: newUser.workerCode || "",
     position: newUser.position || "",
     status: newUser.status || "pending_activation",
+    siUserCode: newUser.siUserCode,
+    siUserName: newUser.siUserName,
+    siStatus: newUser.siStatus,
+    syncStatus: newUser.syncStatus,
     createdAt: now,
   };
 
@@ -586,6 +594,29 @@ export function findDuplicateUser(
   });
 }
 
+export function findActiveSiCodeDuplicate(
+  siUserCode: string,
+  excludeUserId?: string
+): User | undefined {
+  if (!siUserCode) return undefined;
+
+  const allUsers = getAllUsers();
+  const normalizedSiUserCode = siUserCode.trim().toLowerCase();
+
+  return allUsers.find((user) => {
+    if (excludeUserId && user.id === excludeUserId) {
+      return false;
+    }
+
+    // Check if active or pending_activation (essentially "activo")
+    if (!["active", "pending_activation", "synced"].includes(user.syncStatus || "pending_sync")) {
+      return false;
+    }
+
+    return user.siUserCode?.toLowerCase() === normalizedSiUserCode;
+  });
+}
+
 export function searchOdiseoUsers(query: string): User[] {
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) return [];
@@ -637,6 +668,7 @@ export const STATUS_LABELS: Record<UserStatus, string> = {
   inactive: "Inactivo",
   pending_activation: "Pendiente de activación",
   pending_validation: "Pendiente de validación",
+  pending_sync: "Pendiente de sincronización",
   blocked: "Bloqueado",
 };
 
@@ -645,6 +677,7 @@ export const STATUS_COLORS: Record<UserStatus, string> = {
   inactive: "bg-slate-100 text-slate-600",
   pending_activation: "bg-amber-100 text-amber-700",
   pending_validation: "bg-blue-100 text-blue-700",
+  pending_sync: "bg-purple-100 text-purple-700",
   blocked: "bg-red-100 text-red-700",
 };
 

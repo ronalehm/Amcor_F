@@ -16,6 +16,7 @@ export type UserStatusEvent = {
 const ALLOWED_TRANSITIONS: Record<UserStatus, UserStatus[]> = {
   pending_activation: ["active", "inactive", "blocked"],
   pending_validation: ["active", "inactive", "blocked", "pending_activation"],
+  pending_sync: ["active", "inactive", "blocked", "pending_activation"],
   active: ["inactive", "blocked", "pending_activation", "pending_validation"],
   inactive: ["pending_activation", "active", "blocked"],
   blocked: ["active", "inactive", "pending_activation"],

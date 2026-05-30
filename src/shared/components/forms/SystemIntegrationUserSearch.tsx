@@ -1,8 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, AlertCircle } from "lucide-react";
 import { searchSistemaIntegralUsers, type VendorMirror } from "../../data/vendorMirrorStorage";
-import { getUserByEmail, ROLE_LABELS } from "../../data/userStorage";
-import { getRoleByAreaAndPosition } from "../../data/areaDepartmentConfig";
 
 interface SystemIntegrationUserSearchProps {
   onSelect: (vendor: VendorMirror) => void;
@@ -19,7 +17,7 @@ export default function SystemIntegrationUserSearch({
   value,
   onChange,
   error,
-  placeholder = "Buscar por código, nombre, email o área...",
+  placeholder = "Buscar por código o nombre...",
   disabled = false,
   onNoResults,
 }: SystemIntegrationUserSearchProps) {
@@ -133,50 +131,35 @@ export default function SystemIntegrationUserSearch({
 
       {isOpen && value && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg max-h-80 overflow-y-auto">
-          {results.map((vendor, index) => {
-            const existsInOdiseo = vendor.email ? !!getUserByEmail(vendor.email) : false;
-            const suggestedRole = getRoleByAreaAndPosition(vendor.area, vendor.position);
-            return (
-              <button
-                key={vendor.id}
-                type="button"
-                onClick={() => !existsInOdiseo && handleSelectResult(vendor)}
-                onMouseEnter={() => setSelectedIndex(index)}
-                className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-0 transition-colors ${
-                  index === selectedIndex ? "bg-brand-secondary-soft" : "hover:bg-slate-50"
-                } ${existsInOdiseo ? "opacity-60 cursor-not-allowed" : ""}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-900 text-sm">{vendor.code}</p>
-                    <p className="text-sm text-slate-600">{vendor.name}</p>
-                    <div className="flex flex-wrap gap-2 mt-1 text-xs text-slate-500">
-                      <span>{vendor.position || "Posición no definida"}</span>
-                      <span>•</span>
-                      <span>{vendor.area}</span>
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-slate-100">
-                      <p className="text-xs text-slate-600">
-                        Rol ODISEO sugerido: <span className="font-semibold text-slate-900">{ROLE_LABELS[suggestedRole]}</span>
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {existsInOdiseo ? "Usuario ya registrado en ODISEO." : "Usuario disponible para registrar acceso ODISEO."}
-                      </p>
-                    </div>
+          {results.map((vendor, index) => (
+            <button
+              key={vendor.id}
+              type="button"
+              onClick={() => handleSelectResult(vendor)}
+              onMouseEnter={() => setSelectedIndex(index)}
+              className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-0 transition-colors ${
+                index === selectedIndex ? "bg-brand-secondary-soft" : "hover:bg-slate-50"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono text-xs font-semibold bg-slate-100 px-2 py-1 rounded text-slate-700">{vendor.code}</p>
+                    <p className="font-semibold text-slate-900 text-sm">{vendor.name}</p>
                   </div>
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap mt-1 ${
-                      existsInOdiseo
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-green-100 text-green-700"
-                    }`}
-                  >
-                    {existsInOdiseo ? "Existe en ODISEO" : "Disponible"}
-                  </span>
                 </div>
-              </button>
-            );
-          })}
+                <span
+                  className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
+                    vendor.status === "Activo"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  {vendor.status}
+                </span>
+              </div>
+            </button>
+          ))}
         </div>
       )}
 
