@@ -1,5 +1,4 @@
 import FormCard from "../../../shared/components/forms/FormCard";
-import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import CatalogSearch from "./CatalogSearch";
 import RestrictionSearch from "./RestrictionSearch";
 import type { ManagementType, CatalogItem, RestrictionItem } from "../types/catalogRestriction.types";
@@ -7,11 +6,9 @@ import type { ManagementType, CatalogItem, RestrictionItem } from "../types/cata
 interface ManagementParametersCardProps {
   type: ManagementType;
   selectedTarget: string;
-  reason: string;
   selectedTargetId: string;
   onTargetChange: (value: string) => void;
   onTargetIdChange: (id: string) => void;
-  onReasonChange: (value: string) => void;
   errors: Record<string, string>;
   submitAttempted: boolean;
 }
@@ -19,11 +16,9 @@ interface ManagementParametersCardProps {
 export default function ManagementParametersCard({
   type,
   selectedTarget,
-  reason,
   selectedTargetId,
   onTargetChange,
   onTargetIdChange,
-  onReasonChange,
   errors,
   submitAttempted,
 }: ManagementParametersCardProps) {
@@ -53,17 +48,6 @@ export default function ManagementParametersCard({
             error={submitAttempted ? errors.target : undefined}
           />
         )}
-
-        <FormTextarea
-          label="Motivo del cambio"
-          value={reason}
-          onChange={onReasonChange}
-          placeholder="Describe el motivo de esta actualización..."
-          helper="Este motivo será registrado en la bitácora del sistema."
-          error={submitAttempted ? errors.reason : undefined}
-          rows={3}
-          maxLength={500}
-        />
       </div>
     </FormCard>
   );

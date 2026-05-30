@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import FormCard from "../../../shared/components/forms/FormCard";
+import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import { downloadTemplate } from "../services/catalogRestrictionService";
 import { getValidationStatusColor } from "../utils/catalogRestrictionValidators";
 import CatalogPreviewModal from "./CatalogPreviewModal";
@@ -10,9 +11,13 @@ interface TemplateDownloadCardProps {
   targetId: string;
   uploadStatus: ValidationStatus;
   uploadedFileName: string;
+  reason: string;
+  reasonError?: string;
   onFileUpload: (file: File) => void;
   onValidate: () => void;
+  onReasonChange: (value: string) => void;
   isValidating: boolean;
+  submitAttempted: boolean;
 }
 
 export default function TemplateDownloadCard({
@@ -20,9 +25,13 @@ export default function TemplateDownloadCard({
   targetId,
   uploadStatus,
   uploadedFileName,
+  reason,
+  reasonError,
   onFileUpload,
   onValidate,
+  onReasonChange,
   isValidating,
+  submitAttempted,
 }: TemplateDownloadCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -76,8 +85,8 @@ export default function TemplateDownloadCard({
             </div>
           </div>
 
-        <div className="border-t border-slate-100 pt-4">
-          <div className="mb-3">
+        <div className="border-t border-slate-100 pt-4 space-y-4">
+          <div>
             <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
               Archivo cargado
             </p>
@@ -87,7 +96,7 @@ export default function TemplateDownloadCard({
           </div>
 
           {uploadStatus && uploadStatus !== "pending" && (
-            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold ${getValidationStatusColor(uploadStatus)}`}>
+            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold ${getValidationStatusColor(uploadStatus)}`}>
               {uploadStatus === "validating" && (
                 <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -97,6 +106,17 @@ export default function TemplateDownloadCard({
               {statusLabels[uploadStatus]}
             </div>
           )}
+
+          <FormTextarea
+            label="Motivo del cambio"
+            value={reason}
+            onChange={onReasonChange}
+            placeholder="Describe el motivo de esta actualización..."
+            helper="Este motivo será registrado en la bitácora del sistema."
+            error={submitAttempted ? reasonError : undefined}
+            rows={3}
+            maxLength={500}
+          />
         </div>
 
         <div className="flex flex-col gap-2 pt-2">

@@ -220,10 +220,8 @@ export default function CatalogRestrictionManagementPage() {
             type={managementType}
             selectedTarget={selectedTarget}
             selectedTargetId={selectedTargetId}
-            reason={reason}
             onTargetChange={setSelectedTarget}
             onTargetIdChange={setSelectedTargetId}
-            onReasonChange={setReason}
             errors={validationErrors}
             submitAttempted={submitAttempted}
           />
@@ -233,9 +231,13 @@ export default function CatalogRestrictionManagementPage() {
             targetId={selectedTargetId}
             uploadStatus={uploadStatus}
             uploadedFileName={uploadedFileName}
+            reason={reason}
+            reasonError={validationErrors.reason}
             onFileUpload={handleFileUpload}
             onValidate={handleValidate}
+            onReasonChange={setReason}
             isValidating={isValidating}
+            submitAttempted={submitAttempted}
           />
 
           {validationSummary && (
