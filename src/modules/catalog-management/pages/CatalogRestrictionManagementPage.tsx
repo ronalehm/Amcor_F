@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getCurrentUser } from "../../../shared/data/userStorage";
@@ -16,6 +16,7 @@ import type { ManagementType, ValidationSummary, ChangeLogEntry } from "../types
 
 export default function CatalogRestrictionManagementPage() {
   const { setHeader, resetHeader } = useLayout();
+  const navigate = useNavigate();
   const currentUser = getCurrentUser();
 
   if (currentUser?.role !== "administrator") {
@@ -132,7 +133,7 @@ export default function CatalogRestrictionManagementPage() {
         .filter((row) => row.detectedAction !== "unchanged")
         .map((row) => {
           const item = "item" in row ? row.item : row.ruleCode;
-          const name = "currentName" in row ? row.currentName : row.sourceValue;
+          const name = "newName" in row ? row.newName : row.allowedValue;
           return {
             item,
             name,
@@ -167,7 +168,8 @@ export default function CatalogRestrictionManagementPage() {
       setTimeout(() => {
         handleCancel();
         setSuccessMessage(null);
-      }, 3000);
+        navigate("/catalogs");
+      }, 2500);
     } catch (error) {
       console.error("Error confirmando cambios:", error);
       setSuccessMessage(null);
@@ -254,6 +256,7 @@ export default function CatalogRestrictionManagementPage() {
       <div className="sticky bottom-0 z-40 border-t border-slate-200 bg-[#f6f8fb]/95 py-4 backdrop-blur">
         <FormActionButtons
           onCancel={handleCancel}
+          onSubmit={handleConfirmClick}
           validationErrorList={
             submitAttempted
               ? Object.values(validationErrors).filter((e): e is string => Boolean(e))

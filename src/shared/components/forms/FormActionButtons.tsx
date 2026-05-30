@@ -5,6 +5,7 @@ type FormActionButtonsProps = {
   cancelLabel?: string;
   submitLabel?: string;
   onCancel: () => void;
+  onSubmit?: () => void;
   validationErrorList?: string[];
   submitAttempted?: boolean;
   validationTitle?: string;
@@ -15,6 +16,7 @@ export default function FormActionButtons({
   cancelLabel = "Cancelar",
   submitLabel = "Guardar Portafolio",
   onCancel,
+  onSubmit,
   validationErrorList = [],
   submitAttempted = false,
   validationTitle = "Faltan campos obligatorios.",
@@ -53,10 +55,11 @@ export default function FormActionButtons({
         )}
 
         <Button
-          type="submit"
+          type="button"
           variant="primary"
           isLoading={isLoading}
-          disabled={isLoading}
+          disabled={isLoading || validationErrorList.length > 0}
+          onClick={onSubmit}
         >
           {submitLabel}
         </Button>
