@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords, TECHNICAL_APPLICATION_OPTIONS } from "../../../shared/data/portfolioStorage";
+import { getCatalogOptions } from "../../../shared/catalogs";
 import {
   getNextProjectCode,
   saveProjectRecord,
@@ -637,6 +638,25 @@ export default function ProjectCreatePage() {
   const selectedExecutives = useMemo(() => {
     return executives.filter((executive) => form.executiveId.includes(String(executive.id)));
   }, [executives, form.executiveId]);
+
+  // Obtener opciones desde catálogos centralizados
+  const classificationOpt = useMemo(() => getCatalogOptions("classification"), []);
+  const subclassificationOpt = useMemo(() => getCatalogOptions("subclassification"), []);
+  const unitOfMeasureOpt = useMemo(() => getCatalogOptions("unit_measure"), []);
+  const printClassOpt = useMemo(() => getCatalogOptions("print_class"), []);
+  const printTypeOpt = useMemo(() => getCatalogOptions("print_type"), []);
+  const structureTypeOpt = useMemo(() => getCatalogOptions("structure_type"), []);
+  const saleTypeOpt = useMemo(() => getCatalogOptions("sale_type"), []);
+  const incotermOpt = useMemo(() => getCatalogOptions("incoterm"), []);
+  const countryOpt = useMemo(() => getCatalogOptions("destination_country"), []);
+  const currencyOpt = useMemo(() => getCatalogOptions("currency"), []);
+  const zipperTypeOpt = useMemo(() => getCatalogOptions("zipper_type"), []);
+  const valveTypeOpt = useMemo(() => getCatalogOptions("valve_type"), []);
+  const roundedCornersOpt = useMemo(() => getCatalogOptions("rounded_corners_type"), []);
+  const pouchPerforationOpt = useMemo(() => getCatalogOptions("pouch_perforation_type"), []);
+  const bagPerforationOpt = useMemo(() => getCatalogOptions("bag_perforation_type"), []);
+  const precutTypeOpt = useMemo(() => getCatalogOptions("precut_type"), []);
+  const coreMaterialOpt = useMemo(() => getCatalogOptions("core_material"), []);
 
   // Load original project data when in duplicate mode
   useEffect(() => {
@@ -1400,7 +1420,7 @@ export default function ProjectCreatePage() {
                     updateField("subClassification", "");
                     updateField("projectType", "");
                   }}
-                  options={CLASSIFICATION_OPTIONS}
+                  options={classificationOpt}
                   placeholder="-- Seleccione --"
                 />
 
@@ -1517,7 +1537,7 @@ export default function ProjectCreatePage() {
                     label="Tipo de Estructura"
                     value={form.structureType}
                     onChange={(value) => updateField("structureType", value)}
-                    options={STRUCTURE_TYPE_OPTIONS}
+                    options={structureTypeOpt}
                   />
                 )}
               </div>
@@ -1759,12 +1779,12 @@ export default function ProjectCreatePage() {
                         <div className="space-y-3">
                           <AccessoryCheckbox field="hasZipper" label="Zipper" />
                           {form.hasZipper === "Sí" && (
-                            <FormSelect label="Tipo de Zipper" value={form.zipperType} onChange={(value) => updateField("zipperType", value)} placeholder="-- Seleccione --" options={ZIPPER_TYPE_OPTIONS} />
+                            <FormSelect label="Tipo de Zipper" value={form.zipperType} onChange={(value) => updateField("zipperType", value)} placeholder="-- Seleccione --" options={zipperTypeOpt} />
                           )}
                           <AccessoryCheckbox field="hasTinTie" label="Tin-Tie" />
                           <AccessoryCheckbox field="hasValve" label="Válvula" />
                           {form.hasValve === "Sí" && (
-                            <FormSelect label="Tipo de Válvula" value={form.valveType} onChange={(value) => updateField("valveType", value)} placeholder="-- Seleccione --" options={VALVE_TYPE_OPTIONS} />
+                            <FormSelect label="Tipo de Válvula" value={form.valveType} onChange={(value) => updateField("valveType", value)} placeholder="-- Seleccione --" options={valveTypeOpt} />
                           )}
                         </div>
                       </div>
@@ -1795,20 +1815,20 @@ export default function ProjectCreatePage() {
                           <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
                           <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
                           {form.hasRoundedCorners === "Sí" && (
-                            <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={ROUNDED_CORNERS_TYPE_OPTIONS} />
+                            <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={roundedCornersOpt} />
                           )}
                           <AccessoryCheckbox field="hasNotch" label="Muesca" />
                           <AccessoryCheckbox field="hasPerforation" label="Perforación" />
                           {form.hasPerforation === "Sí" && (
                             <div className="space-y-3">
-                              <FormSelect label="Tipo Perforación Pouch" value={form.pouchPerforationType} onChange={(value) => updateField("pouchPerforationType", value)} placeholder="-- Seleccione --" options={POUCH_PERFORATION_TYPE_OPTIONS} />
-                              <FormSelect label="Tipo Perforación Bolsa" value={form.bagPerforationType} onChange={(value) => updateField("bagPerforationType", value)} placeholder="-- Seleccione --" options={BAG_PERFORATION_TYPE_OPTIONS} />
+                              <FormSelect label="Tipo Perforación Pouch" value={form.pouchPerforationType} onChange={(value) => updateField("pouchPerforationType", value)} placeholder="-- Seleccione --" options={pouchPerforationOpt} />
+                              <FormSelect label="Tipo Perforación Bolsa" value={form.bagPerforationType} onChange={(value) => updateField("bagPerforationType", value)} placeholder="-- Seleccione --" options={bagPerforationOpt} />
                               <FormSelect label="Ubicación Perforaciones" value={form.perforationLocation} onChange={(value) => updateField("perforationLocation", value)} placeholder="-- Seleccione --" options={PERFORATION_LOCATION_OPTIONS} />
                             </div>
                           )}
                           <AccessoryCheckbox field="hasPreCut" label="Pre-Corte" />
                           {form.hasPreCut === "Sí" && (
-                            <FormSelect label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} placeholder="-- Seleccione --" options={PRECUT_TYPE_OPTIONS} />
+                            <FormSelect label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} placeholder="-- Seleccione --" options={precutTypeOpt} />
                           )}
                         </div>
                       </div>
@@ -1847,14 +1867,14 @@ export default function ProjectCreatePage() {
                         value={form.printClass}
                         onChange={(value) => updateField("printClass", value)}
                         placeholder="-- Seleccione --"
-                        options={PRINT_CLASS_OPTIONS}
+                        options={printClassOpt}
                       />
                       <FormSelect
                         label="Tipo de Impresión"
                         value={form.printType}
                         onChange={(value) => updateField("printType", value)}
                         placeholder="-- Seleccione --"
-                        options={PRINT_TYPE_OPTIONS}
+                        options={printTypeOpt}
                         disabled={isPrintingDisabled}
                       />
                       <FormSelect
@@ -1940,16 +1960,16 @@ export default function ProjectCreatePage() {
                   onChange={(value) => updateField("unitOfMeasure", value)}
                   onBlur={() => markFieldAsTouched("unitOfMeasure")}
                   error={getError("unitOfMeasure")}
-                  options={UNIT_OPTIONS}
+                  options={unitOfMeasureOpt}
                   placeholder="-- Seleccione --"
                 />
 
-                <FormSelect label="Venta Nacional / Internacional" value={form.saleType} onChange={(value) => updateField("saleType", value)} options={SALE_TYPE_OPTIONS} />
-                <FormSelect label="Incoterm" value={form.incoterm} onChange={(value) => updateField("incoterm", value)} options={INCOTERM_OPTIONS} />
-                <FormSelect label="País Destino" value={form.destinationCountry} onChange={(value) => updateField("destinationCountry", value)} options={DESTINATION_COUNTRY_OPTIONS} />
+                <FormSelect label="Venta Nacional / Internacional" value={form.saleType} onChange={(value) => updateField("saleType", value)} options={saleTypeOpt} />
+                <FormSelect label="Incoterm" value={form.incoterm} onChange={(value) => updateField("incoterm", value)} options={incotermOpt} />
+                <FormSelect label="País Destino" value={form.destinationCountry} onChange={(value) => updateField("destinationCountry", value)} options={countryOpt} />
 
                 <FormInput label="Precio Objetivo" value={form.targetPrice} onChange={(value) => updateField("targetPrice", value)} placeholder="Ej. 45" />
-                <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={CURRENCY_OPTIONS} />
+                <FormSelect label="Tipo de Moneda" value={form.currencyType} onChange={(value) => updateField("currencyType", value)} options={currencyOpt} />
 
                 <div className="md:col-span-3">
                   <FormTextarea

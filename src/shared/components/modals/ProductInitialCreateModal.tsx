@@ -17,6 +17,7 @@ import * as userStorage from "../../data/userStorage";
 import { getAllApprovedProducts } from "../../data/approvedProductStorage";
 
 import { UNITS_OF_MEASURE, UNIT_LABELS } from "../../data/unitOfMeasureStorage";
+import { getCatalogOptions } from "../../catalogs";
 import {
   requiresOriginProduct,
   getAllowedOriginLifecycle,
@@ -1665,6 +1666,8 @@ const [visibleLayerCount, setVisibleLayerCount] = useState(1);
     if (portfolioCode) return getPortfolioByCodeSafe(portfolioCode);
     return null;
   }, [propPortfolio, portfolioCode]);
+
+  const unitOfMeasureOpt = useMemo(() => getCatalogOptions("unit_measure"), []);
 
   // Field completion flags - portfolioBelongsToClient will be calculated below after portfoliosForClient is available
   // For now, we use a simple check
@@ -3388,7 +3391,7 @@ const handleRemoveLastLayer = () => {
                         );
                       }
                     }}
-                    options={UNIT_OPTIONS}
+                    options={unitOfMeasureOpt}
                     placeholder="-- Seleccione --"
                     error={errors.unidad}
                     disabled={!canEditUnidad || (isInheritedFromBase && !(motivo === "Producto nuevo" && causal.includes("Nueva estructura")))}
