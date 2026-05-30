@@ -97,6 +97,20 @@ export default function UserCreatePage() {
     setOdiseoSearchQuery("");
   };
 
+  const handleCreateNewOdiseoUser = () => {
+    setSelectedOdiseoUser(null);
+    setOdiseoSearchQuery("");
+    setForm((prev) => ({
+      ...prev,
+      workerCode: "",
+      fullName: "",
+      email: "",
+      position: "",
+      area: "",
+      role: "",
+    }));
+  };
+
   const handleSiUserSelect = (vendor: any) => {
     setForm((prev) => ({
       ...prev,
@@ -310,10 +324,11 @@ export default function UserCreatePage() {
                 onSelect={handleOdiseoUserSelect}
                 selectedUser={selectedOdiseoUser}
                 onClear={handleClearOdiseoUser}
+                onCreateNew={handleCreateNewOdiseoUser}
                 placeholder="Buscar usuario ODISEO por nombre, correo, código..."
               />
               <p className="text-xs text-slate-500 mt-3 bg-slate-50 rounded-lg p-3">
-                <span className="font-semibold">Información:</span> Busca si ya existe un usuario ODISEO. Si lo encuentras, sus datos se completarán automáticamente. Si no existe, podrás crear uno nuevo completando los campos de abajo.
+                <span className="font-semibold">Información:</span> Busca si ya existe un usuario ODISEO. Si lo encuentras, selecciónalo para completar automáticamente. Si no existe, usa el botón "Crear nuevo usuario" para proceder con el registro.
               </p>
             </FormCard>
 
@@ -494,9 +509,20 @@ export default function UserCreatePage() {
 
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase">Usuario ODISEO</p>
-                  <p className="text-sm font-medium text-slate-700">
-                    {selectedOdiseoUser ? "Seleccionado: " + selectedOdiseoUser.fullName : "Nuevo usuario"}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`inline-block rounded-full px-2 py-1 text-xs font-bold ${
+                      selectedOdiseoUser
+                        ? "bg-green-100 text-green-700"
+                        : "bg-amber-100 text-amber-700"
+                    }`}>
+                      {selectedOdiseoUser ? "✓ Existente" : "+ Nuevo"}
+                    </span>
+                  </div>
+                  {selectedOdiseoUser && (
+                    <p className="text-xs text-slate-600 mt-2">
+                      {selectedOdiseoUser.fullName}
+                    </p>
+                  )}
                 </div>
 
                 <div>

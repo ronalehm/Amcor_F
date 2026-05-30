@@ -8,6 +8,7 @@ interface OdiseoUserSearchProps {
   onChange: (value: string) => void;
   selectedUser?: User | null;
   onClear?: () => void;
+  onCreateNew?: () => void;
   error?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -19,6 +20,7 @@ export default function OdiseoUserSearch({
   onChange,
   selectedUser,
   onClear,
+  onCreateNew,
   error,
   placeholder = "Buscar usuario ODISEO por nombre, correo, código...",
   disabled = false,
@@ -151,6 +153,11 @@ export default function OdiseoUserSearch({
 
       {!selectedUser && isOpen && value && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg max-h-80 overflow-y-auto">
+          <div className="sticky top-0 bg-green-50 border-b border-green-200 px-4 py-2">
+            <p className="text-xs font-semibold text-green-700 flex items-center gap-2">
+              <span>✓</span> Usuario encontrado en ODISEO
+            </p>
+          </div>
           {results.map((user, index) => (
             <button
               key={user.id}
@@ -183,13 +190,27 @@ export default function OdiseoUserSearch({
       )}
 
       {!selectedUser && isOpen && value && results.length === 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg p-4 text-center">
-          <p className="text-sm text-slate-500">
-            No se encontraron usuarios ODISEO.
-          </p>
-          <p className="text-xs text-slate-400 mt-1">
-            Verifica el nombre o código de usuario.
-          </p>
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg p-4">
+          <div className="text-center mb-4">
+            <p className="text-sm font-semibold text-slate-700 flex items-center justify-center gap-2">
+              <span className="text-red-500">✗</span> Usuario no encontrado en ODISEO
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+              No existe un usuario con "{value}" en el sistema.
+            </p>
+          </div>
+          {onCreateNew && (
+            <button
+              type="button"
+              onClick={() => {
+                onCreateNew();
+                onChange("");
+              }}
+              className="w-full rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 px-4 py-2.5 text-sm font-semibold text-blue-700 transition-colors"
+            >
+              Crear nuevo usuario
+            </button>
+          )}
         </div>
       )}
     </div>
