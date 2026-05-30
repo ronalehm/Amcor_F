@@ -9,16 +9,17 @@ import {
   getNextUserCode,
   findDuplicateUser,
   getCurrentUser,
+  type User,
 } from "../../../shared/data/userStorage";
 import { registerUserStatusChange } from "../../../shared/data/userStatusStorage";
 import { mockSendEmail } from "../../../shared/data/notificationStorage";
-import { getRoleByAreaAndPosition } from "../../../shared/data/areaDepartmentConfig";
 import { ROLE_LABELS } from "../../../shared/data/userStorage";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import SystemIntegrationUserSearch from "../../../shared/components/forms/SystemIntegrationUserSearch";
+import OdiseoUserSearch from "../../../shared/components/forms/OdiseoUserSearch";
 import { type VendorMirror } from "../../../shared/data/vendorMirrorStorage";
 
 interface FormState {
@@ -30,6 +31,10 @@ interface FormState {
   role: string;
   siUserId?: string;
   siUserCode?: string;
+  siStatus?: string;
+  odiseoUserId?: string;
+  odiseoUserCode?: string;
+  odiseoUserName?: string;
 }
 
 export default function UserCreatePage() {
@@ -51,22 +56,52 @@ export default function UserCreatePage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [siSearchQuery, setSiSearchQuery] = useState("");
+  const [selectedOdiseoUser, setSelectedOdiseoUser] = useState<User | null>(null);
 
   const currentUser = getCurrentUser();
 
   const handleSiUserSelect = (vendor: VendorMirror) => {
-    const suggestedRole = getRoleByAreaAndPosition(vendor.area, vendor.position);
     setForm((prev) => ({
       ...prev,
       siUserId: vendor.id,
       siUserCode: vendor.code,
-      workerCode: vendor.code,
-      email: vendor.email || "",
-      fullName: vendor.name,
-      area: vendor.area,
-      position: vendor.position || "",
-      role: suggestedRole,
+      siStatus: "Activo",
     }));
+    setSiSearchQuery("");
+  };
+
+  const handleOdiseoUserSelect = (user: User) => {
+    setForm((prev) => ({
+      ...prev,
+      odiseoUserId: user.id,
+      odiseoUserCode: user.code,
+      odiseoUserName: user.fullName,
+      email: user.email,
+      fullName: user.fullName,
+      workerCode: user.workerCode,
+      position: user.position,
+      area: user.area || "",
+      role: user.role,
+    }));
+    setSelectedOdiseoUser(user);
+    setSearchQuery("");
+  };
+
+  const handleClearOdiseoUser = () => {
+    setForm((prev) => ({
+      ...prev,
+      odiseoUserId: undefined,
+      odiseoUserCode: undefined,
+      odiseoUserName: undefined,
+      email: "",
+      fullName: "",
+      workerCode: "",
+      position: "",
+      area: "",
+      role: "",
+    }));
+    setSelectedOdiseoUser(null);
     setSearchQuery("");
   };
 
@@ -92,6 +127,14 @@ export default function UserCreatePage() {
 
     if (!form.siUserId) {
       errors.siUserId = "Selecciona un usuario válido del Sistema Integral.";
+    }
+
+    if (!form.siStatus) {
+      errors.siStatus = "El estado del Sistema Integral es requerido.";
+    }
+
+    if (!form.odiseoUserId) {
+      errors.odiseoUserId = "Selecciona un usuario ODISEO existente.";
     }
 
     if (!form.workerCode.trim()) {
@@ -126,6 +169,8 @@ export default function UserCreatePage() {
   const completionPercentage = useMemo(() => {
     const requiredChecks = [
       Boolean(form.siUserId),
+      Boolean(form.siStatus),
+      Boolean(form.odiseoUserId),
       Boolean(form.workerCode.trim()),
       Boolean(form.fullName.trim()),
       Boolean(form.email.trim()),
@@ -162,7 +207,7 @@ export default function UserCreatePage() {
 
       if (duplicate) {
         setDuplicateMessage(
-          `No se puede registrar el usuario porque ya existe un registro con el mismo correo corporativo o código de trabajador. Usuario existente: ${duplicate.fullName}.`
+          `No se puede registrar el acceso porque ya existe un usuario con el mismo correo, código trabajador, usuario del Sistema Integral o usuario ODISEO.`
         );
         setLoading(false);
         return;
@@ -249,56 +294,76 @@ export default function UserCreatePage() {
           <div className="space-y-5">
             <FormCard title="Datos del Usuario" icon="👤" color="#00395A" required>
               <div className="space-y-4">
-                {/* Búsqueda Sistema Integral */}
-                <SystemIntegrationUserSearch
+                {/* Fila 1: Usuario Sistema Integral y Estado SI */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <SystemIntegrationUserSearch
+                      value={siSearchQuery}
+                      onChange={setSiSearchQuery}
+                      onSelect={handleSiUserSelect}
+                      placeholder="Buscar usuario del Sistema Integral..."
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-700 mb-2">Estado Sistema Integral</p>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-sm font-semibold text-slate-900">{form.siStatus || "No seleccionado"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fila 2: Usuario ODISEO */}
+                <OdiseoUserSearch
                   value={searchQuery}
                   onChange={setSearchQuery}
-                  onSelect={handleSiUserSelect}
-                  placeholder="Buscar usuario del Sistema Integral..."
+                  onSelect={handleOdiseoUserSelect}
+                  selectedUser={selectedOdiseoUser}
+                  onClear={handleClearOdiseoUser}
+                  placeholder="Buscar usuario registrado en ODISEO..."
                 />
 
-                {/* Fila 1: Código Trabajador, Nombre (Read-only) */}
+                {/* Fila 3: Código Trabajador, Nombre (Read-only) */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormInput
                     label="Código Trabajador"
                     value={form.workerCode}
                     disabled
-                    placeholder="Importado desde Sistema Integral"
+                    placeholder="Importado desde Usuario ODISEO"
                   />
 
                   <FormInput
                     label="Nombre"
                     value={form.fullName}
                     disabled
-                    placeholder="Importado desde Sistema Integral"
+                    placeholder="Importado desde Usuario ODISEO"
                   />
                 </div>
 
-                {/* Fila 2: Correo Corporativo, Puesto (Read-only) */}
+                {/* Fila 4: Correo Corporativo, Puesto (Read-only) */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormInput
                     label="Correo Corporativo"
                     value={form.email}
                     disabled
                     type="email"
-                    placeholder="Importado desde Sistema Integral"
+                    placeholder="Importado desde Usuario ODISEO"
                   />
 
                   <FormInput
                     label="Puesto"
                     value={form.position}
                     disabled
-                    placeholder="Importado desde Sistema Integral"
+                    placeholder="Importado desde Usuario ODISEO"
                   />
                 </div>
 
-                {/* Fila 3: Área, Rol ODISEO (Read-only) */}
+                {/* Fila 5: Área, Rol ODISEO (Read-only) */}
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormInput
                     label="Área"
                     value={form.area}
                     disabled
-                    placeholder="Importado desde Sistema Integral"
+                    placeholder="Importado desde Usuario ODISEO"
                   />
 
                   <div>
@@ -306,19 +371,18 @@ export default function UserCreatePage() {
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                       <p className="text-sm font-semibold text-slate-900">{form.role ? ROLE_LABELS[form.role as any] : "No asignado"}</p>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Se asigna automáticamente según Área y Puesto.</p>
                   </div>
                 </div>
 
-                {/* Fila 4: Estado */}
+                {/* Fila 6: Estado ODISEO */}
                 <div>
-                  <p className="text-sm font-medium text-slate-700 mb-2">Estado</p>
+                  <p className="text-sm font-medium text-slate-700 mb-2">Estado ODISEO</p>
                   <div className="flex items-center">
                     <span className="inline-block rounded-full px-3 py-1 text-xs font-bold bg-amber-100 text-amber-700">
                       Pendiente de activación
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">El usuario será creado en este estado.</p>
+                  <p className="text-xs text-slate-500 mt-1">El acceso será activado manualmente.</p>
                 </div>
               </div>
             </FormCard>
@@ -360,20 +424,26 @@ export default function UserCreatePage() {
 
                 <div className="border-t border-slate-100 pt-4">
                   <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
-                    7 Campos Requeridos
+                    9 Campos Requeridos
                   </p>
                   <ul className="text-sm space-y-1">
                     <li className={form.siUserId ? "text-green-600" : "text-slate-400"}>
                       {form.siUserId ? "✓" : "○"} Usuario Sistema Integral
                     </li>
+                    <li className={form.siStatus ? "text-green-600" : "text-slate-400"}>
+                      {form.siStatus ? "✓" : "○"} Estado Sistema Integral
+                    </li>
+                    <li className={form.odiseoUserId ? "text-green-600" : "text-slate-400"}>
+                      {form.odiseoUserId ? "✓" : "○"} Usuario ODISEO
+                    </li>
                     <li className={form.workerCode ? "text-green-600" : "text-slate-400"}>
                       {form.workerCode ? "✓" : "○"} Código Trabajador
                     </li>
-                    <li className={form.email ? "text-green-600" : "text-slate-400"}>
-                      {form.email ? "✓" : "○"} Correo Corporativo
-                    </li>
                     <li className={form.fullName ? "text-green-600" : "text-slate-400"}>
                       {form.fullName ? "✓" : "○"} Nombre
+                    </li>
+                    <li className={form.email ? "text-green-600" : "text-slate-400"}>
+                      {form.email ? "✓" : "○"} Correo Corporativo
                     </li>
                     <li className={form.position ? "text-green-600" : "text-slate-400"}>
                       {form.position ? "✓" : "○"} Puesto

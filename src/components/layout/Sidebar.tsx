@@ -8,13 +8,16 @@ import {
   Users,
   LifeBuoy,
   Settings2,
+  BookOpen,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { getCurrentUser, type UserRole } from "../../shared/data/userStorage";
 
 interface MenuItem {
   path: string;
   label: string;
   icon: LucideIcon;
+  roles?: UserRole[];
 }
 
 interface SidebarProps {
@@ -28,6 +31,8 @@ const MENU_ITEMS: MenuItem[] = [
   { path: "/products", label: "Productos", icon: BriefcaseBusiness },
   { path: "/datasheets", label: "Fichas de Producto", icon: ScanBarcode },
   { path: "/users", label: "Usuarios", icon: Users },
+  { path: "/catalog-management", label: "Catálogos", icon: BookOpen, roles: ["administrator"],
+  },
 ];
 
 const BOTTOM_ITEMS: MenuItem[] = [
@@ -69,6 +74,7 @@ const SidebarItem = ({
 
 export default function Sidebar({ isOpen }: SidebarProps) {
   const location = useLocation();
+  const currentUser = getCurrentUser();
 
   const isRouteActive = (path: string) => {
     return (
@@ -76,6 +82,14 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       location.pathname.startsWith(`${path}/`)
     );
   };
+
+  const visibleMenuItems = MENU_ITEMS.filter(
+    (item) => !item.roles || (currentUser && item.roles.includes(currentUser.role))
+  );
+
+  const visibleBottomItems = BOTTOM_ITEMS.filter(
+    (item) => !item.roles || (currentUser && item.roles.includes(currentUser.role))
+  );
 
   return (
     <aside
@@ -85,7 +99,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     >
       <nav className="flex h-full flex-col justify-between py-6">
         <div className="space-y-1">
-          {MENU_ITEMS.map((item) => (
+          {visibleMenuItems.map((item) => (
             <SidebarItem
               key={item.path}
               item={item}
@@ -96,7 +110,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
         </div>
 
         <div className="space-y-1">
-          {BOTTOM_ITEMS.map((item) => (
+          {visibleBottomItems.map((item) => (
             <SidebarItem
               key={item.path}
               item={item}

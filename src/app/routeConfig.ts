@@ -35,5 +35,9 @@ export const APP_ROUTES = {
     LIST: '/users',
     DETAIL: (id: string) => `/users/${id}`,
     EDIT: (id: string) => `/users/${id}/edit`,
+  },
+
+  CATALOG_MANAGEMENT: {
+    LIST: '/catalog-management',
   }
 };

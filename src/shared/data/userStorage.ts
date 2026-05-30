@@ -586,6 +586,26 @@ export function findDuplicateUser(
   });
 }
 
+export function searchOdiseoUsers(query: string): User[] {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return [];
+
+  return getAllUsers().filter((user) => {
+    const searchableFields = [
+      user.fullName,
+      user.email,
+      user.code,
+      user.workerCode,
+      user.area,
+      ROLE_LABELS[user.role],
+    ]
+      .filter(Boolean)
+      .map((field) => field.toLowerCase());
+
+    return searchableFields.some((field) => field.includes(normalizedQuery));
+  });
+}
+
 export const ROLE_LABELS: Record<UserRole, string> = {
   customer_service_operator: "Operador Customer Service",
   customer_service_leader: "Líder Customer Service",
