@@ -21,6 +21,7 @@ import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import SystemIntegrationUserSearch from "../../../shared/components/forms/SystemIntegrationUserSearch";
+import OdiseoUserSearch from "../../../shared/components/forms/OdiseoUserSearch";
 
 interface FormState {
   // Datos ODISEO (todos editables)
@@ -54,6 +55,8 @@ export default function UserCreatePage() {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [odiseoSearchQuery, setOdiseoSearchQuery] = useState("");
+  const [selectedOdiseoUser, setSelectedOdiseoUser] = useState<any | null>(null);
   const [siSearchQuery, setSiSearchQuery] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -65,6 +68,34 @@ export default function UserCreatePage() {
       value,
       label,
     })), []);
+
+  const handleOdiseoUserSelect = (user: any) => {
+    setSelectedOdiseoUser(user);
+    setForm((prev) => ({
+      ...prev,
+      workerCode: user.workerCode || "",
+      fullName: user.fullName || "",
+      email: user.email || "",
+      position: user.position || "",
+      area: user.area || "",
+      role: user.role || "",
+    }));
+    setOdiseoSearchQuery("");
+  };
+
+  const handleClearOdiseoUser = () => {
+    setSelectedOdiseoUser(null);
+    setForm((prev) => ({
+      ...prev,
+      workerCode: "",
+      fullName: "",
+      email: "",
+      position: "",
+      area: "",
+      role: "",
+    }));
+    setOdiseoSearchQuery("");
+  };
 
   const handleSiUserSelect = (vendor: any) => {
     setForm((prev) => ({
@@ -271,6 +302,21 @@ export default function UserCreatePage() {
       <form onSubmit={handleSubmit}>
         <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
+            {/* Búsqueda de Usuario ODISEO */}
+            <FormCard title="Búsqueda de Usuario ODISEO" icon="🔍" color="#6366F1" required>
+              <OdiseoUserSearch
+                value={odiseoSearchQuery}
+                onChange={setOdiseoSearchQuery}
+                onSelect={handleOdiseoUserSelect}
+                selectedUser={selectedOdiseoUser}
+                onClear={handleClearOdiseoUser}
+                placeholder="Buscar usuario ODISEO por nombre, correo, código..."
+              />
+              <p className="text-xs text-slate-500 mt-3 bg-slate-50 rounded-lg p-3">
+                <span className="font-semibold">Información:</span> Busca si ya existe un usuario ODISEO. Si lo encuentras, sus datos se completarán automáticamente. Si no existe, podrás crear uno nuevo completando los campos de abajo.
+              </p>
+            </FormCard>
+
             {/* Bloque 1: Datos del Usuario ODISEO */}
             <FormCard title="Datos del Usuario ODISEO" icon="👤" color="#00395A" required>
               <div className="space-y-4">
@@ -443,6 +489,13 @@ export default function UserCreatePage() {
                     }`}
                   >
                     {form.siUserCode ? "Pendiente de activación" : "Pendiente de sincronización"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Usuario ODISEO</p>
+                  <p className="text-sm font-medium text-slate-700">
+                    {selectedOdiseoUser ? "Seleccionado: " + selectedOdiseoUser.fullName : "Nuevo usuario"}
                   </p>
                 </div>
 
