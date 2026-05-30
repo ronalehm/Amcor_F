@@ -1,7 +1,8 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import FormCard from "../../../shared/components/forms/FormCard";
 import { downloadTemplate } from "../services/catalogRestrictionService";
 import { getValidationStatusColor } from "../utils/catalogRestrictionValidators";
+import CatalogPreviewModal from "./CatalogPreviewModal";
 import type { ManagementType, ValidationStatus } from "../types/catalogRestriction.types";
 
 interface TemplateDownloadCardProps {
@@ -24,6 +25,7 @@ export default function TemplateDownloadCard({
   isValidating,
 }: TemplateDownloadCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleDownload = async () => {
     if (type === "catalog" && targetId) {
@@ -47,20 +49,32 @@ export default function TemplateDownloadCard({
   };
 
   return (
-    <FormCard title="Plantilla" icon="📄" color="#00A1DE">
-      <div className="space-y-4">
-        <div>
-          <p className="text-sm text-slate-600 mb-3">
-            Descarga la plantilla vigente, actualiza los valores necesarios y vuelve a cargar el archivo para que ODISEO detecte los cambios automáticamente.
-          </p>
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="inline-flex items-center gap-2 rounded-lg border border-brand-primary bg-white px-4 py-2 text-sm font-semibold text-brand-primary hover:bg-brand-primary hover:text-white transition-colors"
-          >
-            ↓ Descargar plantilla
-          </button>
-        </div>
+    <>
+      <FormCard title="Plantilla" icon="📄" color="#00A1DE">
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm text-slate-600 mb-3">
+              Descarga la plantilla vigente, actualiza los valores necesarios y vuelve a cargar el archivo para que ODISEO detecte los cambios automáticamente.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPreview(true)}
+                disabled={!targetId}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                👁️ Vista previa
+              </button>
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={!targetId}
+                className="inline-flex items-center gap-2 rounded-lg border border-brand-primary bg-white px-4 py-2 text-sm font-semibold text-brand-primary hover:bg-brand-primary hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ↓ Descargar plantilla
+              </button>
+            </div>
+          </div>
 
         <div className="border-t border-slate-100 pt-4">
           <div className="mb-3">
@@ -111,5 +125,12 @@ export default function TemplateDownloadCard({
         </div>
       </div>
     </FormCard>
+
+      <CatalogPreviewModal
+        isOpen={showPreview}
+        catalogCode={targetId}
+        onClose={() => setShowPreview(false)}
+      />
+    </>
   );
 }
