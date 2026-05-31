@@ -9,6 +9,8 @@ interface OdiseoUserSearchProps {
   selectedUser?: User | null;
   onClear?: () => void;
   onCreateNew?: () => void;
+  onConfirmNew?: (name: string) => void;
+  confirmedNew?: boolean;
   error?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -21,6 +23,8 @@ export default function OdiseoUserSearch({
   selectedUser,
   onClear,
   onCreateNew,
+  onConfirmNew,
+  confirmedNew,
   error,
   placeholder = "Buscar usuario ODISEO por nombre, correo, código...",
   disabled = false,
@@ -96,7 +100,7 @@ export default function OdiseoUserSearch({
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
         />
 
-        {selectedUser && (
+        {(selectedUser || confirmedNew) && (
           <button
             type="button"
             onClick={() => {
@@ -115,7 +119,7 @@ export default function OdiseoUserSearch({
           type="text"
           value={selectedUser ? `${selectedUser.fullName} (${selectedUser.code})` : value}
           onChange={(e) => {
-            if (!selectedUser) {
+            if (!selectedUser && !confirmedNew) {
               onChange(e.target.value);
               setIsOpen(true);
               setSelectedIndex(-1);
@@ -123,12 +127,12 @@ export default function OdiseoUserSearch({
           }}
           onKeyDown={handleKeyDown}
           onFocus={() => {
-            if (!selectedUser && value) {
+            if (!selectedUser && !confirmedNew && value) {
               setIsOpen(true);
             }
           }}
           placeholder={placeholder}
-          disabled={disabled || !!selectedUser}
+          disabled={disabled || !!selectedUser || confirmedNew}
           className={`w-full rounded-lg border px-9 py-2 text-sm transition-colors outline-none
             ${
               error
@@ -136,7 +140,7 @@ export default function OdiseoUserSearch({
                 : "border-slate-200 bg-white text-slate-700 placeholder:text-slate-400"
             }
             ${
-              disabled || selectedUser
+              disabled || selectedUser || confirmedNew
                 ? "cursor-not-allowed bg-slate-50 text-slate-400"
                 : "focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
             }`}
@@ -151,11 +155,11 @@ export default function OdiseoUserSearch({
         </div>
       )}
 
-      {!selectedUser && isOpen && value && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg max-h-80 overflow-y-auto">
-          <div className="sticky top-0 bg-green-50 border-b border-green-200 px-4 py-2">
-            <p className="text-xs font-semibold text-green-700 flex items-center gap-2">
-              <span>✓</span> Usuario encontrado en ODISEO
+      {!selectedUser && !confirmedNew && isOpen && value && results.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-red-200 bg-white shadow-lg max-h-80 overflow-y-auto">
+          <div className="sticky top-0 bg-red-50 border-b border-red-200 px-4 py-2">
+            <p className="text-xs font-semibold text-red-700 flex items-center gap-2">
+              <span>⚠</span> Este usuario ya existe en ODISEO
             </p>
           </div>
           {results.map((user, index) => (
@@ -189,26 +193,30 @@ export default function OdiseoUserSearch({
         </div>
       )}
 
-      {!selectedUser && isOpen && value && results.length === 0 && (
+      {!selectedUser && !confirmedNew && isOpen && value && results.length === 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg p-4">
           <div className="text-center mb-4">
             <p className="text-sm font-semibold text-slate-700 flex items-center justify-center gap-2">
-              <span className="text-red-500">✗</span> Usuario no encontrado en ODISEO
+              <span className="text-green-500">✓</span> Usuario no encontrado en ODISEO
             </p>
             <p className="text-xs text-slate-500 mt-2">
-              No existe un usuario con "{value}" en el sistema.
+              Puede continuar con el registro de este nuevo usuario.
             </p>
           </div>
-          {onCreateNew && (
+          {(onConfirmNew || onCreateNew) && (
             <button
               type="button"
               onClick={() => {
-                onCreateNew();
-                onChange("");
+                if (onConfirmNew) {
+                  onConfirmNew(value);
+                } else if (onCreateNew) {
+                  onCreateNew();
+                  onChange("");
+                }
               }}
               className="w-full rounded-lg bg-blue-50 border border-blue-200 hover:bg-blue-100 px-4 py-2.5 text-sm font-semibold text-blue-700 transition-colors"
             >
-              Crear nuevo usuario
+              Confirmar como nuevo usuario ODISEO
             </button>
           )}
         </div>
