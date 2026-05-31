@@ -244,7 +244,7 @@ export function getCurrentActionLabel(project: any): string {
 
   if (status === "Registrado") return "Completar ficha";
   if (status === "En Preparación") return "Completar información";
-  if (status === "Ficha Completa") return "Solicitar validación";
+  if (status === "Ficha Completa") return "Completar información";
 
   if (status === "En validación") {
     if (currentStep === "Artes Gráficas") return "En Revisión por Artes Gráficas";
