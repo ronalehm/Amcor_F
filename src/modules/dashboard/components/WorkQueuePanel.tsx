@@ -56,14 +56,9 @@ export default function WorkQueuePanel({ items }: WorkQueuePanelProps) {
   return (
     <section className="rounded-2xl border border-[#003B5C]/10 bg-[#003B5C]/5 p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900">
-            Mi bandeja de productos
-          </h2>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Fichas y productos que requieren acción de mi rol
-          </p>
-        </div>
+        <h2 className="text-base font-semibold text-slate-900">
+          Mi bandeja
+        </h2>
 
         <span className="inline-flex shrink-0 items-center rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
           {pendingCount} pendientes
@@ -71,40 +66,21 @@ export default function WorkQueuePanel({ items }: WorkQueuePanelProps) {
       </div>
 
       {urgentItem && (
-        <article className="rounded-2xl border border-[#003B5C]/10 bg-white p-4 shadow-sm mb-3">
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-[#003B5C]">
-                Acción prioritaria
-              </p>
-
-              <div className="mt-1">
-                <span className="text-sm font-semibold text-slate-900">
-                  {urgentItem.code}
-                </span>
-              </div>
-
-              <p className="mt-1 text-xs text-slate-500">
-                {urgentItem.client}
-              </p>
-
-              <p className="mt-2 text-xs font-medium text-slate-700">
+        <article className="rounded-2xl border border-red-200 bg-red-50 p-4 shadow-sm mb-3">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-red-600 mb-1">PRIORITARIO</p>
+              <h3 className="text-sm font-bold text-slate-900">
+                {urgentItem.code}
+              </h3>
+              <p className="text-xs text-slate-600 mt-1">
                 {urgentItem.product}
               </p>
-
-              <div className="mt-2 space-y-1 text-xs text-slate-600">
-                <p>
-                  <span className="font-medium">Tipo:</span> {urgentItem.requestType}
-                </p>
-                <p>
-                  <span className="font-medium">Etapa:</span> {urgentItem.bpmStage}
-                </p>
-              </div>
             </div>
 
             <span
               className={[
-                "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+                "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap",
                 getStatusClass(urgentItem.status),
               ].join(" ")}
             >
@@ -112,24 +88,14 @@ export default function WorkQueuePanel({ items }: WorkQueuePanelProps) {
             </span>
           </div>
 
-          <p className="text-sm font-normal leading-snug text-slate-700 mb-3">
+          <button
+            type="button"
+            onClick={() => navigate(urgentItem.route)}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-red-700"
+          >
             {urgentItem.actionLabel}
-          </p>
-
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="truncate text-xs text-slate-500">
-              {urgentItem.dueLabel}
-            </p>
-
-            <button
-              type="button"
-              onClick={() => navigate(urgentItem.route)}
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#003B5C] px-4 py-2 text-xs font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#00567f] hover:shadow-md"
-            >
-              {urgentItem.actionLabel}
-              <ArrowRight size={14} />
-            </button>
-          </div>
+            <ArrowRight size={14} />
+          </button>
         </article>
       )}
 
@@ -138,42 +104,37 @@ export default function WorkQueuePanel({ items }: WorkQueuePanelProps) {
           {nextItems.map((item) => (
             <article
               key={item.code}
-              className="rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm transition hover:border-[#003B5C]/10 hover:shadow-md"
+              className="rounded-lg border border-slate-100 bg-white px-3 py-2.5 shadow-sm transition hover:border-slate-200 hover:shadow-md"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-900">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 gap-y-0">
+                    <span className="text-xs font-bold text-slate-900">
                       {item.code}
                     </span>
                     <span
                       className={[
-                        "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                        "rounded-full border px-1.5 py-0.5 text-[9px] font-semibold",
                         getStatusClass(item.status),
                       ].join(" ")}
                     >
                       {item.status}
                     </span>
                   </div>
-
-                  <p className="mt-1 truncate text-xs text-slate-600">
-                    {item.product} · {item.client}
-                  </p>
-
-                  <p className="mt-1 truncate text-xs font-medium text-slate-700">
-                    {item.bpmStage}
+                  <p className="text-[11px] text-slate-600 mt-1">
+                    {item.product}
                   </p>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => navigate(item.route)}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#003B5C]/20 bg-white px-3 py-2 text-xs font-black text-[#003B5C] transition hover:bg-[#003B5C] hover:text-white"
-                >
-                  {item.actionLabel}
-                  <ArrowRight size={13} />
-                </button>
               </div>
+
+              <button
+                type="button"
+                onClick={() => navigate(item.route)}
+                className="w-full inline-flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                {item.actionLabel}
+                <ArrowRight size={12} />
+              </button>
             </article>
           ))}
         </div>
@@ -182,10 +143,10 @@ export default function WorkQueuePanel({ items }: WorkQueuePanelProps) {
       <button
         type="button"
         onClick={() => navigate("/products")}
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-black text-[#003B5C] transition hover:bg-white"
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold text-[#003B5C] transition hover:bg-white"
       >
-        Ver toda mi bandeja
-        <ArrowRight size={14} />
+        Ver toda
+        <ArrowRight size={12} />
       </button>
     </section>
   );
