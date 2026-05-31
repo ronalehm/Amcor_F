@@ -9,7 +9,7 @@ import QuickCreatePanel from "../components/QuickCreatePanel";
 import WorkQueuePanel from "../components/WorkQueuePanel";
 import { ProductActionButton } from "../../../shared/components/ProductActionButton";
 
-import { WORK_QUEUE } from "../data/homeMockData";
+import { WORK_QUEUE, EXECUTIVE_SUMMARY } from "../data/homeMockData";
 
 function DashboardCommandBar() {
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -52,6 +52,25 @@ function DashboardCommandBar() {
   );
 }
 
+function ExecutiveSummary() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {EXECUTIVE_SUMMARY.map((card) => (
+        <div
+          key={card.label}
+          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        >
+          <div className="text-sm font-semibold text-slate-900">{card.label}</div>
+          <div className="mt-2 text-2xl font-black text-brand-primary">
+            {card.value}
+          </div>
+          <div className="mt-1 text-xs text-slate-500">{card.description}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { setHeader, resetHeader } = useLayout();
 
@@ -67,20 +86,32 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full space-y-6">
+      {/* Executive Summary */}
+      <ExecutiveSummary />
+
+      {/* Grid principal: Repositorio reutilizable (izq) + Mi bandeja (der) */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_0.85fr]">
+        {/* Columna izquierda: Repositorio reutilizable */}
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-slate-900">
-            Crear desde producto de referencia
+            Buscar producto reutilizable
           </h2>
-
           <p className="text-xs text-slate-500">
-            Reutiliza productos completados como referencia para registrar una nueva ficha más rápido.
+            Encuentra un Producto Base con SKU o SKU Aprobado para crear una ficha nueva o modificada con menor esfuerzo.
           </p>
-
           <QuickCreatePanel />
         </section>
 
-        <WorkQueuePanel items={WORK_QUEUE} />
+        {/* Columna derecha: Mi bandeja */}
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-slate-900">
+            Mi bandeja de productos
+          </h2>
+          <p className="text-xs text-slate-500">
+            Fichas y productos que requieren una acción de mi rol.
+          </p>
+          <WorkQueuePanel items={WORK_QUEUE} />
+        </section>
       </div>
     </div>
   );

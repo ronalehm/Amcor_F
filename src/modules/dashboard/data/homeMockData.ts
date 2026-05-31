@@ -1,20 +1,102 @@
 // src/modules/dashboard/data/homeMockData.ts
 
-export type ProductWrapping = "POUCH" | "BOLSA" | "LAMINA";
+export type ProductStatus =
+  | "Registrado"
+  | "En preparación"
+  | "Completado";
 
-export type ProductStatus = "Registrado" | "En preparación" | "Completado";
+export type IntegrationStatus =
+  | "No enviado"
+  | "Pendiente de envío"
+  | "Enviado a Sistema Integral"
+  | "Enviado a WebCenter"
+  | "Error de envío";
 
+export type ReusableProductCondition =
+  | "Producto Base"
+  | "SKU Aprobado";
+
+export type PackagingType =
+  | "POUCH"
+  | "BOLSA"
+  | "LAMINA";
+
+export type RequestType =
+  | "Producto nuevo sin referencia"
+  | "Producto nuevo con referencia"
+  | "Producto modificado"
+  | "Extensión de línea"
+  | "Portafolio estándar";
+
+export type BpmStage =
+  | "P1/P2 - Ficha registrada"
+  | "P3 - Datos adicionales del cliente"
+  | "P4 - Datos de ficha completados"
+  | "Preparación comercial"
+  | "Preparación Customer Service"
+  | "Preparación técnica"
+  | "Preparación de estructura"
+  | "Preparación de artes"
+  | "Ficha completada"
+  | "Sincronización con Sistema Integral"
+  | "Sincronización con WebCenter";
+
+export type ReusableProductItem = {
+  sku: string;
+  product: string;
+  client: string;
+  packagingType: PackagingType;
+  condition: ReusableProductCondition;
+  reuseHint: string;
+  lastUsedLabel?: string;
+  updatedLabel?: string;
+  route: string;
+};
+
+export type WorkQueueItem = {
+  code: string;
+  product: string;
+  client: string;
+  requestType: RequestType;
+  status: ProductStatus;
+  bpmStage: BpmStage;
+  integrationStatus: IntegrationStatus;
+  responsibleArea:
+    | "Comercial"
+    | "Customer Service"
+    | "R&D"
+    | "Área Técnica"
+    | "Artes Gráficas"
+    | "Master Data"
+    | "Sistema Integral"
+    | "WebCenter";
+  actionLabel: string;
+  nextStep?: string;
+  priority: "Alta" | "Media" | "Baja";
+  dueLabel: string;
+  route: string;
+  urgency?: "high" | "medium" | "low";
+  type?: RequestType;
+};
+
+export type ExecutiveSummaryCard = {
+  label: string;
+  value: string;
+  description: string;
+};
+
+// Legacy types for backward compatibility with other dashboard components
 export type SoldProduct = {
   code: string;
   name: string;
   client: string;
   rubro: string;
-  wrapping: ProductWrapping;
+  wrapping: PackagingType;
   structure: string;
   status: "Completado";
   layerCount: number;
   lastUsed: string;
-  successBadge: "Producto más usado";
+  successBadge: string;
 };
 
 export type RecentClient = {
@@ -29,11 +111,11 @@ export type RecentRubro = {
   name: string;
   productCount: number;
   frequentStructure: string;
-  frequentWrapping: ProductWrapping;
+  frequentWrapping: PackagingType;
 };
 
 export type Recommendation = {
-  type: "completed" | "reference" | "in-preparation" | "sync";
+  type: string;
   title: string;
   description: string;
   actionLabel: string;
@@ -41,112 +123,69 @@ export type Recommendation = {
   badge?: string;
 };
 
-export const SOLD_PRODUCTS: SoldProduct[] = [
+export const EXECUTIVE_SUMMARY: ExecutiveSummaryCard[] = [
   {
-    code: "SKU-000250",
-    name: "Doypack 250 gr",
-    client: "Alicorp S.A.A.",
-    rubro: "Alimentos Procesados",
-    wrapping: "POUCH",
-    structure: "PET / BOPP / PE",
-    status: "Completado",
-    layerCount: 3,
-    lastUsed: "2026-04-20",
-    successBadge: "Producto más usado",
+    label: "Productos reutilizables",
+    value: "24",
+    description: "Base histórica disponible",
   },
   {
-    code: "SKU-000222",
-    name: "Doypack Mayonesa 22gr",
+    label: "Fichas registradas",
+    value: "8",
+    description: "Pendientes de preparación",
+  },
+  {
+    label: "Fichas completadas",
+    value: "5",
+    description: "Listas para integración",
+  },
+  {
+    label: "Enviados a Sistema Integral",
+    value: "3",
+    description: "Integración ordenada",
+  },
+];
+
+export const REUSABLE_PRODUCTS: ReusableProductItem[] = [
+  {
+    sku: "SKU-000250",
+    product: "Doypack 250 g",
+    client: "Alicorp S.A.A.",
+    packagingType: "POUCH",
+    condition: "Producto Base",
+    reuseHint: "Referencia para producto nuevo con cambio de formato o volumen.",
+    lastUsedLabel: "Usado recientemente",
+    route: "/products/SKU-000250",
+  },
+  {
+    sku: "SKU-000418",
+    product: "Doypack Mayonesa 22 g",
     client: "Kimberly-Clark Perú",
-    rubro: "Salsas y Aderezos",
-    wrapping: "POUCH",
-    structure: "PET / PE",
-    status: "Completado",
-    layerCount: 2,
-    lastUsed: "2026-04-18",
-    successBadge: "Producto más usado",
+    packagingType: "POUCH",
+    condition: "SKU Aprobado",
+    reuseHint: "Referencia para producto modificado o extensión de línea.",
+    updatedLabel: "Actualizado hace 8 días",
+    route: "/products/SKU-000418",
   },
   {
-    code: "SKU-000024",
-    name: "Maggie 24g",
+    sku: "SKU-000612",
+    product: "Maggie 24 g",
     client: "Alicorp S.A.A.",
-    rubro: "Alimentos Secos",
-    wrapping: "BOLSA",
-    structure: "BOPP / PE",
-    status: "Completado",
-    layerCount: 2,
-    lastUsed: "2026-04-15",
-    successBadge: "Producto más usado",
+    packagingType: "BOLSA",
+    condition: "Producto Base",
+    reuseHint: "Referencia para portafolio estándar reutilizable.",
+    lastUsedLabel: "Usado hace 2 semanas",
+    route: "/products/SKU-000612",
   },
   {
-    code: "SKU-000025",
-    name: "Galleta Crispy 25gr",
+    sku: "SKU-000735",
+    product: "Galleta Crispy 25 g",
     client: "Café Andino Export S.A.C.",
-    rubro: "Alimentos Secos",
-    wrapping: "LAMINA",
-    structure: "BOPP / CPP",
-    status: "Completado",
-    layerCount: 2,
-    lastUsed: "2026-04-10",
-    successBadge: "Producto más usado",
-  },
-];
-
-export const RECENT_CLIENTS: RecentClient[] = [
-  {
-    name: "Alicorp S.A.A.",
-    lastProduct: "Doypack 250 gr",
-    mainRubro: "Alimentos Procesados",
-    productsHighlighted: 12,
-    activePortfolios: 3,
-  },
-  {
-    name: "Kimberly-Clark Perú",
-    lastProduct: "Doypack Mayonesa 22gr",
-    mainRubro: "Salsas y Aderezos",
-    productsHighlighted: 4,
-    activePortfolios: 1,
-  },
-  {
-    name: "Café Andino Export S.A.C.",
-    lastProduct: "Galleta Crispy 25gr",
-    mainRubro: "Alimentos Secos",
-    productsHighlighted: 3,
-    activePortfolios: 1,
-  },
-  {
-    name: "CIA Importadora Derteano & Stucker S.A.C.",
-    lastProduct: "LAMINA Alta Barrera",
-    mainRubro: "Alimentos Procesados",
-    productsHighlighted: 5,
-    activePortfolios: 2,
-  },
-];
-
-export const RECENT_RUBROS: RecentRubro[] = [
-  {
-    name: "Alimentos Procesados",
-    productCount: 8,
-    frequentStructure: "PET / BOPP / PE",
-    frequentWrapping: "POUCH",
-  },
-  {
-    name: "Salsas y Aderezos",
-    productCount: 6,
-    frequentStructure: "PET / PE",
-    frequentWrapping: "POUCH",
-  },
-  {
-    name: "Alimentos Secos",
-    productCount: 7,
-    frequentStructure: "BOPP / PE",
-    frequentWrapping: "BOLSA",
-  },
-  {
-    name: "Láminas Impresas",
-    productCount: 4,
-    frequentStructure: "BOPP / CPP",
-    frequentWrapping: "LAMINA",
+    packagingType: "LAMINA",
+    condition: "SKU Aprobado",
+    reuseHint: "Referencia para nueva ficha con estructura similar.",
+    updatedLabel: "Actualizado hace 15 días",
+    route: "/products/SKU-000735",
   },
 ];
 
@@ -174,109 +213,120 @@ export const QUICK_RECOMMENDATIONS: Recommendation[] = [
   },
 ];
 
-export type WorkQueueItem = {
-  code: string;
-  entity: "Ficha de Producto" | "Producto Preliminar" | "SKU" | "Sincronización";
-  client: string;
-  portfolio?: string;
-  product: string;
-  status: ProductStatus;
-  stage:
-    | "Registro de ficha"
-    | "Preparación comercial"
-    | "Preparación Customer Service"
-    | "Preparación técnica"
-    | "Preparación de estructura"
-    | "Preparación de artes"
-    | "Completar datos de producto"
-    | "Sincronización con Sistema Integral"
-    | "Sincronización con WebCenter";
-  nextStep: string;
-  actionLabel: string;
-  area:
-    | "Comercial"
-    | "Customer Service"
-    | "R&D"
-    | "Área Técnica"
-    | "Artes Gráficas"
-    | "Master Data"
-    | "Sistema Integral"
-    | "WebCenter";
-  priority: "Alta" | "Media" | "Baja";
-  dueLabel: string;
-  route: string;
-  urgency?: "high" | "medium" | "low";
-  type:
-    | "Producto nuevo sin referencia"
-    | "Producto nuevo con referencia"
-    | "Producto modificado"
-    | "Extensión de línea"
-    | "Portafolio estándar";
-};
+export const RECENT_CLIENTS: RecentClient[] = [
+  {
+    name: "Alicorp S.A.A.",
+    lastProduct: "Doypack 250 g",
+    mainRubro: "Alimentos Procesados",
+    productsHighlighted: 12,
+    activePortfolios: 3,
+  },
+  {
+    name: "Kimberly-Clark Perú",
+    lastProduct: "Doypack Mayonesa 22 g",
+    mainRubro: "Salsas y Aderezos",
+    productsHighlighted: 4,
+    activePortfolios: 1,
+  },
+];
+
+export const RECENT_RUBROS: RecentRubro[] = [
+  {
+    name: "Alimentos Procesados",
+    productCount: 8,
+    frequentStructure: "PET / BOPP / PE",
+    frequentWrapping: "POUCH",
+  },
+  {
+    name: "Salsas y Aderezos",
+    productCount: 6,
+    frequentStructure: "PET / PE",
+    frequentWrapping: "POUCH",
+  },
+];
+
+export const SOLD_PRODUCTS: SoldProduct[] = [
+  {
+    code: "SKU-000250",
+    name: "Doypack 250 g",
+    client: "Alicorp S.A.A.",
+    rubro: "Alimentos Procesados",
+    wrapping: "POUCH",
+    structure: "PET / BOPP / PE",
+    status: "Completado",
+    layerCount: 3,
+    lastUsed: "2026-04-20",
+    successBadge: "Producto más usado",
+  },
+  {
+    code: "SKU-000418",
+    name: "Doypack Mayonesa 22 g",
+    client: "Kimberly-Clark Perú",
+    rubro: "Salsas y Aderezos",
+    wrapping: "POUCH",
+    structure: "PET / PE",
+    status: "Completado",
+    layerCount: 2,
+    lastUsed: "2026-04-18",
+    successBadge: "Producto más usado",
+  },
+];
 
 export const WORK_QUEUE: WorkQueueItem[] = [
   {
     code: "FP-2450",
-    entity: "Ficha de Producto",
+    product: "Salsa de Soya 240 g",
     client: "Alicorp S.A.A.",
-    portfolio: "PO-000250",
-    product: "Doypack 250 g",
-    status: "En preparación",
-    stage: "Preparación comercial",
-    nextStep: "Completar información comercial",
-    actionLabel: "Completar información",
-    area: "Comercial",
+    requestType: "Producto nuevo con referencia",
+    status: "Registrado",
+    bpmStage: "P1/P2 - Ficha registrada",
+    integrationStatus: "No enviado",
+    responsibleArea: "Comercial",
+    actionLabel: "Completar información comercial",
     priority: "Alta",
     dueLabel: "Hoy",
     route: "/products/FP-2450",
-    type: "Producto nuevo sin referencia",
   },
   {
     code: "FP-2451",
-    entity: "Ficha de Producto",
+    product: "Doypack Mayonesa 100 g",
     client: "Kimberly-Clark Perú",
-    portfolio: "PO-000222",
-    product: "Doypack Mayonesa 22gr",
+    requestType: "Producto modificado",
     status: "En preparación",
-    stage: "Preparación técnica",
-    nextStep: "Revisar especificaciones técnicas",
-    actionLabel: "Revisar especificaciones",
-    area: "R&D",
+    bpmStage: "Preparación técnica",
+    integrationStatus: "No enviado",
+    responsibleArea: "Área Técnica",
+    actionLabel: "Completar especificaciones técnicas",
     priority: "Alta",
-    dueLabel: "Vence mañana",
+    dueLabel: "Mañana",
     route: "/products/FP-2451",
-    type: "Producto nuevo con referencia",
   },
   {
     code: "FP-2452",
-    entity: "Ficha de Producto",
+    product: "Lámina Flowpack 30 g",
     client: "Café Andino Export S.A.C.",
-    portfolio: "PO-000025",
-    product: "Galleta Crispy 25gr",
-    status: "En preparación",
-    stage: "Preparación Customer Service",
-    nextStep: "Completar datos de producto",
-    actionLabel: "Completar datos",
-    area: "Customer Service",
+    requestType: "Producto nuevo sin referencia",
+    status: "Completado",
+    bpmStage: "Ficha completada",
+    integrationStatus: "Pendiente de envío",
+    responsibleArea: "Master Data",
+    actionLabel: "Enviar a Sistema Integral",
     priority: "Media",
     dueLabel: "2 días",
     route: "/products/FP-2452",
-    type: "Producto nuevo sin referencia",
   },
   {
     code: "SKU-1823",
-    entity: "SKU",
+    product: "Maggie 24 g",
     client: "Alicorp S.A.A.",
-    portfolio: "PO-000024",
-    product: "Maggie 24g",
+    requestType: "Portafolio estándar",
     status: "Completado",
-    stage: "Sincronización con Sistema Integral",
-    nextStep: "Sincronizar con Sistema Integral",
-    actionLabel: "Sincronizar",
-    area: "Sistema Integral",
-    priority: "Media",
-    dueLabel: "3 días",
+    bpmStage: "Sincronización con Sistema Integral",
+    integrationStatus: "Enviado a Sistema Integral",
+    responsibleArea: "Sistema Integral",
+    actionLabel: "Ver detalle",
+    priority: "Baja",
+    dueLabel: "Enviado",
     route: "/products/SKU-1823",
-    type: "Extensión de línea",
   },
 ];
