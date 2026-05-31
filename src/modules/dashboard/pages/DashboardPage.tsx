@@ -1,19 +1,17 @@
 // src/modules/dashboard/pages/DashboardPage.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { FormEvent } from "react";
 import { Search } from "lucide-react";
 
 import { useLayout } from "../../../components/layout/LayoutContext";
 import QuickCreatePanel from "../components/QuickCreatePanel";
 import WorkQueuePanel from "../components/WorkQueuePanel";
-import ProductPreliminaryCreateModal from "../../../shared/components/modals/ProductPreliminaryCreateModal";
 import { ProductActionButton } from "../../../shared/components/ProductActionButton";
 
 import { WORK_QUEUE } from "../data/homeMockData";
 
 function DashboardCommandBar() {
-
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -22,7 +20,7 @@ function DashboardCommandBar() {
 
     if (!value) return;
 
-    console.log("Buscar en ODISEO:", value);
+    console.log("Buscar producto en ODISEO:", value);
   };
 
   return (
@@ -43,7 +41,7 @@ function DashboardCommandBar() {
           <input
             name="search"
             type="text"
-            placeholder="Buscar cliente, producto, SKU, portafolio o rubro..."
+            placeholder="Buscar cliente, producto, SKU, ficha, portafolio o rubro..."
             className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#003B5C] focus:ring-2 focus:ring-[#003B5C]/10"
           />
         </div>
@@ -57,9 +55,6 @@ function DashboardCommandBar() {
 export default function DashboardPage() {
   const { setHeader, resetHeader } = useLayout();
 
-  const [isPreliminaryProductModalOpen, setIsPreliminaryProductModalOpen] =
-    useState(false);
-
   useEffect(() => {
     setHeader({
       title: "Portal Web ODISEO",
@@ -71,31 +66,22 @@ export default function DashboardPage() {
   }, [setHeader, resetHeader]);
 
   return (
-    <>
-      <div className="w-full space-y-6">
-        {/* Grid principal: Reutilizar base (izq) + Mi bandeja (der) */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_0.85fr]">
-          {/* Columna izquierda: Reutilizar bases aprobadas */}
-          <section className="space-y-3">
-            <h2 className="text-base font-semibold text-slate-900">
-              Crear desde base aprobada
-            </h2>
-            <p className="text-xs text-slate-500">
-              Reutiliza productos aprobados como base para avanzar más rápido.
-            </p>
-            <QuickCreatePanel />
-          </section>
+    <div className="w-full space-y-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_0.85fr]">
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-slate-900">
+            Crear desde producto de referencia
+          </h2>
 
-          {/* Columna derecha: Mi bandeja */}
-          <WorkQueuePanel items={WORK_QUEUE} />
-        </div>
+          <p className="text-xs text-slate-500">
+            Reutiliza productos completados como referencia para registrar una nueva ficha más rápido.
+          </p>
+
+          <QuickCreatePanel />
+        </section>
+
+        <WorkQueuePanel items={WORK_QUEUE} />
       </div>
-
-      <ProductPreliminaryCreateModal
-        isOpen={isPreliminaryProductModalOpen}
-        onClose={() => setIsPreliminaryProductModalOpen(false)}
-        onProductCreated={() => setIsPreliminaryProductModalOpen(false)}
-      />
-    </>
+    </div>
   );
 }
