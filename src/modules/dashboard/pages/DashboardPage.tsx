@@ -91,10 +91,10 @@ export default function DashboardPage() {
 
       {/* Grid principal: Repositorio reutilizable (izq) + Mi bandeja (der) */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_0.85fr]">
-        {/* Columna izquierda: Repositorio reutilizable */}
+        {/* Columna izquierda: Productos aprobados */}
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-slate-900">
-            Buscar producto reutilizable
+            Productos aprobados
           </h2>
           <p className="text-xs text-slate-500">
             Encuentra un Producto Base con SKU o SKU Aprobado para crear una ficha nueva o modificada con menor esfuerzo.

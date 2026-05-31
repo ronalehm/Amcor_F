@@ -125,7 +125,7 @@ export type Recommendation = {
 
 export const EXECUTIVE_SUMMARY: ExecutiveSummaryCard[] = [
   {
-    label: "Productos reutilizables",
+    label: "Productos aprobados",
     value: "24",
     description: "Base histórica disponible",
   },

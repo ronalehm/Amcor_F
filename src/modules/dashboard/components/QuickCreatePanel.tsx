@@ -15,7 +15,7 @@ export default function QuickCreatePanel() {
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-5">
         <h3 className="text-sm font-semibold text-slate-900 mb-4">
-          Productos reutilizables disponibles
+          Productos aprobados
         </h3>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
