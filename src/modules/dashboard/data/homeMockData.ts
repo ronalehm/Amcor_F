@@ -2,6 +2,8 @@
 
 export type ProductWrapping = "POUCH" | "BOLSA" | "LAMINA";
 
+export type ProductStatus = "Registrado" | "En preparación" | "Completado";
+
 export type SoldProduct = {
   code: string;
   name: string;
@@ -9,7 +11,7 @@ export type SoldProduct = {
   rubro: string;
   wrapping: ProductWrapping;
   structure: string;
-  status: "Aprobado";
+  status: "Completado";
   layerCount: number;
   lastUsed: string;
   successBadge: "Producto más usado";
@@ -31,7 +33,7 @@ export type RecentRubro = {
 };
 
 export type Recommendation = {
-  type: "approved-bases" | "validated" | "portfolio" | "similar" | "modified";
+  type: "completed" | "reference" | "in-preparation" | "sync";
   title: string;
   description: string;
   actionLabel: string;
@@ -47,7 +49,7 @@ export const SOLD_PRODUCTS: SoldProduct[] = [
     rubro: "Alimentos Procesados",
     wrapping: "POUCH",
     structure: "PET / BOPP / PE",
-    status: "Aprobado",
+    status: "Completado",
     layerCount: 3,
     lastUsed: "2026-04-20",
     successBadge: "Producto más usado",
@@ -59,7 +61,7 @@ export const SOLD_PRODUCTS: SoldProduct[] = [
     rubro: "Salsas y Aderezos",
     wrapping: "POUCH",
     structure: "PET / PE",
-    status: "Aprobado",
+    status: "Completado",
     layerCount: 2,
     lastUsed: "2026-04-18",
     successBadge: "Producto más usado",
@@ -71,7 +73,7 @@ export const SOLD_PRODUCTS: SoldProduct[] = [
     rubro: "Alimentos Secos",
     wrapping: "BOLSA",
     structure: "BOPP / PE",
-    status: "Aprobado",
+    status: "Completado",
     layerCount: 2,
     lastUsed: "2026-04-15",
     successBadge: "Producto más usado",
@@ -83,7 +85,7 @@ export const SOLD_PRODUCTS: SoldProduct[] = [
     rubro: "Alimentos Secos",
     wrapping: "LAMINA",
     structure: "BOPP / CPP",
-    status: "Aprobado",
+    status: "Completado",
     layerCount: 2,
     lastUsed: "2026-04-10",
     successBadge: "Producto más usado",
@@ -150,110 +152,131 @@ export const RECENT_RUBROS: RecentRubro[] = [
 
 export const QUICK_RECOMMENDATIONS: Recommendation[] = [
   {
-    type: "approved-bases",
-    title: "Bases aprobadas",
-    description: "Productos aprobados que puedes reutilizar como base.",
-    actionLabel: "Ver bases",
-    route: "/portfolio",
-  },
-  {
-    type: "validated",
-    title: "Productos validados",
-    description: "Productos listos para generar producto preliminar.",
-    actionLabel: "Ver Productos",
+    type: "completed",
+    title: "Productos completados",
+    description: "Fichas de producto completadas y listas para sincronización.",
+    actionLabel: "Ver productos",
     route: "/products",
   },
   {
-    type: "portfolio",
-    title: "Portafolios activos",
-    description: "Oportunidades abiertas de tu cartera comercial.",
-    actionLabel: "Ver portafolios",
+    type: "reference",
+    title: "Productos de referencia",
+    description: "Productos base que pueden servir como referencia para nuevas fichas.",
+    actionLabel: "Ver referencias",
     route: "/portfolio",
+  },
+  {
+    type: "in-preparation",
+    title: "Fichas en preparación",
+    description: "Fichas de producto actualmente en preparación por equipos.",
+    actionLabel: "Ver fichas",
+    route: "/products",
   },
 ];
 
 export type WorkQueueItem = {
   code: string;
-  entity: "Proyecto" | "Producto Preliminar" | "Portafolio";
+  entity: "Ficha de Producto" | "Producto Preliminar" | "SKU" | "Sincronización";
   client: string;
   portfolio?: string;
-  product?: string;
-  status:
-    | "Registrado"
-    | "Ficha completa"
-    | "En validación"
-    | "Observado"
-    | "Validado"
-    | "En cotización"
-    | "Aprobado cliente"
-    | "Pendiente validación"
-    | "Pendiente referencia"
-    | "Pendiente aprobación";
+  product: string;
+  status: ProductStatus;
+  stage:
+    | "Registro de ficha"
+    | "Preparación comercial"
+    | "Preparación Customer Service"
+    | "Preparación técnica"
+    | "Preparación de estructura"
+    | "Preparación de artes"
+    | "Completar datos de producto"
+    | "Sincronización con Sistema Integral"
+    | "Sincronización con WebCenter";
   nextStep: string;
   actionLabel: string;
-  area: "Comercial" | "Artes Gráficas" | "R&D" | "Commercial Finance" | "Sistema Integral";
+  area:
+    | "Comercial"
+    | "Customer Service"
+    | "R&D"
+    | "Área Técnica"
+    | "Artes Gráficas"
+    | "Master Data"
+    | "Sistema Integral"
+    | "WebCenter";
   priority: "Alta" | "Media" | "Baja";
   dueLabel: string;
   route: string;
   urgency?: "high" | "medium" | "low";
-  type?: string;
+  type:
+    | "Producto nuevo sin referencia"
+    | "Producto nuevo con referencia"
+    | "Producto modificado"
+    | "Extensión de línea"
+    | "Portafolio estándar";
 };
 
 export const WORK_QUEUE: WorkQueueItem[] = [
   {
-    code: "PRJ-2450",
-    entity: "Proyecto",
+    code: "FP-2450",
+    entity: "Ficha de Producto",
     client: "Alicorp S.A.A.",
     portfolio: "PO-000250",
     product: "Doypack 250 g",
-    status: "Ficha completa",
-    nextStep: "Completar información",
+    status: "En preparación",
+    stage: "Preparación comercial",
+    nextStep: "Completar información comercial",
     actionLabel: "Completar información",
     area: "Comercial",
     priority: "Alta",
     dueLabel: "Hoy",
-    route: "/products/PRJ-2450",
+    route: "/products/FP-2450",
+    type: "Producto nuevo sin referencia",
   },
   {
-    code: "PRJ-2451",
-    entity: "Proyecto",
+    code: "FP-2451",
+    entity: "Ficha de Producto",
     client: "Kimberly-Clark Perú",
     portfolio: "PO-000222",
     product: "Doypack Mayonesa 22gr",
-    status: "Observado",
-    nextStep: "Corregir observación de R&D",
-    actionLabel: "Corregir",
+    status: "En preparación",
+    stage: "Preparación técnica",
+    nextStep: "Revisar especificaciones técnicas",
+    actionLabel: "Revisar especificaciones",
     area: "R&D",
     priority: "Alta",
     dueLabel: "Vence mañana",
-    route: "/products/PRJ-2451",
+    route: "/products/FP-2451",
+    type: "Producto nuevo con referencia",
   },
   {
-    code: "PRJ-2452",
-    entity: "Proyecto",
+    code: "FP-2452",
+    entity: "Ficha de Producto",
     client: "Café Andino Export S.A.C.",
     portfolio: "PO-000025",
     product: "Galleta Crispy 25gr",
-    status: "Validado",
-    nextStep: "Revisar producto preliminar",
-    actionLabel: "Revisar producto",
-    area: "Comercial",
+    status: "En preparación",
+    stage: "Preparación Customer Service",
+    nextStep: "Completar datos de producto",
+    actionLabel: "Completar datos",
+    area: "Customer Service",
     priority: "Media",
     dueLabel: "2 días",
-    route: "/products/create?project=PRJ-2452",
+    route: "/products/FP-2452",
+    type: "Producto nuevo sin referencia",
   },
   {
-    code: "PP-1823",
-    entity: "Producto Preliminar",
+    code: "SKU-1823",
+    entity: "SKU",
     client: "Alicorp S.A.A.",
     portfolio: "PO-000024",
     product: "Maggie 24g",
-    status: "En cotización",
-    nextStep: "Revisar por Customer Service",
-    actionLabel: "Revisar cotización",
-    area: "Commercial Finance",
+    status: "Completado",
+    stage: "Sincronización con Sistema Integral",
+    nextStep: "Sincronizar con Sistema Integral",
+    actionLabel: "Sincronizar",
+    area: "Sistema Integral",
     priority: "Media",
     dueLabel: "3 días",
-    route: "/products/PP-1823",
+    route: "/products/SKU-1823",
+    type: "Extensión de línea",
   },
 ];

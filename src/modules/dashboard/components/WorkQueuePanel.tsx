@@ -16,20 +16,16 @@ const priorityOrder: Record<WorkQueueItem["priority"], number> = {
 };
 
 const getStatusClass = (status: WorkQueueItem["status"]) => {
-  if (status === "Observado") {
-    return "bg-amber-50 text-amber-700 border-amber-100";
-  }
-
-  if (status === "Ficha completa" || status === "Validado") {
-    return "bg-emerald-50 text-emerald-700 border-emerald-100";
-  }
-
-  if (status === "En cotización") {
+  if (status === "Registrado") {
     return "bg-blue-50 text-blue-700 border-blue-100";
   }
 
-  if (status === "Pendiente validación" || status === "En validación") {
-    return "bg-slate-50 text-slate-600 border-slate-200";
+  if (status === "En preparación") {
+    return "bg-amber-50 text-amber-700 border-amber-100";
+  }
+
+  if (status === "Completado") {
+    return "bg-emerald-50 text-emerald-700 border-emerald-100";
   }
 
   return "bg-slate-50 text-slate-600 border-slate-200";
