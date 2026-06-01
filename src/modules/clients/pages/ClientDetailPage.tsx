@@ -114,9 +114,12 @@ export default function ClientDetailPage() {
           <div className="space-y-4">
             <PreviewRow label="Código de cliente" value={clientCodeValue} />
             <PreviewRow label="Nombre de cliente" value={clientName} />
-            <PreviewRow label="Correo de Empresa" value={clientEmail} />
-            <PreviewRow label="Numero de RUC" value={clientRuc} />
+            <PreviewRow label="Número de RUC" value={clientRuc} />
             <PreviewRow label="Sector" value={clientIndustry} />
+            <PreviewRow label="Correo de Empresa" value={clientEmail} />
+            <PreviewRow label="Teléfono" value={clientPhone} />
+            <PreviewRow label="Contacto principal" value={clientContact} />
+            <PreviewRow label="Fecha de registro" value={client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"} />
           </div>
         </FormCard>
 
@@ -125,7 +128,6 @@ export default function ClientDetailPage() {
             <PreviewRow label="Estado ODISEO" value={statusLabel} />
             <PreviewRow label="Código SI" value={getText(client.siClientCode, "—")} />
             <PreviewRow label="Estado SI" value={client.siClientId ? "Vinculado" : "No vinculado"} />
-            <PreviewRow label="Fecha de registro" value={client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"} />
             <PreviewRow label="Última actualización" value={client.updatedAt ? new Date(client.updatedAt).toLocaleDateString() : "—"} />
             <PreviewRow label="Realizado por" value={client.updatedBy || "Sistema"} />
             {client.origin && (
