@@ -1,46 +1,34 @@
 // src/modules/dashboard/components/QuickCreatePanel.tsx
 
-import InfoTooltip from "../../../shared/components/display/InfoTooltip";
-import ProductCard from "./ProductCard";
+import ReusableProductCard from "./ReusableProductCard";
 import {
   RECENT_CLIENTS,
   RECENT_RUBROS,
-  SOLD_PRODUCTS,
+  REUSABLE_PRODUCTS,
 } from "../data/homeMockData";
 
 const chipClassName =
-  "rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-[#003B5C]/20 hover:bg-[#003B5C]/5 hover:text-[#003B5C]";
+  "rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-[#003B5C]/20 hover:bg-[#003B5C]/5 hover:text-[#003B5C] cursor-pointer";
 
 export default function QuickCreatePanel() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-base font-semibold text-slate-900">
-            Crear rápido
-          </h2>
+      <div className="mb-5">
+        <h3 className="text-sm font-semibold text-slate-900 mb-4">
+          Productos aprobados
+        </h3>
 
-          <InfoTooltip
-            content="Productos aprobados que pueden reutilizarse como base para crear productos preliminares."
-            size="md"
-          />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {REUSABLE_PRODUCTS.slice(0, 4).map((product) => (
+            <ReusableProductCard key={product.sku} product={product} />
+          ))}
         </div>
-
-        <p className="text-xs font-semibold text-slate-500">
-          Bases aprobadas
-        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {SOLD_PRODUCTS.slice(0, 4).map((product) => (
-          <ProductCard key={product.code} product={product} />
-        ))}
-      </div>
-
-      <div className="mt-5 space-y-3">
+      <div className="mt-5 space-y-4 border-t border-slate-200 pt-5">
         <div>
           <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-            Clientes recientes
+            Clientes frecuentes
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -63,7 +51,7 @@ export default function QuickCreatePanel() {
 
         <div>
           <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-            Rubros recientes
+            Rubros frecuentes
           </p>
 
           <div className="flex flex-wrap gap-2">

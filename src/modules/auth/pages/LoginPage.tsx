@@ -36,11 +36,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   }
 
   const demoAccounts = [
-    { email: "admin@amcor.com", password: "123456", role: "admin" as const },
-    { email: "comercial@amcor.com", password: "123456", role: "comercial" as const },
-    { email: "artes@amcor.com", password: "123456", role: "artes" as const },
-    { email: "rnd@amcor.com", password: "123456", role: "rd" as const },
-    { email: "masterdata@amcor.com", password: "123456", role: "MasterData" as const },
+    { email: "admin@amcor.com", password: "123456", role: "Administrador" },
+    { email: "comercial@amcor.com", password: "123456", role: "Comercial" },
+    { email: "customerservice@amcor.com", password: "123456", role: "Customer Service" },
+    { email: "masterdata@amcor.com", password: "123456", role: "Master Data" },
   ];
 
   const fillDemo = (demo: typeof demoAccounts[0]) => {

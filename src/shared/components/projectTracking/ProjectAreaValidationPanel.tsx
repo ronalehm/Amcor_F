@@ -42,7 +42,7 @@ export default function ProjectAreaValidationPanel({ currentStage, hasOpenBlocki
             onClick={() => handleAdvance("P2")}
             disabled={hasOpenBlockingObservations}
           >
-            Solicitar Validación (Avanzar a P2)
+            Completar Ficha (Avanzar a P2)
           </Button>
         )}
         

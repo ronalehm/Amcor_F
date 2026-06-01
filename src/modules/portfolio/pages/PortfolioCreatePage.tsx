@@ -442,7 +442,11 @@ useEffect(() => {
       expiresAt: Date.now() + 25000,
     }));
 
-    navigate("/portfolio");
+    if (inheritedClientCode) {
+      navigate(`/clients/${inheritedClientCode}`);
+    } else {
+      navigate("/portfolio");
+    }
   };
 
   return (

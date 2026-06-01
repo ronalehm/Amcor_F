@@ -29,6 +29,8 @@ import ClientDetailPage from "../modules/clients/pages/ClientDetailPage";
 
 import ComplianceDocumentPage from "../shared/pages/ComplianceDocumentPage";
 
+import { CatalogRestrictionManagementPage, ViewAllCatalogsPage } from "../modules/catalog-management";
+
 import { getCurrentUser, logoutUser } from "../shared/data/userStorage";
 
 export default function AppRouter() {
@@ -74,6 +76,8 @@ export default function AppRouter() {
           <Route path="users/new" element={<UserCreatePage />} />
           <Route path="users/:userId" element={<UserDetailPage />} />
           <Route path="users/:userId/edit" element={<UserEditPage />} />
+          <Route path="catalog-management" element={<CatalogRestrictionManagementPage />} />
+          <Route path="catalogs" element={<ViewAllCatalogsPage />} />
           <Route path="soporte" element={<div className="p-4">Soporte TI</div>} />
           <Route path="configuracion" element={<div className="p-4">Configuración</div>} />
         </Route>
@@ -135,6 +139,9 @@ export default function AppRouter() {
         <Route path="users/new" element={<UserCreatePage />} />
         <Route path="users/:userId" element={<UserDetailPage />} />
         <Route path="users/:userId/edit" element={<UserEditPage />} />
+
+        {/* Gestión de Catálogos y Restricciones */}
+        <Route path="catalog-management" element={<CatalogRestrictionManagementPage />} />
 
         {/* Rutas temporales del sidebar */}
         <Route

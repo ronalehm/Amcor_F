@@ -1,44 +1,40 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Search, AlertCircle } from "lucide-react";
-import { searchSistemaIntegralUsers, type VendorMirror } from "../../data/vendorMirrorStorage";
+import { getAvailableRestrictions } from "../services/catalogRestrictionService";
+import type { RestrictionItem } from "../types/catalogRestriction.types";
 
-interface SystemIntegrationUserSearchProps {
-  onSelect: (vendor: VendorMirror) => void;
+interface RestrictionSearchProps {
+  onSelect: (restriction: RestrictionItem) => void;
   value: string;
   onChange: (value: string) => void;
   error?: string;
   placeholder?: string;
   disabled?: boolean;
-  onNoResults?: (hasNoResults: boolean) => void;
 }
 
-export default function SystemIntegrationUserSearch({
+export default function RestrictionSearch({
   onSelect,
   value,
   onChange,
   error,
-  placeholder = "Buscar por código o nombre...",
+  placeholder = "Buscar restricción...",
   disabled = false,
-  onNoResults,
-}: SystemIntegrationUserSearchProps) {
+}: RestrictionSearchProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const restrictions = getAvailableRestrictions();
   const results = useMemo(() => {
     if (!value.trim()) return [];
-    return searchSistemaIntegralUsers(value).slice(0, 8);
-  }, [value]);
+    const searchTerm = value.toLowerCase();
+    return restrictions.filter((r) => r.name.toLowerCase().includes(searchTerm));
+  }, [value, restrictions]);
 
-  useEffect(() => {
-    if (onNoResults) {
-      onNoResults(value.trim() !== "" && results.length === 0);
-    }
-  }, [value, results.length, onNoResults]);
-
-  const handleSelectResult = (vendor: VendorMirror) => {
-    onSelect(vendor);
+  const handleSelectResult = (restriction: RestrictionItem) => {
+    onSelect(restriction);
+    onChange(restriction.name);
     setIsOpen(false);
     setSelectedIndex(-1);
   };
@@ -88,8 +84,8 @@ export default function SystemIntegrationUserSearch({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="block text-sm font-semibold text-slate-700 mb-2">
-        Usuario Sistema Integral *
+      <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-2">
+        Restricción a actualizar *
       </label>
 
       <div className="relative">
@@ -117,7 +113,11 @@ export default function SystemIntegrationUserSearch({
                 ? "border-red-300 bg-red-50 text-red-900 placeholder:text-red-400"
                 : "border-slate-200 bg-white text-slate-700 placeholder:text-slate-400"
             }
-            ${disabled ? "cursor-not-allowed bg-slate-50 text-slate-400" : "focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"}`}
+            ${
+              disabled
+                ? "cursor-not-allowed bg-slate-50 text-slate-400"
+                : "focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+            }`}
           autoComplete="off"
         />
       </div>
@@ -131,33 +131,17 @@ export default function SystemIntegrationUserSearch({
 
       {isOpen && value && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg max-h-80 overflow-y-auto">
-          {results.map((vendor, index) => (
+          {results.map((restriction, index) => (
             <button
-              key={vendor.id}
+              key={restriction.id}
               type="button"
-              onClick={() => handleSelectResult(vendor)}
+              onClick={() => handleSelectResult(restriction)}
               onMouseEnter={() => setSelectedIndex(index)}
               className={`w-full text-left px-4 py-3 border-b border-slate-100 last:border-0 transition-colors ${
                 index === selectedIndex ? "bg-brand-secondary-soft" : "hover:bg-slate-50"
               }`}
             >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-mono text-xs font-semibold bg-slate-100 px-2 py-1 rounded text-slate-700">{vendor.code}</p>
-                    <p className="font-semibold text-slate-900 text-sm">{vendor.name}</p>
-                  </div>
-                </div>
-                <span
-                  className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
-                    vendor.status === "Activo"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-slate-100 text-slate-700"
-                  }`}
-                >
-                  {vendor.status}
-                </span>
-              </div>
+              <p className="font-semibold text-slate-900 text-sm">{restriction.name}</p>
             </button>
           ))}
         </div>
@@ -165,12 +149,7 @@ export default function SystemIntegrationUserSearch({
 
       {isOpen && value && results.length === 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg p-4 text-center">
-          <p className="text-sm text-slate-500">
-            No se encontraron usuarios en el Sistema Integral.
-          </p>
-          <p className="text-xs text-slate-400 mt-1">
-            Podrás registrar los datos manualmente.
-          </p>
+          <p className="text-sm text-slate-500">No se encontró la restricción.</p>
         </div>
       )}
     </div>

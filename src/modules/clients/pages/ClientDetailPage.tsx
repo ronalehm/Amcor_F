@@ -51,22 +51,6 @@ export default function ClientDetailPage() {
     return () => resetHeader();
   }, [clientCode, setHeader, resetHeader]);
 
-  useEffect(() => {
-    if (client) {
-      setHeader({
-        title: "Detalle de Cliente",
-        breadcrumbs: [
-          { label: "Clientes", href: "/clients" },
-          { label: client.code },
-          { label: "Ver" },
-        ],
-        actions: (
-          <div className="flex gap-2">
-          </div>
-        )
-      });
-    }
-  }, [client, portfolios.length, setHeader, navigate]);
 
   if (!client) {
     return (
@@ -158,7 +142,6 @@ export default function ClientDetailPage() {
     </div>
   </FormCard>
 </div>
-
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
           <div>

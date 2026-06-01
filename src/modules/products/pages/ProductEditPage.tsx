@@ -34,6 +34,7 @@ import {
   isLaminaWrapping,
   calculatePouchFormatPlan,
 } from "../../../shared/data/formatPlanRules";
+import { getCatalogOptions } from "../../../shared/catalogs";
 import {
   getDimensionRestrictionsByFormat,
   formatDimensionRange,
@@ -1359,6 +1360,24 @@ export default function ProjectEditPage() {
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
   const siUsers = useMemo(() => getActiveUsers(), []);
+
+  const classificationOpt = useMemo(() => getCatalogOptions("classification"), []);
+  const subclassificationOpt = useMemo(() => getCatalogOptions("subclassification"), []);
+  const unitOfMeasureOpt = useMemo(() => getCatalogOptions("unit_measure"), []);
+  const printClassOpt = useMemo(() => getCatalogOptions("print_class"), []);
+  const printTypeOpt = useMemo(() => getCatalogOptions("print_type"), []);
+  const structureTypeOpt = useMemo(() => getCatalogOptions("structure_type"), []);
+  const saleTypeOpt = useMemo(() => getCatalogOptions("sale_type"), []);
+  const incotermOpt = useMemo(() => getCatalogOptions("incoterm"), []);
+  const countryOpt = useMemo(() => getCatalogOptions("destination_country"), []);
+  const currencyOpt = useMemo(() => getCatalogOptions("currency"), []);
+  const zipperTypeOpt = useMemo(() => getCatalogOptions("zipper_type"), []);
+  const valveTypeOpt = useMemo(() => getCatalogOptions("valve_type"), []);
+  const roundedCornersOpt = useMemo(() => getCatalogOptions("rounded_corners_type"), []);
+  const pouchPerforationOpt = useMemo(() => getCatalogOptions("pouch_perforation_type"), []);
+  const bagPerforationOpt = useMemo(() => getCatalogOptions("bag_perforation_type"), []);
+  const precutTypeOpt = useMemo(() => getCatalogOptions("precut_type"), []);
+  const coreMaterialOpt = useMemo(() => getCatalogOptions("core_material"), []);
 
   useEffect(() => {
     if (!projectCode) {
@@ -3250,7 +3269,7 @@ export default function ProjectEditPage() {
                       }}
                       onBlur={() => markFieldAsTouched("classification")}
                       error={getError("classification")}
-                      options={CLASSIFICATION_OPTIONS}
+                      options={classificationOpt}
                       placeholder="-- Seleccione --"
                     />
 
@@ -3332,7 +3351,7 @@ export default function ProjectEditPage() {
                       onChange={(value) => updateField("unitOfMeasure", value)}
                       onBlur={() => markFieldAsTouched("unitOfMeasure")}
                       error={getError("unitOfMeasure")}
-                      options={UNIT_OPTIONS_MOMENT1}
+                      options={unitOfMeasureOpt}
                       placeholder="-- Seleccione --"
                     />
                   </div>
@@ -3567,7 +3586,7 @@ export default function ProjectEditPage() {
                             onBlur={() => markFieldAsTouched("printClass")}
                             error={getError("printClass")}
                             placeholder="-- Seleccione --"
-                            options={PRINT_CLASS_OPTIONS}
+                            options={printClassOpt}
                             disabled={!canEditDesign}
                           />
 
@@ -3578,7 +3597,7 @@ export default function ProjectEditPage() {
                             onBlur={() => markFieldAsTouched("printType")}
                             error={getError("printType")}
                             placeholder="-- Seleccione --"
-                            options={PRINT_TYPE_OPTIONS}
+                            options={printTypeOpt}
                             disabled={!canEditDesign || isPrintingDisabled}
                           />
 
@@ -3924,7 +3943,7 @@ export default function ProjectEditPage() {
                         value={form.structureType}
                         onChange={(value) => updateField("structureType", value)}
                         placeholder="-- Seleccione --"
-                        options={STRUCTURE_TYPE_OPTIONS}
+                        options={structureTypeOpt}
                         disabled={!canEditStructure}
                       />
                     )}
@@ -4267,12 +4286,12 @@ export default function ProjectEditPage() {
                             <div className="space-y-3">
                               <AccessoryCheckbox field="hasZipper" label="Zipper" />
                               {form.hasZipper === "Sí" && (
-                                <FormSelect label="Tipo de Zipper" value={form.zipperType} onChange={(value) => updateField("zipperType", value)} placeholder="-- Seleccione --" options={ZIPPER_TYPE_OPTIONS} />
+                                <FormSelect label="Tipo de Zipper" value={form.zipperType} onChange={(value) => updateField("zipperType", value)} placeholder="-- Seleccione --" options={zipperTypeOpt} />
                               )}
                               <AccessoryCheckbox field="hasTinTie" label="Tin-Tie" />
                               <AccessoryCheckbox field="hasValve" label="Válvula" />
                               {form.hasValve === "Sí" && (
-                                <FormSelect label="Tipo de Válvula" value={form.valveType} onChange={(value) => updateField("valveType", value)} placeholder="-- Seleccione --" options={VALVE_TYPE_OPTIONS} />
+                                <FormSelect label="Tipo de Válvula" value={form.valveType} onChange={(value) => updateField("valveType", value)} placeholder="-- Seleccione --" options={valveTypeOpt} />
                               )}
                             </div>
                           </div>
@@ -4304,7 +4323,7 @@ export default function ProjectEditPage() {
                                 <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
                                 <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
                                 {form.hasRoundedCorners === "Sí" && (
-                                  <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={ROUNDED_CORNERS_TYPE_OPTIONS} />
+                                  <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={roundedCornersOpt} />
                                 )}
                                 <AccessoryCheckbox field="hasNotch" label="Muesca" />
                                 <AccessoryCheckbox field="hasPerforation" label="Perforación" />
@@ -4318,7 +4337,7 @@ export default function ProjectEditPage() {
                                         onBlur={() => markFieldAsTouched("pouchPerforationType")}
                                         error={getError("pouchPerforationType")}
                                         placeholder="-- Seleccione --"
-                                        options={POUCH_PERFORATION_TYPE_OPTIONS}
+                                        options={pouchPerforationOpt}
                                       />
                                     )}
                                     {shouldShowBolsaPerforationType && (
@@ -4329,7 +4348,7 @@ export default function ProjectEditPage() {
                                         onBlur={() => markFieldAsTouched("bagPerforationType")}
                                         error={getError("bagPerforationType")}
                                         placeholder="-- Seleccione --"
-                                        options={BAG_PERFORATION_TYPE_OPTIONS}
+                                        options={bagPerforationOpt}
                                       />
                                     )}
                                     <FormSelect
@@ -4345,7 +4364,7 @@ export default function ProjectEditPage() {
                                 )}
                                 <AccessoryCheckbox field="hasPreCut" label="Pre-Corte" />
                                 {form.hasPreCut === "Sí" && (
-                                  <FormSelect label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} placeholder="-- Seleccione --" options={PRECUT_TYPE_OPTIONS} />
+                                  <FormSelect label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} placeholder="-- Seleccione --" options={precutTypeOpt} />
                                 )}
                               </div>
                             </div>
@@ -4430,7 +4449,7 @@ export default function ProjectEditPage() {
                       onBlur={() => markFieldAsTouched("coreMaterial")}
                       error={getError("coreMaterial")}
                       placeholder="-- Seleccione --"
-                      options={CORE_MATERIAL_OPTIONS}
+                      options={coreMaterialOpt}
                     />
 
                     <FormInput

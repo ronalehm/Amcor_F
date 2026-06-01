@@ -125,53 +125,17 @@ export function getRoleByAreaAndPosition(
   position?: string
 ): UserRole {
   const normalizedArea = normalizeText(area);
-  const normalizedPosition = normalizeText(position);
-  const isLeadership = isLeadershipPosition(position);
 
   if (
     normalizedArea.includes("customer service") ||
     normalizedArea.includes("costumer service") ||
     normalizedArea.includes("servicio al cliente")
   ) {
-    return isLeadership
-      ? "customer_service_leader"
-      : "customer_service_operator";
+    return "customer_service";
   }
 
   if (normalizedArea.includes("comercial")) {
-    return isLeadership
-      ? "commercial_leader"
-      : "sales_executive";
-  }
-
-  if (
-    normalizedArea.includes("r&d") ||
-    normalizedArea.includes("rd") ||
-    normalizedArea.includes("investigacion") ||
-    normalizedArea.includes("desarrollo")
-  ) {
-    if (isLeadership) {
-      return "rd_manager";
-    }
-
-    if (
-      normalizedArea.includes("desarrollo") ||
-      normalizedPosition.includes("desarrollo")
-    ) {
-      return "rd_development";
-    }
-
-    return "rd_development";
-  }
-
-  if (
-    normalizedArea.includes("area tecnica") ||
-    normalizedArea.includes("tecnica") ||
-    normalizedPosition.includes("area tecnica") ||
-    normalizedPosition.includes("tecnico") ||
-    normalizedPosition.includes("tecnica")
-  ) {
-    return "technical_area";
+    return "commercial";
   }
 
   if (
@@ -191,16 +155,7 @@ export function getRoleByAreaAndPosition(
     return "administrator";
   }
 
-  if (
-    normalizedArea.includes("supply") ||
-    normalizedArea.includes("planeamiento") ||
-    normalizedArea.includes("abastecimiento") ||
-    normalizedArea.includes("logistica")
-  ) {
-    return "viewer";
-  }
-
-  return "viewer";
+  return "commercial";
 }
 
 export function getAllowedRolesByAreaAndPosition(
@@ -208,10 +163,5 @@ export function getAllowedRolesByAreaAndPosition(
   position?: string
 ): UserRole[] {
   const mainRole = getRoleByAreaAndPosition(area, position);
-
-  if (mainRole === "viewer") {
-    return ["viewer"];
-  }
-
-  return [mainRole, "viewer"];
+  return [mainRole];
 }
