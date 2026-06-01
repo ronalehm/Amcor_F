@@ -125,35 +125,39 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormCard title="Datos Generales" icon="▦" color="#00395A">
-          <div className="space-y-4">
-            <PreviewRow label="Código de Cliente" value={clientCodeValue} />
-            <PreviewRow label="Razón Social / Nombre" value={clientName} />
-            <PreviewRow label="RUC" value={clientRuc} />
-            <PreviewRow label="Email" value={clientEmail} />
-            <PreviewRow label="Teléfono" value={clientPhone} />
-            <PreviewRow label="Contacto" value={clientContact} />
-            <PreviewRow label="Fecha de Registro" value={client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"} />
-          </div>
-        </FormCard>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <FormCard title="Información general" icon="▦" color="#00395A">
+    <div className="space-y-4">
+      <PreviewRow label="Código de cliente" value={clientCodeValue} />
+      <PreviewRow label="Nombre de cliente" value={clientName} />
+      <PreviewRow label="Correo de empresa" value={clientEmail} />
+      <PreviewRow label="Número de RUC" value={clientRuc} />
+      <PreviewRow label="Sector" value={clientIndustry} />
+      <PreviewRow label="Teléfono" value={clientPhone} />
+      <PreviewRow label="Contacto" value={clientContact} />
+    </div>
+  </FormCard>
 
-        <FormCard title="Información Comercial / Estado" icon="◇" color="#00A1DE">
-          <div className="space-y-4">
-            <PreviewRow label="Rubro / Industria" value={clientIndustry} />
-            <PreviewRow label="Segmento" value={getText(client.segmento)} />
-            <PreviewRow label="Estado" value={statusLabel} />
-            {client.siClientId && (
-              <>
-                <PreviewRow label="Código SI" value={client.siClientCode || "—"} />
-                <PreviewRow label="Estado SI" value="Vinculado" />
-              </>
-            )}
-            <PreviewRow label="Última Actualización" value={client.updatedAt ? new Date(client.updatedAt).toLocaleDateString() : "—"} />
-            <PreviewRow label="Realizado por" value={client.updatedBy || "Sistema"} />
-          </div>
-        </FormCard>
-      </div>
+  <FormCard title="Datos de sistema" icon="◎" color="#00A1DE">
+    <div className="space-y-4">
+      <PreviewRow label="Estado ODISEO" value={statusLabel} />
+      <PreviewRow label="Código SI" value={getText(client.siClientCode, "—")} />
+      <PreviewRow label="Estado SI" value={client.siClientId ? "Vinculado" : "No vinculado"} />
+      <PreviewRow
+        label="Fecha de registro"
+        value={client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"}
+      />
+      <PreviewRow
+        label="Última actualización"
+        value={client.updatedAt ? new Date(client.updatedAt).toLocaleDateString() : "—"}
+      />
+      <PreviewRow label="Realizado por" value={client.updatedBy || "Sistema"} />
+      {client.origin && (
+        <PreviewRow label="Origen de registro" value={getText(client.origin, client.createdBy)} />
+      )}
+    </div>
+  </FormCard>
+</div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
