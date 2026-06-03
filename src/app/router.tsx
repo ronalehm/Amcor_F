@@ -26,6 +26,8 @@ import DataSheetEditPage from "../modules/datasheets/pages/DataSheetEditPage";
 import UserEditPage from "../modules/users/pages/UserEditPage";
 import UserDetailPage from "../modules/users/pages/UserDetailPage";
 import ClientDetailPage from "../modules/clients/pages/ClientDetailPage";
+import ClientCreatePage from "../modules/clients/pages/ClientCreatePage";
+import ClientEditPage from "../modules/clients/pages/ClientEditPage";
 
 import ComplianceDocumentPage from "../shared/pages/ComplianceDocumentPage";
 
@@ -67,7 +69,9 @@ export default function AppRouter() {
           <Route path="products/:projectCode" element={<ProjectDetailPage />} />
           <Route path="products/:projectCode/edit" element={<ProjectEditPage />} />
           <Route path="clients" element={<ClientListPage />} />
+          <Route path="clients/new" element={<ClientCreatePage />} />
           <Route path="clients/:clientCode" element={<ClientDetailPage />} />
+          <Route path="clients/:clientCode/edit" element={<ClientEditPage />} />
           <Route path="datasheets" element={<DataSheetListPage />} />
           <Route path="datasheets/new" element={<ProductSheetPage />} />
           <Route path="datasheets/:datasheetId" element={<div className="p-4">Detalle de Ficha (Ver)</div>} />
@@ -76,8 +80,8 @@ export default function AppRouter() {
           <Route path="users/new" element={<UserCreatePage />} />
           <Route path="users/:userId" element={<UserDetailPage />} />
           <Route path="users/:userId/edit" element={<UserEditPage />} />
-          <Route path="catalog-management" element={<CatalogRestrictionManagementPage />} />
           <Route path="catalogs" element={<ViewAllCatalogsPage />} />
+          <Route path="catalog-management" element={<CatalogRestrictionManagementPage />} />
           <Route path="soporte" element={<div className="p-4">Soporte TI</div>} />
           <Route path="configuracion" element={<div className="p-4">Configuración</div>} />
         </Route>
@@ -126,7 +130,9 @@ export default function AppRouter() {
 
         {/* Clientes */}
         <Route path="clients" element={<ClientListPage />} />
+        <Route path="clients/new" element={<ClientCreatePage />} />
         <Route path="clients/:clientCode" element={<ClientDetailPage />} />
+        <Route path="clients/:clientCode/edit" element={<ClientEditPage />} />
 
         {/* Fichas de Producto */}
         <Route path="datasheets" element={<DataSheetListPage />} />
@@ -141,6 +147,7 @@ export default function AppRouter() {
         <Route path="users/:userId/edit" element={<UserEditPage />} />
 
         {/* Gestión de Catálogos y Restricciones */}
+        <Route path="catalogs" element={<ViewAllCatalogsPage />} />
         <Route path="catalog-management" element={<CatalogRestrictionManagementPage />} />
 
         {/* Rutas temporales del sidebar */}

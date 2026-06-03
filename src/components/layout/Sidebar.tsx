@@ -29,7 +29,7 @@ const MENU_ITEMS: MenuItem[] = [
   { path: "/portfolio", label: "Portafolio", icon: FolderKanban },
   { path: "/products", label: "Productos", icon: BriefcaseBusiness },
   { path: "/users", label: "Usuarios", icon: Users },
-  { path: "/catalog-management", label: "Catálogos", icon: BookOpen, roles: ["administrator", "master_data"] },
+  { path: "/catalogs", label: "Catálogos", icon: BookOpen, roles: ["administrator", "master_data"] },
 ];
 
 const BOTTOM_ITEMS: MenuItem[] = [

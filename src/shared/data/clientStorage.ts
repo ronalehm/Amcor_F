@@ -198,8 +198,10 @@ export async function saveSeedClients(clients: Client[]): Promise<void> {
   }
 }
 
-export function canClientHavePortfolio(status?: ClientStatus): boolean {
-  return status === "Activo" || status === "Aprobado";
+export function canClientHavePortfolio(status?: string): boolean {
+  if (!status) return false;
+  const s = status.toLowerCase();
+  return s === "activo" || s === "aprobado" || s === "active" || s === "approved";
 }
 
 export function getClientPortfolioEligibilityMessage(status?: ClientStatus): string {

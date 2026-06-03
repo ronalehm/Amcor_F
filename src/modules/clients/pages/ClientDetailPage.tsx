@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
+import { getCurrentUser } from "../../../shared/data/userStorage";
 import {
   getClientByCode,
   STATUS_LABELS,
@@ -37,6 +38,9 @@ export default function ClientDetailPage() {
         setClient(clientData);
         setPortfolios(getPortfoliosByClient(clientData));
 
+        const currentUser = getCurrentUser();
+        const isAdmin = currentUser?.role === "administrator";
+
         setHeader({
           title: "Detalle de Cliente",
           breadcrumbs: [
@@ -44,12 +48,20 @@ export default function ClientDetailPage() {
             { label: clientData.code },
             { label: "Ver" },
           ],
+          actions: isAdmin ? (
+            <button
+              onClick={() => navigate(`/clients/${clientData.code}/edit`)}
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-primary px-4 py-2 text-sm font-bold text-white hover:bg-brand-primary-hover"
+            >
+              Editar Cliente
+            </button>
+          ) : undefined,
         });
       }
     }
 
     return () => resetHeader();
-  }, [clientCode, setHeader, resetHeader]);
+  }, [clientCode, setHeader, resetHeader, navigate]);
 
 
   if (!client) {

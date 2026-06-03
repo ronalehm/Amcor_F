@@ -28,6 +28,10 @@ import FinalUseSelector from "../../../shared/components/catalog/FinalUseSelecto
 import FinalUseCatalogModal from "../../../shared/components/catalog/FinalUseCatalogModal";
 import PortfolioPreview from "../../../shared/components/ui/PortfolioPreview.tsx";
 import SectionCard from "../../../shared/components/ui/SectionCard";
+
+// Import seeds to ensure they're available
+import seedClients from "../../../shared/data/seeds/clients.json";
+import seedUsers from "../../../shared/data/seeds/users.json";
 import {
   FormInput,
   FormSelect,
@@ -118,6 +122,26 @@ export default function PortfolioCreatePage() {
   const selectedClient = allClients.find((c) => c.id === form.clienteId);
   const comercialUsers = getCommercialExecutives();
   const selectedExecutive = comercialUsers.find((u) => u.id === form.ejecutivoId);
+
+  // ── Initialize seed data if needed ──
+  useEffect(() => {
+    const clientsLS = localStorage.getItem("odiseo_clients");
+    const usersLS = localStorage.getItem("odiseo_users");
+
+    // Initialize clients if empty
+    if (!clientsLS || JSON.parse(clientsLS || "[]").length === 0) {
+      if (Array.isArray(seedClients) && seedClients.length > 0) {
+        localStorage.setItem("odiseo_clients", JSON.stringify(seedClients));
+      }
+    }
+
+    // Initialize users if empty
+    if (!usersLS || JSON.parse(usersLS || "[]").length === 0) {
+      if (Array.isArray(seedUsers) && seedUsers.length > 0) {
+        localStorage.setItem("odiseo_users", JSON.stringify(seedUsers));
+      }
+    }
+  }, []);
 
   // ── Client Inheritance from ClientDetailPage ──
   useEffect(() => {

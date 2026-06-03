@@ -7,6 +7,7 @@ import {
   ArrowUpDown,
   BriefcaseBusiness,
   Layers3,
+  Plus,
   RotateCcw,
   Search,
 } from "lucide-react";
@@ -221,10 +222,19 @@ export default function ProjectListPage() {
     setHeader({
       title: "Gestión de Productos",
       breadcrumbs: [{ label: "Productos" }, { label: "Lista de Productos" }],
+      actions: (
+        <button
+          onClick={() => navigate("/products/new")}
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-primary px-4 py-2 text-sm font-bold text-white hover:bg-brand-primary-hover"
+        >
+          <Plus size={16} />
+          Nuevo Producto
+        </button>
+      ),
     });
 
     return () => resetHeader();
-  }, [setHeader, resetHeader]);
+  }, [setHeader, resetHeader, navigate]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {

@@ -55,7 +55,7 @@ export default function FormActionButtons({
         )}
 
         <Button
-          type="button"
+          type="submit"
           variant="primary"
           isLoading={isLoading}
           disabled={isLoading || validationErrorList.length > 0}
