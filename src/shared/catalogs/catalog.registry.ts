@@ -11,9 +11,9 @@ export const CATALOG_REGISTRY: CatalogDefinition[] = [
     id: "catalog_wrapping_type",
     code: "wrapping_type",
     name: "Tipo de Envoltura",
-    description: "Tipos de envoltura válidos para productos ODISEO: POUCH, BOLSA, LÁMINA",
+    description: "Tabla espejo del Sistema Integral: Tipos de envoltura válidos (POUCH, BOLSA, LÁMINA). Solo consulta/sincronización.",
     ownerModule: "products",
-    ownerSystem: "ODISEO",
+    ownerSystem: "SISTEMA_INTEGRAL",
     status: "active",
   },
   {
@@ -365,6 +365,17 @@ export const CATALOG_REGISTRY: CatalogDefinition[] = [
     ownerSystem: "ODISEO",
     status: "active",
   },
+  // FASE 4 - CATÁLOGOS DEL SISTEMA INTEGRAL (TABLAS ESPEJO)
+  {
+    id: "catalog_packaging_machine",
+    code: "packaging_machine",
+    name: "Tipo de Envasado (Máquina de cliente)",
+    description: "Tabla espejo del Sistema Integral: Tipos de envasado y máquinas de cliente. Solo consulta/sincronización.",
+    ownerModule: "products",
+    ownerSystem: "SISTEMA_INTEGRAL",
+    status: "active",
+  },
+
   {
     id: "catalog_product_line",
     code: "product_line",
