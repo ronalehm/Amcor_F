@@ -64,12 +64,13 @@ const getUnitAbbreviation = (unitValue: any) => {
   const unit = getText(unitValue);
   if (!unit) return "";
   const match = unit.match(/\(([^)]+)\)/);
-  if (match) return match[1].trim();
-  if (unit.toLowerCase().includes("gramos")) return "g";
-  if (unit.toLowerCase().includes("mililitros")) return "ml";
-  if (unit.toLowerCase().includes("kilogramos")) return "kg";
-  if (unit.toLowerCase().includes("litros")) return "L";
-  return unit;
+  if (match) return match[1].trim().toUpperCase();
+  const lowerUnit = unit.toLowerCase();
+  if (lowerUnit.includes("gramos")) return "G";
+  if (lowerUnit.includes("mililitros")) return "ML";
+  if (lowerUnit.includes("kilogramos")) return "KG";
+  if (lowerUnit.includes("litros")) return "L";
+  return unit.toUpperCase();
 };
 
 const formatProductDisplayName = (item: any) => {
