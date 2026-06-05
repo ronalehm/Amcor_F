@@ -885,7 +885,7 @@ export default function ProductStep2Structure({
       )}
 
       {/* Especificación Técnica del Cliente */}
-      <CollapsibleSection title="Especificación Técnica del Cliente" icon="📄" defaultOpen={false}>
+      <CollapsibleSection title="Especificación Técnica del Cliente" icon="📄" defaultOpen={true}>
         <ProjectDocumentsSection
           form={form}
           updateField={updateField}
