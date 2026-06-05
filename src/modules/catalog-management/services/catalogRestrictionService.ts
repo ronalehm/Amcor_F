@@ -30,6 +30,7 @@ export function getAvailableCatalogs(): CatalogItem[] {
     id: cat.id,
     code: cat.code,
     name: cat.name,
+    source: cat.ownerSystem === "SISTEMA_INTEGRAL" ? "SISTEMA_INTEGRAL" : "ODISEO",
   }));
 }
 

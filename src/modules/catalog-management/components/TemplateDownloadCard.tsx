@@ -18,6 +18,7 @@ interface TemplateDownloadCardProps {
   onReasonChange: (value: string) => void;
   isValidating: boolean;
   submitAttempted: boolean;
+  catalogSource?: "ODISEO" | "SISTEMA_INTEGRAL";
 }
 
 export default function TemplateDownloadCard({
@@ -32,9 +33,11 @@ export default function TemplateDownloadCard({
   onReasonChange,
   isValidating,
   submitAttempted,
+  catalogSource = "ODISEO",
 }: TemplateDownloadCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const isSistemaIntegral = catalogSource === "SISTEMA_INTEGRAL";
 
   const handleDownload = async () => {
     if (type === "catalog" && targetId) {
@@ -85,6 +88,20 @@ export default function TemplateDownloadCard({
             </div>
           </div>
 
+        {isSistemaIntegral && (
+          <div className="border-l-4 border-amber-300 bg-amber-50 p-4 rounded-lg">
+            <div className="flex gap-3">
+              <span className="text-xl flex-shrink-0">ℹ️</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-900">Catálogo del Sistema Integral</p>
+                <p className="text-sm text-amber-800 mt-1">
+                  Este catálogo proviene del Sistema Integral y solo puede ser consultado o sincronizado desde ODISEO. No es posible cargar plantillas para modificarlo directamente.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="border-t border-slate-100 pt-4 space-y-4">
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
@@ -108,43 +125,45 @@ export default function TemplateDownloadCard({
           )}
         </div>
 
-        <div className="flex flex-col gap-2 pt-4">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.csv"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            Seleccionar archivo
-          </button>
-          <button
-            type="button"
-            onClick={onValidate}
-            disabled={!uploadedFileName || isValidating || uploadStatus === "applied"}
-            className="rounded-lg border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isValidating ? "Validando..." : "Cargar y validar"}
-          </button>
-
-          <div className="pt-2">
-            <FormTextarea
-              label="Motivo del cambio"
-              value={reason}
-              onChange={onReasonChange}
-              placeholder="Describe el motivo de esta actualización..."
-              helper="Este motivo será registrado en la bitácora del sistema."
-              error={submitAttempted ? reasonError : undefined}
-              rows={3}
-              maxLength={500}
+        {!isSistemaIntegral && (
+          <div className="flex flex-col gap-2 pt-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.csv"
+              onChange={handleFileChange}
+              className="hidden"
             />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Seleccionar archivo
+            </button>
+            <button
+              type="button"
+              onClick={onValidate}
+              disabled={!uploadedFileName || isValidating || uploadStatus === "applied"}
+              className="rounded-lg border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isValidating ? "Validando..." : "Cargar y validar"}
+            </button>
+
+            <div className="pt-2">
+              <FormTextarea
+                label="Motivo del cambio"
+                value={reason}
+                onChange={onReasonChange}
+                placeholder="Describe el motivo de esta actualización..."
+                helper="Este motivo será registrado en la bitácora del sistema."
+                error={submitAttempted ? reasonError : undefined}
+                rows={3}
+                maxLength={500}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </FormCard>
 

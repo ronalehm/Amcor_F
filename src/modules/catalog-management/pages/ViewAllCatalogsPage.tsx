@@ -16,9 +16,19 @@ export default function ViewAllCatalogsPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [selectedCatalogCode, setSelectedCatalogCode] = useState<string>("");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "ODISEO" | "SISTEMA_INTEGRAL">("all");
 
   const catalogs = useMemo(() => getCatalogs(), []);
   const restrictions = useMemo(() => getAvailableRestrictions(), []);
+
+  const filteredCatalogs = useMemo(() => {
+    if (sourceFilter === "all") return catalogs;
+    return catalogs.filter((cat) =>
+      sourceFilter === "SISTEMA_INTEGRAL"
+        ? cat.ownerSystem === "SISTEMA_INTEGRAL"
+        : cat.ownerSystem !== "SISTEMA_INTEGRAL"
+    );
+  }, [catalogs, sourceFilter]);
 
   const handleExportCatalogs = async () => {
     setIsExporting(true);
@@ -128,10 +138,10 @@ export default function ViewAllCatalogsPage() {
               <div className="mb-4">
                 <h3 className="text-lg font-bold text-slate-900">Catálogos</h3>
                 <p className="text-sm text-slate-600 mt-1">
-                  {catalogs.length} catálogo{catalogs.length !== 1 ? "s" : ""} disponible{catalogs.length !== 1 ? "s" : ""}
+                  {filteredCatalogs.length} catálogo{filteredCatalogs.length !== 1 ? "s" : ""} disponible{filteredCatalogs.length !== 1 ? "s" : ""}
                 </p>
               </div>
-              <CatalogsList catalogs={catalogs} onSelectCatalog={setSelectedCatalogCode} />
+              <CatalogsList catalogs={filteredCatalogs} onSelectCatalog={setSelectedCatalogCode} />
             </div>
           </div>
 

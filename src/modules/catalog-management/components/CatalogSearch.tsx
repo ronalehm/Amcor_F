@@ -10,6 +10,7 @@ interface CatalogSearchProps {
   error?: string;
   placeholder?: string;
   disabled?: boolean;
+  source?: "ODISEO" | "SISTEMA_INTEGRAL";
 }
 
 export default function CatalogSearch({
@@ -19,6 +20,7 @@ export default function CatalogSearch({
   error,
   placeholder = "Buscar catálogo por nombre o código...",
   disabled = false,
+  source,
 }: CatalogSearchProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -31,10 +33,11 @@ export default function CatalogSearch({
     const searchTerm = value.toLowerCase();
     return catalogs.filter(
       (c) =>
-        c.name.toLowerCase().includes(searchTerm) ||
-        c.code.toLowerCase().includes(searchTerm)
+        (source ? c.source === source : true) &&
+        (c.name.toLowerCase().includes(searchTerm) ||
+         c.code.toLowerCase().includes(searchTerm))
     );
-  }, [value, catalogs]);
+  }, [value, catalogs, source]);
 
   const handleSelectResult = (catalog: CatalogItem) => {
     onSelect(catalog);
@@ -150,9 +153,15 @@ export default function CatalogSearch({
                   <p className="font-semibold text-slate-900 text-sm">{catalog.name}</p>
                   <p className="text-sm text-slate-600">Código: {catalog.code}</p>
                 </div>
-                <span className="px-2 py-1 rounded text-xs font-semibold whitespace-nowrap bg-blue-100 text-blue-700">
-                  Disponible
-                </span>
+                <div className="flex gap-2 items-center flex-shrink-0">
+                  <span className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
+                    catalog.source === "SISTEMA_INTEGRAL"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-blue-100 text-blue-700"
+                  }`}>
+                    {catalog.source === "SISTEMA_INTEGRAL" ? "Sistema Integral" : "ODISEO"}
+                  </span>
+                </div>
               </div>
             </button>
           ))}

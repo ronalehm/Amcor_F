@@ -22,6 +22,7 @@ export default function CatalogRestrictionManagementPage() {
   const [managementType, setManagementType] = useState<ManagementType>("catalog");
   const [selectedTarget, setSelectedTarget] = useState("");
   const [selectedTargetId, setSelectedTargetId] = useState("");
+  const [catalogSource, setCatalogSource] = useState<"ODISEO" | "SISTEMA_INTEGRAL">("ODISEO");
   const [reason, setReason] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState("");
@@ -58,6 +59,7 @@ export default function CatalogRestrictionManagementPage() {
     setManagementType(type);
     setSelectedTarget("");
     setSelectedTargetId("");
+    setCatalogSource("ODISEO");
     setValidationSummary(null);
     setUploadedFile(null);
     setUploadedFileName("");
@@ -95,6 +97,7 @@ export default function CatalogRestrictionManagementPage() {
     setManagementType("catalog");
     setSelectedTarget("");
     setSelectedTargetId("");
+    setCatalogSource("ODISEO");
     setReason("");
     setUploadedFile(null);
     setUploadedFileName("");
@@ -156,6 +159,7 @@ export default function CatalogRestrictionManagementPage() {
         action: "Actualización por plantilla",
         processedRecords: totalProcessed,
         result: "success",
+        source: catalogSource,
       };
 
       setChangeLog([newEntry, ...changeLog]);
@@ -220,6 +224,8 @@ export default function CatalogRestrictionManagementPage() {
             onTargetIdChange={setSelectedTargetId}
             errors={validationErrors}
             submitAttempted={submitAttempted}
+            catalogSource={catalogSource}
+            onCatalogSourceChange={setCatalogSource}
           />
 
           <TemplateDownloadCard
@@ -234,6 +240,7 @@ export default function CatalogRestrictionManagementPage() {
             onReasonChange={setReason}
             isValidating={isValidating}
             submitAttempted={submitAttempted}
+            catalogSource={catalogSource}
           />
 
           {validationSummary && (

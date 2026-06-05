@@ -17,6 +17,7 @@ export interface CatalogItem {
   id: string;
   name: string;
   code: string;
+  source: "ODISEO" | "SISTEMA_INTEGRAL";
 }
 
 export interface RestrictionItem {
@@ -70,6 +71,7 @@ export interface ChangeLogEntry {
   action: string;
   processedRecords: number;
   result: "success" | "error";
+  source?: "ODISEO" | "SISTEMA_INTEGRAL";
 }
 
 export interface ManagementState {
