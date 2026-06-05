@@ -1,3 +1,5 @@
+import { PRODUCT_CATALOGS } from "./productCatalogs";
+
 export type CatalogItem = {
   id: string;
   code: string;
@@ -51,15 +53,17 @@ export const TECHNICAL_APPLICATION_CATALOG: CatalogItem[] = [
 ];
 
 // 3. Unidad de Medida
-export const UNIT_OF_MEASURE_CATALOG: CatalogItem[] = [
-  { id: "1", code: "UM-001", name: "unidad", description: "Unidad", isActive: true },
-  { id: "2", code: "UM-002", name: "millares", description: "Millares (miles de unidades)", isActive: true },
-  { id: "3", code: "UM-003", name: "kilos", description: "Kilogramos", isActive: true },
-  { id: "4", code: "UM-004", name: "metros", description: "Metros lineales", isActive: true },
-  { id: "5", code: "UM-005", name: "millones_unidades", description: "Millones de unidades", isActive: true },
-  { id: "6", code: "UM-006", name: "toneladas", description: "Toneladas", isActive: true },
-  { id: "7", code: "UM-007", name: "rollos", description: "Rollos", isActive: true },
-];
+// Consolidado desde PRODUCT_CATALOGS - única fuente de verdad
+// Valores oficiales del Excel: G, KG, ML, L, OZ, UNI
+export const UNIT_OF_MEASURE_CATALOG: CatalogItem[] = (
+  PRODUCT_CATALOGS.unidadDeMedida as unknown as Array<{ code: string; label: string }>
+).map((item, index) => ({
+  id: String(index + 1),
+  code: item.code,
+  name: item.label.toLowerCase(),
+  description: item.label,
+  isActive: true,
+}));
 
 // 4. Clase de Impresión
 export const PRINT_CLASS_CATALOG: CatalogItem[] = [

@@ -35,6 +35,7 @@ import {
   calculatePouchFormatPlan,
 } from "../../../shared/data/formatPlanRules";
 import { getCatalogOptions } from "../../../shared/catalogs";
+import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
 import {
   getDimensionRestrictionsByFormat,
   formatDimensionRange,
@@ -706,14 +707,13 @@ function getMaterialTypeForSummary(materialValue: string): string {
 
   return materialValue;
 }
-const UNIT_OPTIONS = [
-  { value: "KGS", label: "KGS" },
-  { value: "MLL", label: "MLL" },
-  { value: "MTS", label: "MTS" },
-  { value: "MT2", label: "MT2" },
-  { value: "LBS", label: "LBS" },
-  { value: "UNI", label: "UNI" },
-];
+// Unidad de Medida - consolidado desde PRODUCT_CATALOGS (única fuente oficial)
+const UNIT_OPTIONS = (PRODUCT_CATALOGS.unidadDeMedida as unknown as Array<{ code: string; label: string }>).map(
+  (item) => ({
+    value: item.code,
+    label: item.label,
+  })
+);
 
 // Moment 1 unit options (from modal)
 const UNIT_OPTIONS_MOMENT1 = UNITS_OF_MEASURE.map((unit) => ({

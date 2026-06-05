@@ -93,11 +93,14 @@ export const PRODUCT_CATALOGS = {
       "FOOD",
     ],
   },
-  unidadDeMedida: {
-    label: "Unidad de medida",
-    code: "UDM",
-    values: ["G", "KG", "ML", "L", "OZ", "UNI"],
-  },
+  unidadDeMedida: [
+    { code: "G", label: "G" },
+    { code: "KG", label: "KG" },
+    { code: "ML", label: "ML" },
+    { code: "L", label: "L" },
+    { code: "OZ", label: "OZ" },
+    { code: "UNI", label: "UNI" },
+  ],
   tieneEstructuraDeReferencia: {
     label: "¿Tiene Estructura de Referencia?",
     code: "ENV",

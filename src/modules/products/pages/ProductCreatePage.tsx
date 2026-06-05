@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords, TECHNICAL_APPLICATION_OPTIONS } from "../../../shared/data/portfolioStorage";
 import { getCatalogOptions } from "../../../shared/catalogs";
+import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
 import {
   getNextProjectCode,
   saveProjectRecord,
@@ -260,14 +261,13 @@ function extractMaterialGroupFromValue(materialValue: string): string {
   return Object.keys(MATERIAL_CATALOG).includes(group) ? group : "";
 }
 
-const UNIT_OPTIONS = [
-  { value: "KGS", label: "KGS" },
-  { value: "MLL", label: "MLL" },
-  { value: "MTS", label: "MTS" },
-  { value: "MT2", label: "MT2" },
-  { value: "LBS", label: "LBS" },
-  { value: "UNI", label: "UNI" },
-];
+// Unidad de Medida - consolidado desde PRODUCT_CATALOGS (única fuente oficial)
+const UNIT_OPTIONS = (PRODUCT_CATALOGS.unidadDeMedida as unknown as Array<{ code: string; label: string }>).map(
+  (item) => ({
+    value: item.code,
+    label: item.label,
+  })
+);
 
 const PRINT_CLASS_OPTIONS = [
   { value: "Flexo", label: "Flexo" },
