@@ -1,4 +1,5 @@
 import type { ProjectEditFormData } from "../pages/ProductEditPage";
+import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
@@ -236,13 +237,10 @@ export default function ProductStep0General({
                 markFieldAsTouched("blueprintFormat");
               }}
               onBlur={() => markFieldAsTouched("blueprintFormat")}
-              options={[
-                { value: "Stand Up Pouch", label: "Stand Up Pouch" },
-                { value: "Gusseted Pouch", label: "Gusseted Pouch" },
-                { value: "Flat Pouch", label: "Flat Pouch" },
-                { value: "Bolsa", label: "Bolsa" },
-                { value: "Lámina", label: "Lámina" },
-              ]}
+              options={PRODUCT_CATALOGS.formatoDePlano.values.map((val) => ({
+                value: val,
+                label: val,
+              }))}
               placeholder="-- Seleccione Formato --"
             />
             <FormInput
