@@ -115,13 +115,16 @@ export default function PortfolioCreatePage() {
   const [touchedFields, setTouchedFields] = useState<
     Partial<Record<keyof PortfolioFormData, boolean>>
   >({});
+  const [dataReloaded, setDataReloaded] = useState(false);
 
   const selectedStatus = getStatusById(Number(form.estadoId));
-  const allClients = getClientCatalogRecords();
-  const eligibleClients = allClients.filter((c) => canClientHavePortfolio(c.status));
-  const selectedClient = allClients.find((c) => c.id === form.clienteId);
-  const comercialUsers = getCommercialExecutives();
-  const selectedExecutive = comercialUsers.find((u) => u.id === form.ejecutivoId);
+
+  const allClients = useMemo(() => getClientCatalogRecords(), [dataReloaded]);
+  const eligibleClients = useMemo(() => allClients.filter((c) => canClientHavePortfolio(c.status)), [allClients]);
+  const selectedClient = useMemo(() => allClients.find((c) => c.id === form.clienteId), [allClients, form.clienteId]);
+
+  const comercialUsers = useMemo(() => getCommercialExecutives(), [dataReloaded]);
+  const selectedExecutive = useMemo(() => comercialUsers.find((u) => u.id === form.ejecutivoId), [comercialUsers, form.ejecutivoId]);
 
   // ── Initialize seed data if needed ──
   useEffect(() => {
@@ -141,6 +144,9 @@ export default function PortfolioCreatePage() {
         localStorage.setItem("odiseo_users", JSON.stringify(seedUsers));
       }
     }
+
+    // Always trigger re-render to ensure data is loaded
+    setDataReloaded(true);
   }, []);
 
   // ── Client Inheritance from ClientDetailPage ──

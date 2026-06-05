@@ -16,6 +16,7 @@ import {
 } from "../../../shared/data/userStorage";
 import { registerUserStatusChange } from "../../../shared/data/userStatusStorage";
 import { mockSendEmail } from "../../../shared/data/notificationStorage";
+import { getCatalogOptions } from "../../../shared/catalogs";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -38,13 +39,6 @@ interface FormState {
 
 type ExplicitFlowState = "initial" | "existingEmailFound" | "newEmailConfirmed";
 type ComputedFlowState = ExplicitFlowState | "incompleteData" | "readyToRegister";
-
-const AREA_OPTIONS = [
-  { value: "TI", label: "TI" },
-  { value: "Comercial", label: "Comercial" },
-  { value: "Customer Service", label: "Customer Service" },
-  { value: "Master Data", label: "Master Data" },
-];
 
 interface ImportedUserData extends Partial<FormState> {}
 
@@ -122,9 +116,6 @@ export default function UserCreatePage() {
       "Nombre Completo",
       "Puesto",
       "Área",
-      "Rol ODISEO",
-      "Código Usuario Sistema Integral",
-      "Estado Sistema Integral",
     ];
 
     const ws = XLSX.utils.aoa_to_sheet([headers]);
@@ -158,13 +149,6 @@ export default function UserCreatePage() {
           if (firstRow["Nombre Completo"]) imported.fullName = String(firstRow["Nombre Completo"]).trim();
           if (firstRow["Puesto"]) imported.position = String(firstRow["Puesto"]).trim();
           if (firstRow["Área"]) imported.area = String(firstRow["Área"]).trim();
-          if (firstRow["Rol ODISEO"]) {
-            const rolInput = String(firstRow["Rol ODISEO"]).toLowerCase();
-            const roleKey = Object.entries(ROLE_LABELS).find(([, label]) => label.toLowerCase() === rolInput)?.[0];
-            if (roleKey) imported.role = roleKey;
-          }
-          if (firstRow["Código Usuario Sistema Integral"]) imported.siUserCode = String(firstRow["Código Usuario Sistema Integral"]).trim();
-          if (firstRow["Estado Sistema Integral"]) imported.siStatus = String(firstRow["Estado Sistema Integral"]).trim();
 
           resolve(imported);
         } catch (error) {
@@ -515,7 +499,7 @@ export default function UserCreatePage() {
                       label="Área"
                       value={form.area}
                       onChange={(value) => setForm({ ...form, area: value })}
-                      options={AREA_OPTIONS}
+                      options={getCatalogOptions("user_area", { activeOnly: true })}
                       placeholder="Selecciona el área"
                       error={submitAttempted ? validationErrors.area : undefined}
                     />

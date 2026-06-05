@@ -296,6 +296,93 @@ export const CATALOG_REGISTRY: CatalogDefinition[] = [
     ownerSystem: "ODISEO",
     status: "active",
   },
+
+  // FASE 3 - CATÁLOGOS DE CLIENTES
+  {
+    id: "catalog_client_type",
+    code: "client_type",
+    name: "Tipo de Cliente",
+    description: "Clasificación de clientes por tipo",
+    ownerModule: "clients",
+    ownerSystem: "ODISEO",
+    status: "active",
+  },
+  {
+    id: "catalog_client_sector",
+    code: "client_sector",
+    name: "Sector Cliente",
+    description: "Sectores comerciales de clientes",
+    ownerModule: "clients",
+    ownerSystem: "ODISEO",
+    status: "active",
+  },
+  {
+    id: "catalog_client_country",
+    code: "client_country",
+    name: "País Cliente",
+    description: "Países donde operan los clientes",
+    ownerModule: "clients",
+    ownerSystem: "ODISEO",
+    status: "active",
+  },
+
+  // FASE 3 - CATÁLOGOS DE USUARIOS
+  {
+    id: "catalog_user_role",
+    code: "user_role",
+    name: "Rol de Usuario",
+    description: "Roles disponibles en el sistema ODISEO",
+    ownerModule: "users",
+    ownerSystem: "ODISEO",
+    status: "active",
+  },
+  {
+    id: "catalog_user_area",
+    code: "user_area",
+    name: "Área de Usuario",
+    description: "Áreas departamentales de la organización",
+    ownerModule: "users",
+    ownerSystem: "ODISEO",
+    status: "active",
+  },
+  {
+    id: "catalog_user_status",
+    code: "user_status",
+    name: "Estado de Usuario",
+    description: "Estados del ciclo de vida de usuarios",
+    ownerModule: "users",
+    ownerSystem: "ODISEO",
+    status: "active",
+  },
+
+  // FASE 3 - CATÁLOGOS DE PORTAFOLIO
+  {
+    id: "catalog_portfolio_status",
+    code: "portfolio_status",
+    name: "Estado de Portafolio",
+    description: "Estados del portafolio de productos",
+    ownerModule: "portfolio",
+    ownerSystem: "ODISEO",
+    status: "active",
+  },
+  {
+    id: "catalog_product_line",
+    code: "product_line",
+    name: "Línea de Producto",
+    description: "Líneas de negocio o producto",
+    ownerModule: "portfolio",
+    ownerSystem: "ODISEO",
+    status: "active",
+  },
+  {
+    id: "catalog_market_segment",
+    code: "market_segment",
+    name: "Segmento de Mercado",
+    description: "Segmentación del mercado",
+    ownerModule: "portfolio",
+    ownerSystem: "ODISEO",
+    status: "active",
+  },
 ];
 
 export function getCatalogDefinition(code: string): CatalogDefinition | undefined {

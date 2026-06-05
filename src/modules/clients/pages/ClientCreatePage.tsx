@@ -10,9 +10,11 @@ import {
 import { registerClientStatusChange } from "../../../shared/data/clientStatusStorage";
 import { mockSendEmail } from "../../../shared/data/notificationStorage";
 import { type ClientMirror } from "../../../shared/data/clientMirrorStorage";
+import { getCatalogOptions } from "../../../shared/catalogs";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
+import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import SystemIntegrationClientSearch from "../../../shared/components/forms/SystemIntegrationClientSearch";
 import ClientDuplicateHandler from "../../../shared/components/forms/ClientDuplicateHandler";
@@ -25,6 +27,9 @@ interface FormState {
   businessName: string;
   ruc: string;
   industry: string;
+  clientType: string;
+  clientSector: string;
+  clientCountry: string;
 }
 
 export default function ClientCreatePage() {
@@ -38,6 +43,9 @@ export default function ClientCreatePage() {
     businessName: "",
     ruc: "",
     industry: "",
+    clientType: "",
+    clientSector: "",
+    clientCountry: "",
   });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -121,7 +129,10 @@ export default function ClientCreatePage() {
         status: "Por aprobar",
         siClientId: form.siClient?.id,
         siClientCode: form.siClient?.code,
-      });
+        clientType: form.clientType,
+        clientSector: form.clientSector,
+        clientCountry: form.clientCountry,
+      } as any);
 
       registerClientStatusChange(
         newClient.id,
@@ -268,6 +279,38 @@ export default function ClientCreatePage() {
                   </p>
                 </div>
               )}
+            </FormCard>
+
+            <FormCard
+              title="Clasificación del Cliente"
+              icon="🏷️"
+              color="#F59E0B"
+            >
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <FormSelect
+                  label="Tipo de Cliente"
+                  value={form.clientType}
+                  onChange={(value) => setForm((prev) => ({ ...prev, clientType: value }))}
+                  options={getCatalogOptions("client_type", { activeOnly: true })}
+                  placeholder="Seleccionar tipo..."
+                />
+
+                <FormSelect
+                  label="Sector"
+                  value={form.clientSector}
+                  onChange={(value) => setForm((prev) => ({ ...prev, clientSector: value }))}
+                  options={getCatalogOptions("client_sector", { activeOnly: true })}
+                  placeholder="Seleccionar sector..."
+                />
+
+                <FormSelect
+                  label="País"
+                  value={form.clientCountry}
+                  onChange={(value) => setForm((prev) => ({ ...prev, clientCountry: value }))}
+                  options={getCatalogOptions("client_country", { activeOnly: true })}
+                  placeholder="Seleccionar país..."
+                />
+              </div>
             </FormCard>
           </div>
 

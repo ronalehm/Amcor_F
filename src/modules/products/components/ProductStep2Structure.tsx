@@ -7,6 +7,7 @@ import SegmentedControl from "../../../shared/components/forms/SegmentedControl"
 import CollapsibleSection from "../../../shared/components/forms/CollapsibleSection";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import ProjectDocumentsSection from "./ProjectDocumentsSection";
+import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
 
 type StepProps = {
   form: ProjectEditFormData;
@@ -50,12 +51,10 @@ export default function ProductStep2Structure({
                 markFieldAsTouched("structureType");
               }}
               onBlur={() => markFieldAsTouched("structureType")}
-              options={[
-                { value: "Monolaminado", label: "Monolaminado" },
-                { value: "Bilaminado", label: "Bilaminado" },
-                { value: "Trilaminado", label: "Trilaminado" },
-                { value: "Cuadrilaminado", label: "Cuadrilaminado" },
-              ]}
+              options={PRODUCT_CATALOGS.tipoDeEstructura.values.map((val) => ({
+                value: val,
+                label: val,
+              }))}
               placeholder="-- Seleccione Tipo --"
             />
           </div>

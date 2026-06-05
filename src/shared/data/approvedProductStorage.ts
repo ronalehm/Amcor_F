@@ -1,15 +1,28 @@
+export type SkuLifecycleCode = "B" | "A" | "P" | "E";
+
 export type ApprovedProduct = {
   id: string;
   code: string;
   name: string;
+  productName?: string;
   portfolioCode: string;
-  type: "base" | "approved";
+  portfolioName?: string;
+  clientCode?: string;
+  clientName?: string;
+  type: "base" | "approved" | "portfolio_standard";
+  productType?: "base" | "approved" | "portfolio_standard";
   version?: string;
-  status: "Activo" | "Inactivo";
+  status: "Activo" | "Inactivo" | "Base" | "Aprobado" | "Portafolio estándar";
+  skuLifecycleCode?: SkuLifecycleCode;
+  cicloVida?: SkuLifecycleCode;
+  lifecycleLabel?: string;
   // Heredable fields
   wrappingName?: string;
+  envoltura?: string;
   useFinalName?: string;
+  usoFinal?: string;
   packingMachineName?: string;
+  maquinaCliente?: string;
   capacityValue?: string;
   capacityUnit?: string;
   hasSpecialDesign?: "Sí" | "No";
@@ -294,6 +307,135 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     layer3Material: "COEX",
     layer3Micron: "21",
   },
+  // Productos Alicorp - Mayonesa Premium (CL-000001 / PO-000023)
+  {
+    id: "SKU-00021-B-01",
+    code: "SKU-00021-B",
+    version: "01",
+    name: "Mayonesa Premium 500 g",
+    productName: "Mayonesa Premium",
+    clientCode: "CL-000001",
+    clientName: "Alicorp S.A.A.",
+    portfolioCode: "PO-000023",
+    portfolioName: "Mayonesa Premium",
+    type: "base",
+    productType: "base",
+    skuLifecycleCode: "B",
+    cicloVida: "B",
+    lifecycleLabel: "Base",
+    status: "Base",
+    wrappingName: "POUCH",
+    envoltura: "POUCH",
+    useFinalName: "Wet Condiments & Sauces",
+    usoFinal: "Wet Condiments & Sauces",
+    packingMachineName: "HFFS - Stand up Pouch - Sello Doy Pack",
+    maquinaCliente: "HFFS - Stand up Pouch - Sello Doy Pack",
+    capacityValue: "500",
+    capacityUnit: "g",
+    description: "Producto base técnico reutilizable para solicitudes de mayonesa premium en formato pouch.",
+    layer1Material: "PET",
+    layer1Micron: "12",
+    layer2Material: "BOPP",
+    layer2Micron: "20",
+    layer3Material: "PE_SELLANTE",
+    layer3Micron: "80",
+  },
+  {
+    id: "SKU-00022-A-01",
+    code: "SKU-00022-A",
+    version: "01",
+    name: "Mayonesa Premium 500 g Pouch",
+    productName: "Mayonesa Premium",
+    clientCode: "CL-000001",
+    clientName: "Alicorp S.A.A.",
+    portfolioCode: "PO-000023",
+    portfolioName: "Mayonesa Premium",
+    type: "approved",
+    productType: "approved",
+    skuLifecycleCode: "A",
+    cicloVida: "A",
+    lifecycleLabel: "Aprobado",
+    status: "Aprobado",
+    wrappingName: "POUCH",
+    envoltura: "POUCH",
+    useFinalName: "Wet Condiments & Sauces",
+    usoFinal: "Wet Condiments & Sauces",
+    packingMachineName: "HFFS - Stand up Pouch - Sello Doy Pack",
+    maquinaCliente: "HFFS - Stand up Pouch - Sello Doy Pack",
+    capacityValue: "500",
+    capacityUnit: "g",
+    description: "SKU aprobado y vigente para operación comercial de Mayonesa Premium 500 g.",
+    layer1Material: "PET",
+    layer1Micron: "12",
+    layer2Material: "BOPP",
+    layer2Micron: "20",
+    layer3Material: "PE_SELLANTE",
+    layer3Micron: "80",
+  },
+  {
+    id: "SKU-00023-A-01",
+    code: "SKU-00023-A",
+    version: "01",
+    name: "Mayonesa Premium 900 g Pouch",
+    productName: "Mayonesa Premium",
+    clientCode: "CL-000001",
+    clientName: "Alicorp S.A.A.",
+    portfolioCode: "PO-000023",
+    portfolioName: "Mayonesa Premium",
+    type: "approved",
+    productType: "approved",
+    skuLifecycleCode: "A",
+    cicloVida: "A",
+    lifecycleLabel: "Aprobado",
+    status: "Aprobado",
+    wrappingName: "POUCH",
+    envoltura: "POUCH",
+    useFinalName: "Wet Condiments & Sauces",
+    usoFinal: "Wet Condiments & Sauces",
+    packingMachineName: "HFFS - Stand up Pouch - Sello Doy Pack",
+    maquinaCliente: "HFFS - Stand up Pouch - Sello Doy Pack",
+    capacityValue: "900",
+    capacityUnit: "g",
+    description: "SKU aprobado y vigente para operación comercial de Mayonesa Premium 900 g.",
+    layer1Material: "PET",
+    layer1Micron: "12",
+    layer2Material: "ALUMINIO",
+    layer2Micron: "7",
+    layer3Material: "PE_SELLANTE",
+    layer3Micron: "90",
+  },
+  {
+    id: "SKU-00024-P-01",
+    code: "SKU-00024-P",
+    version: "01",
+    name: "Mayonesa Premium Estándar Pouch",
+    productName: "Mayonesa Premium",
+    clientCode: "CL-000001",
+    clientName: "Alicorp S.A.A.",
+    portfolioCode: "PO-000023",
+    portfolioName: "Mayonesa Premium",
+    type: "approved",
+    productType: "portfolio_standard",
+    skuLifecycleCode: "P",
+    cicloVida: "P",
+    lifecycleLabel: "Portafolio estándar",
+    status: "Portafolio estándar",
+    wrappingName: "POUCH",
+    envoltura: "POUCH",
+    useFinalName: "Wet Condiments & Sauces",
+    usoFinal: "Wet Condiments & Sauces",
+    packingMachineName: "HFFS - Stand up Pouch - Sello Doy Pack",
+    maquinaCliente: "HFFS - Stand up Pouch - Sello Doy Pack",
+    capacityValue: "500",
+    capacityUnit: "g",
+    description: "Producto aprobado que forma parte de una configuración estándar de portafolio.",
+    layer1Material: "PET",
+    layer1Micron: "12",
+    layer2Material: "BOPP",
+    layer2Micron: "20",
+    layer3Material: "PE_SELLANTE",
+    layer3Micron: "80",
+  },
 ];
 
 export function getAllApprovedProducts(): ApprovedProduct[] {
@@ -313,7 +455,7 @@ export function getApprovedProductByCode(code: string): ApprovedProduct | undefi
 export function searchApprovedProducts(
   query: string,
   portfolioCode?: string,
-  productType?: "base" | "approved"
+  productType?: "base" | "approved" | "portfolio_standard"
 ): ApprovedProduct[] {
   const searchTerm = query.toLowerCase().trim();
   if (!searchTerm) return [];
@@ -326,13 +468,35 @@ export function searchApprovedProducts(
     results = results.filter((product) => product.portfolioCode === portfolioCode);
   }
 
+  // Filter by productType -> skuLifecycleCode mapping
   if (productType) {
-    results = results.filter((product) => product.type === productType);
+    results = results.filter((product) => {
+      const lifecycle = product.skuLifecycleCode || product.cicloVida;
+
+      if (productType === "base") {
+        // Base products: skuLifecycleCode "B"
+        return lifecycle === "B" || product.type === "base";
+      } else if (productType === "approved") {
+        // Approved products: skuLifecycleCode "A" and "P"
+        return lifecycle === "A" || lifecycle === "P" || product.type === "approved" || product.type === "portfolio_standard";
+      } else if (productType === "portfolio_standard") {
+        // Portfolio standard products: skuLifecycleCode "P"
+        return lifecycle === "P" || product.type === "portfolio_standard";
+      }
+
+      return true;
+    });
   }
 
   return results.filter((product) => {
-    const code = product.code.toLowerCase();
-    const name = product.name.toLowerCase();
-    return code.includes(searchTerm) || name.includes(searchTerm);
+    const code = (product.code || "").toLowerCase();
+    const name = (product.name || "").toLowerCase();
+    const productName = (product.productName || "").toLowerCase();
+
+    return (
+      code.includes(searchTerm) ||
+      name.includes(searchTerm) ||
+      productName.includes(searchTerm)
+    );
   });
 }

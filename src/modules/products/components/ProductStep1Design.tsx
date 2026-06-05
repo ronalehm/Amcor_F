@@ -5,6 +5,7 @@ import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import SegmentedControl from "../../../shared/components/forms/SegmentedControl";
 import ProjectPlansUploadSection from "./ProjectPlansUploadSection";
+import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
 
 type StepProps = {
   form: ProjectEditFormData;
@@ -40,11 +41,10 @@ export default function ProductStep1Design({
                 markFieldAsTouched("printClass");
               }}
               onBlur={() => markFieldAsTouched("printClass")}
-              options={[
-                { value: "Flexo", label: "Flexo" },
-                { value: "Rotograbado", label: "Rotograbado" },
-                { value: "Offset", label: "Offset" },
-              ]}
+              options={PRODUCT_CATALOGS.claseDeImpresion.values.map((val) => ({
+                value: val,
+                label: val,
+              }))}
               placeholder="-- Seleccione Clase --"
             />
             <FormSelect
@@ -55,11 +55,10 @@ export default function ProductStep1Design({
                 markFieldAsTouched("printType");
               }}
               onBlur={() => markFieldAsTouched("printType")}
-              options={[
-                { value: "Nuevo", label: "Nuevo" },
-                { value: "Revisión", label: "Revisión" },
-                { value: "Copia", label: "Copia" },
-              ]}
+              options={PRODUCT_CATALOGS.tipoDeImpresion.values.map((val) => ({
+                value: val,
+                label: val,
+              }))}
               placeholder="-- Seleccione Tipo --"
             />
             <FormSelect
@@ -70,11 +69,10 @@ export default function ProductStep1Design({
                 markFieldAsTouched("printForm");
               }}
               onBlur={() => markFieldAsTouched("printForm")}
-              options={[
-                { value: "Continua", label: "Continua" },
-                { value: "Repetitiva", label: "Repetitiva" },
-                { value: "Seccional", label: "Seccional" },
-              ]}
+              options={PRODUCT_CATALOGS.formaDeImpresion.values.map((val) => ({
+                value: val,
+                label: val,
+              }))}
               placeholder="-- Seleccione Forma --"
             />
           </div>

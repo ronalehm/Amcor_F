@@ -11,7 +11,7 @@ function safeParseArray<T>(value: string | null): T[] {
   }
 }
 
-export type PortfolioStatus = "Borrador" | "Activo" | "Inactivo";
+export type PortfolioStatus = "Borrador" | "Activo" | "Inactivo" | "Aprobado";
 
 export type PortfolioRecord = {
   id: string; // Internal ID or code
@@ -126,6 +126,41 @@ export const INITIAL_PORTFOLIOS: PortfolioRecord[] = [
     status: "Activo",
     createdAt: "2026-04-12T16:45:00.000Z",
     updatedAt: "2026-04-12T16:45:00.000Z"
+  },
+  {
+    id: "PO-000023",
+    codigo: "PO-000023",
+    code: "PO-000023",
+    portfolioCode: "PO-000023",
+    name: "Mayonesa Premium",
+    nom: "Mayonesa Premium",
+    nombrePortafolio: "Mayonesa Premium",
+    clientCode: "CL-000001",
+    CLMaCCLi: "CL-000001",
+    codigoCliente: "CL-000001",
+    clientName: "Alicorp S.A.A.",
+    cli: "Alicorp S.A.A.",
+    cliente: "Alicorp S.A.A.",
+    nombreCliente: "Alicorp S.A.A.",
+    razonSocial: "Alicorp S.A.A.",
+    businessName: "Alicorp S.A.A.",
+    ejecutivoName: "BALDEON, EDUARDO",
+    plantaName: "AF Lima",
+    plantName: "AF Lima",
+    envoltura: "POUCH",
+    wrappingName: "POUCH",
+    usoFinal: "Wet Condiments & Sauces",
+    useFinalName: "Wet Condiments & Sauces",
+    sector: "Food / Culinary",
+    segmento: "Food / Culinary / Wet Condiments",
+    subSegmento: "Wet Condiments & Sauces",
+    afMarketId: "AF-10001",
+    maquinaCliente: "HFFS - Stand up Pouch - Sello Doy Pack",
+    status: "Aprobado",
+    est: "Aprobado",
+    proy: [],
+    createdAt: "2026-05-01T10:00:00.000Z",
+    updatedAt: "2026-05-01T10:00:00.000Z"
   }
 ];
 

@@ -5,7 +5,6 @@ import {
   ArrowUp,
   ArrowUpDown,
   Mail,
-  Plus,
   RotateCcw,
   Search,
   UserX,
@@ -81,18 +80,9 @@ export default function ClientListPage() {
     setHeader({
       title: "Gestión de Clientes",
       breadcrumbs: [{ label: "Clientes" }, { label: "Lista de Clientes" }],
-      actions: (
-        <button
-          onClick={() => navigate("/clients/new")}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-primary px-4 py-2 text-sm font-bold text-white hover:bg-brand-primary-hover"
-        >
-          <Plus size={16} />
-          Registrar Cliente
-        </button>
-      ),
     });
     return () => resetHeader();
-  }, [setHeader, resetHeader, navigate]);
+  }, [setHeader, resetHeader]);
 
   useEffect(() => {
     const raw = localStorage.getItem(RECENT_NEW_CLIENT_KEY);

@@ -136,20 +136,28 @@ const YES_NO_OPTIONS = [
   { value: "No", label: "No" },
 ];
 
+// Classification options with proper labels from PRODUCT_CATALOGS
 const CLASSIFICATION_OPTIONS = [
-  { value: "Nuevo", label: "Nuevo" },
-  { value: "Modificado", label: "Modificado" },
+  { value: "Nuevo", label: "Producto Nuevo" },
+  { value: "Modificado", label: "Producto Modificado" },
 ];
 
-const SUBCLASSIFICATION_NUEVO_OPTIONS = [
-  { value: "Desarrollo_RD", label: "Desarrollo_RD" },
-  { value: "Área_Técnica", label: "Área_Técnica" },
-];
-
-const SUBCLASSIFICATION_MODIFICADO_OPTIONS = [
-  { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
-  { value: "Estructura", label: "Estructura" },
-];
+// Subclassification options mapped by classification type
+const getSubclassificationOptions = (classification: string) => {
+  if (classification === "Nuevo") {
+    return [
+      { value: "Desarrollo_RD", label: "Desarrollo_RD" },
+      { value: "Área_Técnica", label: "Área_Técnica" },
+    ];
+  }
+  if (classification === "Modificado") {
+    return [
+      { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
+      { value: "Estructura", label: "Estructura" },
+    ];
+  }
+  return [];
+};
 
 const PROJECT_TYPE_OPTIONS = [
   { value: "ICO", label: "ICO" },
@@ -640,8 +648,6 @@ export default function ProjectCreatePage() {
   }, [executives, form.executiveId]);
 
   // Obtener opciones desde catálogos centralizados
-  const classificationOpt = useMemo(() => getCatalogOptions("classification"), []);
-  const subclassificationOpt = useMemo(() => getCatalogOptions("subclassification"), []);
   const unitOfMeasureOpt = useMemo(() => getCatalogOptions("unit_measure"), []);
   const printClassOpt = useMemo(() => getCatalogOptions("print_class"), []);
   const printTypeOpt = useMemo(() => getCatalogOptions("print_type"), []);
@@ -1420,7 +1426,7 @@ export default function ProjectCreatePage() {
                     updateField("subClassification", "");
                     updateField("projectType", "");
                   }}
-                  options={classificationOpt}
+                  options={CLASSIFICATION_OPTIONS}
                   placeholder="-- Seleccione --"
                 />
 
@@ -1431,13 +1437,7 @@ export default function ProjectCreatePage() {
                     updateField("subClassification", value);
                     updateField("projectType", "");
                   }}
-                  options={
-                    form.classification === "Nuevo"
-                      ? SUBCLASSIFICATION_NUEVO_OPTIONS
-                      : form.classification === "Modificado"
-                        ? SUBCLASSIFICATION_MODIFICADO_OPTIONS
-                        : []
-                  }
+                  options={getSubclassificationOptions(form.classification)}
                   placeholder="-- Seleccione --"
                   disabled={!form.classification}
                 />

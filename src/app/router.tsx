@@ -5,6 +5,9 @@ import Layout from "../components/layout/Layout";
 import LoginPage from "../modules/auth/pages/LoginPage";
 import DashboardPage from "../modules/dashboard/pages/DashboardPage";
 
+import seedClients from "../shared/data/seeds/clients.json";
+import seedUsers from "../shared/data/seeds/users.json";
+
 import UserListPage from "../modules/users/pages/UserListPage";
 import UserCreatePage from "../modules/users/pages/UserCreatePage";
 import ClientListPage from "../modules/clients/pages/ClientListPage";
@@ -34,6 +37,7 @@ import ComplianceDocumentPage from "../shared/pages/ComplianceDocumentPage";
 import { CatalogRestrictionManagementPage, ViewAllCatalogsPage } from "../modules/catalog-management";
 
 import { getCurrentUser, logoutUser } from "../shared/data/userStorage";
+import { getAllApprovedProducts } from "../shared/data/approvedProductStorage";
 
 export default function AppRouter() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,6 +47,19 @@ export default function AppRouter() {
     const user = getCurrentUser();
     setCurrentUser(user);
     setIsAuthenticated(!!user);
+
+    // Initialize seed data in localStorage if not already present
+    if (user) {
+      if (!localStorage.getItem('odiseo_clients')) {
+        localStorage.setItem('odiseo_clients', JSON.stringify(seedClients));
+      }
+      if (!localStorage.getItem('odiseo_users')) {
+        localStorage.setItem('odiseo_users', JSON.stringify(seedUsers));
+      }
+      if (!localStorage.getItem('odiseo_approved_products')) {
+        localStorage.setItem('odiseo_approved_products', JSON.stringify(getAllApprovedProducts()));
+      }
+    }
   }, []);
 
   const handleLogin = () => {
@@ -80,8 +97,7 @@ export default function AppRouter() {
           <Route path="users/new" element={<UserCreatePage />} />
           <Route path="users/:userId" element={<UserDetailPage />} />
           <Route path="users/:userId/edit" element={<UserEditPage />} />
-          <Route path="catalogs" element={<ViewAllCatalogsPage />} />
-          <Route path="catalog-management" element={<CatalogRestrictionManagementPage />} />
+          <Route path="catalogs" element={<CatalogRestrictionManagementPage />} />
           <Route path="soporte" element={<div className="p-4">Soporte TI</div>} />
           <Route path="configuracion" element={<div className="p-4">Configuración</div>} />
         </Route>

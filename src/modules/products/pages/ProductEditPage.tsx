@@ -259,11 +259,6 @@ const YES_NO_OPTIONS = [
   { value: "No", label: "No" },
 ];
 
-const CLASSIFICATION_OPTIONS = [
-  { value: "Nuevo", label: "Producto nuevo" },
-  { value: "Modificado", label: "Producto modificado" },
-];
-
 const CAUSAL_OPTIONS_NUEVO = [
   { value: "Nueva estructura", label: "Nueva estructura" },
   { value: "Nuevos insumos", label: "Nuevos insumos" },
@@ -369,15 +364,22 @@ const formatLayerForTechnicalName = (material: string, micron?: string): string 
   return `${label} ${micron} µ`;
 };
 
-const SUBCLASSIFICATION_NUEVO_OPTIONS = [
-  { value: "Desarrollo_RD", label: "Desarrollo_RD" },
-  { value: "Área_Técnica", label: "Área_Técnica" },
-];
-
-const SUBCLASSIFICATION_MODIFICADO_OPTIONS = [
-  { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
-  { value: "Estructura", label: "Estructura" },
-];
+// Subclassification options mapped by classification type
+const getSubclassificationOptions = (classification: string) => {
+  if (classification === "Producto Nuevo") {
+    return [
+      { value: "Desarrollo_RD", label: "Desarrollo_RD" },
+      { value: "Área_Técnica", label: "Área_Técnica" },
+    ];
+  }
+  if (classification === "Producto Modificado") {
+    return [
+      { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
+      { value: "Estructura", label: "Estructura" },
+    ];
+  }
+  return [];
+};
 
 const PROJECT_TYPE_RD_OPTIONS = [
   { value: "Producto nuevo", label: "Producto nuevo" },

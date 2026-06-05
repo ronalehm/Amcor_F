@@ -31,9 +31,9 @@ export type ProductStatus =
   | "En Preparación"
   | "Completado";
 
-export type SkuLifecycleCode = "A" | "E" | "B";
+export type SkuLifecycleCode = "A" | "E" | "B" | "P";
 
-export type SkuLifecycleLabel = "Aprobado" | "Muestra" | "Base";
+export type SkuLifecycleLabel = "Aprobado" | "Muestra" | "Base" | "Portafolio estándar";
 
 export type GraphicArtsValidationStatus =
   | "Sin solicitar"
