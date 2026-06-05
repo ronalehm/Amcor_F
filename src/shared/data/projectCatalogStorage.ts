@@ -65,23 +65,41 @@ export const UNIT_OF_MEASURE_CATALOG: CatalogItem[] = (
   isActive: true,
 }));
 
-// 4. Clase de Impresión
-export const PRINT_CLASS_CATALOG: CatalogItem[] = [
-  { id: "1", code: "PC-001", name: "Sencilla", description: "Impresión sencilla", isActive: true },
-  { id: "2", code: "PC-002", name: "Alta Definición", description: "HD - Alta definición", isActive: true },
-  { id: "3", code: "PC-003", name: "Ultra HD", description: "UHD - Ultra alta definición", isActive: true },
-  { id: "4", code: "PC-004", name: "ESG (Extended Gamut)", description: "Gama extendida de colores", isActive: true },
-  { id: "5", code: "PC-005", name: "Omnia", description: "Tecnología Omnia Amcor", isActive: true },
-  { id: "6", code: "PC-006", name: "Sin Impresión", description: "Película sin impresión", isActive: true },
-];
+// 4. Clase de Impresión - Consolidado desde PRODUCT_CATALOGS
+// Valores válidos según Excel: Flexo, Huecograbado, Sin impresión
+export const PRINT_CLASS_CATALOG: CatalogItem[] = (
+  PRODUCT_CATALOGS.claseDeImpresion as unknown as Array<{ code: string; label: string }>
+).map((item, index) => ({
+  id: String(index + 1),
+  code: item.code,
+  name: item.label,
+  description: item.label,
+  isActive: true,
+}));
 
-// 5. Tipo de Impresión
-export const PRINT_TYPE_CATALOG: CatalogItem[] = [
-  { id: "1", code: "PT-001", name: "Flexografía", description: "Impresión flexográfica", isActive: true },
-  { id: "2", code: "PT-002", name: "Rotograbado", description: "Impresión en rotograbado", isActive: true },
-  { id: "3", code: "PT-003", name: "Digital", description: "Impresión digital", isActive: true },
-  { id: "4", code: "PT-004", name: "Sin Impresión", description: "Sin impresión", isActive: true },
-];
+// 5. Tipo de Impresión - Consolidado desde PRODUCT_CATALOGS
+// Valores válidos según Excel: Repetitivo, Continuo
+export const PRINT_TYPE_CATALOG: CatalogItem[] = (
+  PRODUCT_CATALOGS.tipoDeImpresion as unknown as Array<{ code: string; label: string }>
+).map((item, index) => ({
+  id: String(index + 1),
+  code: item.code,
+  name: item.label,
+  description: item.label,
+  isActive: true,
+}));
+
+// 5.5. Forma de Impresión - Consolidado desde PRODUCT_CATALOGS
+// Valores válidos según Excel: Superficie, Dorso
+export const PRINT_FORM_CATALOG: CatalogItem[] = (
+  PRODUCT_CATALOGS.formaDeImpresion as unknown as Array<{ code: string; label: string }>
+).map((item, index) => ({
+  id: String(index + 1),
+  code: item.code,
+  name: item.label,
+  description: item.label,
+  isActive: true,
+}));
 
 // 6. Tipo de Estructura
 export const STRUCTURE_TYPE_CATALOG: CatalogItem[] = [
@@ -351,6 +369,7 @@ export function getCatalogByName(name: string): CatalogItem[] | undefined {
     unitOfMeasure: UNIT_OF_MEASURE_CATALOG,
     printClass: PRINT_CLASS_CATALOG,
     printType: PRINT_TYPE_CATALOG,
+    printForm: PRINT_FORM_CATALOG,
     structureType: STRUCTURE_TYPE_CATALOG,
     layerMaterial: LAYER_MATERIAL_CATALOG,
     zipperType: ZIPPER_TYPE_CATALOG,

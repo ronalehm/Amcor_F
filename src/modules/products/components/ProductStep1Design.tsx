@@ -48,7 +48,7 @@ export default function ProductStep1Design({
               placeholder="-- Seleccione Clase --"
             />
             <FormSelect
-              label="Tipo Impresión"
+              label="Tipo de Impresión"
               value={form.printType}
               onChange={(value) => {
                 updateField("printType", value);
