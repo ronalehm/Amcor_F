@@ -7,7 +7,7 @@ interface ApprovedProductSearchProps {
   onChange: (value: string) => void;
   onSelect: (product: ApprovedProduct) => void;
   portfolioCode?: string;
-  productType?: "base" | "approved";
+  productType?: "base" | "approved" | "portfolio_standard";
   placeholder?: string;
   disabled?: boolean;
 }
@@ -100,11 +100,11 @@ export default function ApprovedProductSearch({
                         </div>
                       </div>
                       <span className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap mt-1 ${
-                        product.type === "approved"
+                        product.type === "approved" || product.type === "portfolio_standard"
                           ? "bg-green-100 text-green-700"
                           : "bg-blue-100 text-blue-700"
                       }`}>
-                        {product.type === "approved" ? "Aprobado" : "Base"}
+                        {product.lifecycleLabel || (product.type === "approved" ? "Aprobado" : (product.type === "portfolio_standard" ? "Portafolio estándar" : "Base"))}
                       </span>
                     </div>
                   </button>

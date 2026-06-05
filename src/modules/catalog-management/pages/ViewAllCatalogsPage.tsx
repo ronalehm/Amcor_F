@@ -7,6 +7,7 @@ import { getCatalogs } from "../../../shared/catalogs";
 import { getAvailableRestrictions } from "../services/catalogRestrictionService";
 import CatalogsList from "../components/CatalogsList";
 import RestrictionsList from "../components/RestrictionsList";
+import CatalogPreviewModal from "../components/CatalogPreviewModal";
 import { exportAllCatalogs, exportAllRestrictions, exportAllData } from "../services/catalogExportService";
 
 export default function ViewAllCatalogsPage() {
@@ -14,10 +15,7 @@ export default function ViewAllCatalogsPage() {
   const currentUser = getCurrentUser();
   const [isExporting, setIsExporting] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
-
-  if (currentUser?.role !== "administrator") {
-    return <Navigate to="/dashboard" replace />;
-  }
+  const [selectedCatalogCode, setSelectedCatalogCode] = useState<string>("");
 
   const catalogs = useMemo(() => getCatalogs(), []);
   const restrictions = useMemo(() => getAvailableRestrictions(), []);
@@ -133,7 +131,7 @@ export default function ViewAllCatalogsPage() {
                   {catalogs.length} catálogo{catalogs.length !== 1 ? "s" : ""} disponible{catalogs.length !== 1 ? "s" : ""}
                 </p>
               </div>
-              <CatalogsList catalogs={catalogs} />
+              <CatalogsList catalogs={catalogs} onSelectCatalog={setSelectedCatalogCode} />
             </div>
           </div>
 
@@ -151,6 +149,12 @@ export default function ViewAllCatalogsPage() {
           </div>
         </div>
       </div>
+
+      <CatalogPreviewModal
+        isOpen={!!selectedCatalogCode}
+        catalogCode={selectedCatalogCode}
+        onClose={() => setSelectedCatalogCode("")}
+      />
     </div>
   );
 }

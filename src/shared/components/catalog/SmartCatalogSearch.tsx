@@ -44,8 +44,8 @@ export default function SmartCatalogSearch({
     if (!value) {
       if (!justTypedRef.current) {
         setQuery("");
+        setIsOpen(false);
       }
-      setIsOpen(false);
     }
     justTypedRef.current = false;
   }, [value, selectedOption?.name]);
@@ -65,7 +65,7 @@ export default function SmartCatalogSearch({
 
   const filteredOptions = useMemo(() => {
     const search = query.trim().toLowerCase();
-    if (!search) return [];
+    if (!search) return options;
 
     return options.filter((option) =>
       [option.name, option.code, option.meta]
@@ -82,7 +82,7 @@ export default function SmartCatalogSearch({
     setIsOpen(false);
   };
 
-  const showDropdown = isOpen && query.trim().length >= 1;
+  const showDropdown = isOpen;
 
   return (
     <div className="relative" ref={wrapperRef}>

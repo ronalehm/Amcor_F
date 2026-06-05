@@ -35,6 +35,7 @@ import {
   calculatePouchFormatPlan,
 } from "../../../shared/data/formatPlanRules";
 import { getCatalogOptions } from "../../../shared/catalogs";
+import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
 import {
   getDimensionRestrictionsByFormat,
   formatDimensionRange,
@@ -54,7 +55,9 @@ import CommercialExecutiveMultiSearch from "../../../shared/components/forms/Com
 import ProjectDocumentsSection from "../components/ProjectDocumentsSection";
 import ProjectPlansUploadSection from "../components/ProjectPlansUploadSection";
 
-type ProjectEditFormData = {
+export type ProjectEditFormData = {
+  code: string;
+  status: string;
   portfolioCode: string;
   executiveId: string[];
   siUserId: string;
@@ -85,9 +88,34 @@ type ProjectEditFormData = {
 
   estimatedVolume: string;
   unitOfMeasure: string;
+  technicalApplication: string;
+  portafolioEstandar: string;
+  approvedProductCode: string;
+  customerPackingCode: string;
 
   printClass: string;
   printType: string;
+  printForm: string;
+  designAreaWidth: string;
+  designAreaHeight: string;
+  coPrinting: string;
+  codesToPrint: string;
+  rewindingDirection: string;
+  rewindingDirectionRef: string;
+  hasPhotocell: string;
+  photocellLocation: string;
+  fr1Width: string;
+  fr1Height: string;
+  fr1MarginRight: string;
+  fr1MarginBottom: string;
+  fr1MarginLeft: string;
+  fr1MarginTop: string;
+  fr2Width: string;
+  fr2Height: string;
+  fr2MarginRight: string;
+  fr2MarginBottom: string;
+  fr2MarginLeft: string;
+  fr2MarginTop: string;
   hasDesignPlan: string;
   hasEdagReference: string;
   referenceEdagCode: string;
@@ -122,6 +150,7 @@ type ProjectEditFormData = {
   layer4Grammage: string;
 
   specialStructureSpecs: string;
+  grammageTolerance: string;
   grammage: string;
   sampleRequest: string;
 
@@ -129,29 +158,83 @@ type ProjectEditFormData = {
   length: string;
   repetition: string;
   doyPackBase: string;
+  doyPackRepeticionExacta: string;
+  toleranciaRepExactaDoyPack: string;
+  toleranciaRepDoyPack: string;
+  fuelleCerrado: string;
+  selloAnchoLateral: string;
   gussetWidth: string;
   gussetType: string;
 
+  hasMicroperforado: string;
+  ladoMicroperforado: string;
+  separacionPuas: string;
+  distanciaLadoPouch: string;
+
+  distanciaAbocaZipper: string;
+  distanciaAbocaValvula: string;
   hasZipper: string;
   zipperType: string;
   hasTinTie: string;
   hasValve: string;
   valveType: string;
+  hasRiñonera: string;
+
+  hasWicket: string;
+  wicketDiameter: string;
+  wicketDistSuperior: string;
+  wicketDistDerecho: string;
+
+  hasWicketControl: string;
+  wicketControlDiameter: string;
+  wicketControlUbicacion: string;
+  wicketControlDistSuperior: string;
+  wicketControlDistDerecho: string;
+
+  anchoSolapa: string;
+  hasCortaAliviador: string;
+  cortaAliviadorDistDerecho: string;
+  hasDispensador: string;
+  dispensadorDistIzquierdo: string;
+  hasFotocelulaBolsaWicket: string;
+
+  hasPrecorteWicket: string;
+  precorteWicketLargo: string;
+  precorteWicketUbicacion: string;
+  precorteWicketDistDerecho: string;
+
   hasDieCutHandle: string;
   hasReinforcement: string;
   reinforcementThickness: string;
   reinforcementWidth: string;
-  hasAngularCut: string;
+  ladoCorteAngular: string;
+  distanciaAbocaMuesca: string;
   hasRoundedCorners: string;
   roundedCornersType: string;
   hasNotch: string;
+  distanciaAbocaPerforacion: string;
   hasPerforation: string;
   pouchPerforationType: string;
   bagPerforationType: string;
   perforationLocation: string;
+  tipoPerfPouchSelloCentral: string;
+  tipoPerfFuelleBolsaWicket: string;
+  perforacionParaAire: string;
+  perforacionFugaAire: string;
+  distMargenSuperiorPerforacion: string;
+  distFuellePerforacion: string;
+  hasAngularCut: string;
   hasPreCut: string;
   preCutType: string;
+  distanciaAbocaPrecorte: string;
+  precutFuelleAbreFacil: string;
+  precutFuelleA10mm: string;
   otherAccessories: string;
+
+  materialPackaging: string;
+  specialMaterialPackaging: string;
+  exportProductPackaging: string;
+  splices: string;
 
   saleType: string;
   incoterm: string;
@@ -175,11 +258,6 @@ type ProjectEditFormData = {
 const YES_NO_OPTIONS = [
   { value: "Sí", label: "Sí" },
   { value: "No", label: "No" },
-];
-
-const CLASSIFICATION_OPTIONS = [
-  { value: "Nuevo", label: "Producto nuevo" },
-  { value: "Modificado", label: "Producto modificado" },
 ];
 
 const CAUSAL_OPTIONS_NUEVO = [
@@ -287,15 +365,22 @@ const formatLayerForTechnicalName = (material: string, micron?: string): string 
   return `${label} ${micron} µ`;
 };
 
-const SUBCLASSIFICATION_NUEVO_OPTIONS = [
-  { value: "Desarrollo_RD", label: "Desarrollo_RD" },
-  { value: "Área_Técnica", label: "Área_Técnica" },
-];
-
-const SUBCLASSIFICATION_MODIFICADO_OPTIONS = [
-  { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
-  { value: "Estructura", label: "Estructura" },
-];
+// Subclassification options mapped by classification type
+const getSubclassificationOptions = (classification: string) => {
+  if (classification === "Producto Nuevo") {
+    return [
+      { value: "Desarrollo_RD", label: "Desarrollo_RD" },
+      { value: "Área_Técnica", label: "Área_Técnica" },
+    ];
+  }
+  if (classification === "Producto Modificado") {
+    return [
+      { value: "Diseño y Dimensiones", label: "Diseño y Dimensiones" },
+      { value: "Estructura", label: "Estructura" },
+    ];
+  }
+  return [];
+};
 
 const PROJECT_TYPE_RD_OPTIONS = [
   { value: "Producto nuevo", label: "Producto nuevo" },
@@ -593,6 +678,21 @@ function getLayerCountByStructureType(structureType: string): number {
   }
 }
 
+function getStructureTypeByLayerCount(layerCount: number): string {
+  switch (layerCount) {
+    case 1:
+      return "Monocapa";
+    case 2:
+      return "Bilaminado";
+    case 3:
+      return "Trilaminado";
+    case 4:
+      return "Tetralaminado";
+    default:
+      return "";
+  }
+}
+
 function getMaterialTypeForSummary(materialValue: string): string {
   if (!materialValue) return "";
 
@@ -607,14 +707,13 @@ function getMaterialTypeForSummary(materialValue: string): string {
 
   return materialValue;
 }
-const UNIT_OPTIONS = [
-  { value: "KGS", label: "KGS" },
-  { value: "MLL", label: "MLL" },
-  { value: "MTS", label: "MTS" },
-  { value: "MT2", label: "MT2" },
-  { value: "LBS", label: "LBS" },
-  { value: "UNI", label: "UNI" },
-];
+// Unidad de Medida - consolidado desde PRODUCT_CATALOGS (única fuente oficial)
+const UNIT_OPTIONS = (PRODUCT_CATALOGS.unidadDeMedida as unknown as Array<{ code: string; label: string }>).map(
+  (item) => ({
+    value: item.code,
+    label: item.label,
+  })
+);
 
 // Moment 1 unit options (from modal)
 const UNIT_OPTIONS_MOMENT1 = UNITS_OF_MEASURE.map((unit) => ({
@@ -864,6 +963,7 @@ const STEPS = [
   { label: "Producto" },
   { label: "Diseño" },
   { label: "Estructura" },
+  { label: "Embalaje y Empalmes" },
 ];
 
 const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
@@ -935,6 +1035,14 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "coreMaterial", "coreDiameter", "externalDiameter",
     "externalVariationPlus", "externalVariationMinus", "maxRollWeight",
   ],
+
+  // 4. Embalaje y Empalmes
+  3: [
+    "materialPackaging",
+    "specialMaterialPackaging",
+    "exportProductPackaging",
+    "splices",
+  ],
 };
 const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   portfolioCode: "Portafolio base",
@@ -944,8 +1052,9 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
 
   blueprintFormat: "Formato de plano",
 
-  printClass: "Impresión",
-  printType: "Tipo",
+  printClass: "Clase de Impresión",
+  printType: "Tipo de Impresión",
+  printForm: "Forma de Impresión",
 
   width: "Ancho",
   length: "Largo",
@@ -1018,6 +1127,11 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   layer4Material: "Capa 4 - Tipo de Material y Micraje",
   layer4Micron: "Capa 4 - Micraje",
   layer4Grammage: "Capa 4 - Gramaje",
+
+  materialPackaging: "Embalaje de material",
+  specialMaterialPackaging: "Embalaje de material especial",
+  exportProductPackaging: "Embalaje de Productos de Exportación",
+  splices: "Empalmes",
 
   licitacion: "Licitación",
 };
@@ -1187,6 +1301,10 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     hasPreCut: form.hasPreCut,
     preCutType: form.preCutType,
     otherAccessories: form.otherAccessories,
+    materialPackaging: form.materialPackaging,
+    specialMaterialPackaging: form.specialMaterialPackaging,
+    exportProductPackaging: form.exportProductPackaging,
+    splices: form.splices,
     saleType: form.saleType,
     incoterm: form.incoterm,
     destinationCountry: form.destinationCountry,
@@ -1221,6 +1339,8 @@ export default function ProjectEditPage() {
   const { projectCode } = useParams<{ projectCode: string }>();
 
   const [form, setForm] = useState<ProjectEditFormData>({
+    code: "",
+    status: "",
     portfolioCode: "",
     executiveId: [],
     siUserId: "",
@@ -1248,8 +1368,33 @@ export default function ProjectEditPage() {
     tipoSelloEnFuellePouch: "",
     estimatedVolume: "",
     unitOfMeasure: "",
+    technicalApplication: "",
+    portafolioEstandar: "",
+    approvedProductCode: "",
+    customerPackingCode: "",
     printClass: "",
     printType: "",
+    printForm: "",
+    designAreaWidth: "",
+    designAreaHeight: "",
+    coPrinting: "",
+    codesToPrint: "",
+    rewindingDirection: "",
+    rewindingDirectionRef: "",
+    hasPhotocell: "",
+    photocellLocation: "",
+    fr1Width: "",
+    fr1Height: "",
+    fr1MarginRight: "",
+    fr1MarginBottom: "",
+    fr1MarginLeft: "",
+    fr1MarginTop: "",
+    fr2Width: "",
+    fr2Height: "",
+    fr2MarginRight: "",
+    fr2MarginBottom: "",
+    fr2MarginLeft: "",
+    fr2MarginTop: "",
     hasDesignPlan: "",
     hasEdagReference: "",
     referenceEdagCode: "",
@@ -1281,34 +1426,82 @@ export default function ProjectEditPage() {
     layer4Micron: "",
     layer4Grammage: "",
     specialStructureSpecs: "",
+    grammageTolerance: "",
     grammage: "",
     sampleRequest: "",
     width: "",
     length: "",
     repetition: "",
     doyPackBase: "",
+    doyPackRepeticionExacta: "",
+    toleranciaRepExactaDoyPack: "",
+    toleranciaRepDoyPack: "",
+    fuelleCerrado: "",
+    selloAnchoLateral: "",
     gussetWidth: "",
     gussetType: "",
+    hasMicroperforado: "",
+    ladoMicroperforado: "",
+    separacionPuas: "",
+    distanciaLadoPouch: "",
+    distanciaAbocaZipper: "",
+    distanciaAbocaValvula: "",
     hasZipper: "",
     zipperType: "",
     hasTinTie: "",
     hasValve: "",
     valveType: "",
+    hasRiñonera: "",
+    hasWicket: "",
+    wicketDiameter: "",
+    wicketDistSuperior: "",
+    wicketDistDerecho: "",
+    hasWicketControl: "",
+    wicketControlDiameter: "",
+    wicketControlUbicacion: "",
+    wicketControlDistSuperior: "",
+    wicketControlDistDerecho: "",
+    anchoSolapa: "",
+    hasCortaAliviador: "",
+    cortaAliviadorDistDerecho: "",
+    hasDispensador: "",
+    dispensadorDistIzquierdo: "",
+    hasFotocelulaBolsaWicket: "",
+    hasPrecorteWicket: "",
+    precorteWicketLargo: "",
+    precorteWicketUbicacion: "",
+    precorteWicketDistDerecho: "",
     hasDieCutHandle: "",
     hasReinforcement: "",
     reinforcementThickness: "",
     reinforcementWidth: "",
+    ladoCorteAngular: "",
+    distanciaAbocaMuesca: "",
     hasAngularCut: "",
     hasRoundedCorners: "",
     roundedCornersType: "",
     hasNotch: "",
+    distanciaAbocaPerforacion: "",
     hasPerforation: "",
     pouchPerforationType: "",
     bagPerforationType: "",
     perforationLocation: "",
+    tipoPerfPouchSelloCentral: "",
+    tipoPerfFuelleBolsaWicket: "",
+    perforacionParaAire: "",
+    perforacionFugaAire: "",
+    distMargenSuperiorPerforacion: "",
+    distFuellePerforacion: "",
     hasPreCut: "",
     preCutType: "",
+    distanciaAbocaPrecorte: "",
+    precutFuelleAbreFacil: "",
+    precutFuelleA10mm: "",
     otherAccessories: "",
+    materialPackaging: "",
+    specialMaterialPackaging: "",
+    exportProductPackaging: "",
+    splices: "",
     saleType: "",
     incoterm: "",
     destinationCountry: "",
@@ -1363,7 +1556,7 @@ export default function ProjectEditPage() {
 
   const classificationOpt = useMemo(() => getCatalogOptions("classification"), []);
   const subclassificationOpt = useMemo(() => getCatalogOptions("subclassification"), []);
-  const unitOfMeasureOpt = useMemo(() => getCatalogOptions("unit_measure"), []);
+  // unitOfMeasureOpt removed - using UNIT_OPTIONS from PRODUCT_CATALOGS directly
   const printClassOpt = useMemo(() => getCatalogOptions("print_class"), []);
   const printTypeOpt = useMemo(() => getCatalogOptions("print_type"), []);
   const structureTypeOpt = useMemo(() => getCatalogOptions("structure_type"), []);
@@ -1416,6 +1609,8 @@ export default function ProjectEditPage() {
     );
 
     const convertedForm: ProjectEditFormData = {
+      code: project.code || "",
+      status: project.status || "",
       portfolioCode: project.portfolioCode || "",
       executiveId: getProjectExecutiveIds(project),
       siUserId: project.siUserId || "",
@@ -1443,8 +1638,33 @@ export default function ProjectEditPage() {
       tipoSelloEnFuellePouch: (project as any).tipoSelloEnFuellePouch || "",
       estimatedVolume: initialVolume || project.estimatedVolume || "",
       unitOfMeasure: initialUnit || project.unitOfMeasure || "KGS",
+      technicalApplication: (project as any).technicalApplication || "",
+      portafolioEstandar: (project as any).portafolioEstandar || "",
+      approvedProductCode: (project as any).approvedProductCode || "",
+      customerPackingCode: (project as any).customerPackingCode || "",
       printClass: project.printClass || "",
       printType: project.printType || "",
+      printForm: (project as any).printForm || "",
+      designAreaWidth: (project as any).designAreaWidth || "",
+      designAreaHeight: (project as any).designAreaHeight || "",
+      coPrinting: (project as any).coPrinting || "",
+      codesToPrint: (project as any).codesToPrint || "",
+      rewindingDirection: (project as any).rewindingDirection || "",
+      rewindingDirectionRef: (project as any).rewindingDirectionRef || "",
+      hasPhotocell: toYesNo((project as any).hasPhotocell),
+      photocellLocation: (project as any).photocellLocation || "",
+      fr1Width: (project as any).fr1Width || "",
+      fr1Height: (project as any).fr1Height || "",
+      fr1MarginRight: (project as any).fr1MarginRight || "",
+      fr1MarginBottom: (project as any).fr1MarginBottom || "",
+      fr1MarginLeft: (project as any).fr1MarginLeft || "",
+      fr1MarginTop: (project as any).fr1MarginTop || "",
+      fr2Width: (project as any).fr2Width || "",
+      fr2Height: (project as any).fr2Height || "",
+      fr2MarginRight: (project as any).fr2MarginRight || "",
+      fr2MarginBottom: (project as any).fr2MarginBottom || "",
+      fr2MarginLeft: (project as any).fr2MarginLeft || "",
+      fr2MarginTop: (project as any).fr2MarginTop || "",
       hasDesignPlan: toYesNo((project as any).hasDesignPlan),
       hasEdagReference: shouldBeNewDesign
         ? "No"
@@ -1482,34 +1702,82 @@ export default function ProjectEditPage() {
       layer4Micron: project.layer4Micron || (project as any).layer4Micraje || "",
       layer4Grammage: project.layer4Grammage || "",
       specialStructureSpecs: project.specialStructureSpecs || "",
+      grammageTolerance: (project as any).grammageTolerance || "",
       grammage: project.grammage || "",
       sampleRequest: toYesNo(project.sampleRequest),
       width: project.width || "",
       length: project.length || "",
       repetition: project.repetition || "",
       doyPackBase: project.doyPackBase || "",
+      doyPackRepeticionExacta: (project as any).doyPackRepeticionExacta || "",
+      toleranciaRepExactaDoyPack: (project as any).toleranciaRepExactaDoyPack || "",
+      toleranciaRepDoyPack: (project as any).toleranciaRepDoyPack || "",
+      fuelleCerrado: toYesNo((project as any).fuelleCerrado),
+      selloAnchoLateral: (project as any).selloAnchoLateral || "",
       gussetWidth: project.gussetWidth || "",
       gussetType: project.gussetType || "",
+      hasMicroperforado: toYesNo((project as any).hasMicroperforado),
+      ladoMicroperforado: (project as any).ladoMicroperforado || "",
+      separacionPuas: (project as any).separacionPuas || "",
+      distanciaLadoPouch: (project as any).distanciaLadoPouch || "",
+      distanciaAbocaZipper: (project as any).distanciaAbocaZipper || "",
+      distanciaAbocaValvula: (project as any).distanciaAbocaValvula || "",
       hasZipper: toYesNo(project.hasZipper),
       zipperType: project.zipperType || "",
       hasTinTie: toYesNo(project.hasTinTie),
       hasValve: toYesNo(project.hasValve),
       valveType: project.valveType || "",
+      hasRiñonera: toYesNo((project as any).hasRiñonera),
+      hasWicket: toYesNo((project as any).hasWicket),
+      wicketDiameter: (project as any).wicketDiameter || "",
+      wicketDistSuperior: (project as any).wicketDistSuperior || "",
+      wicketDistDerecho: (project as any).wicketDistDerecho || "",
+      hasWicketControl: toYesNo((project as any).hasWicketControl),
+      wicketControlDiameter: (project as any).wicketControlDiameter || "",
+      wicketControlUbicacion: (project as any).wicketControlUbicacion || "",
+      wicketControlDistSuperior: (project as any).wicketControlDistSuperior || "",
+      wicketControlDistDerecho: (project as any).wicketControlDistDerecho || "",
+      anchoSolapa: (project as any).anchoSolapa || "",
+      hasCortaAliviador: toYesNo((project as any).hasCortaAliviador),
+      cortaAliviadorDistDerecho: (project as any).cortaAliviadorDistDerecho || "",
+      hasDispensador: toYesNo((project as any).hasDispensador),
+      dispensadorDistIzquierdo: (project as any).dispensadorDistIzquierdo || "",
+      hasFotocelulaBolsaWicket: toYesNo((project as any).hasFotocelulaBolsaWicket),
+      hasPrecorteWicket: toYesNo((project as any).hasPrecorteWicket),
+      precorteWicketLargo: (project as any).precorteWicketLargo || "",
+      precorteWicketUbicacion: (project as any).precorteWicketUbicacion || "",
+      precorteWicketDistDerecho: (project as any).precorteWicketDistDerecho || "",
       hasDieCutHandle: toYesNo(project.hasDieCutHandle),
       hasReinforcement: toYesNo(project.hasReinforcement),
       reinforcementThickness: project.reinforcementThickness || "",
       reinforcementWidth: project.reinforcementWidth || "",
-      hasAngularCut: toYesNo(project.hasAngularCut),
+      ladoCorteAngular: (project as any).ladoCorteAngular || "",
+      distanciaAbocaMuesca: (project as any).distanciaAbocaMuesca || "",
       hasRoundedCorners: toYesNo(project.hasRoundedCorners),
       roundedCornersType: project.roundedCornersType || "",
       hasNotch: toYesNo(project.hasNotch),
+      distanciaAbocaPerforacion: (project as any).distanciaAbocaPerforacion || "",
       hasPerforation: toYesNo(project.hasPerforation),
       pouchPerforationType: project.pouchPerforationType || "",
       bagPerforationType: project.bagPerforationType || "",
       perforationLocation: project.perforationLocation || "",
+      tipoPerfPouchSelloCentral: (project as any).tipoPerfPouchSelloCentral || "",
+      tipoPerfFuelleBolsaWicket: (project as any).tipoPerfFuelleBolsaWicket || "",
+      perforacionParaAire: toYesNo((project as any).perforacionParaAire),
+      perforacionFugaAire: toYesNo((project as any).perforacionFugaAire),
+      distMargenSuperiorPerforacion: (project as any).distMargenSuperiorPerforacion || "",
+      distFuellePerforacion: (project as any).distFuellePerforacion || "",
+      hasAngularCut: toYesNo(project.hasAngularCut),
       hasPreCut: toYesNo(project.hasPreCut),
       preCutType: project.preCutType || "",
+      distanciaAbocaPrecorte: (project as any).distanciaAbocaPrecorte || "",
+      precutFuelleAbreFacil: toYesNo((project as any).precutFuelleAbreFacil),
+      precutFuelleA10mm: toYesNo((project as any).precutFuelleA10mm),
       otherAccessories: project.otherAccessories || "",
+      materialPackaging: (project as any).materialPackaging || "",
+      specialMaterialPackaging: (project as any).specialMaterialPackaging || "",
+      exportProductPackaging: (project as any).exportProductPackaging || "",
+      splices: (project as any).splices || "",
       saleType: project.saleType || "Nacional",
       incoterm: project.incoterm || "No aplica",
       destinationCountry: project.destinationCountry || "Perú",
@@ -1627,10 +1895,6 @@ export default function ProjectEditPage() {
   const shouldShowPouchPerforationType = isPouch && hasPerforation;
   const shouldShowBolsaPerforationType = isBolsa && hasPerforation;
 
-  const activeLayerCount = useMemo(() => {
-    return getLayerCountByStructureType(form.structureType);
-  }, [form.structureType]);
-
   const layerGrammageTotal = useMemo(() => {
     const layerGrammages = [
       form.layer1Grammage,
@@ -1640,10 +1904,10 @@ export default function ProjectEditPage() {
     ];
 
     return layerGrammages
-      .slice(0, activeLayerCount)
+      .slice(0, visibleLayerCount)
       .reduce((total, value) => total + parseGrammageValue(value), 0);
   }, [
-    activeLayerCount,
+    visibleLayerCount,
     form.layer1Grammage,
     form.layer2Grammage,
     form.layer3Grammage,
@@ -1793,6 +2057,20 @@ export default function ProjectEditPage() {
     });
   }, [form.classification, form.projectType]);
 
+  // Actualizar tipo de estructura automáticamente según la cantidad de capas visibles
+  useEffect(() => {
+    const calculatedStructureType = getStructureTypeByLayerCount(visibleLayerCount);
+
+    setForm((prev) => {
+      if (prev.structureType === calculatedStructureType) return prev;
+
+      return {
+        ...prev,
+        structureType: calculatedStructureType,
+      };
+    });
+  }, [visibleLayerCount]);
+
   const projectTypeOptions = useMemo(() => {
     if (form.classification === "Nuevo") {
       return PROJECT_TYPE_RD_OPTIONS;
@@ -1842,7 +2120,7 @@ export default function ProjectEditPage() {
     if (form.hasReferenceStructure !== "Sí") {
       fields.push("structureType");
 
-      for (let layer = 1; layer <= activeLayerCount; layer++) {
+      for (let layer = 1; layer <= visibleLayerCount; layer++) {
         fields.push(
           `layer${layer}MaterialGroup` as keyof ProjectEditFormData,
           `layer${layer}Material` as keyof ProjectEditFormData,
@@ -1959,7 +2237,7 @@ export default function ProjectEditPage() {
     form.printClass,
     form.hasReferenceStructure,
     form.structureType,
-    activeLayerCount,
+    visibleLayerCount,
     projectTypeOptions,
     shouldApplyPouchDoyPackRestrictions,
     form.hasDesignPlan,
@@ -2782,6 +3060,10 @@ export default function ProjectEditPage() {
       hasPreCut: shouldShowInternalAccessories ? (form.hasPreCut as BooleanLike) : false,
       preCutType: shouldShowInternalAccessories ? form.preCutType : "",
       otherAccessories: form.otherAccessories,
+      materialPackaging: form.materialPackaging,
+      specialMaterialPackaging: form.specialMaterialPackaging,
+      exportProductPackaging: form.exportProductPackaging,
+      splices: form.splices,
 
       saleType: form.saleType,
       incoterm: form.incoterm,
@@ -3041,6 +3323,10 @@ export default function ProjectEditPage() {
       hasPreCut: shouldShowInternalAccessories ? (form.hasPreCut as BooleanLike) : false,
       preCutType: shouldShowInternalAccessories ? form.preCutType : "",
       otherAccessories: form.otherAccessories,
+      materialPackaging: form.materialPackaging,
+      specialMaterialPackaging: form.specialMaterialPackaging,
+      exportProductPackaging: form.exportProductPackaging,
+      splices: form.splices,
 
       saleType: form.saleType,
       incoterm: form.incoterm,
@@ -3351,7 +3637,7 @@ export default function ProjectEditPage() {
                       onChange={(value) => updateField("unitOfMeasure", value)}
                       onBlur={() => markFieldAsTouched("unitOfMeasure")}
                       error={getError("unitOfMeasure")}
-                      options={unitOfMeasureOpt}
+                      options={UNIT_OPTIONS}
                       placeholder="-- Seleccione --"
                     />
                   </div>
@@ -3380,94 +3666,6 @@ export default function ProjectEditPage() {
                     )}
                   </div>
 
-                  {/* ========== MATERIALES POR CAPA (CAPAS PROGRESIVAS) ========== */}
-                  <div className="space-y-3 border-t border-slate-200 pt-4 mt-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
-                          Materiales por capa
-                        </label>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Opcional. El micraje mejora la precisión de búsqueda de similitudes.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {visibleLayerCount > 1 && (
-                          <button
-                            type="button"
-                            onClick={handleRemoveLastLayer}
-                            className="h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-                          >
-                            Quitar capa
-                          </button>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={handleAddLayer}
-                          disabled={
-                            visibleLayerCount >= 4 ||
-                            !getLayerValue(visibleLayerCount - 1)
-                          }
-                          className={[
-                            "h-9 rounded-lg px-3 text-xs font-semibold transition",
-                            visibleLayerCount >= 4 || !getLayerValue(visibleLayerCount - 1)
-                              ? "cursor-not-allowed bg-slate-100 text-slate-400"
-                              : "border border-brand-primary bg-white text-brand-primary hover:bg-brand-primary/5",
-                          ].join(" ")}
-                        >
-                          + Nueva capa
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                      {Array.from({ length: visibleLayerCount }).map((_, index) => {
-                        const layerNumber = index + 1;
-                        const selectedMaterial = getLayerValue(index);
-                        const selectedMicron = getLayerMicronValue(index);
-                        const micronOptions = getMicronOptionsByMaterial(selectedMaterial);
-
-                        return (
-                          <div
-                            key={layerNumber}
-                            className="rounded-xl border border-slate-200 bg-slate-50/50 p-3"
-                          >
-                            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                              Capa {layerNumber}
-                            </label>
-
-                            <FormSelect
-                              label=""
-                              value={selectedMaterial}
-                              onChange={(value) => handleLayerChange(index, value)}
-                              options={MATERIAL_OPTIONS}
-                              placeholder="Material"
-                            />
-
-                            <div className="mt-3">
-                              <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                                Micraje {layerNumber}
-                              </label>
-
-                              <FormSelect
-                                label=""
-                                value={selectedMicron}
-                                onChange={(value) => handleLayerMicronChange(index, value)}
-                                options={micronOptions.map((micron) => ({
-                                  value: micron,
-                                  label: `${micron} µ`,
-                                }))}
-                                placeholder="Micraje"
-                                disabled={!selectedMaterial || micronOptions.length === 0}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
 
                   {/* ========== COMENTARIOS ========== */}
                   <div className="space-y-1 border-t border-slate-200 pt-4 mt-4">
@@ -3577,10 +3775,10 @@ export default function ProjectEditPage() {
                           )}
                         </div>
 
-                        {/* Línea 2: Impresión + especificaciones */}
+                        {/* Línea 2: Clase de Impresión + Tipo de Impresión + Forma de Impresión */}
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                           <FormSelect
-                            label="Impresión *"
+                            label="Clase de Impresión *"
                             value={form.printClass}
                             onChange={(value) => updateField("printClass", value)}
                             onBlur={() => markFieldAsTouched("printClass")}
@@ -3591,7 +3789,7 @@ export default function ProjectEditPage() {
                           />
 
                           <FormSelect
-                            label={form.printClass && form.printClass !== "Sin impresión" ? "Tipo *" : "Tipo"}
+                            label={form.printClass && form.printClass !== "Sin impresión" ? "Tipo de Impresión *" : "Tipo de Impresión"}
                             value={form.printType}
                             onChange={(value) => updateField("printType", value)}
                             onBlur={() => markFieldAsTouched("printType")}
@@ -3601,6 +3799,23 @@ export default function ProjectEditPage() {
                             disabled={!canEditDesign || isPrintingDisabled}
                           />
 
+                          <FormSelect
+                            label="Forma de Impresión *"
+                            value={form.printForm}
+                            onChange={(value) => updateField("printForm", value)}
+                            onBlur={() => markFieldAsTouched("printForm")}
+                            error={getError("printForm")}
+                            placeholder="-- Seleccione --"
+                            options={PRODUCT_CATALOGS.formaDeImpresion.values.map((val) => ({
+                              value: val,
+                              label: val,
+                            }))}
+                            disabled={!canEditDesign || isPrintingDisabled}
+                          />
+                        </div>
+
+                        {/* Línea 3: Especificaciones Especiales */}
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                           <FormSelect
                             label="Especificaciones Especiales"
                             value={form.specialDesignSpecs}
@@ -3938,27 +4153,59 @@ export default function ProjectEditPage() {
                       </>
                     )}
                     {form.hasReferenceStructure !== "Sí" && (
-                      <FormSelect
-                        label="Tipo de Estructura"
-                        value={form.structureType}
-                        onChange={(value) => updateField("structureType", value)}
-                        placeholder="-- Seleccione --"
-                        options={structureTypeOpt}
-                        disabled={!canEditStructure}
+                      <PreviewRow
+                        label="Tipo de Estructura (Calculado)"
+                        value={form.structureType || "—"}
                       />
                     )}
                   </div>
 
                   {form.hasReferenceStructure !== "Sí" && (
                     <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-600">
-                        Capas de estructura
-                      </p>
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                            Capas de estructura
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {visibleLayerCount > 1 && (
+                            <button
+                              type="button"
+                              onClick={handleRemoveLastLayer}
+                              className="h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                            >
+                              Quitar capa
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleAddLayer}
+                            disabled={visibleLayerCount >= 4}
+                            className={[
+                              "h-9 rounded-lg px-3 text-xs font-semibold transition",
+                              visibleLayerCount >= 4
+                                ? "cursor-not-allowed bg-slate-100 text-slate-400"
+                                : "border border-brand-primary bg-white text-brand-primary hover:bg-brand-primary/5",
+                            ].join(" ")}
+                          >
+                            + Nueva capa
+                          </button>
+                        </div>
+                      </div>
 
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <div className="mb-4 flex flex-col gap-2 rounded-lg bg-white border border-slate-200 p-3">
+                        <div className="text-xs font-semibold text-slate-600">
+                          Capas seleccionadas: <span className="text-brand-primary">{visibleLayerCount} de 4</span>
+                        </div>
+                        <div className="text-xs font-semibold text-slate-600">
+                          Tipo de estructura calculado: <span className="text-brand-primary">{form.structureType || "—"}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                         {(() => {
-                          const maxLayers = activeLayerCount;
-                          return [1, 2, 3, 4].filter(layer => layer <= maxLayers).map((layer) => {
+                          return [1, 2, 3, 4].filter(layer => layer <= visibleLayerCount).map((layer) => {
                             const groupKey = `layer${layer}MaterialGroup` as keyof ProjectEditFormData;
                             const materialKey = `layer${layer}Material` as keyof ProjectEditFormData;
                             const micronKey = `layer${layer}Micron` as keyof ProjectEditFormData;
@@ -4046,7 +4293,7 @@ export default function ProjectEditPage() {
                         const completedLayers: string[] = [];
                         const missingLayers: string[] = [];
 
-                        for (let i = 1; i <= activeLayerCount; i++) {
+                        for (let i = 1; i <= visibleLayerCount; i++) {
                           const material = form[`layer${i}Material` as keyof ProjectEditFormData] as string;
                           const micron = form[`layer${i}Micron` as keyof ProjectEditFormData] as string;
                           const grammage = form[`layer${i}Grammage` as keyof ProjectEditFormData] as string;
@@ -4500,6 +4747,84 @@ export default function ProjectEditPage() {
                 </div>
                 )}
 
+              </div>
+            )}
+
+            {/* PASO 4: EMBALAJE Y EMPALMES */}
+            {activeStep === 3 && (
+              <div className="space-y-5">
+                <FormCard title="Embalaje y Empalmes" icon="📦" color="#27ae60">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormSelect
+                      label="Embalaje de material"
+                      value={form.materialPackaging}
+                      onChange={(value) => {
+                        updateField("materialPackaging", value);
+                        markFieldAsTouched("materialPackaging");
+                      }}
+                      onBlur={() => markFieldAsTouched("materialPackaging")}
+                      error={getError("materialPackaging")}
+                      options={[
+                        { value: "Caja de cartón", label: "Caja de cartón" },
+                        { value: "Bolsa de polietileno", label: "Bolsa de polietileno" },
+                        { value: "Film retráctil", label: "Film retráctil" },
+                        { value: "Pallet", label: "Pallet" },
+                      ]}
+                      placeholder="-- Seleccione --"
+                    />
+
+                    <FormSelect
+                      label="Embalaje de Productos de Exportación"
+                      value={form.exportProductPackaging}
+                      onChange={(value) => {
+                        updateField("exportProductPackaging", value);
+                        markFieldAsTouched("exportProductPackaging");
+                      }}
+                      onBlur={() => markFieldAsTouched("exportProductPackaging")}
+                      error={getError("exportProductPackaging")}
+                      options={[
+                        { value: "Caja de exportación", label: "Caja de exportación" },
+                        { value: "Contenedor hermético", label: "Contenedor hermético" },
+                        { value: "Film protector", label: "Film protector" },
+                        { value: "No aplica", label: "No aplica" },
+                      ]}
+                      placeholder="-- Seleccione --"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
+                    <FormTextarea
+                      label="Embalaje de material especial"
+                      value={form.specialMaterialPackaging}
+                      onChange={(value) => {
+                        updateField("specialMaterialPackaging", value);
+                        markFieldAsTouched("specialMaterialPackaging");
+                      }}
+                      onBlur={() => markFieldAsTouched("specialMaterialPackaging")}
+                      error={getError("specialMaterialPackaging")}
+                      placeholder="Describe condiciones especiales de embalaje..."
+                      rows={3}
+                    />
+
+                    <FormSelect
+                      label="Empalmes"
+                      value={form.splices}
+                      onChange={(value) => {
+                        updateField("splices", value);
+                        markFieldAsTouched("splices");
+                      }}
+                      onBlur={() => markFieldAsTouched("splices")}
+                      error={getError("splices")}
+                      options={[
+                        { value: "Sin empalmes", label: "Sin empalmes" },
+                        { value: "Empalme simple", label: "Empalme simple" },
+                        { value: "Empalme reforzado", label: "Empalme reforzado" },
+                        { value: "Empalme adhesivo", label: "Empalme adhesivo" },
+                      ]}
+                      placeholder="-- Seleccione --"
+                    />
+                  </div>
+                </FormCard>
               </div>
             )}
 

@@ -95,10 +95,10 @@ export default function UserDetailPage() {
   useEffect(() => {
     if (user) {
       setHeader({
-        title: `${user.firstName} ${user.lastName}`,
+        title: user.fullName,
         breadcrumbs: [
           { label: "Usuarios", href: "/users" },
-          { label: user.code },
+          { label: "Ver detalle de usuario" },
         ],
       });
     }

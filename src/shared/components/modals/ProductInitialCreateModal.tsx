@@ -16,7 +16,7 @@ import * as projectStorage from "../../data/projectStorage";
 import * as userStorage from "../../data/userStorage";
 import { getAllApprovedProducts } from "../../data/approvedProductStorage";
 
-import { UNITS_OF_MEASURE, UNIT_LABELS } from "../../data/unitOfMeasureStorage";
+import { UNITS_OF_MEASURE, UNIT_LABELS, UNIT_NORMALIZATION_MAP } from "../../data/unitOfMeasureStorage";
 import { getCatalogOptions } from "../../catalogs";
 import {
   requiresOriginProduct,
@@ -182,7 +182,10 @@ const normalizeText = (value: unknown): string =>
     .trim();
 
 const normalizeClientCode = (value: unknown): string =>
-  normalizeText(value).replace(/^cli\s+/, "cl ");
+  normalizeText(value)
+    .replace(/^cli\s+/, "cl ")
+    .replace(/[^a-z0-9]/g, "")
+    .replace(/^cli/, "cl");
 
 const normalizeCompanyName = (value: unknown): string =>
   normalizeText(value)
@@ -198,36 +201,36 @@ const normalizeCompanyName = (value: unknown): string =>
   portfolio: PortfolioRecord,
   selectedClient: { code: string; name: string },
 ): boolean => {
-  const portfolioClientName = normalizeCompanyName(
-    getPortfolioClientName(portfolio),
-  );
-
-  const selectedClientName = normalizeCompanyName(selectedClient.name);
-
-  /**
-   * Regla principal:
-   * Si el portafolio tiene nombre de cliente, el nombre es definitorio.
-   * Esto evita que se cuelen portafolios de otro cliente por códigos inconsistentes.
-   */
-  if (portfolioClientName && selectedClientName) {
-    return portfolioClientName === selectedClientName;
-  }
-
-  /**
-   * Regla secundaria:
-   * Solo usar código cuando no hay nombre de cliente suficiente para comparar.
-   */
   const portfolioClientCode = normalizeClientCode(
     getPortfolioClientCode(portfolio),
   );
 
   const selectedClientCode = normalizeClientCode(selectedClient.code);
 
-  return Boolean(
-    portfolioClientCode &&
-      selectedClientCode &&
-      portfolioClientCode === selectedClientCode,
+  /**
+   * Regla principal:
+   * Priorizar comparación por código de cliente.
+   * El código es más confiable que el nombre que puede variar en escritura.
+   */
+  if (portfolioClientCode && selectedClientCode) {
+    return portfolioClientCode === selectedClientCode;
+  }
+
+  /**
+   * Regla secundaria:
+   * Si no hay código suficiente, usar nombre de cliente como fallback.
+   */
+  const portfolioClientName = normalizeCompanyName(
+    getPortfolioClientName(portfolio),
   );
+
+  const selectedClientName = normalizeCompanyName(selectedClient.name);
+
+  if (portfolioClientName && selectedClientName) {
+    return portfolioClientName === selectedClientName;
+  }
+
+  return false;
 };
 
 const getRecordValue = (record: unknown, keys: string[]): string => {
@@ -316,6 +319,9 @@ const getPortfolioCode = (portfolio: PortfolioRecord | null | undefined) =>
     "id",
     "portfolioCode",
     "portafolioCodigo",
+    "codigoPortafolio",
+    "idPortafolio",
+    "portfolioId",
   ]);
 
 const getPortfolioName = (portfolio: PortfolioRecord | null | undefined) =>
@@ -326,6 +332,9 @@ const getPortfolioName = (portfolio: PortfolioRecord | null | undefined) =>
     "portfolioName",
     "description",
     "descripcion",
+    "nombrePortafolio",
+    "tituloPortafolio",
+    "portfolioTitle",
   ]);
 
 const getPortfolioClientCode = (
@@ -339,6 +348,8 @@ const getPortfolioClientCode = (
     "customerCode",
     "codigoClienteSI",
     "clienteCodigo",
+    "CLMaCCLi",
+    "code",
   ]);
 
 const getPortfolioClientName = (
@@ -354,6 +365,8 @@ const getPortfolioClientName = (
     "clienteNombre",
     "client",
     "customer",
+    "razonSocial",
+    "businessName",
   ]);
 
 const getClientCodeFromAny = (client: unknown) =>
@@ -865,25 +878,10 @@ const normalizeMaterialValue = (value: unknown): string => {
   return entry ? normalizeText(entry[0]) : normalized;
 };
 
-// Map de variantes de unidades a su forma normalizada
-const UNIT_NORMALIZATION_MAP: Record<string, string> = {
-  "gramos": "g",
-  "gramo": "g",
-  "g": "g",
-  "kilogramos": "kg",
-  "kilogramo": "kg",
-  "kg": "kg",
-  "mililitros": "ml",
-  "mililitro": "ml",
-  "ml": "ml",
-  "litros": "l",
-  "litro": "l",
-  "l": "l",
-};
-
+// UNIT_NORMALIZATION_MAP ahora se importa desde unitOfMeasureStorage (única fuente oficial)
 const normalizeUnitValue = (value: string): string => {
-  const normalized = normalizeText(value);
-  return UNIT_NORMALIZATION_MAP[normalized] || normalized;
+  const normalized = normalizeText(value).toUpperCase();
+  return (UNIT_NORMALIZATION_MAP as Record<string, string>)[normalized] || normalized;
 };
 
 const parseMicronNumber = (value: string | undefined): number | null => {
@@ -1465,6 +1463,58 @@ const incrementVersion = (currentVersion: string): string => {
   return String(nextVersion).padStart(2, "0");
 };
 
+const resolveSkuLifecycleCodeFromProduct = (
+  product: AnyRecord | null,
+  fallbackCode?: string,
+): SkuLifecycleCode | undefined => {
+  const explicitCode = String(
+    product?.skuLifecycleCode ||
+      product?.cicloVida ||
+      product?.lifecycleCode ||
+      product?.cycleCode ||
+      "",
+  ).trim().toUpperCase();
+
+  if (["E", "B", "A", "P"].includes(explicitCode)) {
+    return explicitCode as SkuLifecycleCode;
+  }
+
+  const codeCandidate = String(
+    product?.code ||
+      product?.id ||
+      fallbackCode ||
+      "",
+  ).toUpperCase();
+
+  const match = codeCandidate.match(/SKU-\d+-(E|B|A|P)(?:-\d+)?/);
+
+  if (match?.[1]) {
+    return match[1] as SkuLifecycleCode;
+  }
+
+  const statusCandidate = normalizeText(
+    product?.status ||
+      product?.estado ||
+      product?.lifecycleLabel ||
+      product?.productType ||
+      "",
+  );
+
+  if (statusCandidate.includes("base")) return "B";
+  if (statusCandidate.includes("aprobado")) return "A";
+  if (statusCandidate.includes("portafolio")) return "P";
+  if (statusCandidate.includes("muestra")) return "E";
+
+  return undefined;
+};
+
+const formatSkuWithVersion = (code: string, version: string): string => {
+  if (!code) return "";
+  if (/SKU-\d+-(E|B|A|P|I)-\d{2}$/i.test(code)) return code;
+  if (!version) return code;
+  return `${code}-${normalizeVersion(version)}`;
+};
+
 const getNextAvailableSku = (): string => {
   const products = getAllApprovedProducts();
   let maxNumber = 0;
@@ -1667,7 +1717,7 @@ const [visibleLayerCount, setVisibleLayerCount] = useState(1);
     return null;
   }, [propPortfolio, portfolioCode]);
 
-  const unitOfMeasureOpt = useMemo(() => getCatalogOptions("unit_measure"), []);
+  // unitOfMeasureOpt removed - using UNIT_OPTIONS from unitOfMeasureStorage directly
 
   // Field completion flags - portfolioBelongsToClient will be calculated below after portfoliosForClient is available
   // For now, we use a simple check
@@ -2257,19 +2307,35 @@ const nombreTecnicoCalculado = useMemo(() => {
 
     // Validate origin product requirement
     if (motivo && causal.length > 0) {
-      const originLifecycle = selectedBaseProduct?.skuLifecycleCode || selectedBaseProduct?.cicloVida;
-      const validation = isOriginProductAllowed(
-        motivo as TipoSolicitud,
-        causal[0],
-        originLifecycle as SkuLifecycleCode
+      const hasOriginProductSelected = Boolean(
+        selectedBaseProduct ||
+          productoBaseCodigo.trim() ||
+          productoBaseNombre.trim()
       );
 
-      if (!validation.valid && validation.message) {
-        newErrors.productoBase = validation.message;
+      const originLifecycle = resolveSkuLifecycleCodeFromProduct(
+        selectedBaseProduct,
+        productoBaseCodigo || `${productoBaseCodigo}-${productoBaseVersion}`,
+      );
+
+      if (requiresOriginProduct(motivo as TipoSolicitud, causal[0])) {
+        if (!hasOriginProductSelected) {
+          newErrors.productoBase = "Producto base / SKU vigente es requerido para continuar.";
+        } else {
+          const validation = isOriginProductAllowed(
+            motivo as TipoSolicitud,
+            causal[0],
+            originLifecycle,
+          );
+
+          if (!validation.valid && validation.message) {
+            newErrors.productoBase = validation.message;
+          }
+        }
       }
 
       // For "Producto modificado", also require version
-      if (motivo === "Producto modificado" && requiresProductoBase) {
+      if (motivo === "Producto modificado" && requiresOriginProduct(motivo as TipoSolicitud, causal[0])) {
         if (!productoBaseVersion.trim()) {
           newErrors.productoBaseVersion = "Ingresa la versión del SKU aprobado.";
         }
@@ -2295,6 +2361,7 @@ const nombreTecnicoCalculado = useMemo(() => {
     productoBaseCodigo,
     productoBaseNombre,
     productoBaseVersion,
+    selectedBaseProduct,
     declaresApproved,
   ]);
 
@@ -3210,14 +3277,27 @@ const handleRemoveLastLayer = () => {
                         }
                       }}
                       onSelect={(product) => {
-                        setProductoBaseNombre(product.name);
-                        setSelectedBaseProduct(product);
+                        const productCode = String(product.code || product.id || "");
+                        const productVersion = normalizeVersion(String(product.version || ""));
+
+                        setProductoBaseId(String(product.id || productCode));
+                        setProductoBaseNombre(String(product.name || product.productName || productCode));
+                        setProductoBaseCodigo(productCode.replace(/-\d{2}$/, ""));
+                        setProductoBaseVersion(productVersion);
+                        setSelectedBaseProduct(product as AnyRecord);
+
+                        setErrors((prev) => ({
+                          ...prev,
+                          productoBase: "",
+                          productoBaseVersion: "",
+                        }));
+
                         showStepNotice(
                           "productoBase",
                           "Producto base completado. Datos heredados automáticamente.",
                         );
                       }}
-                      portfolioCode={portfolioCode}
+                      portfolioCode={inheritedPortfolioCode || portfolioCode}
                       productType={motivo && causal.length > 0
                         ? (() => {
                             const allowedCodes = getAllowedOriginLifecycle(motivo as TipoSolicitud, causal[0]);
@@ -3243,7 +3323,7 @@ const handleRemoveLastLayer = () => {
 
                   <FormInput
                     label="Código SKU Actual *"
-                    value={productoBaseCodigo && productoBaseVersion ? `${productoBaseCodigo}-${productoBaseVersion}` : ""}
+                    value={formatSkuWithVersion(productoBaseCodigo, productoBaseVersion)}
                     onChange={(value) => {
                       const wasEmpty = !productoBaseVersion.trim();
                       setProductoBaseVersion(value);
@@ -3391,7 +3471,7 @@ const handleRemoveLastLayer = () => {
                         );
                       }
                     }}
-                    options={unitOfMeasureOpt}
+                    options={UNIT_OPTIONS}
                     placeholder="-- Seleccione --"
                     error={errors.unidad}
                     disabled={!canEditUnidad || (isInheritedFromBase && !(motivo === "Producto nuevo" && causal.includes("Nueva estructura")))}

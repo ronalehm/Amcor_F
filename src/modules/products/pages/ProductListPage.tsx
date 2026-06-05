@@ -7,6 +7,7 @@ import {
   ArrowUpDown,
   BriefcaseBusiness,
   Layers3,
+  Plus,
   RotateCcw,
   Search,
 } from "lucide-react";
@@ -63,12 +64,13 @@ const getUnitAbbreviation = (unitValue: any) => {
   const unit = getText(unitValue);
   if (!unit) return "";
   const match = unit.match(/\(([^)]+)\)/);
-  if (match) return match[1].trim();
-  if (unit.toLowerCase().includes("gramos")) return "g";
-  if (unit.toLowerCase().includes("mililitros")) return "ml";
-  if (unit.toLowerCase().includes("kilogramos")) return "kg";
-  if (unit.toLowerCase().includes("litros")) return "L";
-  return unit;
+  if (match) return match[1].trim().toUpperCase();
+  const lowerUnit = unit.toLowerCase();
+  if (lowerUnit.includes("gramos")) return "G";
+  if (lowerUnit.includes("mililitros")) return "ML";
+  if (lowerUnit.includes("kilogramos")) return "KG";
+  if (lowerUnit.includes("litros")) return "L";
+  return unit.toUpperCase();
 };
 
 const formatProductDisplayName = (item: any) => {
@@ -221,10 +223,19 @@ export default function ProjectListPage() {
     setHeader({
       title: "Gestión de Productos",
       breadcrumbs: [{ label: "Productos" }, { label: "Lista de Productos" }],
+      actions: (
+        <button
+          onClick={() => navigate("/products/new")}
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-primary px-4 py-2 text-sm font-bold text-white hover:bg-brand-primary-hover"
+        >
+          <Plus size={16} />
+          Nuevo Producto
+        </button>
+      ),
     });
 
     return () => resetHeader();
-  }, [setHeader, resetHeader]);
+  }, [setHeader, resetHeader, navigate]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {

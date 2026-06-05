@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
+import { getCurrentUser } from "../../../shared/data/userStorage";
 import {
   getClientByCode,
   STATUS_LABELS,
@@ -37,6 +38,9 @@ export default function ClientDetailPage() {
         setClient(clientData);
         setPortfolios(getPortfoliosByClient(clientData));
 
+        const currentUser = getCurrentUser();
+        const isAdmin = currentUser?.role === "administrator";
+
         setHeader({
           title: "Detalle de Cliente",
           breadcrumbs: [
@@ -44,12 +48,20 @@ export default function ClientDetailPage() {
             { label: clientData.code },
             { label: "Ver" },
           ],
+          actions: isAdmin ? (
+            <button
+              onClick={() => navigate(`/clients/${clientData.code}/edit`)}
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-primary px-4 py-2 text-sm font-bold text-white hover:bg-brand-primary-hover"
+            >
+              Editar Cliente
+            </button>
+          ) : undefined,
         });
       }
     }
 
     return () => resetHeader();
-  }, [clientCode, setHeader, resetHeader]);
+  }, [clientCode, setHeader, resetHeader, navigate]);
 
 
   if (!client) {
@@ -109,39 +121,34 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <FormCard title="Información general" icon="▦" color="#00395A">
-    <div className="space-y-4">
-      <PreviewRow label="Código de cliente" value={clientCodeValue} />
-      <PreviewRow label="Nombre de cliente" value={clientName} />
-      <PreviewRow label="Correo de empresa" value={clientEmail} />
-      <PreviewRow label="Número de RUC" value={clientRuc} />
-      <PreviewRow label="Sector" value={clientIndustry} />
-      <PreviewRow label="Teléfono" value={clientPhone} />
-      <PreviewRow label="Contacto" value={clientContact} />
-    </div>
-  </FormCard>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormCard title="Información general" icon="▦" color="#00395A">
+          <div className="space-y-4">
+            <PreviewRow label="Código de cliente" value={clientCodeValue} />
+            <PreviewRow label="Nombre de cliente" value={clientName} />
+            <PreviewRow label="Número de RUC" value={clientRuc} />
+            <PreviewRow label="Sector" value={clientIndustry} />
+            <PreviewRow label="Correo de Empresa" value={clientEmail} />
+            <PreviewRow label="Teléfono" value={clientPhone} />
+            <PreviewRow label="Contacto principal" value={clientContact} />
+            <PreviewRow label="Fecha de registro" value={client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"} />
+          </div>
+        </FormCard>
 
-  <FormCard title="Datos de sistema" icon="◎" color="#00A1DE">
-    <div className="space-y-4">
-      <PreviewRow label="Estado ODISEO" value={statusLabel} />
-      <PreviewRow label="Código SI" value={getText(client.siClientCode, "—")} />
-      <PreviewRow label="Estado SI" value={client.siClientId ? "Vinculado" : "No vinculado"} />
-      <PreviewRow
-        label="Fecha de registro"
-        value={client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"}
-      />
-      <PreviewRow
-        label="Última actualización"
-        value={client.updatedAt ? new Date(client.updatedAt).toLocaleDateString() : "—"}
-      />
-      <PreviewRow label="Realizado por" value={client.updatedBy || "Sistema"} />
-      {client.origin && (
-        <PreviewRow label="Origen de registro" value={getText(client.origin, client.createdBy)} />
-      )}
-    </div>
-  </FormCard>
-</div>
+        <FormCard title="Datos de sistema" icon="◇" color="#00A1DE">
+          <div className="space-y-4">
+            <PreviewRow label="Estado ODISEO" value={statusLabel} />
+            <PreviewRow label="Código SI" value={getText(client.siClientCode, "—")} />
+            <PreviewRow label="Estado SI" value={client.siClientId ? "Vinculado" : "No vinculado"} />
+            <PreviewRow label="Última actualización" value={client.updatedAt ? new Date(client.updatedAt).toLocaleDateString() : "—"} />
+            <PreviewRow label="Realizado por" value={client.updatedBy || "Sistema"} />
+            {client.origin && (
+              <PreviewRow label="Origen de registro" value={getText(client.origin, client.createdBy)} />
+            )}
+          </div>
+        </FormCard>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
           <div>

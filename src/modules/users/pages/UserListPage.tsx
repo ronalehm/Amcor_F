@@ -599,6 +599,7 @@ export default function UserListPage() {
                 <SortableHeader label="Área" sortKey="area" />
                 <SortableHeader label="Puesto" sortKey="position" />
                 <SortableHeader label="Estado" sortKey="status" />
+                <th className={tableStyles.headerCell}>Sincronización SI</th>
 
                 <th className={tableStyles.headerCellRight}>
                   Acciones
@@ -670,6 +671,17 @@ export default function UserListPage() {
                       </span>
                     </td>
 
+                    <td className={tableStyles.cell}>
+                      {user.siUserCode && user.siUserName ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium text-slate-900">{user.siUserCode}</span>
+                          <span className="text-xs text-slate-500">{user.siUserName}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">No sincronizado</span>
+                      )}
+                    </td>
+
                     <td className={tableStyles.actions}>
                         <ActionButton
                           label="Ver"
@@ -691,7 +703,7 @@ export default function UserListPage() {
 
               {filteredUsers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className={tableStyles.emptyCell}>
+                  <td colSpan={9} className={tableStyles.emptyCell}>
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <UserCog size={26} className="text-slate-400" />

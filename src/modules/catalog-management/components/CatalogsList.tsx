@@ -5,9 +5,10 @@ import type { CatalogDefinition } from "../../../shared/catalogs";
 
 interface CatalogsListProps {
   catalogs: CatalogDefinition[];
+  onSelectCatalog?: (catalogCode: string) => void;
 }
 
-export default function CatalogsList({ catalogs }: CatalogsListProps) {
+export default function CatalogsList({ catalogs, onSelectCatalog }: CatalogsListProps) {
   return (
     <div className="space-y-3">
       {catalogs.length === 0 ? (
@@ -15,13 +16,13 @@ export default function CatalogsList({ catalogs }: CatalogsListProps) {
           <p className="text-sm text-slate-500">No hay catálogos disponibles</p>
         </div>
       ) : (
-        catalogs.map((catalog) => <CatalogItem key={catalog.id} catalog={catalog} />)
+        catalogs.map((catalog) => <CatalogItem key={catalog.id} catalog={catalog} onSelect={onSelectCatalog} />)
       )}
     </div>
   );
 }
 
-function CatalogItem({ catalog }: { catalog: CatalogDefinition }) {
+function CatalogItem({ catalog, onSelect }: { catalog: CatalogDefinition; onSelect?: (catalogCode: string) => void }) {
   const values = useMemo(
     () => getCatalogValues(catalog.code),
     [catalog.code]
@@ -32,7 +33,10 @@ function CatalogItem({ catalog }: { catalog: CatalogDefinition }) {
   const blockedCount = values.filter((v) => v.status === "Bloqueado").length;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 hover:bg-slate-100 transition-colors cursor-pointer group">
+    <div
+      className="rounded-lg border border-slate-200 bg-slate-50 p-4 hover:bg-slate-100 transition-colors cursor-pointer group"
+      onClick={() => onSelect?.(catalog.code)}
+    >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
           <h4 className="font-semibold text-slate-900 text-sm group-hover:text-brand-primary transition-colors">

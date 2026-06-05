@@ -201,6 +201,7 @@ export type ProjectRecord = {
   estimatedVolume?: string;
   unitOfMeasure?: string;
   customerPackingCode?: string;
+  portafolioEstandar?: string;
 
   // Lógica de Formato de Plano para BOLSA
   tipoPresentacionBolsa?: string;
@@ -209,9 +210,23 @@ export type ProjectRecord = {
   tieneFuelleBolsa?: string;
   tipoFuelleBolsa?: string;
 
+  // Lógica de Formato de Plano para POUCH
+  tipoFamiliaPouch?: string;
+  tipoStandUpPouch?: string;
+  formaDoyPackPouch?: string;
+  tipoFuelleStandUpPouch?: string;
+  cantidadSellosPouchPlano?: string;
+  tieneFuelleSelloCentralPouch?: string;
+  materialSelloCentralPouch?: string;
+  tipoSelloEnFuellePouch?: string;
+
+  // Lógica de Formato de Plano para LÁMINA
+  tipoFormatoLamina?: string;
+
   // === ESPECIFICACIONES DE DISEÑO ===
   printClass?: string;
   printType?: string;
+  printForm?: string;
 
   isPreviousDesign?: BooleanLike;
   previousEdagCode?: string;
@@ -227,6 +242,32 @@ export type ProjectRecord = {
   comentarioObjetivoColor?: string;
   designWorkInstructions?: string;
   instruccionesTrabajoDiseno?: string;
+
+  // Especificaciones de Diseño Extendidas
+  designAreaWidth?: string;
+  designAreaHeight?: string;
+  coPrinting?: BooleanLike;
+  codesToPrint?: string;
+  rewindingDirection?: string;
+  rewindingDirectionRef?: string;
+  hasPhotocell?: BooleanLike;
+  photocellLocation?: string;
+
+  // Fotoregistro 1
+  fr1Width?: string;
+  fr1Height?: string;
+  fr1MarginRight?: string;
+  fr1MarginBottom?: string;
+  fr1MarginLeft?: string;
+  fr1MarginTop?: string;
+
+  // Fotoregistro 2
+  fr2Width?: string;
+  fr2Height?: string;
+  fr2MarginRight?: string;
+  fr2MarginBottom?: string;
+  fr2MarginLeft?: string;
+  fr2MarginTop?: string;
 
   hasDigitalFiles?: BooleanLike;
   artworkFileType?: string;
@@ -306,6 +347,72 @@ export type ProjectRecord = {
   preCutType?: string;
 
   otherAccessories?: string;
+
+  // === ESPECIFICACIONES DE ESTRUCTURA EXTENDIDAS ===
+  // DoyPack POUCH
+  doyPackRepeticionExacta?: string;
+  toleranciaRepExactaDoyPack?: string;
+  toleranciaRepDoyPack?: string;
+  fuelleCerrado?: BooleanLike;
+  selloAnchoLateral?: string;
+
+  // Microperforado (POUCH y BOLSA)
+  hasMicroperforado?: BooleanLike;
+  ladoMicroperforado?: string;
+  separacionPuas?: string;
+  distanciaLadoPouch?: string;
+
+  // Consumibles básicos
+  distanciaAbocaZipper?: string;
+  distanciaAbocaValvula?: string;
+  hasRiñonera?: BooleanLike;
+
+  // Wicket (BOLSA)
+  hasWicket?: BooleanLike;
+  wicketDiameter?: string;
+  wicketDistSuperior?: string;
+  wicketDistDerecho?: string;
+
+  // Wicket Control (BOLSA)
+  hasWicketControl?: BooleanLike;
+  wicketControlDiameter?: string;
+  wicketControlUbicacion?: string;
+  wicketControlDistSuperior?: string;
+  wicketControlDistDerecho?: string;
+
+  // Otras especificaciones BOLSA
+  anchoSolapa?: string;
+  hasCortaAliviador?: BooleanLike;
+  cortaAliviadorDistDerecho?: string;
+  hasDispensador?: BooleanLike;
+  dispensadorDistIzquierdo?: string;
+  hasFotocelulaBolsaWicket?: BooleanLike;
+
+  // Precorte Wicket (BOLSA)
+  hasPrecorteWicket?: BooleanLike;
+  precorteWicketLargo?: string;
+  precorteWicketUbicacion?: string;
+  precorteWicketDistDerecho?: string;
+
+  // Accesorios internos (POUCH y BOLSA)
+  ladoCorteAngular?: string;
+  distanciaAbocaMuesca?: string;
+  distanciaAbocaPerforacion?: string;
+  tipoPerfPouchSelloCentral?: string;
+  tipoPerfFuelleBolsaWicket?: string;
+  perforacionParaAire?: BooleanLike;
+  perforacionFugaAire?: BooleanLike;
+  distMargenSuperiorPerforacion?: string;
+  distFuellePerforacion?: string;
+  distanciaAbocaPrecorte?: string;
+  precutFuelleAbreFacil?: BooleanLike;
+  precutFuelleA10mm?: BooleanLike;
+
+  // === EMBALAJE Y EMPALMES ===
+  materialPackaging?: string;
+  specialMaterialPackaging?: string;
+  exportProductPackaging?: string;
+  splices?: string;
 
   // === TUCO / CORE ===
   coreMaterial?: string;

@@ -468,7 +468,9 @@ export function getUsersByRole(role: UserRole): User[] {
 
 export function getCommercialExecutives(): User[] {
   return getAllUsers().filter(
-    (user) => user.status === "active" && user.area === "Comercial"
+    (user) =>
+      user.status === "active" &&
+      (user.area === "Comercial" || user.role === "administrator")
   );
 }
 

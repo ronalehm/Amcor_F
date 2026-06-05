@@ -4,7 +4,7 @@
  */
 
 export type TipoSolicitud = "Producto nuevo" | "Producto modificado" | "Extensión de línea" | "ICO / BCP";
-export type SkuLifecycleCode = "A" | "E" | "B";
+export type SkuLifecycleCode = "A" | "E" | "B" | "P";
 
 /**
  * Determines if the "Producto base / SKU vigente" field is required
@@ -119,6 +119,7 @@ export function isOriginProductAllowed(
       A: "Aprobado",
       B: "Base",
       E: "Muestra",
+      P: "Portafolio estándar",
     };
 
     return {

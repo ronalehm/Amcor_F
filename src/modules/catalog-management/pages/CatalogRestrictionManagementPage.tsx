@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import { getCurrentUser } from "../../../shared/data/userStorage";
@@ -18,10 +18,6 @@ export default function CatalogRestrictionManagementPage() {
   const { setHeader, resetHeader } = useLayout();
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
-
-  if (currentUser?.role !== "administrator") {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   const [managementType, setManagementType] = useState<ManagementType>("catalog");
   const [selectedTarget, setSelectedTarget] = useState("");
