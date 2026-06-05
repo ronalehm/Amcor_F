@@ -1555,7 +1555,7 @@ export default function ProjectEditPage() {
 
   const classificationOpt = useMemo(() => getCatalogOptions("classification"), []);
   const subclassificationOpt = useMemo(() => getCatalogOptions("subclassification"), []);
-  const unitOfMeasureOpt = useMemo(() => getCatalogOptions("unit_measure"), []);
+  // unitOfMeasureOpt removed - using UNIT_OPTIONS from PRODUCT_CATALOGS directly
   const printClassOpt = useMemo(() => getCatalogOptions("print_class"), []);
   const printTypeOpt = useMemo(() => getCatalogOptions("print_type"), []);
   const structureTypeOpt = useMemo(() => getCatalogOptions("structure_type"), []);
@@ -3636,7 +3636,7 @@ export default function ProjectEditPage() {
                       onChange={(value) => updateField("unitOfMeasure", value)}
                       onBlur={() => markFieldAsTouched("unitOfMeasure")}
                       error={getError("unitOfMeasure")}
-                      options={unitOfMeasureOpt}
+                      options={UNIT_OPTIONS}
                       placeholder="-- Seleccione --"
                     />
                   </div>

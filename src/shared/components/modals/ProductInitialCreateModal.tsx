@@ -1717,7 +1717,7 @@ const [visibleLayerCount, setVisibleLayerCount] = useState(1);
     return null;
   }, [propPortfolio, portfolioCode]);
 
-  const unitOfMeasureOpt = useMemo(() => getCatalogOptions("unit_measure"), []);
+  // unitOfMeasureOpt removed - using UNIT_OPTIONS from unitOfMeasureStorage directly
 
   // Field completion flags - portfolioBelongsToClient will be calculated below after portfoliosForClient is available
   // For now, we use a simple check
@@ -3471,7 +3471,7 @@ const handleRemoveLastLayer = () => {
                         );
                       }
                     }}
-                    options={unitOfMeasureOpt}
+                    options={UNIT_OPTIONS}
                     placeholder="-- Seleccione --"
                     error={errors.unidad}
                     disabled={!canEditUnidad || (isInheritedFromBase && !(motivo === "Producto nuevo" && causal.includes("Nueva estructura")))}
