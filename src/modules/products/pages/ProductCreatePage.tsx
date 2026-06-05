@@ -269,23 +269,20 @@ const UNIT_OPTIONS = (PRODUCT_CATALOGS.unidadDeMedida as unknown as Array<{ code
   })
 );
 
-const PRINT_CLASS_OPTIONS = [
-  { value: "Flexo", label: "Flexo" },
-  { value: "Huecograbado", label: "Huecograbado" },
-  { value: "Sin impresión", label: "Sin impresión" },
-];
+const PRINT_CLASS_OPTIONS = PRODUCT_CATALOGS.claseDeImpresion.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
-const PRINT_TYPE_OPTIONS = [
-  { value: "Nuevo", label: "Nuevo" },
-  { value: "Repetitivo", label: "Repetitivo" },
-];
+const PRINT_TYPE_OPTIONS = PRODUCT_CATALOGS.tipoDeImpresion.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
-const STRUCTURE_TYPE_OPTIONS = [
-  { value: "Monocapa", label: "Monocapa" },
-  { value: "Bilaminado", label: "Bilaminado" },
-  { value: "Trilaminado", label: "Trilaminado" },
-  { value: "Tetralaminado", label: "Tetralaminado" },
-];
+const STRUCTURE_TYPE_OPTIONS = PRODUCT_CATALOGS.tipoDeEstructura.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
 type MaterialEntry = { value: string; label: string; micron: string; isFree: boolean };
 type MaterialCatalog = Record<string, MaterialEntry[]>;
@@ -370,86 +367,70 @@ const SALE_TYPE_OPTIONS = [
   { value: "Internacional", label: "Internacional" },
 ];
 
-const INCOTERM_OPTIONS = [
-  { value: "EXW", label: "EXW" },
-  { value: "FCA", label: "FCA" },
-  { value: "FAS", label: "FAS" },
-  { value: "FOB", label: "FOB" },
-  { value: "CPT", label: "CPT" },
-  { value: "CIP", label: "CIP" },
-  { value: "CFR", label: "CFR" },
-  { value: "CIF", label: "CIF" },
-  { value: "DAP", label: "DAP" },
-  { value: "DPU", label: "DPU" },
-  { value: "DDP", label: "DDP" },
-];
+const INCOTERM_OPTIONS = PRODUCT_CATALOGS.incoterm.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
 const CURRENCY_OPTIONS = [
   { value: "Soles", label: "Soles" },
   { value: "Dólares", label: "Dólares" },
 ];
 
-const SPECIAL_DESIGN_SPECS_OPTIONS = [
-  { value: "Tintas Holográficas", label: "Tintas Holográficas" },
-  { value: "Efectos/texturas/características especiales", label: "Efectos/texturas/características especiales" },
-  { value: "Acabados Especiales o Barnices nuevos", label: "Acabados Especiales o Barnices nuevos" },
-  { value: "Otros (comentar cuáles)", label: "Otros (comentar cuáles)" },
-  { value: "No aplica", label: "No aplica" },
-];
+const SPECIAL_DESIGN_SPECS_OPTIONS = PRODUCT_CATALOGS.especificacionesDeDisenoEspeciales.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
-const DOY_PACK_BASE_OPTIONS = [
-  { value: "Redonda", label: "Redonda" },
-  { value: "Cuadrada", label: "Cuadrada" },
-  { value: "No aplica", label: "No aplica" },
-];
+const DOY_PACK_BASE_OPTIONS = PRODUCT_CATALOGS.baseDelDoypack.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
-const CORE_MATERIAL_OPTIONS = [
-  { value: "Cartón", label: "Cartón" },
-  { value: "Plástico", label: "Plástico" },
-  { value: "Metal", label: "Metal" },
-  { value: "Otros", label: "Otros" },
-];
+const CORE_MATERIAL_OPTIONS = PRODUCT_CATALOGS.materialDeTuco.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
 const GUSSET_TYPE_OPTIONS = [
   { value: "Lateral", label: "Lateral" },
   { value: "Fondo", label: "Fondo" },
 ];
 
-const ZIPPER_TYPE_OPTIONS = [
-  { value: "Convencional", label: "Convencional" },
-  { value: "String Zipper", label: "String Zipper" },
-];
+const ZIPPER_TYPE_OPTIONS = PRODUCT_CATALOGS.zipper.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
-const VALVE_TYPE_OPTIONS = [
-  { value: "Degasificadora", label: "Degasificadora" },
-  { value: "Dosificadora", label: "Dosificadora" },
-];
+const VALVE_TYPE_OPTIONS = PRODUCT_CATALOGS.valvula.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
-const ROUNDED_CORNERS_TYPE_OPTIONS = [
-  { value: "Redondeo esquinas del Fondo", label: "Redondeo esquinas del Fondo" },
-  { value: "Redondeo todas las esquinas", label: "Redondeo todas las esquinas" },
-];
+const ROUNDED_CORNERS_TYPE_OPTIONS = PRODUCT_CATALOGS.esquinasPr.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
-const POUCH_PERFORATION_TYPE_OPTIONS = [
-  { value: "Ojal", label: "Ojal" },
-  { value: "Circular", label: "Circular" },
-  { value: "Europunch", label: "Europunch" },
-];
+const POUCH_PERFORATION_TYPE_OPTIONS = PRODUCT_CATALOGS.tipoDePerforacionPouch.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
-const BAG_PERFORATION_TYPE_OPTIONS = [
-  { value: "Cruz", label: "Cruz" },
-  { value: "Media luna", label: "Media luna" },
-];
+const BAG_PERFORATION_TYPE_OPTIONS = PRODUCT_CATALOGS.tipoDePerforacionBolsa.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
-const PERFORATION_LOCATION_OPTIONS = [
-  { value: "Delantero", label: "Delantero" },
-  { value: "Posterior", label: "Posterior" },
-];
+const PERFORATION_LOCATION_OPTIONS = PRODUCT_CATALOGS.ubicacionDePerforaciones.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
-const PRECUT_TYPE_OPTIONS = [
-  { value: "Pre-corte mecánico abre fácil sectorizado", label: "Pre-corte mecánico abre fácil sectorizado" },
-  { value: "Pre-corte mecánico abre fácil", label: "Pre-corte mecánico abre fácil" },
-];
+const PRECUT_TYPE_OPTIONS = PRODUCT_CATALOGS.preCorte.values.map((val) => ({
+  value: val,
+  label: val,
+}));
 
 const OTHER_ACCESSORIES_OPTIONS = [
   { value: "Pega-pega", label: "Pega-pega" },
