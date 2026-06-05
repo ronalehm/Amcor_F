@@ -1052,8 +1052,9 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
 
   blueprintFormat: "Formato de plano",
 
-  printClass: "Impresión",
-  printType: "Tipo",
+  printClass: "Clase de Impresión",
+  printType: "Tipo de Impresión",
+  printForm: "Forma de Impresión",
 
   width: "Ancho",
   length: "Largo",
@@ -3774,10 +3775,10 @@ export default function ProjectEditPage() {
                           )}
                         </div>
 
-                        {/* Línea 2: Impresión + especificaciones */}
+                        {/* Línea 2: Clase de Impresión + Tipo de Impresión + Forma de Impresión */}
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                           <FormSelect
-                            label="Impresión *"
+                            label="Clase de Impresión *"
                             value={form.printClass}
                             onChange={(value) => updateField("printClass", value)}
                             onBlur={() => markFieldAsTouched("printClass")}
@@ -3788,7 +3789,7 @@ export default function ProjectEditPage() {
                           />
 
                           <FormSelect
-                            label={form.printClass && form.printClass !== "Sin impresión" ? "Tipo *" : "Tipo"}
+                            label={form.printClass && form.printClass !== "Sin impresión" ? "Tipo de Impresión *" : "Tipo de Impresión"}
                             value={form.printType}
                             onChange={(value) => updateField("printType", value)}
                             onBlur={() => markFieldAsTouched("printType")}
@@ -3798,6 +3799,23 @@ export default function ProjectEditPage() {
                             disabled={!canEditDesign || isPrintingDisabled}
                           />
 
+                          <FormSelect
+                            label="Forma de Impresión *"
+                            value={form.printForm}
+                            onChange={(value) => updateField("printForm", value)}
+                            onBlur={() => markFieldAsTouched("printForm")}
+                            error={getError("printForm")}
+                            placeholder="-- Seleccione --"
+                            options={PRODUCT_CATALOGS.formaDeImpresion.values.map((val) => ({
+                              value: val,
+                              label: val,
+                            }))}
+                            disabled={!canEditDesign || isPrintingDisabled}
+                          />
+                        </div>
+
+                        {/* Línea 3: Especificaciones Especiales */}
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                           <FormSelect
                             label="Especificaciones Especiales"
                             value={form.specialDesignSpecs}
