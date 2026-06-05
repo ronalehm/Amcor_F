@@ -144,21 +144,42 @@ Estos campos del Excel NO tienen catálogos definidos en la app:
 
 ---
 
-## 📋 PRÓXIMOS PASOS (Tareas 4-6)
+## ✅ TAREA 4: ACTUALIZAR OPCIONES DINÁMICAS EN PAGES
+**Estado:** ✅ COMPLETADO
 
-```
-1. Abrir ProductCreatePage.tsx
-2. Importar: import { PRODUCT_CATALOGS } from "...productCatalogs"
-3. Remover arrays hardcoded: CLASSIFICATION_OPTIONS, SUBCLASSIFICATION_*
-4. Agregar dinámico: 
-   const CLASSIFICATION_OPTIONS = PRODUCT_CATALOGS.clasificacion.values.map(...)
-5. Hacer lo mismo en ProductEditPage.tsx y ProductStep0General.tsx
-6. Ejecutar: npm run build
-7. Ejecutar: npm run dev
-8. Testear: P1 > seleccionar Clasificación > verificar opciones sean de Excel
-9. Testear: P2 > Clase Impresión, Tipo, Forma > verificar opciones sean de Excel
-10. Testear: P3 > Tipo Estructura > verificar opciones sean de Excel
-```
+**Cambios realizados:**
+- ProductCreatePage.tsx: Reemplazado CLASSIFICATION_OPTIONS y SUBCLASSIFICATION_*_OPTIONS con dinámicos
+- ProductEditPage.tsx: Reemplazado CLASSIFICATION_OPTIONS y SUBCLASSIFICATION_*_OPTIONS con dinámicos
+- Ambos archivos mantienen compatibilidad con valores almacenados (Nuevo/Modificado)
+- Compilación: ✅ Sin errores TypeScript
+- Build: ✅ Exitoso
+
+---
+
+## 🆕 NUEVA TAREA: ACTUALIZACIÓN INTEGRAL DE P2
+
+**Estado:** ⏳ PENDIENTE ANÁLISIS Y PLANIFICACIÓN
+
+**Objetivo:** Implementar todos los campos P2 del Excel funcional en ProductStep0General.tsx y catalogs
+
+**Scope:** 
+- Agregar 90+ campos P2 faltantes
+- Crear 40+ catálogos nuevos en PRODUCT_CATALOGS
+- Implementar reglas de visibilidad condicional por envoltura (POUCH/BOLSA/LAMINA)
+- Asegurar persistencia de datos (save/load)
+
+**Archivos a modificar:**
+1. `src/shared/data/productCatalogs.ts` - Agregar catálogos P2
+2. `src/modules/products/components/ProductStep0General.tsx` - Agregar campos P2
+3. `src/modules/products/pages/ProductEditPage.tsx` - Actualizar state/props si es necesario
+
+**Próximos pasos:**
+1. Analizar ProductStep0General.tsx actual vs especificación de P2
+2. Identificar campos faltantes
+3. Crear/actualizar catálogos necesarios
+4. Implementar campos en secciones organizadas
+5. Implementar reglas de visibilidad
+6. Testing y validación
 
 ---
 
