@@ -31,6 +31,11 @@ export interface CatalogValue {
   inactivatedAt?: string;
   blockedAt?: string;
   blockedReason?: string;
+  // Relaciones y metadatos opcionales
+  wrappingType?: "pouch" | "bolsa" | "lamina" | null;
+  wrappingId?: string | number | null;
+  wrappingCode?: string | null;
+  [key: string]: any; // Permite campos adicionales
 }
 
 export interface CatalogOption {
