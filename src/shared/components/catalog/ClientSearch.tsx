@@ -33,12 +33,12 @@ export default function ClientSearch({
 
   // Mostrar nombre del cliente seleccionado en el input
   useEffect(() => {
-    if (selectedClient) {
+    if (value && selectedClient) {
       setQuery(selectedClient.businessName);
-    } else {
+    } else if (!value) {
       setQuery("");
     }
-  }, [selectedClient?.id]);
+  }, [value, selectedClient]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
