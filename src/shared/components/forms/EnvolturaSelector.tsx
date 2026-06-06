@@ -39,11 +39,14 @@ export default function EnvolturaSelector({
   const envolturas = useMemo(() => {
     const catalogValues = getCatalogValues("wrapping_type", { activeOnly: true });
     return catalogValues.map((v) => {
+      // Normalizar nombre para detectar tipo
+      const normalizedName = (v.name || "").toLowerCase().trim();
+
       // Mapear item a formato compatible con Portfolio
-      let id = v.name;
-      if (v.item.includes("LÁMINA") || v.item.includes("LAMINA")) id = "LAMINA";
-      else if (v.item.includes("BOLSA")) id = "BOLSA";
-      else if (v.item.includes("POUCH")) id = "POUCH";
+      let id = "LAMINA"; // default
+      if (normalizedName.includes("bolsa")) id = "BOLSA";
+      else if (normalizedName.includes("pouch")) id = "POUCH";
+      else if (normalizedName.includes("lamina") || normalizedName.includes("lámina")) id = "LAMINA";
 
       return {
         id,
