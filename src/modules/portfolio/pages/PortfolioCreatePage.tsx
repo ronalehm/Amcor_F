@@ -87,6 +87,145 @@ function getTemporaryPortfolioCode() {
   return `PO-${String(maxNumber + 1).padStart(6, "0")}`;
 }
 
+
+type LoggedUserInfo = {
+  id: string;
+  name: string;
+  email: string;
+  role?: string;
+};
+
+function safeJsonParse<T>(value: string | null): T | null {
+  if (!value) return null;
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+function getTextValue(...values: any[]): string {
+  const value = values.find(
+    (item) => item !== undefined && item !== null && String(item).trim() !== ""
+  );
+
+  return value ? String(value).trim() : "";
+}
+
+function normalizeUserName(value: string): string {
+  const text = getTextValue(value);
+
+  if (!text) return "";
+
+  const emailLike = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
+
+  if (!emailLike) return text;
+
+  const [localPart] = text.split("@");
+
+  return localPart
+    .replace(/[._-]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function extractLoggedUserFromObject(source: any): LoggedUserInfo | null {
+  if (!source || typeof source !== "object" || Array.isArray(source)) return null;
+
+  const user =
+    source.user ??
+    source.currentUser ??
+    source.authUser ??
+    source.loggedUser ??
+    source.usuario ??
+    source.profile ??
+    source.account ??
+    source.session?.user ??
+    source.session?.currentUser ??
+    source;
+
+  if (!user || typeof user !== "object" || Array.isArray(user)) return null;
+
+  const rawName = getTextValue(
+    user.fullName,
+    user.name,
+    user.displayName,
+    user.nombreCompleto,
+    user.nombre,
+    user.username,
+    user.userName,
+    user.email
+  );
+
+  const name = normalizeUserName(rawName);
+  const email = getTextValue(user.email, user.mail, user.correo);
+  const id = getTextValue(user.id, user.userId, user.uid, user.code, user.codigo, email, name);
+  const role = getTextValue(user.role, user.profile, user.perfil, user.area, user.position, user.puesto);
+
+  if (!name && !email && !id) return null;
+
+  return {
+    id: id || "frontend-user",
+    name: name || email || id || "Usuario Comercial",
+    email,
+    role,
+  };
+}
+
+function getCurrentLoggedUser(): LoggedUserInfo {
+  const preferredStorageKeys = [
+    "odiseo_current_user",
+    "odiseo_auth_user",
+    "odiseo_logged_user",
+    "odiseo_user_session",
+    "odiseo_session",
+    "auth_session",
+    "currentUser",
+    "authUser",
+    "loggedUser",
+    "user",
+    "session",
+  ];
+
+  for (const key of preferredStorageKeys) {
+    const parsed = safeJsonParse<any>(localStorage.getItem(key));
+    const currentUser = extractLoggedUserFromObject(parsed);
+
+    if (currentUser?.name) return currentUser;
+  }
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (!key) continue;
+
+    const normalizedKey = key.toLowerCase();
+
+    if (
+      normalizedKey.includes("portfolio") ||
+      normalizedKey.includes("catalog") ||
+      normalizedKey.includes("client") ||
+      normalizedKey.includes("odiseo_users")
+    ) {
+      continue;
+    }
+
+    const parsed = safeJsonParse<any>(localStorage.getItem(key));
+    const currentUser = extractLoggedUserFromObject(parsed);
+
+    if (currentUser?.name) return currentUser;
+  }
+
+  return {
+    id: "frontend-user",
+    name: "Usuario Comercial",
+    email: "",
+    role: "Comercial",
+  };
+}
+
 const buildInitialForm = (): PortfolioFormData => ({
   codigo: getTemporaryPortfolioCode(),
   estadoId: String(getStatusCatalog()[0]?.id || 1),
@@ -487,6 +626,7 @@ useEffect(() => {
     }
 
     const now = new Date().toISOString();
+    const currentUser = getCurrentLoggedUser();
 
     const tabportRecord = {
       TbPoCodi: form.codigo,
@@ -496,10 +636,12 @@ useEffect(() => {
       TbPoIdpr: crypto.randomUUID(),
       TbPoFReg: now,
       TbPoActi: true,
-      TbPoUCre: "usuario.frontend",
+      TbPoUCre: currentUser.id,
       TbPoFCre: now,
-      TbPoUUlt: "usuario.frontend",
+      TbPoUUlt: currentUser.id,
       TbPoFUlt: now,
+      TbPoUCreNom: currentUser.name,
+      TbPoUUltNom: currentUser.name,
 
       CLMaCCLi: selectedClient.id,
       TbVeCVen: selectedExecutive.id,
@@ -552,8 +694,25 @@ useEffect(() => {
       maq: selectedPackingMachine.name,
 
       createdAt: now,
-      fch: new Intl.DateTimeFormat("es-PE").format(new Date()),
+      updatedAt: now,
+      fch: new Intl.DateTimeFormat("es-PE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(new Date(now)),
       proy: [],
+
+      createdBy: currentUser.id,
+      createdByName: currentUser.name,
+      createdByEmail: currentUser.email,
+      updatedBy: currentUser.id,
+      updatedByName: currentUser.name,
+      updatedByEmail: currentUser.email,
+      lastUpdatedBy: currentUser.name,
+      realizadoPor: currentUser.name,
     };
 
     savePortfolioRecord({

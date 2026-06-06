@@ -34,6 +34,9 @@ import EnvolturaSelector from "../../../shared/components/forms/EnvolturaSelecto
 import PlantSelector from "../../../shared/components/forms/PlantSelector";
 import { useLayout } from "../../../components/layout/LayoutContext";
 
+import seedClients from "../../../shared/data/seeds/clients.json";
+import seedUsers from "../../../shared/data/seeds/users.json";
+
 import {
   FormInput,
   FormSelect,
@@ -56,6 +59,8 @@ type PortfolioFormData = {
   envasadoId: string;
 };
 
+type EnvolturaOption = "POUCH" | "BOLSA" | "LAMINA";
+
 const AMCOR = {
   navy: "#00395A",
   navyDark: "#002b43",
@@ -71,16 +76,16 @@ function recordToFormData(record: Record<string, unknown>): PortfolioFormData {
   return {
     codigo: String(record.codigo || record.id || ""),
     estadoId: String(record.estadoId || record.statusId || getStatusCatalog()[0]?.id || 1),
-    clienteId: String(record.clienteId || record.clienteId || ""),
-    ejecutivoId: String(record.ejecutivoId || record.ejecutivoId || ""),
-    plantaId: String(record.plantaId || record.plantaId || ""),
+    clienteId: String(record.clienteId || record.cli || ""),
+    ejecutivoId: String(record.ejecutivoId || record.ej || ""),
+    plantaId: String(record.plantaId || record.pl || ""),
     licitacion: (record.licitacion as "Sí" | "No") || "No",
     codigoRFQ: String(record.codigoRFQ || record.codigoRFQ || ""),
     nombrePortafolio: String(record.nombrePortafolio || record.nom || ""),
     descripcionPortafolio: String(record.descripcionPortafolio || record.desc || ""),
-    envolturaId: String(record.envolturaId || record.envolturaId || ""),
-    usoFinalId: String(record.usoFinalId || record.usoFinalId || ""),
-    envasadoId: String(record.envasadoId || record.envasadoId || ""),
+    envolturaId: String(record.envolturaId || record.env || ""),
+    usoFinalId: String(record.usoFinalId || record.uf || ""),
+    envasadoId: String(record.envasadoId || record.maq || ""),
   };
 }
 
@@ -101,10 +106,30 @@ export default function PortfolioEditPage() {
 
   // Check if user is authenticated
   const [canEdit, setCanEdit] = useState(false);
-  
+
   useEffect(() => {
     const user = getCurrentUser();
     setCanEdit(!!user);
+  }, []);
+
+  // ── Initialize seed data if needed ──
+  useEffect(() => {
+    const clientsLS = localStorage.getItem("odiseo_clients");
+    const usersLS = localStorage.getItem("odiseo_users");
+
+    // Initialize clients if empty
+    if (!clientsLS || JSON.parse(clientsLS || "[]").length === 0) {
+      if (Array.isArray(seedClients) && seedClients.length > 0) {
+        localStorage.setItem("odiseo_clients", JSON.stringify(seedClients));
+      }
+    }
+
+    // Initialize users if empty
+    if (!usersLS || JSON.parse(usersLS || "[]").length === 0) {
+      if (Array.isArray(seedUsers) && seedUsers.length > 0) {
+        localStorage.setItem("odiseo_users", JSON.stringify(seedUsers));
+      }
+    }
   }, []);
 
   const portfolioCodeStr = portfolioCode || "";
@@ -403,16 +428,24 @@ useEffect(() => {
     );
   };
 
-  const handleEnvolturaChange = (value: string) => {
-    setForm((prev) =>
-      prev
-        ? {
-            ...prev,
-            envolturaId: value,
-            envasadoId: "",
-          }
-        : null
-    );
+  const handleEnvolturaChange = (optionOrId: string): void => {
+    const normalizedOption = normalizeEnvolturaOption(optionOrId);
+    const wrappingId = normalizedOption
+      ? getIdFromEnvolturaOption(normalizedOption)
+      : optionOrId;
+
+    if (!wrappingId) return;
+
+    setForm((prev) => ({
+      ...prev,
+      envolturaId: wrappingId,
+      envasadoId: "",
+    }));
+
+    setTouchedFields((prev) => ({
+      ...prev,
+      envolturaId: true,
+    }));
   };
 
   const handleLicitacionChange = (value: string) => {
@@ -433,6 +466,22 @@ useEffect(() => {
     setSubmitAttempted(true);
 
     if (!form || !portfolioCodeStr) return;
+
+    const requiredTouchedFields: Partial<Record<keyof PortfolioFormData, boolean>> = {
+      clienteId: true,
+      ejecutivoId: true,
+      plantaId: true,
+      nombrePortafolio: true,
+      envolturaId: true,
+      usoFinalId: true,
+      envasadoId: true,
+      ...(form.licitacion === "Sí" ? { codigoRFQ: true } : {}),
+    };
+
+    setTouchedFields((prev) => ({
+      ...prev,
+      ...requiredTouchedFields,
+    }));
 
     if (Object.keys(validationErrors).length > 0) {
       const fieldsWithErrors = Object.keys(validationErrors).reduce(
@@ -572,7 +621,10 @@ useEffect(() => {
                   label="Nombre del Cliente *"
                   value={form.clienteId}
                   clients={eligibleClients}
-                  onChange={(value) => updateField("clienteId", value)}
+                  onChange={(value) => {
+                    updateField("clienteId", value);
+                    markFieldAsTouched("clienteId");
+                  }}
                   onBlur={() => markFieldAsTouched("clienteId")}
                   error={
                     shouldShowFieldError("clienteId")
@@ -586,7 +638,10 @@ useEffect(() => {
                   label="Ejecutivo Comercial *"
                   value={form.ejecutivoId}
                   executives={comercialUsers}
-                  onChange={(value) => updateField("ejecutivoId", value)}
+                  onChange={(value) => {
+                    updateField("ejecutivoId", value);
+                    markFieldAsTouched("ejecutivoId");
+                  }}
                   onBlur={() => markFieldAsTouched("ejecutivoId")}
                   error={
                     shouldShowFieldError("ejecutivoId")
@@ -647,11 +702,7 @@ useEffect(() => {
                   </label>
                   <EnvolturaSelector
                     value={getEnvolturaOption(form.envolturaId)}
-                    onChange={(value) => {
-                      const id = getIdFromEnvolturaOption(value);
-                      handleEnvolturaChange(id);
-                      markFieldAsTouched("envolturaId");
-                    }}
+                    onChange={(optionOrId) => handleEnvolturaChange(optionOrId)}
                     error={
                       shouldShowFieldError("envolturaId")
                         ? validationErrors.envolturaId

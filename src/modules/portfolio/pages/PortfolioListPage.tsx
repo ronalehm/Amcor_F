@@ -62,29 +62,38 @@ const getPortfolioStatus = (portfolio: any): "active" | "inactive" => {
 const getPortfolioUpdatedAt = (portfolio: any): string => {
   return getText(
     portfolio.updatedAt,
+    portfolio.TbPoFUlt,
     portfolio.modifiedAt,
     portfolio.lastUpdatedAt,
     portfolio.fechaActualizacion,
     portfolio.updated_at,
     portfolio.createdAt,
+    portfolio.TbPoFCre,
+    portfolio.fch,
   );
 };
 
 const getPortfolioUpdatedBy = (portfolio: any): string => {
   return (
     getText(
+      portfolio.realizadoPor,
       portfolio.updatedByName,
-      portfolio.updatedBy,
       portfolio.lastUpdatedBy,
+      portfolio.modifiedByName,
       portfolio.usuarioActualizacion,
-      portfolio.modifiedBy,
       portfolio.createdByName,
+      portfolio.TbPoUUltNom,
+      portfolio.TbPoUCreNom,
+      portfolio.updatedBy,
+      portfolio.modifiedBy,
       portfolio.createdBy,
+      portfolio.TbPoUUlt,
+      portfolio.TbPoUCre,
     ) || "—"
   );
 };
 
-const formatPortfolioDate = (value: any): string => {
+const formatPortfolioDateTime = (value: any): string => {
   const text = getText(value);
 
   if (!text) return "—";
@@ -93,11 +102,14 @@ const formatPortfolioDate = (value: any): string => {
 
   if (Number.isNaN(date.getTime())) return text;
 
-  return date.toLocaleDateString("es-PE", {
+  return new Intl.DateTimeFormat("es-PE", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  });
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
 };
 
 const getSortValue = (portfolio: any, key: SortKey): string | number => {
@@ -546,7 +558,7 @@ export default function PortfolioListPage() {
                     </td>
 
                     <td className={tableStyles.cell}>
-                      {formatPortfolioDate(getPortfolioUpdatedAt(portfolio))}
+                      {formatPortfolioDateTime(getPortfolioUpdatedAt(portfolio))}
                     </td>
 
                     <td className={tableStyles.cell}>

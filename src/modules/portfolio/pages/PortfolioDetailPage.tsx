@@ -60,6 +60,65 @@ const getPortfolioNameValue = (portfolio: any): string => {
   );
 };
 
+const getText = (...values: any[]): string => {
+  const value = values.find(
+    (item) => item !== undefined && item !== null && String(item).trim() !== ""
+  );
+
+  return value ? String(value).trim() : "";
+};
+
+const formatPortfolioDateTime = (value: any): string => {
+  const text = getText(value);
+
+  if (!text) return "—";
+
+  const date = new Date(text);
+
+  if (Number.isNaN(date.getTime())) return text;
+
+  return new Intl.DateTimeFormat("es-PE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+};
+
+const getPortfolioCreatedAt = (portfolio: any): string =>
+  getText(portfolio.createdAt, portfolio.TbPoFCre, portfolio.fch);
+
+const getPortfolioUpdatedAt = (portfolio: any): string =>
+  getText(
+    portfolio.updatedAt,
+    portfolio.TbPoFUlt,
+    portfolio.modifiedAt,
+    portfolio.lastUpdatedAt,
+    portfolio.fechaActualizacion,
+    portfolio.createdAt,
+    portfolio.TbPoFCre,
+    portfolio.fch
+  );
+
+const getPortfolioUpdatedBy = (portfolio: any): string =>
+  getText(
+    portfolio.realizadoPor,
+    portfolio.updatedByName,
+    portfolio.lastUpdatedBy,
+    portfolio.modifiedByName,
+    portfolio.usuarioActualizacion,
+    portfolio.createdByName,
+    portfolio.TbPoUUltNom,
+    portfolio.TbPoUCreNom,
+    portfolio.updatedBy,
+    portfolio.modifiedBy,
+    portfolio.createdBy,
+    portfolio.TbPoUUlt,
+    portfolio.TbPoUCre
+  ) || "—";
+
 export default function PortfolioDetailPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
@@ -165,7 +224,14 @@ export default function PortfolioDetailPage() {
     const currentStatus = getPortfolioStatus(portfolio);
     const nextStatusLabel = currentStatus === "active" ? "Inactivo" : "Activo";
     const now = new Date().toISOString();
-    const updatedByName = currentUser?.fullName || "Sistema";
+    const updatedByName = getText(
+      currentUser?.fullName,
+      (currentUser as any)?.name,
+      (currentUser as any)?.displayName,
+      currentUser?.email,
+      "Sistema"
+    );
+    const updatedById = getText(currentUser?.id, currentUser?.email, "system");
     const portfolioCodeValue = getPortfolioCodeValue(portfolio);
 
     updatePortfolioRecord(portfolioCodeValue, {
@@ -176,8 +242,14 @@ export default function PortfolioDetailPage() {
       active: currentStatus === "inactive",
       statusUpdatedAt: now,
       updatedAt: now,
+      TbPoFUlt: now,
+      TbPoUUlt: updatedById,
+      TbPoUUltNom: updatedByName,
       updatedByName,
-      updatedBy: currentUser?.id || "system",
+      updatedBy: updatedById,
+      lastUpdatedBy: updatedByName,
+      realizadoPor: updatedByName,
+      usuarioActualizacion: updatedByName,
     });
 
     setPortfolio((prev) =>
@@ -191,8 +263,14 @@ export default function PortfolioDetailPage() {
             active: currentStatus === "inactive",
             statusUpdatedAt: now,
             updatedAt: now,
+            TbPoFUlt: now,
+            TbPoUUlt: updatedById,
+            TbPoUUltNom: updatedByName,
             updatedByName,
-            updatedBy: currentUser?.id || "system",
+            updatedBy: updatedById,
+            lastUpdatedBy: updatedByName,
+            realizadoPor: updatedByName,
+            usuarioActualizacion: updatedByName,
           }
         : prev
     );
@@ -276,7 +354,15 @@ export default function PortfolioDetailPage() {
             />
             <PreviewRow
               label="Fecha Registro"
-              value={(portfolio as any).fch || new Date().toLocaleDateString()}
+              value={formatPortfolioDateTime(getPortfolioCreatedAt(portfolio))}
+            />
+            <PreviewRow
+              label="Últ. actualización"
+              value={formatPortfolioDateTime(getPortfolioUpdatedAt(portfolio))}
+            />
+            <PreviewRow
+              label="Realizado por"
+              value={getPortfolioUpdatedBy(portfolio)}
             />
           </div>
         </FormCard>

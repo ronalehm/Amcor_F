@@ -24,7 +24,7 @@ type ClientSearchProps = {
 
 const DROPDOWN_MAX_HEIGHT = 256;
 
-const normalizeText = (text?: string | null) =>
+const normalizeText = (text?: string | number | null) =>
   String(text ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -102,7 +102,6 @@ export default function ClientSearch({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-
       const clickedInsideInput = wrapperRef.current?.contains(target);
       const clickedInsideDropdown = dropdownRef.current?.contains(target);
 
@@ -142,12 +141,8 @@ export default function ClientSearch({
 
   const selectClient = useCallback(
     (client: Client) => {
-      // Valor técnico que se guarda en el formulario
       onChange(client.id);
-
-      // Valor visible que se muestra al usuario
       setQuery(client.businessName);
-
       setIsOpen(false);
       setSelectedIndex(-1);
     },
@@ -155,9 +150,17 @@ export default function ClientSearch({
   );
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setQuery(event.target.value);
+    const nextQuery = event.target.value;
+
+    setQuery(nextQuery);
     setIsOpen(true);
     setSelectedIndex(-1);
+
+    // Si el usuario borra el texto o modifica el cliente seleccionado,
+    // se limpia el valor técnico para que la validación obligatoria se active.
+    if (!nextQuery.trim() || value) {
+      onChange("");
+    }
   };
 
   const handleInputFocus = () => {
@@ -231,8 +234,8 @@ export default function ClientSearch({
           autoComplete="off"
           className={`w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm shadow-sm outline-none transition-colors ${
             error
-              ? "border-red-300 bg-red-50 text-red-900 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-              : "border-slate-200 text-slate-700 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+              ? "border-red-500 bg-red-50 text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+              : "border-slate-300 text-slate-700 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
           } placeholder:text-slate-400`}
         />
       </div>
