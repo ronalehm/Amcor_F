@@ -76,13 +76,13 @@ export default function SmartCatalogSearch({
     );
   }, [options, query]);
 
+  const showOptions = isOpen && (query.trim().length === 0 || filteredOptions.length > 0);
+
   const selectOption = (option: SmartCatalogOption) => {
     onChange(String(option.id));
     setQuery(option.name);
     setIsOpen(false);
   };
-
-  const showDropdown = isOpen;
 
   return (
     <div className="relative" ref={wrapperRef}>
@@ -122,7 +122,7 @@ export default function SmartCatalogSearch({
         />
       </div>
 
-      {showDropdown && (
+      {showOptions && (
         <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
           {filteredOptions.length > 0 ? (
             filteredOptions.map((option) => (
