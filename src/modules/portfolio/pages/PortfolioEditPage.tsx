@@ -22,7 +22,7 @@ import {
 } from "../../../shared/data/executiveStorage";
 
 import { getPortfolioByCode, updatePortfolioRecord } from "../../../shared/data/portfolioStorage";
-import { getCurrentUser, getCommercialExecutives } from "../../../shared/data/userStorage";
+import { getCurrentUser } from "../../../shared/data/userStorage";
 import { getClientCatalogRecords, canClientHavePortfolio } from "../../../shared/data/clientStorage";
 
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
@@ -132,8 +132,8 @@ export default function PortfolioEditPage() {
   const eligibleClients = useMemo(() => allClients.filter((c) => canClientHavePortfolio(c.status)), [allClients]);
   const selectedClient = allClients.find((c) => c.id === form?.clienteId);
 
-  const comercialExecutives = useMemo(() => getCommercialExecutives(), []);
-  const selectedExecutive = comercialExecutives.find((u) => u.id === form?.ejecutivoId);
+  const comercialExecutives = useMemo(() => getActiveExecutiveRecords(), []);
+  const selectedExecutive = comercialExecutives.find((u) => String(u.id) === form?.ejecutivoId);
   const selectedPlant = getPlantById(Number(form?.plantaId));
   const selectedWrapping = getWrappingById(Number(form?.envolturaId));
   const selectedFinalUse = getFinalUseById(Number(form?.usoFinalId));
@@ -420,9 +420,9 @@ useEffect(() => {
       clienteId: selectedClient.id,
       clienteCode: selectedClient.code,
       cli: selectedClient.businessName,
-      ejecutivoId: selectedExecutive.id,
+      ejecutivoId: String(selectedExecutive.id),
       ejecutivoCode: selectedExecutive.code,
-      ej: selectedExecutive.fullName,
+      ej: selectedExecutive.name,
       plantaId: selectedPlant.id,
       plantaCode: selectedPlant.code,
       pl: selectedPlant.name,
@@ -542,9 +542,9 @@ useEffect(() => {
                       : ""
                   }
                   options={comercialExecutives.map((item) => ({
-                    id: item.id,
+                    id: String(item.id),
                     code: item.code,
-                    name: item.fullName,
+                    name: item.name,
                     meta: item.email,
                   }))}
                   placeholder="Escribe para buscar ejecutivo..."
@@ -733,7 +733,7 @@ useEffect(() => {
               completionPercentage={completionPercentage}
               items={[
                 { label: "Cliente", value: selectedClient?.businessName || "—" },
-                { label: "Ejecutivo", value: selectedExecutive?.fullName || "—" },
+                { label: "Ejecutivo", value: selectedExecutive?.name || "—" },
                 { label: "Planta", value: selectedPlant?.name || "—" },
                 { label: "Portafolio", value: form.nombrePortafolio || "—" },
                 { label: "Envoltura", value: selectedWrapping?.name || "—" },

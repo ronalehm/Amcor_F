@@ -18,7 +18,7 @@ import {
 } from "../../../shared/catalogs/portfolio-adapters";
 
 import { getClientCatalogRecords, getClientByCode, canClientHavePortfolio } from "../../../shared/data/clientStorage";
-import { getCommercialExecutives } from "../../../shared/data/userStorage";
+import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
 import { savePortfolioRecord } from "../../../shared/data/portfolioStorage";
 
 const RECENT_NEW_PORTFOLIO_KEY = "odiseo_recent_new_portfolio";
@@ -124,8 +124,8 @@ export default function PortfolioCreatePage() {
   const eligibleClients = useMemo(() => allClients.filter((c) => canClientHavePortfolio(c.status)), [allClients]);
   const selectedClient = useMemo(() => allClients.find((c) => c.id === form.clienteId), [allClients, form.clienteId]);
 
-  const comercialUsers = useMemo(() => getCommercialExecutives(), [dataReloaded]);
-  const selectedExecutive = useMemo(() => comercialUsers.find((u) => u.id === form.ejecutivoId), [comercialUsers, form.ejecutivoId]);
+  const comercialUsers = useMemo(() => getActiveExecutiveRecords(), [dataReloaded]);
+  const selectedExecutive = useMemo(() => comercialUsers.find((u) => String(u.id) === form.ejecutivoId), [comercialUsers, form.ejecutivoId]);
 
   // ── Initialize seed data if needed ──
   useEffect(() => {
@@ -432,9 +432,9 @@ useEffect(() => {
       clientName: selectedClient.businessName,
       clientRuc: selectedClient.ruc || "",
 
-      ejecutivoId: selectedExecutive.id,
+      ejecutivoId: String(selectedExecutive.id),
       ejecutivoCode: selectedExecutive.code,
-      ej: selectedExecutive.fullName,
+      ej: selectedExecutive.name,
 
       plantaId: selectedPlant.id,
       plantaCode: selectedPlant.code,
@@ -549,13 +549,13 @@ useEffect(() => {
                       : ""
                   }
                   options={comercialUsers.map((item) => ({
-                    id: item.id,
+                    id: String(item.id),
                     code: item.code,
-                    name: item.fullName,
+                    name: item.name,
                     meta: item.email,
                   }))}
                   placeholder="Escribe para buscar ejecutivo..."
-                  emptyMessage="Usuario no encontrado. Regístrelo en el módulo Usuarios."
+                  emptyMessage="Ejecutivo no encontrado. Regístrelo en el módulo Ejecutivos Comerciales."
                 />
               </div>
             </SectionCard>
@@ -737,7 +737,7 @@ useEffect(() => {
               completionPercentage={completionPercentage}
               items={[
                 { label: "Cliente", value: selectedClient?.businessName || "—" },
-                { label: "Ejecutivo", value: selectedExecutive?.fullName || "—" },
+                { label: "Ejecutivo", value: selectedExecutive?.name || "—" },
                 { label: "Planta", value: selectedPlant?.name || "—" },
                 { label: "Portafolio", value: form.nombrePortafolio || "—" },
                 { label: "Envoltura", value: selectedWrapping?.name || "—" },
