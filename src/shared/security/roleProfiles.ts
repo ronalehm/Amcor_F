@@ -4,7 +4,7 @@ export type RoleCode =
   | "master_data"
   | "commercial"
   | "customer_service"
-  | "operations"
+  | "rd"
   | "readonly";
 
 export type PermissionCode =
@@ -116,23 +116,33 @@ export const ROLE_PROFILES: RoleProfile[] = [
   {
     code: "customer_service",
     name: "Customer Service",
-    description: "Consulta y seguimiento operativo de clientes, portafolios y productos.",
+    description: "Creación y actualización de portafolios y productos, consulta de clientes.",
     permissions: [
       "clients.read",
       "portfolios.read",
+      "portfolios.create",
+      "portfolios.update",
       "products.read",
+      "products.create",
+      "products.update",
       "catalogs.read",
+      "restrictions.read",
     ],
   },
   {
-    code: "operations",
-    name: "Operaciones",
-    description: "Consulta operativa de productos, portafolios y catálogos necesarios para seguimiento.",
+    code: "rd",
+    name: "R&D",
+    description: "Perfil para creación y actualización de productos y soporte técnico funcional en datos del producto.",
     permissions: [
       "clients.read",
       "portfolios.read",
+      "portfolios.create",
+      "portfolios.update",
       "products.read",
+      "products.create",
+      "products.update",
       "catalogs.read",
+      "restrictions.read",
     ],
   },
   {
@@ -176,8 +186,8 @@ export function suggestRoleByArea(area: string): RoleCode {
     return "customer_service";
   }
 
-  if (normalizedArea.includes("operaciones")) {
-    return "operations";
+  if (normalizedArea.includes("r&d") || normalizedArea.includes("rd") || normalizedArea.includes("desarrollo")) {
+    return "rd";
   }
 
   return "readonly";
