@@ -448,24 +448,28 @@ export function getUserByWorkerCode(workerCode: string): User | undefined {
 }
 
 export function findDuplicateUser(
-  email: string,
+  email?: string,
   workerCode?: string,
   excludeUserId?: string
 ): User | undefined {
   const allUsers = getAllUsers();
-  const normalizedEmail = normalizeEmail(email);
-  const normalizedWorkerCode = workerCode ? workerCode.trim().toLowerCase() : undefined;
+  const normalizedEmail = email?.trim().toLowerCase();
+  const normalizedWorkerCode = workerCode?.trim().toLowerCase();
 
   return allUsers.find((user) => {
     if (excludeUserId && user.id === excludeUserId) {
       return false;
     }
 
-    const emailMatch = normalizeEmail(user.email) === normalizedEmail;
-    const workerCodeMatch = normalizedWorkerCode
-      ? user.workerCode?.toLowerCase() === normalizedWorkerCode
-      : false;
-    return emailMatch || workerCodeMatch;
+    const emailMatch =
+      normalizedEmail &&
+      normalizeEmail(user.email) === normalizedEmail;
+
+    const workerCodeMatch =
+      normalizedWorkerCode &&
+      user.workerCode?.toLowerCase() === normalizedWorkerCode;
+
+    return Boolean(emailMatch || workerCodeMatch);
   });
 }
 

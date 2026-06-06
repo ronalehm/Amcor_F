@@ -89,6 +89,7 @@ export default function UserCreatePage() {
 
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isValidatingEmail, setIsValidatingEmail] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -146,14 +147,46 @@ export default function UserCreatePage() {
     return () => resetHeader();
   }, [setHeader, resetHeader, userCode]);
 
+  useEffect(() => {
+    const normalizedEmail = form.email.toLowerCase().trim();
+
+    if (!normalizedEmail) {
+      setEmailValidationMessage(null);
+      setExplicitFlowState("initial");
+      setIsValidatingEmail(false);
+      return;
+    }
+
+    setIsValidatingEmail(true);
+
+    const timeoutId = window.setTimeout(() => {
+      validateCorporateEmail(normalizedEmail);
+      setIsValidatingEmail(false);
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.email]);
+
   const validateCorporateEmail = (email: string) => {
-    if (!email.trim()) {
+    const normalizedEmail = email.toLowerCase().trim();
+
+    if (!normalizedEmail) {
       setEmailValidationMessage(null);
       setExplicitFlowState("initial");
       return;
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setEmailValidationMessage({
+        type: "error",
+        text: "El formato del correo no es válido.",
+      });
+      setExplicitFlowState("initial");
+      return;
+    }
+
     const existingUser = getUserByEmail(normalizedEmail);
 
     if (existingUser) {
@@ -169,6 +202,7 @@ export default function UserCreatePage() {
       type: "success",
       text: "Correo no encontrado en ODISEO. Puedes continuar con el registro.",
     });
+
     setExplicitFlowState("newEmailConfirmed");
   };
 
@@ -370,14 +404,24 @@ export default function UserCreatePage() {
       return;
     }
 
-    const duplicate = findDuplicateUser(
-      form.email.trim(),
+    const duplicateByEmail = getUserByEmail(form.email.trim().toLowerCase());
+
+    if (duplicateByEmail) {
+      setErrorMessage(
+        "No se puede registrar porque el correo corporativo ya existe en ODISEO."
+      );
+      setExplicitFlowState("existingEmailFound");
+      return;
+    }
+
+    const duplicateByWorkerCode = findDuplicateUser(
+      "",
       form.workerCode.trim()
     );
 
-    if (duplicate) {
+    if (duplicateByWorkerCode) {
       setErrorMessage(
-        "No se puede registrar porque ya existe un usuario con el mismo correo o código de trabajador."
+        "No se puede registrar porque el código de trabajador ya existe en ODISEO. Revisa el código ingresado."
       );
       return;
     }
@@ -527,23 +571,33 @@ export default function UserCreatePage() {
                   label="Correo Corporativo"
                   value={form.email}
                   onChange={(value) => {
-                    setForm({ ...form, email: value });
+                    setForm((prev) => ({
+                      ...prev,
+                      email: value,
+                      odiseoUser: "",
+                      workerCode: "",
+                      fullName: "",
+                      position: "",
+                      area: "",
+                      role: "",
+                    }));
 
-                    if (explicitFlowState !== "initial") {
-                      setExplicitFlowState("initial");
-                      setEmailValidationMessage(null);
-                    }
-                  }}
-                  onBlur={() => {
-                    if (form.email.trim()) {
-                      validateCorporateEmail(form.email);
-                    }
+                    setEmailValidationMessage(null);
+                    setExplicitFlowState("initial");
+                    setErrorMessage(null);
+                    setSubmitAttempted(false);
                   }}
                   type="email"
                   placeholder="Ej: juan.perez@amcor.com"
                   error={submitAttempted ? validationErrors.email : undefined}
                   required
                 />
+
+                {isValidatingEmail && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+                    Validando correo corporativo...
+                  </div>
+                )}
 
                 {emailValidationMessage && (
                   <div
@@ -559,7 +613,7 @@ export default function UserCreatePage() {
               </div>
             </FormCard>
 
-            {flowState !== "initial" && flowState !== "existingEmailFound" && (
+            {explicitFlowState === "newEmailConfirmed" && (
               <>
                 <FormCard
                   title="2. Completar datos del usuario"
