@@ -23,8 +23,8 @@ import { savePortfolioRecord } from "../../../shared/data/portfolioStorage";
 
 const RECENT_NEW_PORTFOLIO_KEY = "odiseo_recent_new_portfolio";
 
-import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
 import ClientSearch from "../../../shared/components/catalog/ClientSearch";
+import ExecutiveSearch from "../../../shared/components/catalog/ExecutiveSearch";
 import FinalUseSelector from "../../../shared/components/catalog/FinalUseSelector";
 import FinalUseCatalogModal from "../../../shared/components/catalog/FinalUseCatalogModal";
 import PortfolioPreview from "../../../shared/components/ui/PortfolioPreview.tsx";
@@ -538,9 +538,10 @@ useEffect(() => {
                   />
                 )}
 
-                <SmartCatalogSearch
+                <ExecutiveSearch
                   label="Ejecutivo Comercial *"
                   value={form.ejecutivoId}
+                  executives={comercialUsers}
                   onChange={(value) => updateField("ejecutivoId", value)}
                   onBlur={() => markFieldAsTouched("ejecutivoId")}
                   error={
@@ -548,14 +549,7 @@ useEffect(() => {
                       ? validationErrors.ejecutivoId
                       : ""
                   }
-                  options={comercialUsers.map((item) => ({
-                    id: String(item.id),
-                    code: item.code,
-                    name: item.name,
-                    meta: item.email,
-                  }))}
                   placeholder="Escribe para buscar ejecutivo..."
-                  emptyMessage="Ejecutivo no encontrado. Regístrelo en el módulo Ejecutivos Comerciales."
                 />
               </div>
             </SectionCard>

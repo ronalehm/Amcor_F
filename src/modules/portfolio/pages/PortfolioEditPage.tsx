@@ -25,8 +25,8 @@ import { getPortfolioByCode, updatePortfolioRecord } from "../../../shared/data/
 import { getCurrentUser } from "../../../shared/data/userStorage";
 import { getClientCatalogRecords, canClientHavePortfolio } from "../../../shared/data/clientStorage";
 
-import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
 import ClientSearch from "../../../shared/components/catalog/ClientSearch";
+import ExecutiveSearch from "../../../shared/components/catalog/ExecutiveSearch";
 import FinalUseCatalogModal from "../../../shared/components/catalog/FinalUseCatalogModal";
 import PortfolioPreview from "../../../shared/components/ui/PortfolioPreview";
 import SectionCard from "../../../shared/components/ui/SectionCard";
@@ -531,9 +531,10 @@ useEffect(() => {
                   placeholder="Escribe para buscar cliente..."
                 />
 
-                <SmartCatalogSearch
+                <ExecutiveSearch
                   label="Ejecutivo Comercial *"
                   value={form.ejecutivoId}
+                  executives={comercialExecutives}
                   onChange={(value) => updateField("ejecutivoId", value)}
                   onBlur={() => markFieldAsTouched("ejecutivoId")}
                   error={
@@ -541,14 +542,7 @@ useEffect(() => {
                       ? validationErrors.ejecutivoId
                       : ""
                   }
-                  options={comercialExecutives.map((item) => ({
-                    id: String(item.id),
-                    code: item.code,
-                    name: item.name,
-                    meta: item.email,
-                  }))}
                   placeholder="Escribe para buscar ejecutivo..."
-                  emptyMessage="Usuario no encontrado. Regístrelo en el módulo Usuarios."
                 />
               </div>
             </SectionCard>
