@@ -1,68 +1,56 @@
-import { useState } from "react";
-import Button from "../ui/Button";
-
 type FormActionButtonsProps = {
-  cancelLabel?: string;
-  submitLabel?: string;
   onCancel: () => void;
-  onSubmit?: () => void;
+  submitLabel?: string;
+  cancelLabel?: string;
   validationErrorList?: string[];
   submitAttempted?: boolean;
-  validationTitle?: string;
-  isLoading?: boolean;
+  isSubmitting?: boolean;
 };
 
 export default function FormActionButtons({
-  cancelLabel = "Cancelar",
-  submitLabel = "Guardar Portafolio",
   onCancel,
-  onSubmit,
+  submitLabel = "Guardar",
+  cancelLabel = "Cancelar",
   validationErrorList = [],
   submitAttempted = false,
-  validationTitle = "Faltan campos obligatorios.",
-  isLoading = false,
+  isSubmitting = false,
 }: FormActionButtonsProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const shouldShowPopover =
-    validationErrorList.length > 0 && (isHovered || submitAttempted);
+  const hasValidationErrors = validationErrorList.length > 0;
 
   return (
-    <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onCancel}
-      >
-        {cancelLabel}
-      </Button>
+    <div className="flex flex-col items-end gap-3">
+      {submitAttempted && hasValidationErrors && (
+        <div className="w-full max-w-md rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+          <p className="mb-2 font-bold">Faltan campos obligatorios.</p>
 
-      <div
-        className="relative"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {shouldShowPopover && (
-          <div className="absolute bottom-full right-0 z-50 mb-2 w-96 rounded-lg border border-red-200 bg-slate-100 px-4 py-3 text-sm text-red-700 shadow-xl">
-            <p className="font-bold">{validationTitle}</p>
+          <ul className="list-disc space-y-1 pl-5">
+            {validationErrorList.map((error, index) => (
+              <li key={`${error}-${index}`}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-            <ul className="mt-2 list-disc space-y-1 pl-5">
-              {validationErrorList.map((error) => (
-                <li key={error}>{error}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <Button
-          type="submit"
-          variant="primary"
-          isLoading={isLoading}
-          disabled={isLoading || validationErrorList.length > 0}
-          onClick={onSubmit}
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-[#00395A] bg-white px-5 py-2 text-sm font-semibold text-[#00395A] transition-colors hover:bg-[#00395A] hover:text-white"
         >
-          {submitLabel}
-        </Button>
+          {cancelLabel}
+        </button>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={`rounded-lg px-5 py-2 text-sm font-semibold text-white transition-colors ${
+            isSubmitting
+              ? "cursor-not-allowed bg-slate-400"
+              : "bg-[#00395A] hover:bg-[#002b43]"
+          }`}
+        >
+          {isSubmitting ? "Guardando..." : submitLabel}
+        </button>
       </div>
     </div>
   );

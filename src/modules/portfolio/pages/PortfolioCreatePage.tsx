@@ -103,6 +103,16 @@ const buildInitialForm = (): PortfolioFormData => ({
   envasadoId: "",
 });
 
+const REQUIRED_FIELDS: Array<keyof PortfolioFormData> = [
+  "clienteId",
+  "ejecutivoId",
+  "nombrePortafolio",
+  "envolturaId",
+  "usoFinalId",
+  "envasadoId",
+  "plantaId",
+];
+
 export default function PortfolioCreatePage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
@@ -233,17 +243,25 @@ export default function PortfolioCreatePage() {
     return Math.round((completed / requiredChecks.length) * 100);
   }, [requiredChecks]);
 
-  const getSectionStatus = (sectionFields: string[]): "pending" | "completed" | "error" => {
+  const getSectionStatus = (
+    sectionFields: Array<keyof PortfolioFormData>
+  ): "pending" | "completed" | "error" => {
+    const hasVisibleError = sectionFields.some((field) =>
+      shouldShowFieldError(field)
+    );
+
+    if (hasVisibleError) return "error";
+
     const allCompleted = sectionFields.every((field) => {
       if (field === "clienteId") return Boolean(form.clienteId);
       if (field === "ejecutivoId") return Boolean(form.ejecutivoId);
       if (field === "plantaId") return Boolean(form.plantaId);
       if (field === "nombrePortafolio") return Boolean(form.nombrePortafolio.trim());
-      if (field === "descripcionPortafolio") return true; // optional
+      if (field === "descripcionPortafolio") return true;
       if (field === "envolturaId") return Boolean(form.envolturaId);
       if (field === "usoFinalId") return Boolean(form.usoFinalId);
       if (field === "envasadoId") return Boolean(form.envasadoId);
-      return false;
+      return true;
     });
 
     return allCompleted ? "completed" : "pending";
@@ -285,9 +303,9 @@ useEffect(() => {
     return errors;
   }, [form]);
 
-  const validationErrorList = Object.values(validationErrors).filter(
-    (error): error is string => Boolean(error)
-  );
+  const validationErrorList = REQUIRED_FIELDS
+    .map((field) => validationErrors[field])
+    .filter((error): error is string => Boolean(error));
 
   const updateField = (field: keyof PortfolioFormData, value: string) => {
     setForm((prev) => ({
@@ -301,6 +319,11 @@ useEffect(() => {
       ...prev,
       [field]: true,
     }));
+  };
+
+  const updateRequiredField = (field: keyof PortfolioFormData, value: string) => {
+    updateField(field, value);
+    markFieldAsTouched(field);
   };
 
   const shouldShowFieldError = (field: keyof PortfolioFormData) => {
@@ -434,20 +457,20 @@ useEffect(() => {
     event.preventDefault();
     setSubmitAttempted(true);
 
+    const allRequiredTouched = REQUIRED_FIELDS.reduce(
+      (acc, field) => {
+        acc[field] = true;
+        return acc;
+      },
+      {} as Partial<Record<keyof PortfolioFormData, boolean>>
+    );
+
+    setTouchedFields((prev) => ({
+      ...prev,
+      ...allRequiredTouched,
+    }));
+
     if (Object.keys(validationErrors).length > 0) {
-      const fieldsWithErrors = Object.keys(validationErrors).reduce(
-        (acc, field) => {
-          acc[field as keyof PortfolioFormData] = true;
-          return acc;
-        },
-        {} as Partial<Record<keyof PortfolioFormData, boolean>>
-      );
-
-      setTouchedFields((prev) => ({
-        ...prev,
-        ...fieldsWithErrors,
-      }));
-
       return;
     }
 
@@ -596,7 +619,7 @@ useEffect(() => {
                     label="Nombre del Cliente *"
                     value={form.clienteId}
                     clients={eligibleClients}
-                    onChange={(value) => updateField("clienteId", value)}
+                    onChange={(value) => updateRequiredField("clienteId", value)}
                     onBlur={() => markFieldAsTouched("clienteId")}
                     error={
                       shouldShowFieldError("clienteId")
@@ -611,7 +634,7 @@ useEffect(() => {
                   label="Ejecutivo Comercial *"
                   value={form.ejecutivoId}
                   executives={comercialUsers}
-                  onChange={(value) => updateField("ejecutivoId", value)}
+                  onChange={(value) => updateRequiredField("ejecutivoId", value)}
                   onBlur={() => markFieldAsTouched("ejecutivoId")}
                   error={
                     shouldShowFieldError("ejecutivoId")
@@ -634,7 +657,7 @@ useEffect(() => {
                 <FormInput
                   label="Nombre de Portafolio *"
                   value={form.nombrePortafolio}
-                  onChange={(value) => updateField("nombrePortafolio", value)}
+                  onChange={(value) => updateRequiredField("nombrePortafolio", value)}
                   onBlur={() => markFieldAsTouched("nombrePortafolio")}
                   error={
                     shouldShowFieldError("nombrePortafolio")
@@ -683,7 +706,7 @@ useEffect(() => {
                   <FormSelect
                     label="Uso Final *"
                     value={form.usoFinalId}
-                    onChange={(value) => updateField("usoFinalId", value)}
+                    onChange={(value) => updateRequiredField("usoFinalId", value)}
                     onBlur={() => markFieldAsTouched("usoFinalId")}
                     error={
                       shouldShowFieldError("usoFinalId")
@@ -759,7 +782,7 @@ useEffect(() => {
               <FormSelect
                 label="Envasado / Máquina de Cliente *"
                 value={form.envasadoId}
-                onChange={(value) => updateField("envasadoId", value)}
+                onChange={(value) => updateRequiredField("envasadoId", value)}
                 onBlur={() => markFieldAsTouched("envasadoId")}
                 error={
                   shouldShowFieldError("envasadoId")
@@ -816,8 +839,7 @@ useEffect(() => {
                 value={getPlantOption(form.plantaId)}
                 onChange={(value) => {
                   const id = getIdFromPlantOption(value);
-                  updateField("plantaId", id);
-                  markFieldAsTouched("plantaId");
+                  updateRequiredField("plantaId", id);
                 }}
                 error={
                   shouldShowFieldError("plantaId")
@@ -845,7 +867,7 @@ useEffect(() => {
           selectedId={form.usoFinalId}
           onClose={() => setShowFinalUseCatalog(false)}
           onSelect={(id) => {
-            updateField("usoFinalId", id);
+            updateRequiredField("usoFinalId", id);
             setShowFinalUseCatalog(false);
           }}
         />
