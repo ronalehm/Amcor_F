@@ -328,7 +328,7 @@ export function createUser(
     null,
     user.status,
     "system",
-    "Usuario creado"
+    "Usuario ODISEO creado - pendiente de activación"
   );
 
   return user;

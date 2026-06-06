@@ -2,6 +2,13 @@ const EXECUTIVES_STORAGE_KEY = "odiseo_commercial_executives";
 
 export type ExecutiveStatus = "Activo" | "Inactivo";
 
+export type ExecutiveRecord = {
+  id: string | number;
+  code: string;
+  name: string;
+  status: ExecutiveStatus;
+};
+
 export type CommercialExecutiveRecord = {
   id: number;
   code: string;
@@ -130,9 +137,10 @@ export function getActiveExecutiveRecords(): CommercialExecutiveRecord[] {
 }
 
 export function getExecutiveById(
-  id: number
+  id: string | number
 ): CommercialExecutiveRecord | undefined {
-  return getExecutiveRecords().find((executive) => executive.id === id);
+  const numId = typeof id === "string" ? parseInt(id, 10) : id;
+  return getExecutiveRecords().find((executive) => executive.id === numId);
 }
 
 export function getExecutiveByCode(

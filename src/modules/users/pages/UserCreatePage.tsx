@@ -10,11 +10,8 @@ import {
   getNextUserCode,
   getUserByEmail,
   findDuplicateUser,
-  findActiveSiCodeDuplicate,
-  getCurrentUser,
   ROLE_LABELS,
 } from "../../../shared/data/userStorage";
-import { registerUserStatusChange } from "../../../shared/data/userStatusStorage";
 import { mockSendEmail } from "../../../shared/data/notificationStorage";
 import { getCatalogOptions } from "../../../shared/catalogs";
 
@@ -22,7 +19,6 @@ import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
-import SystemIntegrationUserSearch from "../../../shared/components/forms/SystemIntegrationUserSearch";
 
 interface FormState {
   email: string;
@@ -32,9 +28,6 @@ interface FormState {
   position: string;
   area: string;
   role: string;
-  siUserCode?: string;
-  siUserName?: string;
-  siStatus?: string;
 }
 
 type ExplicitFlowState = "initial" | "existingEmailFound" | "newEmailConfirmed";
@@ -60,14 +53,12 @@ export default function UserCreatePage() {
 
   const [explicitFlowState, setExplicitFlowState] = useState<ExplicitFlowState>("initial");
   const [emailValidationMessage, setEmailValidationMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [siSearchQuery, setSiSearchQuery] = useState("");
 
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const currentUser = getCurrentUser();
 
   const roleOptions = useMemo(() =>
     Object.entries(ROLE_LABELS).map(([value, label]) => ({
@@ -175,25 +166,6 @@ export default function UserCreatePage() {
     }
   };
 
-  const handleSiUserSelect = (vendor: any) => {
-    setForm((prev) => ({
-      ...prev,
-      siUserCode: vendor.code,
-      siUserName: vendor.name,
-      siStatus: vendor.status,
-    }));
-    setSiSearchQuery("");
-  };
-
-  const handleClearSiUser = () => {
-    setForm((prev) => ({
-      ...prev,
-      siUserCode: undefined,
-      siUserName: undefined,
-      siStatus: undefined,
-    }));
-    setSiSearchQuery("");
-  };
 
   useEffect(() => {
     setHeader({
@@ -294,21 +266,10 @@ export default function UserCreatePage() {
       return;
     }
 
-    if (form.siUserCode) {
-      const siDuplicate = findActiveSiCodeDuplicate(form.siUserCode);
-      if (siDuplicate) {
-        setErrorMessage(
-          "Este usuario del Sistema Integral ya está vinculado a otro usuario ODISEO activo."
-        );
-        return;
-      }
-    }
 
     setLoading(true);
     try {
       const tempPassword = Math.random().toString(36).substring(2, 10);
-      const syncStatus = form.siUserCode ? "synced" : "pending_sync";
-      const userStatus = form.siUserCode ? "pending_activation" : "pending_sync";
 
       const newUser = createUser({
         email: form.email,
@@ -317,23 +278,9 @@ export default function UserCreatePage() {
         workerCode: form.workerCode,
         position: form.position,
         role: form.role as any,
-        status: userStatus as any,
+        status: "pending_activation" as any,
         area: form.area || undefined,
-        siUserCode: form.siUserCode,
-        siUserName: form.siUserName,
-        siStatus: form.siStatus,
-        syncStatus: syncStatus as any,
       });
-
-      registerUserStatusChange(
-        newUser.id,
-        null,
-        userStatus as any,
-        currentUser?.id || "system",
-        syncStatus === "synced"
-          ? "Usuario creado - vinculado con Sistema Integral"
-          : "Usuario creado - pendiente de sincronización"
-      );
 
       mockSendEmail(
         newUser.email,
@@ -516,14 +463,8 @@ export default function UserCreatePage() {
                   <div>
                     <p className="text-sm font-medium text-slate-700 mb-2">Estado ODISEO</p>
                     <div className="flex items-center">
-                      <span
-                        className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
-                          form.siUserCode
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-purple-100 text-purple-700"
-                        }`}
-                      >
-                        {form.siUserCode ? "Pendiente de activación" : "Pendiente de sincronización"}
+                      <span className="inline-block rounded-full px-3 py-1 text-xs font-bold bg-purple-100 text-purple-700">
+                        Pendiente de activación
                       </span>
                     </div>
                   </div>
@@ -531,70 +472,6 @@ export default function UserCreatePage() {
               </FormCard>
             )}
 
-            {/* Sección 3: Sincronización SI */}
-            {flowState === "readyToRegister" && (
-              <FormCard title="Sincronización con Sistema Integral (Opcional)" icon="🔗" color="#00A1DE">
-                <div className="space-y-4">
-                  {!form.siUserCode ? (
-                    <>
-                      <SystemIntegrationUserSearch
-                        value={siSearchQuery}
-                        onChange={setSiSearchQuery}
-                        onSelect={handleSiUserSelect}
-                        placeholder="Buscar usuario del Sistema Integral..."
-                        disabled={false}
-                      />
-                      <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3">
-                        <span className="font-semibold">Información:</span> Si no vinculas ahora, el usuario quedará como "Pendiente de sincronización" y podrás vincularlo después desde la lista de usuarios.
-                      </p>
-                    </>
-                  ) : (
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
-                          Código Sistema Integral
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-mono font-semibold text-slate-900">
-                            {form.siUserCode}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
-                          Nombre Sistema Integral
-                        </p>
-                        <p className="text-sm text-slate-700 font-medium">{form.siUserName}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase mb-1">
-                          Estado Sistema Integral
-                        </p>
-                        <span
-                          className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${
-                            form.siStatus === "Activo"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-slate-100 text-slate-700"
-                          }`}
-                        >
-                          {form.siStatus}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleClearSiUser}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                      >
-                        Quitar vinculación
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </FormCard>
-            )}
           </div>
 
           {/* Resumen lateral */}
@@ -614,14 +491,8 @@ export default function UserCreatePage() {
 
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase">Estado ODISEO</p>
-                  <p
-                    className={`text-sm font-bold ${
-                      form.siUserCode
-                        ? "text-amber-600"
-                        : "text-purple-600"
-                    }`}
-                  >
-                    {form.siUserCode ? "Pendiente de activación" : "Pendiente de sincronización"}
+                  <p className="text-sm font-bold text-purple-600">
+                    Pendiente de activación
                   </p>
                 </div>
 
@@ -639,9 +510,6 @@ export default function UserCreatePage() {
                     </div>
                     <div className={`text-xs ${form.role ? "text-green-600" : "text-slate-500"}`}>
                       {form.role ? "✓" : "○"} Rol asignado
-                    </div>
-                    <div className={`text-xs ${!form.siUserCode || form.siUserCode ? "text-green-600" : "text-slate-500"}`}>
-                      {!form.siUserCode || form.siUserCode ? "✓" : "○"} Sin duplicidades
                     </div>
                     <div className={`text-xs ${flowState === "readyToRegister" ? "text-green-600" : "text-slate-500"}`}>
                       {flowState === "readyToRegister" ? "✓" : "○"} Listo para registrar
@@ -697,29 +565,6 @@ export default function UserCreatePage() {
                   </>
                 )}
 
-                {form.siUserCode && flowState === "readyToRegister" && (
-                  <>
-                    <div className="border-t border-slate-100 pt-4">
-                      <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
-                        Datos Sistema Integral
-                      </p>
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <p className="text-xs text-slate-600">Código:</p>
-                          <p className="font-mono font-semibold text-slate-900">{form.siUserCode}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-600">Nombre:</p>
-                          <p className="font-semibold text-slate-900">{form.siUserName}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-600">Estado:</p>
-                          <p className="font-semibold text-slate-900">{form.siStatus}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
 
                 <div className="border-t border-slate-100 pt-4">
                   <p className="text-xs text-slate-500">
