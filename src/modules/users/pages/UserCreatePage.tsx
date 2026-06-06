@@ -569,36 +569,6 @@ export default function UserCreatePage() {
                     Ingresa el correo corporativo para validar si el usuario ya
                     existe en ODISEO.
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    También puedes descargar la plantilla o cargar un Excel para
-                    completar los datos base.
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3 md:flex-row">
-                  <button
-                    type="button"
-                    onClick={handleDownloadTemplate}
-                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-                  >
-                    ⬇ Descargar plantilla
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-                  >
-                    📁 Cargar plantilla Excel
-                  </button>
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleUploadTemplate}
-                    className="hidden"
-                  />
                 </div>
 
                 <FormInput
@@ -659,8 +629,37 @@ export default function UserCreatePage() {
                   <div className="space-y-4">
                     <p className="text-sm font-semibold text-slate-700">
                       Registra los datos propios del usuario dentro del portal
-                      ODISEO.
+                      ODISEO. Puedes completar los datos manualmente o cargar la
+                      plantilla Excel.
                     </p>
+
+                    <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex flex-col gap-3 md:flex-row">
+                        <button
+                          type="button"
+                          onClick={handleDownloadTemplate}
+                          className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                        >
+                          ⬇ Descargar plantilla
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                        >
+                          📁 Cargar plantilla Excel
+                        </button>
+
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleUploadTemplate}
+                          className="hidden"
+                        />
+                      </div>
+                    </div>
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <FormInput
