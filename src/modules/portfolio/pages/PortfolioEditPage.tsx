@@ -76,16 +76,16 @@ function recordToFormData(record: Record<string, unknown>): PortfolioFormData {
   return {
     codigo: String(record.codigo || record.id || ""),
     estadoId: String(record.estadoId || record.statusId || getStatusCatalog()[0]?.id || 1),
-    clienteId: String(record.clienteId || record.cli || ""),
-    ejecutivoId: String(record.ejecutivoId || record.ej || ""),
-    plantaId: String(record.plantaId || record.pl || ""),
+    clienteId: String(record.clienteId || ""),
+    ejecutivoId: String(record.ejecutivoId || ""),
+    plantaId: String(record.plantaId || ""),
     licitacion: (record.licitacion as "Sí" | "No") || "No",
-    codigoRFQ: String(record.codigoRFQ || record.codigoRFQ || ""),
+    codigoRFQ: String(record.codigoRFQ || ""),
     nombrePortafolio: String(record.nombrePortafolio || record.nom || ""),
     descripcionPortafolio: String(record.descripcionPortafolio || record.desc || ""),
-    envolturaId: String(record.envolturaId || record.env || ""),
-    usoFinalId: String(record.usoFinalId || record.uf || ""),
-    envasadoId: String(record.envasadoId || record.maq || ""),
+    envolturaId: String(record.envolturaId || ""),
+    usoFinalId: String(record.usoFinalId || ""),
+    envasadoId: String(record.envasadoId || ""),
   };
 }
 
@@ -428,19 +428,30 @@ useEffect(() => {
     );
   };
 
-  const handleEnvolturaChange = (optionOrId: string): void => {
+  const handleEnvolturaChange = (optionOrId: string) => {
+    console.log("handleEnvolturaChange called with:", optionOrId);
     const normalizedOption = normalizeEnvolturaOption(optionOrId);
+    console.log("normalizedOption:", normalizedOption);
     const wrappingId = normalizedOption
       ? getIdFromEnvolturaOption(normalizedOption)
       : optionOrId;
+    console.log("wrappingId:", wrappingId);
 
-    if (!wrappingId) return;
+    if (!wrappingId) {
+      console.log("wrappingId is empty, returning");
+      return;
+    }
 
-    setForm((prev) => ({
-      ...prev,
-      envolturaId: wrappingId,
-      envasadoId: "",
-    }));
+    console.log("Setting form with envolturaId:", wrappingId);
+    setForm((prev) =>
+      prev
+        ? {
+            ...prev,
+            envolturaId: wrappingId,
+            envasadoId: "",
+          }
+        : null
+    );
 
     setTouchedFields((prev) => ({
       ...prev,
@@ -702,7 +713,7 @@ useEffect(() => {
                   </label>
                   <EnvolturaSelector
                     value={getEnvolturaOption(form.envolturaId)}
-                    onChange={(optionOrId) => handleEnvolturaChange(optionOrId)}
+                    onChange={handleEnvolturaChange}
                     error={
                       shouldShowFieldError("envolturaId")
                         ? validationErrors.envolturaId
