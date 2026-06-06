@@ -58,6 +58,8 @@ type PortfolioFormData = {
   licitacion: string;
 };
 
+type EnvolturaOption = "POUCH" | "BOLSA" | "LAMINA";
+
 const AMCOR = {
   navy: "#00395A",
   navyDark: "#002b43",
@@ -118,7 +120,7 @@ export default function PortfolioCreatePage() {
   >({});
   const [dataReloaded, setDataReloaded] = useState(false);
 
-  const selectedStatus = getStatusById(Number(form.estadoId));
+  const selectedStatus = getStatusById(form.estadoId);
 
   const allClients = useMemo(() => getClientCatalogRecords(), [dataReloaded]);
   const eligibleClients = useMemo(() => allClients.filter((c) => canClientHavePortfolio(c.status)), [allClients]);
@@ -176,34 +178,38 @@ export default function PortfolioCreatePage() {
     }));
   }, [inheritedClientCode]);
 
-  const selectedPlant = getPlantById(Number(form.plantaId));
-  const selectedWrapping = getWrappingById(Number(form.envolturaId));
-  const selectedFinalUse = getFinalUseById(Number(form.usoFinalId));
+  const selectedPlant = getPlantById(form.plantaId);
+  const selectedWrapping = getWrappingById(form.envolturaId);
+  const selectedFinalUse = getFinalUseById(form.usoFinalId);
 
   const selectedPackingMachine = useMemo(() => {
     if (!form.envasadoId) return null;
+
     if (form.envasadoId === "generic") {
       return {
-        id: "generic" as any,
+        id: "generic",
         code: "GENERIC",
         name: "Máquina genérica",
-        wrappingId: Number(form.envolturaId)
+        wrappingId: form.envolturaId,
       };
     }
-    return getPackingMachineById(Number(form.envasadoId));
+
+    return getPackingMachineById(form.envasadoId);
   }, [form.envasadoId, form.envolturaId]);
 
   const packingMachines = useMemo(() => {
     if (!form.envolturaId) return [];
-    const machines = getPackingMachinesByWrappingId(Number(form.envolturaId));
+
+    const machines = getPackingMachinesByWrappingId(form.envolturaId);
+
     return [
       {
-        id: "generic" as any,
+        id: "generic",
         code: "GENERIC",
         name: "Máquina genérica",
-        wrappingId: Number(form.envolturaId)
+        wrappingId: form.envolturaId,
       },
-      ...machines
+      ...machines,
     ];
   }, [form.envolturaId]);
 
@@ -303,61 +309,124 @@ useEffect(() => {
     );
   };
 
-  const getEnvolturaOption = (id: string): "LAMINA" | "BOLSA" | "POUCH" | "" => {
-    if (!id) return "";
-    const wrapping = getWrappingById(Number(id));
-    if (!wrapping) return "";
+  const normalizeText = (value?: string | number | null) =>
+    String(value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
 
-    const name = wrapping.name.toLowerCase();
-    if (name.includes("lámina")) return "LAMINA";
-    if (name.includes("bolsa")) return "BOLSA";
-    if (name.includes("pouch")) return "POUCH";
+  const normalizeEnvolturaOption = (
+    value?: string | number | null
+  ): EnvolturaOption | "" => {
+    const text = normalizeText(value);
+
+    if (text.includes("pouch")) return "POUCH";
+    if (text.includes("bolsa")) return "BOLSA";
+    if (text.includes("lamina")) return "LAMINA";
+
     return "";
   };
 
-  const getIdFromEnvolturaOption = (option: "LAMINA" | "BOLSA" | "POUCH"): string => {
+  const getEnvolturaOption = (id: string): EnvolturaOption | "" => {
+    if (!id) return "";
+
+    const wrapping = getWrappingById(id);
+
+    const text = normalizeText(
+      [
+        id,
+        wrapping?.id,
+        wrapping?.code,
+        wrapping?.name,
+        wrapping?.raw?.id,
+        wrapping?.raw?.item,
+        wrapping?.raw?.code,
+        wrapping?.raw?.name,
+      ].join(" ")
+    );
+
+    return normalizeEnvolturaOption(text);
+  };
+
+  const getIdFromEnvolturaOption = (option: string): string => {
+    const normalizedOption = normalizeEnvolturaOption(option);
+
+    if (!normalizedOption) return "";
+
     const wrappings = getWrappingsCatalog();
+
     const wrapping = wrappings.find((w) => {
-      const name = (w.name || "").toLowerCase();
-      if (option === "LAMINA" && name.includes("lámina")) return true;
-      if (option === "BOLSA" && name.includes("bolsa")) return true;
-      if (option === "POUCH" && name.includes("pouch")) return true;
-      return false;
+      const text = normalizeText(
+        [
+          w.id,
+          w.code,
+          w.name,
+          w.raw?.id,
+          w.raw?.item,
+          w.raw?.code,
+          w.raw?.name,
+        ].join(" ")
+      );
+
+      return normalizeEnvolturaOption(text) === normalizedOption;
     });
-    return wrapping ? String(wrapping.id) : "";
+
+    // Fallback: mantener un código funcional estable si el catálogo no tiene match.
+    // Esto evita que "LÁMINA" quede vacío por diferencia de tilde.
+    return wrapping ? String(wrapping.id) : normalizedOption;
   };
 
   const getPlantOption = (id: string): "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS" | "" => {
     if (!id) return "";
-    const plant = getPlantById(Number(id));
+
+    const plant = getPlantById(id);
     if (!plant) return "";
 
-    const code = plant.code.toLowerCase();
-    if (code.includes("lim")) return "AF_LIMA";
-    if (code.includes("cal")) return "AF_CALI";
-    if (code.includes("stn")) return "AF_SANTIAGO";
-    if (code.includes("sl")) return "AF_SAN_LUIS";
+    const text = normalizeText(`${plant.code ?? ""} ${plant.name ?? ""}`);
+
+    if (text.includes("lim")) return "AF_LIMA";
+    if (text.includes("cal")) return "AF_CALI";
+    if (text.includes("stn") || text.includes("santiago")) return "AF_SANTIAGO";
+    if (text.includes("sl") || text.includes("san luis")) return "AF_SAN_LUIS";
+
     return "";
   };
 
   const getIdFromPlantOption = (option: "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS"): string => {
     const plants = getPlantsCatalog();
+
     const plant = plants.find((p) => {
-      const code = (p.code || "").toLowerCase();
-      if (option === "AF_LIMA" && code.includes("lim")) return true;
-      if (option === "AF_CALI" && code.includes("cal")) return true;
-      if (option === "AF_SANTIAGO" && code.includes("stn")) return true;
-      if (option === "AF_SAN_LUIS" && code.includes("sl")) return true;
+      const text = normalizeText(`${p.code ?? ""} ${p.name ?? ""}`);
+
+      if (option === "AF_LIMA") return text.includes("lim");
+      if (option === "AF_CALI") return text.includes("cal");
+      if (option === "AF_SANTIAGO") return text.includes("stn") || text.includes("santiago");
+      if (option === "AF_SAN_LUIS") return text.includes("sl") || text.includes("san luis");
+
       return false;
     });
+
     return plant ? String(plant.id) : "";
   };
 
-  const handleEnvolturaChange = (value: string) => {
+  const handleEnvolturaChange = (optionOrId: string) => {
+    const normalizedOption = normalizeEnvolturaOption(optionOrId);
+    const wrappingId = normalizedOption
+      ? getIdFromEnvolturaOption(normalizedOption)
+      : optionOrId;
+
+    if (!wrappingId) return;
+
     setForm((prev) => ({
       ...prev,
-      envolturaId: value,
+      envolturaId: wrappingId,
       envasadoId: "",
+    }));
+
+    setTouchedFields((prev) => ({
+      ...prev,
+      envolturaId: true,
     }));
   };
 
@@ -601,11 +670,7 @@ useEffect(() => {
                   </label>
                   <EnvolturaSelector
                     value={getEnvolturaOption(form.envolturaId)}
-                    onChange={(value) => {
-                      const id = getIdFromEnvolturaOption(value);
-                      handleEnvolturaChange(id);
-                      markFieldAsTouched("envolturaId");
-                    }}
+                    onChange={handleEnvolturaChange}
                     error={
                       shouldShowFieldError("envolturaId")
                         ? validationErrors.envolturaId
