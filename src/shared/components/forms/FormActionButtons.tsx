@@ -17,6 +17,14 @@ export default function FormActionButtons({
 }: FormActionButtonsProps) {
   const hasValidationErrors = validationErrorList.length > 0;
 
+  /**
+   * Regla funcional:
+   * - Si hay campos obligatorios pendientes, el botón se ve gris.
+   * - Pero NO se deshabilita, porque debe permitir click para mostrar alertas.
+   * - Solo se deshabilita cuando realmente está guardando.
+   */
+  const buttonLooksIncomplete = hasValidationErrors && !isSubmitting;
+
   return (
     <div className="flex flex-col items-end gap-3">
       {submitAttempted && hasValidationErrors && (
@@ -46,7 +54,9 @@ export default function FormActionButtons({
           className={`rounded-lg px-5 py-2 text-sm font-semibold text-white transition-colors ${
             isSubmitting
               ? "cursor-not-allowed bg-slate-400"
-              : "bg-[#00395A] hover:bg-[#002b43]"
+              : buttonLooksIncomplete
+                ? "cursor-pointer bg-slate-400 hover:bg-slate-500"
+                : "cursor-pointer bg-[#00395A] hover:bg-[#002b43]"
           }`}
         >
           {isSubmitting ? "Guardando..." : submitLabel}
