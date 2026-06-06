@@ -1,24 +1,27 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import * as XLSX from "xlsx";
 
-const RECENT_NEW_USER_KEY = "odiseo_recent_new_user";
 import { useLayout } from "../../../components/layout/LayoutContext";
 import {
   createUser,
+  findDuplicateUser,
   getNextUserCode,
   getUserByEmail,
-  findDuplicateUser,
 } from "../../../shared/data/userStorage";
 import { mockSendEmail } from "../../../shared/data/notificationStorage";
-import { getCatalogOptions } from "../../../shared/catalogs";
-import { ROLE_PROFILES, suggestRoleByArea } from "../../../shared/security/roleProfiles";
+import {
+  ROLE_PROFILES,
+  suggestRoleByArea,
+} from "../../../shared/security/roleProfiles";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
+
+const RECENT_NEW_USER_KEY = "odiseo_recent_new_user";
 
 interface FormState {
   email: string;
@@ -31,9 +34,34 @@ interface FormState {
 }
 
 type ExplicitFlowState = "initial" | "existingEmailFound" | "newEmailConfirmed";
-type ComputedFlowState = ExplicitFlowState | "incompleteData" | "readyToRegister";
+type ComputedFlowState =
+  | ExplicitFlowState
+  | "incompleteData"
+  | "readyToRegister";
 
 interface ImportedUserData extends Partial<FormState> {}
+
+const USER_AREA_OPTIONS = [
+  { value: "TI", label: "TI" },
+  { value: "Comercial", label: "Comercial" },
+  { value: "Master Data", label: "Master Data" },
+  { value: "Customer Service", label: "Customer Service" },
+  { value: "R&D", label: "R&D" },
+];
+
+const EMPTY_VALUE = "-";
+
+function formatPreviewValue(value?: string) {
+  return value?.trim() ? value : EMPTY_VALUE;
+}
+
+function getChecklistClass(isComplete: boolean) {
+  return isComplete ? "text-green-600" : "text-slate-400";
+}
+
+function getChecklistIcon(isComplete: boolean) {
+  return isComplete ? "✓" : "○";
+}
 
 export default function UserCreatePage() {
   const navigate = useNavigate();
@@ -51,28 +79,72 @@ export default function UserCreatePage() {
     role: "",
   });
 
-  const [explicitFlowState, setExplicitFlowState] = useState<ExplicitFlowState>("initial");
-  const [emailValidationMessage, setEmailValidationMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [explicitFlowState, setExplicitFlowState] =
+    useState<ExplicitFlowState>("initial");
+
+  const [emailValidationMessage, setEmailValidationMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const roleOptions = useMemo(
+    () =>
+      ROLE_PROFILES.filter((profile) => profile.code !== "operations").map(
+        (profile) => ({
+          value: profile.code,
+          label: profile.name,
+        })
+      ),
+    []
+  );
 
-  const roleOptions = useMemo(() =>
-    ROLE_PROFILES.map((profile) => ({
-      value: profile.code,
-      label: profile.name,
-    })), []);
+  const selectedRoleProfile = useMemo(
+    () => ROLE_PROFILES.find((profile) => profile.code === form.role),
+    [form.role]
+  );
 
   const flowState = useMemo((): ComputedFlowState => {
     if (explicitFlowState !== "newEmailConfirmed") return explicitFlowState;
-    const baseComplete = form.email && form.odiseoUser && form.workerCode && form.fullName && form.position && form.area;
-    if (!baseComplete) return "incompleteData";
-    if (!form.role) return "incompleteData";
-    return "readyToRegister";
+
+    const requiredFieldsComplete =
+      form.email &&
+      form.odiseoUser &&
+      form.workerCode &&
+      form.fullName &&
+      form.position &&
+      form.area &&
+      form.role;
+
+    return requiredFieldsComplete ? "readyToRegister" : "incompleteData";
   }, [explicitFlowState, form]);
+
+  useEffect(() => {
+    setHeader({
+      title: "Registrar Usuario ODISEO",
+      breadcrumbs: [
+        { label: "Inicio", href: "/" },
+        { label: "Usuarios", href: "/users" },
+        { label: "Registrar Usuario" },
+      ],
+      badges: (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+            ID: {userCode}
+          </span>
+          <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
+            Pendiente de activación
+          </span>
+        </div>
+      ),
+    });
+
+    return () => resetHeader();
+  }, [setHeader, resetHeader, userCode]);
 
   const validateCorporateEmail = (email: string) => {
     if (!email.trim()) {
@@ -90,13 +162,14 @@ export default function UserCreatePage() {
         text: "El correo corporativo ya se encuentra registrado en ODISEO. No es posible continuar con el registro.",
       });
       setExplicitFlowState("existingEmailFound");
-    } else {
-      setEmailValidationMessage({
-        type: "success",
-        text: "Correo no encontrado en ODISEO. Puede continuar con el registro.",
-      });
-      setExplicitFlowState("newEmailConfirmed");
+      return;
     }
+
+    setEmailValidationMessage({
+      type: "success",
+      text: "Correo no encontrado en ODISEO. Puedes continuar con el registro.",
+    });
+    setExplicitFlowState("newEmailConfirmed");
   };
 
   const handleDownloadTemplate = () => {
@@ -111,6 +184,7 @@ export default function UserCreatePage() {
 
     const ws = XLSX.utils.aoa_to_sheet([headers]);
     const wb = XLSX.utils.book_new();
+
     XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
     XLSX.writeFile(wb, "plantilla_usuario_odiseo.xlsx");
   };
@@ -118,6 +192,7 @@ export default function UserCreatePage() {
   const parseUserTemplate = (file: File): Promise<ImportedUserData | null> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
+
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -134,12 +209,29 @@ export default function UserCreatePage() {
           const firstRow = jsonData[0] as Record<string, any>;
           const imported: ImportedUserData = {};
 
-          if (firstRow["Correo Corporativo"]) imported.email = String(firstRow["Correo Corporativo"]).trim();
-          if (firstRow["Usuario ODISEO"]) imported.odiseoUser = String(firstRow["Usuario ODISEO"]).trim();
-          if (firstRow["Código Trabajador"]) imported.workerCode = String(firstRow["Código Trabajador"]).trim();
-          if (firstRow["Nombre Completo"]) imported.fullName = String(firstRow["Nombre Completo"]).trim();
-          if (firstRow["Puesto"]) imported.position = String(firstRow["Puesto"]).trim();
-          if (firstRow["Área"]) imported.area = String(firstRow["Área"]).trim();
+          if (firstRow["Correo Corporativo"]) {
+            imported.email = String(firstRow["Correo Corporativo"]).trim();
+          }
+
+          if (firstRow["Usuario ODISEO"]) {
+            imported.odiseoUser = String(firstRow["Usuario ODISEO"]).trim();
+          }
+
+          if (firstRow["Código Trabajador"]) {
+            imported.workerCode = String(firstRow["Código Trabajador"]).trim();
+          }
+
+          if (firstRow["Nombre Completo"]) {
+            imported.fullName = String(firstRow["Nombre Completo"]).trim();
+          }
+
+          if (firstRow["Puesto"]) {
+            imported.position = String(firstRow["Puesto"]).trim();
+          }
+
+          if (firstRow["Área"]) {
+            imported.area = String(firstRow["Área"]).trim();
+          }
 
           resolve(imported);
         } catch (error) {
@@ -147,18 +239,30 @@ export default function UserCreatePage() {
           resolve(null);
         }
       };
+
       reader.readAsArrayBuffer(file);
     });
   };
 
-  const handleUploadTemplate = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadTemplate = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const imported = await parseUserTemplate(file);
+
     if (imported && imported.email) {
-      const suggestedRole = imported.area ? suggestRoleByArea(imported.area) : form.role;
-      setForm((prev) => ({ ...prev, ...imported, role: suggestedRole }));
+      const suggestedRole = imported.area
+        ? suggestRoleByArea(imported.area)
+        : form.role;
+
+      setForm((prev) => ({
+        ...prev,
+        ...imported,
+        role: suggestedRole,
+      }));
+
       validateCorporateEmail(imported.email);
     }
 
@@ -167,28 +271,21 @@ export default function UserCreatePage() {
     }
   };
 
+  const handleAreaChange = (area: string) => {
+    const suggestedRole = suggestRoleByArea(area);
 
-  useEffect(() => {
-    setHeader({
-      title: "Registrar Usuario ODISEO",
-      breadcrumbs: [
-        { label: "Usuarios", href: "/users" },
-        { label: "Registrar Usuario" },
-      ],
-      badges: (
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-          ID: {userCode}
-        </span>
-      ),
-    });
-    return () => resetHeader();
-  }, [setHeader, resetHeader, userCode]);
+    setForm((prev) => ({
+      ...prev,
+      area,
+      role: suggestedRole,
+    }));
+  };
 
   const validationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
 
     if (!form.email.trim()) {
-      errors.email = "Ingresa el correo electrónico.";
+      errors.email = "Ingresa el correo corporativo.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errors.email = "El formato del correo no es válido.";
     }
@@ -232,6 +329,7 @@ export default function UserCreatePage() {
       Boolean(form.area),
       Boolean(form.role),
     ];
+
     const completed = requiredChecks.filter(Boolean).length;
     return Math.round((completed / requiredChecks.length) * 100);
   }, [form, explicitFlowState]);
@@ -240,10 +338,27 @@ export default function UserCreatePage() {
     (error): error is string => Boolean(error)
   );
 
-  const shouldDisableSubmit = flowState !== "readyToRegister" || validationErrorList.length > 0;
-  const submitErrorList = shouldDisableSubmit && flowState !== "readyToRegister"
-    ? ["Completa todos los pasos requeridos."]
-    : validationErrorList;
+  const shouldDisableSubmit =
+    flowState !== "readyToRegister" || validationErrorList.length > 0;
+
+  const submitErrorList =
+    shouldDisableSubmit && flowState !== "readyToRegister"
+      ? ["Completa todos los pasos requeridos."]
+      : validationErrorList;
+
+  const checklistItems = [
+    {
+      label: "Correo Corporativo",
+      complete:
+        Boolean(form.email.trim()) && explicitFlowState === "newEmailConfirmed",
+    },
+    { label: "Usuario ODISEO", complete: Boolean(form.odiseoUser.trim()) },
+    { label: "Código Trabajador", complete: Boolean(form.workerCode.trim()) },
+    { label: "Nombre Completo", complete: Boolean(form.fullName.trim()) },
+    { label: "Puesto", complete: Boolean(form.position.trim()) },
+    { label: "Área", complete: Boolean(form.area) },
+    { label: "Perfil ODISEO", complete: Boolean(form.role) },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,7 +366,7 @@ export default function UserCreatePage() {
     setSuccessMessage(null);
     setErrorMessage(null);
 
-    if (Object.keys(validationErrors).length > 0) {
+    if (shouldDisableSubmit || Object.keys(validationErrors).length > 0) {
       return;
     }
 
@@ -267,17 +382,17 @@ export default function UserCreatePage() {
       return;
     }
 
-
     setLoading(true);
+
     try {
       const tempPassword = Math.random().toString(36).substring(2, 10);
 
       const newUser = createUser({
-        email: form.email,
+        email: form.email.trim().toLowerCase(),
         password: tempPassword,
-        fullName: form.fullName,
-        workerCode: form.workerCode,
-        position: form.position,
+        fullName: form.fullName.trim(),
+        workerCode: form.workerCode.trim(),
+        position: form.position.trim(),
         role: form.role as any,
         status: "pending_activation" as any,
         area: form.area || undefined,
@@ -305,7 +420,7 @@ export default function UserCreatePage() {
         })
       );
 
-      setSuccessMessage("Usuario registrado correctamente.");
+      setSuccessMessage("Usuario ODISEO registrado correctamente.");
       setTimeout(() => navigate("/users"), 2000);
     } finally {
       setLoading(false);
@@ -314,11 +429,11 @@ export default function UserCreatePage() {
 
   if (successMessage) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
-        <div className="rounded-lg border-2 border-green-300 bg-green-50 p-8 text-center max-w-md">
-          <div className="text-4xl mb-4">✓</div>
+      <div className="flex min-h-[calc(100vh-200px)] items-center justify-center">
+        <div className="max-w-md rounded-lg border-2 border-green-300 bg-green-50 p-8 text-center">
+          <div className="mb-4 text-4xl">✓</div>
           <p className="text-lg font-bold text-green-900">{successMessage}</p>
-          <p className="text-sm text-green-700 mt-2">Redirigiendo...</p>
+          <p className="mt-2 text-sm text-green-700">Redirigiendo...</p>
         </div>
       </div>
     );
@@ -329,33 +444,76 @@ export default function UserCreatePage() {
       <button
         type="button"
         onClick={() => navigate("/users")}
-        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 hover:text-brand-primary transition-colors"
+        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 transition-colors hover:text-brand-primary"
       >
         <ArrowLeft size={16} />
         Atrás
       </button>
 
+      <div className="mb-5 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-brand-primary">
+              Alta de acceso al portal
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold text-slate-900">
+              Registrar Usuario ODISEO
+            </h2>
+            <p className="mt-1 max-w-3xl text-sm text-slate-600">
+              Crea el acceso del usuario al portal, valida sus datos base y
+              asigna el perfil que definirá sus permisos.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+              ID: {userCode}
+            </span>
+            <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
+              Estado: Pendiente de activación
+            </span>
+          </div>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit}>
-        <div className="grid min-h-[calc(100vh-230px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
+        <div className="grid min-h-[calc(100vh-270px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
-            {/* Sección 1: Datos de registro del usuario */}
-            <FormCard title="Datos de registro del usuario" icon="📋" color="#6366F1" required>
+            <FormCard
+              title="1. Identificar usuario"
+              icon="📧"
+              color="#6366F1"
+              required
+            >
               <div className="space-y-4">
-                <div className="flex gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">
+                    Ingresa el correo corporativo para validar si el usuario ya
+                    existe en ODISEO.
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    También puedes descargar la plantilla o cargar un Excel para
+                    completar los datos base.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 md:flex-row">
                   <button
                     type="button"
                     onClick={handleDownloadTemplate}
-                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                   >
                     ⬇ Descargar plantilla
                   </button>
+
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                   >
                     📁 Cargar plantilla Excel
                   </button>
+
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -370,6 +528,7 @@ export default function UserCreatePage() {
                   value={form.email}
                   onChange={(value) => {
                     setForm({ ...form, email: value });
+
                     if (explicitFlowState !== "initial") {
                       setExplicitFlowState("initial");
                       setEmailValidationMessage(null);
@@ -397,178 +556,279 @@ export default function UserCreatePage() {
                     {emailValidationMessage.text}
                   </div>
                 )}
-
-                <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-3">
-                  Puedes cargar una plantilla Excel con los datos del usuario o iniciar el registro manual ingresando el correo corporativo.
-                </p>
               </div>
             </FormCard>
 
-            {/* Sección 2: Datos del Usuario ODISEO */}
             {flowState !== "initial" && flowState !== "existingEmailFound" && (
-              <FormCard title="Datos del Usuario ODISEO" icon="👤" color="#00395A" required>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormInput
-                      label="Usuario ODISEO"
-                      value={form.odiseoUser}
-                      onChange={(value) => setForm({ ...form, odiseoUser: value })}
-                      placeholder="Ej: jperez o juan.perez"
-                      error={submitAttempted ? validationErrors.odiseoUser : undefined}
-                    />
-                    <FormInput
-                      label="Código Trabajador"
-                      value={form.workerCode}
-                      onChange={(value) => setForm({ ...form, workerCode: value })}
-                      placeholder="Ej: EJC-000001"
-                      error={submitAttempted ? validationErrors.workerCode : undefined}
-                    />
-                  </div>
+              <>
+                <FormCard
+                  title="2. Completar datos del usuario"
+                  icon="👤"
+                  color="#00395A"
+                  required
+                >
+                  <div className="space-y-4">
+                    <p className="text-sm font-semibold text-slate-700">
+                      Registra los datos propios del usuario dentro del portal
+                      ODISEO.
+                    </p>
 
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormInput
-                      label="Nombre Completo"
-                      value={form.fullName}
-                      onChange={(value) => setForm({ ...form, fullName: value })}
-                      placeholder="Ej: Juan Pérez García"
-                      error={submitAttempted ? validationErrors.fullName : undefined}
-                    />
-                    <FormInput
-                      label="Puesto"
-                      value={form.position}
-                      onChange={(value) => setForm({ ...form, position: value })}
-                      placeholder="Ej: Ejecutivo de Ventas"
-                      error={submitAttempted ? validationErrors.position : undefined}
-                    />
-                  </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <FormInput
+                        label="Usuario ODISEO"
+                        value={form.odiseoUser}
+                        onChange={(value) =>
+                          setForm({ ...form, odiseoUser: value })
+                        }
+                        placeholder="Ej: jperez o juan.perez"
+                        error={
+                          submitAttempted
+                            ? validationErrors.odiseoUser
+                            : undefined
+                        }
+                        required
+                      />
 
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormSelect
-                      label="Área"
-                      value={form.area}
-                      onChange={(value) => {
-                        const suggestedRole = suggestRoleByArea(value);
-                        setForm({ ...form, area: value, role: suggestedRole });
-                      }}
-                      options={getCatalogOptions("user_area", { activeOnly: true })}
-                      placeholder="Selecciona el área"
-                      error={submitAttempted ? validationErrors.area : undefined}
-                    />
-                    <FormSelect
-                      label="Perfil ODISEO"
-                      value={form.role}
-                      onChange={(value) => setForm({ ...form, role: value })}
-                      options={roleOptions}
-                      placeholder="Selecciona el perfil"
-                      error={submitAttempted ? validationErrors.role : undefined}
-                    />
+                      <FormInput
+                        label="Código Trabajador"
+                        value={form.workerCode}
+                        onChange={(value) =>
+                          setForm({ ...form, workerCode: value })
+                        }
+                        placeholder="Ej: TRB-000001 o 102345"
+                        error={
+                          submitAttempted
+                            ? validationErrors.workerCode
+                            : undefined
+                        }
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <FormInput
+                        label="Nombre Completo"
+                        value={form.fullName}
+                        onChange={(value) =>
+                          setForm({ ...form, fullName: value })
+                        }
+                        placeholder="Ej: Juan Pérez García"
+                        error={
+                          submitAttempted
+                            ? validationErrors.fullName
+                            : undefined
+                        }
+                        required
+                      />
+
+                      <FormInput
+                        label="Puesto"
+                        value={form.position}
+                        onChange={(value) =>
+                          setForm({ ...form, position: value })
+                        }
+                        placeholder="Ej: Analista TI, Data Manager o Ejecutivo Comercial"
+                        error={
+                          submitAttempted
+                            ? validationErrors.position
+                            : undefined
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+                </FormCard>
+
+                <FormCard
+                  title="3. Asignar organización y perfil"
+                  icon="🧩"
+                  color="#0EA5E9"
+                  required
+                >
+                  <div className="space-y-4">
+                    <p className="text-sm font-semibold text-slate-700">
+                      Selecciona el área organizacional y el perfil que definirá
+                      los permisos del usuario en ODISEO.
+                    </p>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <FormSelect
+                        label="Área"
+                        value={form.area}
+                        onChange={handleAreaChange}
+                        options={USER_AREA_OPTIONS}
+                        placeholder="Selecciona el área"
+                        error={submitAttempted ? validationErrors.area : undefined}
+                        required
+                      />
+
+                      <FormSelect
+                        label="Perfil ODISEO"
+                        value={form.role}
+                        onChange={(value) => setForm({ ...form, role: value })}
+                        options={roleOptions}
+                        placeholder="Selecciona el perfil"
+                        error={submitAttempted ? validationErrors.role : undefined}
+                        required
+                      />
+                    </div>
+
+                    <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
+                      El perfil define los permisos del usuario dentro del
+                      portal. El área y el puesto son datos organizacionales.
+                    </div>
+
+                    {selectedRoleProfile && (
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          Vista previa del perfil
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-slate-800">
+                          {selectedRoleProfile.name}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-600">
+                          {selectedRoleProfile.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </FormCard>
+
+                <FormCard
+                  title="4. Estado inicial"
+                  icon="✅"
+                  color="#7C3AED"
+                  required
+                >
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-slate-700">
+                      El usuario se creará como pendiente de activación hasta
+                      completar la habilitación correspondiente.
+                    </p>
+
+                    <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
+                      Pendiente de activación
+                    </span>
+                  </div>
+                </FormCard>
+              </>
+            )}
+          </div>
+
+          <div className="space-y-5">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="bg-gradient-to-br from-brand-primary to-brand-secondary px-5 py-4 text-white">
+                <div className="text-xs font-bold uppercase tracking-wide text-white/75">
+                  Revisión final
+                </div>
+                <div className="mt-2 text-lg font-extrabold">
+                  Resumen del registro
+                </div>
+              </div>
+
+              <div className="space-y-5 p-5">
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">
+                      Código
+                    </p>
+                    <p className="text-lg font-bold text-brand-primary">
+                      {userCode}
+                    </p>
                   </div>
 
                   <div>
-                    <p className="text-sm font-medium text-slate-700 mb-2">Estado ODISEO</p>
-                    <div className="flex items-center">
-                      <span className="inline-block rounded-full px-3 py-1 text-xs font-bold bg-purple-100 text-purple-700">
-                        Pendiente de activación
-                      </span>
+                    <p className="text-xs font-semibold uppercase text-slate-500">
+                      Estado
+                    </p>
+                    <p className="text-sm font-bold text-purple-600">
+                      Pendiente de activación
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm">
+                    <div className="grid gap-2">
+                      <div className="flex justify-between gap-3">
+                        <span className="text-slate-500">Correo:</span>
+                        <span className="font-semibold text-slate-800">
+                          {formatPreviewValue(form.email)}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between gap-3">
+                        <span className="text-slate-500">Usuario ODISEO:</span>
+                        <span className="font-semibold text-slate-800">
+                          {formatPreviewValue(form.odiseoUser)}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between gap-3">
+                        <span className="text-slate-500">Área:</span>
+                        <span className="font-semibold text-slate-800">
+                          {formatPreviewValue(form.area)}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between gap-3">
+                        <span className="text-slate-500">Perfil ODISEO:</span>
+                        <span className="font-semibold text-slate-800">
+                          {selectedRoleProfile?.name || EMPTY_VALUE}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </FormCard>
-            )}
 
-          </div>
-
-          {/* Resumen lateral */}
-          <div className="space-y-5">
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="px-5 py-4 bg-gradient-to-br from-brand-primary to-brand-secondary text-white">
-                <div className="text-xs font-bold uppercase tracking-wide text-white/75">
-                  Resumen
-                </div>
-                <div className="mt-2 text-lg font-extrabold">Registro de Usuario</div>
-              </div>
-              <div className="p-5 space-y-4">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Código</p>
-                  <p className="text-lg font-bold text-brand-primary">{userCode}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Estado ODISEO</p>
-                  <p className="text-sm font-bold text-purple-600">
-                    Pendiente de activación
+                <div className="border-t border-slate-100 pt-4">
+                  <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
+                    Checklist de campos requeridos
                   </p>
+
+                  <ul className="space-y-1 text-sm">
+                    {checklistItems.map((item) => (
+                      <li
+                        key={item.label}
+                        className={getChecklistClass(item.complete)}
+                      >
+                        {getChecklistIcon(item.complete)} {item.label}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Estado del Flujo</p>
-                  <div className="mt-2 space-y-1">
-                    <div className={`text-xs ${explicitFlowState === "newEmailConfirmed" || explicitFlowState !== "initial" && emailValidationMessage?.type === "success" ? "text-green-600" : "text-slate-500"}`}>
-                      {explicitFlowState === "newEmailConfirmed" ? "✓" : "○"} Correo corporativo validado
-                    </div>
-                    <div className={`text-xs ${form.odiseoUser && form.workerCode && form.fullName && form.position ? "text-green-600" : "text-slate-500"}`}>
-                      {form.odiseoUser && form.workerCode && form.fullName && form.position ? "✓" : "○"} Datos base completos
-                    </div>
-                    <div className={`text-xs ${form.area ? "text-green-600" : "text-slate-500"}`}>
-                      {form.area ? "✓" : "○"} Área seleccionada
-                    </div>
-                    <div className={`text-xs ${form.role ? "text-green-600" : "text-slate-500"}`}>
-                      {form.role ? "✓" : "○"} Rol asignado
-                    </div>
-                    <div className={`text-xs ${flowState === "readyToRegister" ? "text-green-600" : "text-slate-500"}`}>
-                      {flowState === "readyToRegister" ? "✓" : "○"} Listo para registrar
+                {selectedRoleProfile && (
+                  <div className="border-t border-slate-100 pt-4">
+                    <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
+                      Vista previa de permisos
+                    </p>
+
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-sm font-bold text-slate-800">
+                        {selectedRoleProfile.name}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {selectedRoleProfile.description}
+                      </p>
                     </div>
                   </div>
-                </div>
-
-                {flowState !== "initial" && flowState !== "existingEmailFound" && (
-                  <>
-                    <div className="border-t border-slate-100 pt-4">
-                      <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
-                        7 Campos Requeridos
-                      </p>
-                      <ul className="text-sm space-y-1">
-                        <li className={form.email ? "text-green-600" : "text-slate-400"}>
-                          {form.email ? "✓" : "○"} Correo Corporativo
-                        </li>
-                        <li className={form.odiseoUser ? "text-green-600" : "text-slate-400"}>
-                          {form.odiseoUser ? "✓" : "○"} Usuario ODISEO
-                        </li>
-                        <li className={form.workerCode ? "text-green-600" : "text-slate-400"}>
-                          {form.workerCode ? "✓" : "○"} Código Trabajador
-                        </li>
-                        <li className={form.fullName ? "text-green-600" : "text-slate-400"}>
-                          {form.fullName ? "✓" : "○"} Nombre Completo
-                        </li>
-                        <li className={form.position ? "text-green-600" : "text-slate-400"}>
-                          {form.position ? "✓" : "○"} Puesto
-                        </li>
-                        <li className={form.area ? "text-green-600" : "text-slate-400"}>
-                          {form.area ? "✓" : "○"} Área
-                        </li>
-                        <li className={form.role ? "text-green-600" : "text-slate-400"}>
-                          {form.role ? "✓" : "○"} Perfil ODISEO
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div className="border-t border-slate-100 pt-4">
-                      <p className="text-xs font-semibold text-slate-500 uppercase mb-2">
-                        Progreso
-                      </p>
-                      <div className="text-sm font-bold text-amber-600">
-                        {completionPercentage}% completado
-                      </div>
-                      <div className="mt-1 h-2 w-full rounded-full bg-slate-200">
-                        <div
-                          className="h-2 rounded-full bg-amber-500 transition-all"
-                          style={{ width: `${completionPercentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  </>
                 )}
 
+                <div className="border-t border-slate-100 pt-4">
+                  <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
+                    Progreso
+                  </p>
+
+                  <div className="text-sm font-bold text-amber-600">
+                    {completionPercentage}% completado
+                  </div>
+
+                  <div className="mt-1 h-2 w-full rounded-full bg-slate-200">
+                    <div
+                      className="h-2 rounded-full bg-amber-500 transition-all"
+                      style={{ width: `${completionPercentage}%` }}
+                    />
+                  </div>
+                </div>
 
                 <div className="border-t border-slate-100 pt-4">
                   <p className="text-xs text-slate-500">
@@ -581,7 +841,7 @@ export default function UserCreatePage() {
         </div>
 
         {errorMessage && (
-          <div className="mx-auto max-w-3xl mt-4">
+          <div className="mx-auto mt-4 max-w-3xl">
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               {errorMessage}
             </div>
@@ -596,7 +856,11 @@ export default function UserCreatePage() {
             submitLabel="Registrar Usuario"
             cancelLabel="Cancelar"
             isLoading={loading}
-            validationTitle={flowState !== "readyToRegister" ? "Completa todos los pasos requeridos." : "Faltan campos obligatorios."}
+            validationTitle={
+              flowState !== "readyToRegister"
+                ? "Completa todos los pasos requeridos."
+                : "Faltan campos obligatorios."
+            }
           />
         </div>
       </form>

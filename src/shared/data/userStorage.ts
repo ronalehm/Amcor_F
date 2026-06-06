@@ -94,32 +94,8 @@ const AREA_USERS: User[] = [
 
 const JSON_SEED_USERS: User[] = seedUsers as User[];
 
-function buildPortalUsersFromExecutives(): User[] {
-  return getActiveExecutiveRecords().map((executive, index) => {
-    const email = executive.email.toLowerCase().trim();
-    const number = index + 1001;
-    const position = executive.position || "Ejecutivo Comercial";
-    const area = "Comercial";
-
-    return {
-      id: `USR-EJC-${String(number).padStart(6, "0")}`,
-      code: `US-EJC-${String(number).padStart(6, "0")}`,
-      email,
-      password: "123456",
-      fullName: executive.name || "Ejecutivo Comercial",
-      role: getRoleByAreaAndPosition(area, position),
-      status: "active",
-      workerCode: executive.code,
-      position,
-      area,
-      createdAt: executive.createdAt || SEED_DATE,
-    };
-  });
-}
-
 const INITIAL_USERS: User[] = mergeUsersByIdAndEmail([
   ...AREA_USERS,
-  ...buildPortalUsersFromExecutives(),
   ...JSON_SEED_USERS,
 ]);
 
