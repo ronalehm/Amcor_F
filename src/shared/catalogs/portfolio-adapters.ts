@@ -113,13 +113,40 @@ export function getFinalUseById(id: number): any | undefined {
 // MÁQUINAS DE EMPAQUE (packaging_machine)
 // ═════════════════════════════════════════════════════════════════════
 
+// Mapeo de envoltura a máquinas basado en nombres
+const WRAPPING_TO_MACHINES_MAP: Record<string, string[]> = {
+  "lamina": ["film", "lámina", "laminar", "lam"],
+  "bolsa": ["bolsa", "bag", "bolsas"],
+  "pouch": ["pouch", "doy", "standup"],
+};
+
+function getWrappingType(wrappingName: string): string | null {
+  const normalized = wrappingName.toLowerCase();
+  for (const [type, keywords] of Object.entries(WRAPPING_TO_MACHINES_MAP)) {
+    if (keywords.some(keyword => normalized.includes(keyword))) {
+      return type;
+    }
+  }
+  return null;
+}
+
+function getMachineWrappingType(machineName: string): string | null {
+  const normalized = machineName.toLowerCase();
+  for (const [type, keywords] of Object.entries(WRAPPING_TO_MACHINES_MAP)) {
+    if (keywords.some(keyword => normalized.includes(keyword))) {
+      return type;
+    }
+  }
+  return null;
+}
+
 export function getPackingMachines(): CatalogItem[] {
   const values = getCatalogValues("packaging_machine", { activeOnly: true });
   return values.map((v, idx) => ({
     id: idx + 1,
     code: v.item,
     name: v.name,
-    wrappingId: 1, // Default - deberá ajustarse
+    wrappingType: getMachineWrappingType(v.name),
     status: v.status,
   }));
 }
@@ -130,9 +157,19 @@ export function getPackingMachineById(id: number): CatalogItem | undefined {
 }
 
 export function getPackingMachinesByWrappingId(wrappingId: number): CatalogItem[] {
-  // Esta es una simplificación - en producción necesitaría mapeo real
+  const wrapping = getWrappingById(wrappingId);
+  if (!wrapping) return [];
+
+  const wrappingType = getWrappingType(wrapping.name);
+  if (!wrappingType) {
+    // Si no se puede determinar el tipo, retornar todas las máquinas
+    return getPackingMachines();
+  }
+
   const allMachines = getPackingMachines();
-  return allMachines.slice(0, 3); // Retornar algunas máquinas por defecto
+  return allMachines.filter((m) =>
+    m.wrappingType === wrappingType || !m.wrappingType
+  );
 }
 
 // ═════════════════════════════════════════════════════════════════════
