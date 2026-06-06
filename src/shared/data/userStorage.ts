@@ -1,6 +1,4 @@
-import { getActiveExecutiveRecords } from "./executiveStorage";
 import seedUsers from "./seeds/users.json";
-import { type PortalRole, getRoleByAreaAndPosition } from "./areaDepartmentConfig";
 import { canTransitionUserStatus, registerUserStatusChange } from "./userStatusStorage";
 
 const USERS_STORAGE_KEY = "odiseo_users";
@@ -32,11 +30,6 @@ export type User = {
   workerCode: string;
   position: string;
   area?: string;
-  siUserId?: string;
-  siUserCode?: string;
-  siUserName?: string;
-  siStatus?: string;
-  syncStatus?: "pending_sync" | "synced";
   createdAt: string;
 };
 
@@ -314,10 +307,6 @@ export function createUser(
     workerCode: newUser.workerCode || "",
     position: newUser.position || "",
     status: newUser.status || "pending_activation",
-    siUserCode: newUser.siUserCode,
-    siUserName: newUser.siUserName,
-    siStatus: newUser.siStatus,
-    syncStatus: newUser.syncStatus,
     createdAt: now,
   };
 
@@ -485,15 +474,11 @@ export function getUserByWorkerCode(workerCode: string): User | undefined {
 export function findDuplicateUser(
   email: string,
   workerCode?: string,
-  siUserId?: string,
-  siUserCode?: string,
   excludeUserId?: string
 ): User | undefined {
   const allUsers = getAllUsers();
   const normalizedEmail = normalizeEmail(email);
   const normalizedWorkerCode = workerCode ? workerCode.trim().toLowerCase() : undefined;
-  const normalizedSiUserId = siUserId?.trim();
-  const normalizedSiUserCode = siUserCode ? siUserCode.trim().toLowerCase() : undefined;
 
   return allUsers.find((user) => {
     if (excludeUserId && user.id === excludeUserId) {
@@ -504,34 +489,7 @@ export function findDuplicateUser(
     const workerCodeMatch = normalizedWorkerCode
       ? user.workerCode?.toLowerCase() === normalizedWorkerCode
       : false;
-    const siUserIdMatch = normalizedSiUserId ? user.siUserId === normalizedSiUserId : false;
-    const siUserCodeMatch = normalizedSiUserCode
-      ? user.siUserCode?.toLowerCase() === normalizedSiUserCode
-      : false;
-    return emailMatch || workerCodeMatch || siUserIdMatch || siUserCodeMatch;
-  });
-}
-
-export function findActiveSiCodeDuplicate(
-  siUserCode: string,
-  excludeUserId?: string
-): User | undefined {
-  if (!siUserCode) return undefined;
-
-  const allUsers = getAllUsers();
-  const normalizedSiUserCode = siUserCode.trim().toLowerCase();
-
-  return allUsers.find((user) => {
-    if (excludeUserId && user.id === excludeUserId) {
-      return false;
-    }
-
-    // Check if active or pending_activation (essentially "activo")
-    if (!["active", "pending_activation", "synced"].includes(user.syncStatus || "pending_sync")) {
-      return false;
-    }
-
-    return user.siUserCode?.toLowerCase() === normalizedSiUserCode;
+    return emailMatch || workerCodeMatch;
   });
 }
 

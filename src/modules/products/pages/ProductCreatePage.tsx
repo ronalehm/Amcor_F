@@ -14,7 +14,6 @@ import {
 } from "../../../shared/data/projectStorage";
 import type { BooleanLike, YesNoPending } from "../../../shared/data/projectStorage";
 import { getActiveExecutiveRecords } from "../../../shared/data/executiveStorage";
-import { getActiveUsers } from "../../../shared/data/userStorage";
 import { computeProjectPreparationStatus } from "../../../shared/data/projectWorkflow";
 
 import FormCard from "../../../shared/components/forms/FormCard";
@@ -32,7 +31,6 @@ const RECENT_NEW_PROJECT_KEY = "odiseo_recent_new_project";
 type ProjectFormData = {
   portfolioCode: string;
   executiveId: string[];
-  siUserId: string;
 
   projectName: string;
   projectDescription: string;
@@ -473,7 +471,6 @@ const getPortfolioStatus = (portfolio: any): "active" | "inactive" => {
 const initialForm = (portfolioCode: string): ProjectFormData => ({
   portfolioCode,
   executiveId: [],
-  siUserId: "",
 
   projectName: "",
   projectDescription: "",
@@ -611,7 +608,6 @@ export default function ProjectCreatePage() {
 
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
-  const siUsers = useMemo(() => getActiveUsers(), []);
 
   const selectedPortfolio = useMemo(() => {
     return (
@@ -655,7 +651,6 @@ export default function ProjectCreatePage() {
         setForm({
           portfolioCode: original.portfolioCode || "",
           executiveId: original.ejecutivoId ? [String(original.ejecutivoId)] : [],
-          siUserId: original.siUserId || "",
           projectName: `${original.projectName || ""} (Copia)`,
           projectDescription: original.projectDescription || "",
           classification: original.classification || "",
@@ -1075,9 +1070,6 @@ export default function ProjectCreatePage() {
         executiveIds: finalExecutiveIds,
         commercialExecutiveIds: finalExecutiveIds,
       } as any),
-
-      siUserId: form.siUserId,
-      siUserCode: siUsers.find(u => u.id === form.siUserId)?.code,
 
       plantaName: inheritedPlant,
       wrappingName: inheritedWrapping,

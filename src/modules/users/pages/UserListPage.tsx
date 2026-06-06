@@ -599,7 +599,6 @@ export default function UserListPage() {
                 <SortableHeader label="Área" sortKey="area" />
                 <SortableHeader label="Puesto" sortKey="position" />
                 <SortableHeader label="Estado" sortKey="status" />
-                <th className={tableStyles.headerCell}>Sincronización SI</th>
 
                 <th className={tableStyles.headerCellRight}>
                   Acciones
@@ -669,17 +668,6 @@ export default function UserListPage() {
                       >
                         {STATUS_LABELS[user.status]}
                       </span>
-                    </td>
-
-                    <td className={tableStyles.cell}>
-                      {user.siUserCode && user.siUserName ? (
-                        <div className="flex flex-col gap-1">
-                          <span className="font-medium text-slate-900">{user.siUserCode}</span>
-                          <span className="text-xs text-slate-500">{user.siUserName}</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">No sincronizado</span>
-                      )}
                     </td>
 
                     <td className={tableStyles.actions}>

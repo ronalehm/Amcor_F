@@ -8,7 +8,6 @@ import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
-import SystemIntegrationUserSearch from "../../../shared/components/forms/SystemIntegrationUserSearch";
 
 import {
   getUserById,
@@ -16,15 +15,12 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
   getUserByEmail,
-  findActiveSiCodeDuplicate,
 } from "../../../shared/data/userStorage";
 import {
   AREAS,
   getPositionsByArea,
-  getAllowedRolesByAreaAndPosition,
 } from "../../../shared/data/areaDepartmentConfig";
-import { ROLE_LABELS } from "../../../shared/data/userStorage";
-import { type VendorMirror } from "../../../shared/data/vendorMirrorStorage";
+import { ROLE_PROFILES } from "../../../shared/security/roleProfiles";
 
 type UserFormData = {
   fullName: string;
@@ -33,10 +29,6 @@ type UserFormData = {
   position: string;
   area: string;
   role: string;
-  siUserId?: string;
-  siUserCode?: string;
-  siUserName?: string;
-  siStatus?: string;
 };
 
 export default function UserEditPage() {
@@ -49,40 +41,7 @@ export default function UserEditPage() {
   const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof UserFormData, boolean>>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [siError, setSiError] = useState<string | null>(null);
-  const [siSuccess, setSiSuccess] = useState<string | null>(null);
   const [userCode, setUserCode] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const handleSiUserSelect = (vendor: VendorMirror) => {
-    // Validar que el código SI no esté asignado a otro usuario ODISEO
-    const siDuplicate = findActiveSiCodeDuplicate(vendor.code, userId);
-    if (siDuplicate) {
-      setSiError(
-        `Este usuario del Sistema Integral ya está asignado a ${siDuplicate.fullName}. No se puede reasignar.`
-      );
-      return;
-    }
-
-    setSiError(null);
-    setSiSuccess(`Usuario del Sistema Integral "${vendor.name}" asignado exitosamente.`);
-    setForm((prev) =>
-      prev
-        ? {
-            ...prev,
-            siUserId: vendor.id,
-            siUserCode: vendor.code,
-            workerCode: vendor.code,
-            email: vendor.email || "",
-            fullName: vendor.name,
-            area: vendor.area,
-          }
-        : null
-    );
-    setSearchQuery("");
-    // Limpiar el mensaje de éxito después de 3 segundos
-    setTimeout(() => setSiSuccess(null), 3000);
-  };
 
   useEffect(() => {
     if (!userId) {
@@ -106,10 +65,6 @@ export default function UserEditPage() {
       position: user.position,
       area: user.area || "",
       role: user.role,
-      siUserId: user.siUserId,
-      siUserCode: user.siUserCode,
-      siUserName: user.siUserName,
-      siStatus: user.siStatus,
     });
     setLoading(false);
   }, [userId]);
@@ -193,10 +148,6 @@ export default function UserEditPage() {
       position: form.position,
       area: form.area || undefined,
       role: form.role as any,
-      siUserId: form.siUserId,
-      siUserCode: form.siUserCode,
-      siUserName: form.siUserName,
-      siStatus: form.siStatus,
     });
 
     navigate("/users");
@@ -218,14 +169,11 @@ export default function UserEditPage() {
     }));
   }, [form?.area]);
 
-  const roleOptions = useMemo(() => {
-    if (!form?.area) return [];
-    const allowedRoles = getAllowedRolesByAreaAndPosition(form.area, form.position);
-    return allowedRoles.map((roleKey) => ({
-      value: roleKey,
-      label: ROLE_LABELS[roleKey],
-    }));
-  }, [form?.area, form?.position]);
+  const roleOptions = useMemo(() =>
+    ROLE_PROFILES.map((profile) => ({
+      value: profile.code,
+      label: profile.name,
+    })), []);
 
   if (loading) {
     return (
@@ -264,73 +212,6 @@ export default function UserEditPage() {
         <div className="max-w-3xl mx-auto">
           <FormCard title="Datos del Usuario" icon="👤" color="#00395A" required>
             <div className="space-y-4">
-              {/* Búsqueda Sistema Integral */}
-              <SystemIntegrationUserSearch
-                value={searchQuery}
-                onChange={setSearchQuery}
-                onSelect={handleSiUserSelect}
-                placeholder="Buscar usuario del Sistema Integral..."
-              />
-
-              {/* Mensaje de éxito SI */}
-              {siSuccess && (
-                <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-                  <p className="text-sm text-green-800">✓ {siSuccess}</p>
-                </div>
-              )}
-
-              {/* Error de SI duplicado */}
-              {siError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                  <p className="text-sm text-red-800">{siError}</p>
-                </div>
-              )}
-
-              {/* Usuario del Sistema Integral Sincronizado */}
-              {form.siUserCode && (
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                  <h4 className="text-sm font-bold text-blue-900 mb-3">Usuario del Sistema Integral Sincronizado</h4>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <FormInput
-                      label="Código Sistema Integral"
-                      value={form.siUserCode}
-                      disabled
-                      placeholder="Ej. SI-001"
-                    />
-                    <FormInput
-                      label="Nombre Sistema Integral"
-                      value={form.siUserName || ""}
-                      disabled
-                      placeholder="Nombre del usuario"
-                    />
-                    <FormInput
-                      label="Estado Sistema Integral"
-                      value={form.siStatus || ""}
-                      disabled
-                      placeholder="Estado"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForm((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              siUserId: undefined,
-                              siUserCode: undefined,
-                              siUserName: undefined,
-                              siStatus: undefined,
-                            }
-                          : null
-                      );
-                    }}
-                    className="mt-3 text-sm text-blue-700 hover:text-blue-900 font-semibold"
-                  >
-                    Limpiar sincronización
-                  </button>
-                </div>
-              )}
 
               {/* Fila 1: Código Trabajador, Nombre (Read-only) */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -381,7 +262,7 @@ export default function UserEditPage() {
                 />
 
                 <FormSelect
-                  label="Rol ODISEO"
+                  label="Perfil ODISEO"
                   value={form.role}
                   onChange={(value) => {
                     updateField("role", value);

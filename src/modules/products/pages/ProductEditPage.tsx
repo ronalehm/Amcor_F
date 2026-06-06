@@ -60,7 +60,6 @@ export type ProjectEditFormData = {
   status: string;
   portfolioCode: string;
   executiveId: string[];
-  siUserId: string;
 
   projectName: string;
   projectDescription: string;
@@ -1232,7 +1231,6 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
   return {
     portfolioCode: form.portfolioCode,
     executiveId: form.executiveId.slice().sort(),
-    siUserId: form.siUserId,
     projectName: form.projectName?.trim() || "",
     projectDescription: form.projectDescription?.trim() || "",
     classification: form.classification,
@@ -1343,7 +1341,6 @@ export default function ProjectEditPage() {
     status: "",
     portfolioCode: "",
     executiveId: [],
-    siUserId: "",
     projectName: "",
     projectDescription: "",
     classification: "",
@@ -1552,7 +1549,6 @@ export default function ProjectEditPage() {
 
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
-  const siUsers = useMemo(() => getActiveUsers(), []);
 
   const classificationOpt = useMemo(() => getCatalogOptions("classification"), []);
   const subclassificationOpt = useMemo(() => getCatalogOptions("subclassification"), []);
@@ -1613,7 +1609,6 @@ export default function ProjectEditPage() {
       status: project.status || "",
       portfolioCode: project.portfolioCode || "",
       executiveId: getProjectExecutiveIds(project),
-      siUserId: project.siUserId || "",
       projectName: project.projectName || "",
       projectDescription: initialDescription || project.projectDescription || "",
       classification: initialClassification || project.classification || "",
@@ -2931,9 +2926,6 @@ export default function ProjectEditPage() {
       executiveIds: finalExecutiveIds,
       commercialExecutiveIds: finalExecutiveIds,
 
-      siUserId: form.siUserId,
-      siUserCode: siUsers.find(u => u.id === form.siUserId)?.code,
-
       plantaName: inheritedPlant,
       wrappingName: inheritedWrapping,
       useFinalName: inheritedFinalUse,
@@ -3192,10 +3184,6 @@ export default function ProjectEditPage() {
       ejecutivoNames: finalExecutiveName,
       executiveIds: finalExecutiveIds,
       commercialExecutiveIds: finalExecutiveIds,
-
-
-      siUserId: form.siUserId,
-      siUserCode: siUsers.find(u => u.id === form.siUserId)?.code,
 
       plantaName: inheritedPlant,
       wrappingName: inheritedWrapping,
