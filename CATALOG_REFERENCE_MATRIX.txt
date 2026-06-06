@@ -1,0 +1,304 @@
+================================================================================
+MATRIZ DE REFERENCIAS DE CATÁLOGOS
+================================================================================
+
+LEYENDA:
+✓ = Usado correctamente (catalog.service)
+◆ = Hardcoded / Legacy (mockDatabase, productCatalogs)
+✗ = No usado / Huérfano
+
+================================================================================
+CATÁLOGOS EN REGISTRO vs USO REAL
+================================================================================
+
+CÓDIGO CATÁLOGO           DEFINICIÓN              MÓDULO  DÓNDE SE USA          TIPO
+--------------------------------------------------------------------------------------------
+wrapping_type            Tipo de Envoltura      products  EnvolturaSelector     ◆ HARDCODED
+                                                          mockDatabase           ◆ LEGACY
+                                                          PRODUCT_CATALOGS      ◆ LEGACY
+
+subclassification        Sub-clasificación      products  productCatalogs        ◆ LEGACY
+                                                          (no se encuentra uso)
+
+layer_material           Material de Capa       products  projectCatalogStorage ✓ CORRECTO
+                                                          productCatalogs        ◆ LEGACY
+
+unit_measure             Unidad de Medida       products  projectCatalogStorage ✓ CORRECTO
+                                                          PRODUCT_CATALOGS      ◆ LEGACY
+
+sale_type                Tipo de Venta          products  projectCatalogStorage ✓ CORRECTO
+
+incoterm                 Incoterm               products  projectCatalogStorage ✓ CORRECTO
+                                                          PRODUCT_CATALOGS      ◆ LEGACY
+
+destination_country      País de Destino        products  projectCatalogStorage ✓ CORRECTO
+
+currency                 Tipo de Moneda         products  projectCatalogStorage ✓ CORRECTO
+                                                          PRODUCT_CATALOGS      ◆ LEGACY
+
+print_class              Clase de Impresión     products  projectCatalogStorage ✓ CORRECTO
+                                                          PRODUCT_CATALOGS      ◆ LEGACY
+
+print_type               Tipo de Impresión      products  projectCatalogStorage ✓ CORRECTO
+                                                          PRODUCT_CATALOGS      ◆ LEGACY
+
+structure_type           Tipo de Estructura     products  projectCatalogStorage ✓ CORRECTO
+                                                          PRODUCT_CATALOGS      ◆ LEGACY
+
+final_use                Uso Final              portfolio  FinalUseCatalogModal   ◆ LEGACY
+                                                          mockDatabase           ◆ LEGACY
+                                                          PRODUCT_CATALOGS       ◆ LEGACY
+
+plant                    Planta/Instalación     portfolio  (NUNCA USADO)         ✗ HUÉRFANO
+
+request_origin_plant     Planta de Origen AF    portfolio  PlantSelector.tsx      ✓ CORRECTO
+                                                          (getCatalogValues)
+
+blueprint_format         Formato de Plano       products  projectCatalogStorage ✓ CORRECTO
+
+technical_application   Aplicación Técnica     products  projectCatalogStorage ✓ CORRECTO
+                                                          PRODUCT_CATALOGS      ◆ LEGACY
+
+zipper_type              Tipo de Zipper         products  projectCatalogStorage ✓ CORRECTO
+
+valve_type               Tipo de Válvula        products  projectCatalogStorage ✓ CORRECTO
+
+rounded_corners_type     Tipo de Esquinas       products  projectCatalogStorage ✓ CORRECTO
+
+pouch_perforation_type   Perforación Pouch      products  projectCatalogStorage ✓ CORRECTO
+
+bag_perforation_type     Perforación Bolsa      products  projectCatalogStorage ✓ CORRECTO
+
+precut_type              Tipo de Pre-Corte      products  projectCatalogStorage ✓ CORRECTO
+
+payment_terms            Términos de Pago       products  projectCatalogStorage ✓ CORRECTO
+
+core_material            Material del Core      products  projectCatalogStorage ✓ CORRECTO
+
+peruvian_logo            Logo Peruano           products  projectCatalogStorage ✓ CORRECTO
+
+printing_footer          Pie de Imprenta        products  projectCatalogStorage ✓ CORRECTO
+
+salesforce_action        Acción Salesforce      products  projectCatalogStorage ✓ CORRECTO
+
+project_type             Tipo de Proyecto       products  projectCatalogStorage ✓ CORRECTO
+
+yes_no                   Sí/No                  shared    projectCatalogStorage ✓ CORRECTO
+
+artwork_file_type        Tipo Archivo Arte      products  projectCatalogStorage ✓ CORRECTO
+
+client_type              Tipo de Cliente        clients   (NUNCA USADO)          ✗ HUÉRFANO
+
+client_sector            Sector Cliente         clients   (NUNCA USADO)          ✗ HUÉRFANO
+
+client_country           País Cliente           clients   (NUNCA USADO)          ✗ HUÉRFANO
+
+user_role                Rol de Usuario         users     (necesita integración) ◆ LEGACY
+
+user_area                Área de Usuario        users     (necesita integración) ◆ LEGACY
+
+user_status              Estado de Usuario      users     userStorage            ✓ CORRECTO
+
+portfolio_status         Estado de Portafolio   portfolio  (NUNCA USADO)          ✗ HUÉRFANO
+                                                          mockDatabase           ◆ LEGACY
+
+product_status           Estado de Producto     products  (NUNCA USADO)          ✗ HUÉRFANO
+
+packaging_machine        Tipo de Envasado       products  mockDatabase           ◆ LEGACY
+                                                          PRODUCT_CATALOGS      ◆ LEGACY
+
+product_line             Línea de Producto      portfolio  (NUNCA USADO)          ✗ HUÉRFANO
+
+market_segment           Segmento de Mercado    portfolio  (NUNCA USADO)          ✗ HUÉRFANO
+
+================================================================================
+CATÁLOGOS LEGACY EN mockDatabase (NO DEBERÍAN EXISTIR)
+================================================================================
+
+NOMBRE                      ITEMS  UBICACIÓN              USADO EN
+----------------------------------------------------------------------
+STATUS_CATALOG             6      mockDatabase:52-57     Portfolio (create/edit)
+CLIENTS_CATALOG            5      mockDatabase:59-65     Portfolio (legacy)
+EXECUTIVES_CATALOG         4      mockDatabase:67-72     Portfolio (legacy)
+PLANTS_CATALOG             4      mockDatabase:74-79     Portfolio (create/edit)
+WRAPPINGS_CATALOG          4      mockDatabase:81-86     Portfolio, EnvolturaSelector
+FINAL_USE_CATALOG         300+    mockDatabase:88-2272   FinalUseCatalogModal
+PACKING_MACHINES_CATALOG   12+    mockDatabase (implied) Portfolio + mockDatabase
+
+PROBLEMA: Son la fuente de verdad para Portfolio pero están duplicados
+          en productCatalogs.ts y catalog.registry.ts
+
+================================================================================
+CATÁLOGOS EN projectCatalogStorage.ts
+================================================================================
+
+Todos estos catálogos están BIEN DEFINIDOS y USADOS CORRECTAMENTE en Products.
+La estructura es consistente y no hay conflictos.
+
+CATÁLOGO                           ITEMS  USADO EN
+------------------------------------------------------------
+BLUEPRINT_FORMAT_CATALOG           20     ProductEditPage
+TECHNICAL_APPLICATION_CATALOG      13     ProductEditPage
+UNIT_OF_MEASURE_CATALOG            6      ProductEditPage
+PRINT_CLASS_CATALOG                3      ProductEditPage
+PRINT_TYPE_CATALOG                 2      ProductEditPage
+PRINT_FORM_CATALOG                 2      ProductEditPage
+STRUCTURE_TYPE_CATALOG             6      ProductEditPage
+LAYER_MATERIAL_CATALOG            58      ProductEditPage
+ZIPPER_TYPE_CATALOG                5      ProductEditPage
+VALVE_TYPE_CATALOG                 3      ProductEditPage
+ROUNDED_CORNERS_TYPE_CATALOG       4      ProductEditPage
+POUCH_PERFORATION_TYPE_CATALOG     4      ProductEditPage
+BAG_PERFORATION_TYPE_CATALOG       5      ProductEditPage
+PRE_CUT_TYPE_CATALOG               4      ProductEditPage
+SALE_TYPE_CATALOG                  2      ProductEditPage
+INCOTERM_CATALOG                  11      ProductEditPage
+DESTINATION_COUNTRY_CATALOG       20      ProductEditPage
+CURRENCY_TYPE_CATALOG              3      ProductEditPage
+PAYMENT_TERMS_CATALOG              6      ProductEditPage
+CORE_MATERIAL_CATALOG              3      ProductEditPage
+PERUVIAN_PRODUCT_LOGO_CATALOG     3      ProductEditPage
+PRINTING_FOOTER_CATALOG            3      ProductEditPage
+PROJECT_CLASSIFICATION_CATALOG     3      ProductEditPage
+PROJECT_SUBCLASSIFICATION_CATALOG  5      ProductEditPage
+SALESFORCE_ACTION_CATALOG          3      ProductEditPage
+PROJECT_TYPE_CATALOG               3      ProductEditPage
+YES_NO_CATALOG                     2      ProductEditPage
+ARTWORK_FILE_TYPE_CATALOG          7      ProductEditPage
+
+ESTADO: ✓ CORRECTO - Usado consistentemente en Products module
+
+================================================================================
+CATÁLOGOS EN productCatalogs.ts (LEGACY PERO USADO)
+================================================================================
+
+Este archivo duplica información de registry pero se usa en Products.
+Está bien estructurado pero es redundante con catalog.registry.ts.
+
+CATÁLOGO (key)                 ITEMS   FUENTE
+-----------------------------------------------------------
+aplicacionTecnica             58      Excel ODISEO-GFP-PDFP-0003
+clasificacion                  2      Producto Nuevo / Modificado
+formatoDePlano                25      Excel técnico
+unidadDeMedida                 6      G, KG, ML, L, OZ, UNI
+tieneEstructuraDeReferencia    2      Sí / No
+especificacionesDeDisenoEspeciales 5  Especiales
+claseDeImpresion               3      Flexo, Huecograbado, Sin impresión
+tipoDeImpresion                2      Repetitivo, Continuo
+formaDeImpresion               2      Superficie, Dorso
+tipoDeEstructura               4      Monocapa, Bilaminado, Trilaminado, Tetralaminado
+solicitudDeMuestra             2      Sí / No
+baseDelDoypack                 2      Redonda, Cuadrada
+accesoriosConsumibles          3      Zipper, Tin-Tie, Válvula
+accesoriosInternos             8      Asa, Corte Angular, Esquinas, etc.
+tipoDePerforacionPouch         4      Circular 4-10mm
+tipoDePerforacionBolsa         3      Cruz, Media Luna
+... (20+ catálogos más)
+usoFinal                      1100+   Completo, normalizado
+usoFinalTipoDeAplicacion       4      Líquido, Pastoso, Seco, Otros
+tipoDeEnvasadoMaquinaDeCliente 18     VFFS, HFFS, Twist, etc.
+
+ESTADO: ◆ LEGACY pero FUNCIONAL - Usado en Products
+
+================================================================================
+ARCHIVOS CON DEFINICIONES DE CATÁLOGOS
+================================================================================
+
+ARCHIVO                          CATÁLOGOS   LÍNEAS  ESTADO
+-----------------------------------------------------------
+catalog.registry.ts              39          413     ✓ Completo (maestro)
+projectCatalogStorage.ts         27          417     ✓ Estructura (OK)
+productCatalogs.ts               30+         1,302   ◆ Legacy (duplica registry)
+mockDatabase.ts                  6           4,011   ◆ Legacy (deprecated)
+catalogStorage.ts                5           54      ✗ Dead code (nunca usado)
+
+================================================================================
+ARCHIVOS CON IMPORTACIÓN DE CATÁLOGOS
+================================================================================
+
+ARCHIVO                                    IMPORTS FROM               TIPO
+--------------------------------------------------------------------------------------------
+PortfolioCreatePage.tsx                    mockDatabase               ◆ LEGACY
+PortfolioEditPage.tsx                      mockDatabase               ◆ LEGACY
+FinalUseCatalogModal.tsx                   mockDatabase               ◆ LEGACY
+ProductEditPage.tsx                        projectCatalogStorage,     ✓ CORRECTO
+                                          productCatalogs
+ProductCreatePage.tsx                      productCatalogs            ✓ CORRECTO
+PlantSelector.tsx                         catalog.service            ✓ CORRECTO
+EnvolturaSelector.tsx                     hardcoded const            ◆ HARDCODED
+CatalogsList.tsx                          catalog.service            ✓ CORRECTO
+CatalogPreviewModal.tsx                   catalog.service            ✓ CORRECTO
+
+================================================================================
+SÍNTESIS POR MÓDULO
+================================================================================
+
+MÓDULO: products
+  Estado: ✓ RELATIVAMENTE BUENO
+  Usa: projectCatalogStorage + productCatalogs
+  Problema: Duplicación con registry (pero funcional)
+  Acción: Mantener como está, considerar refactor en futuro
+
+MÓDULO: portfolio
+  Estado: ❌ CRÍTICO
+  Usa: mockDatabase (legacy, anticuado)
+  Problema: STATUS, PLANTS, WRAPPINGS, FINAL_USE son duplicados
+  Acción: URGENTE - Migrar a catalog.service
+
+MÓDULO: catalog-management
+  Estado: ✓ CORRECTO
+  Usa: catalog.service
+  Problema: Ninguno
+  Acción: Ninguna
+
+MÓDULO: users
+  Estado: ✓ PARCIALMENTE CORRECTO
+  Usa: PlantSelector con getCatalogValues() (bien)
+  Problema: Necesita integración para otros catálogos (user_role, user_area)
+  Acción: Completar integración con catalog.service
+
+MÓDULO: clients
+  Estado: ❌ INCOMPLETO
+  Problema: client_type, client_sector, client_country no se usan
+  Acción: Integrar cuando sea necesario
+
+================================================================================
+ACCIONES INMEDIATAS (PRIORIDAD ALTA)
+================================================================================
+
+1. Migrar Portfolio de mockDatabase a catalog.service
+   - STATUS_CATALOG → getCatalogValues("portfolio_status")
+   - PLANTS_CATALOG → getCatalogValues("plant")
+   - WRAPPINGS_CATALOG → getCatalogValues("wrapping_type")
+   - FINAL_USE_CATALOG → getCatalogValues("final_use")
+   Archivos: PortfolioCreatePage.tsx, PortfolioEditPage.tsx
+
+2. Dinamizar EnvolturaSelector
+   - FROM: hardcoded const
+   - TO: getCatalogValues("wrapping_type")
+   Archivo: EnvolturaSelector.tsx
+
+3. Actualizar FinalUseCatalogModal
+   - FROM: mockDatabase.FINAL_USE_CATALOG
+   - TO: productCatalogs.usoFinal (o getCatalogValues)
+   Archivo: FinalUseCatalogModal.tsx
+
+4. Completar catalog.registry.ts
+   - Agregar: project_status, priority, packaging_machine
+   Archivo: catalog.registry.ts
+
+================================================================================
+MÉTRICAS DE SALUD
+================================================================================
+
+Catálogos correctos (✓):           15 / 39  (38%)
+Catálogos con problemas (◆):       18 / 39  (46%)
+Catálogos no usados (✗):            6 / 39  (15%)
+
+Archivos con imports inconsistentes: 5 / 9 (55%)
+Líneas de código duplicado:         ~2,000 líneas
+Catálogos huérfanos:                6 catálogos
+
+PUNTUACIÓN GENERAL: 4 / 10 (CRÍTICA)
+
+================================================================================

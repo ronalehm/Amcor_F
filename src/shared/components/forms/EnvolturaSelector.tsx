@@ -1,3 +1,6 @@
+import { useMemo, useState, useEffect } from "react";
+import { getCatalogValues, onCatalogChange } from "../../catalogs/catalog.service";
+
 type EnvolturaOption = "LAMINA" | "BOLSA" | "POUCH";
 
 type EnvolturaSelectorProps = {
@@ -7,26 +10,11 @@ type EnvolturaSelectorProps = {
   error?: string;
 };
 
-const ENVOLTURAS = [
-  {
-    id: "LAMINA",
-    label: "Lámina",
-    image: "/assets/envolturas/lamina.png",
-    description: "Film plano enrollado",
-  },
-  {
-    id: "BOLSA",
-    label: "Bolsa",
-    image: "/assets/envolturas/bolsa.png",
-    description: "Bolsa sellada",
-  },
-  {
-    id: "POUCH",
-    label: "Pouch",
-    image: "/assets/envolturas/pouch.png",
-    description: "Pouch flexible",
-  },
-] as const;
+const ENVOLTURA_IMAGES: Record<string, string> = {
+  "LÁMINA": "/assets/envolturas/lamina.png",
+  "BOLSA": "/assets/envolturas/bolsa.png",
+  "POUCH": "/assets/envolturas/pouch.png",
+};
 
 export default function EnvolturaSelector({
   value,
@@ -34,14 +22,47 @@ export default function EnvolturaSelector({
   readOnly = false,
   error,
 }: EnvolturaSelectorProps) {
+  // Estado para forzar re-render cuando el catálogo cambia
+  const [catalogVersion, setCatalogVersion] = useState(0);
+
+  // Escuchar cambios en el catálogo
+  useEffect(() => {
+    const unsubscribe = onCatalogChange((catalogCode) => {
+      if (catalogCode === "wrapping_type") {
+        setCatalogVersion((prev) => prev + 1);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const envolturas = useMemo(() => {
+    const catalogValues = getCatalogValues("wrapping_type", { activeOnly: true });
+    return catalogValues.map((v) => {
+      // Mapear item a formato compatible con Portfolio
+      let id = v.name;
+      if (v.item.includes("LÁMINA") || v.item.includes("LAMINA")) id = "LAMINA";
+      else if (v.item.includes("BOLSA")) id = "BOLSA";
+      else if (v.item.includes("POUCH")) id = "POUCH";
+
+      return {
+        id,
+        label: v.name,
+        image: ENVOLTURA_IMAGES[v.name] || "/assets/envolturas/default.png",
+        description: v.name,
+        item: v.item,
+      };
+    });
+  }, [catalogVersion]);
+
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-3 gap-2">
-        {ENVOLTURAS.map((envoltura) => (
+        {envolturas.map((envoltura) => (
           <button
             key={envoltura.id}
             type="button"
-            onClick={() => !readOnly && onChange?.(envoltura.id as EnvolturaOption)}
+            onClick={() => !readOnly && onChange?.(envoltura.id as "LAMINA" | "BOLSA" | "POUCH")}
             disabled={readOnly}
             className={`relative flex flex-col items-center gap-1 rounded-lg border-2 px-2 py-2 transition-all ${
               value === envoltura.id

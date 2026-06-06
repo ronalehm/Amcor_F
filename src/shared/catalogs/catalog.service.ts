@@ -16,6 +16,18 @@ import type {
 let catalogValues: CatalogValue[] = [...CATALOG_VALUES_SEED];
 let catalogChangeLogs: CatalogChangeLog[] = [];
 
+// Sistema de notificación de cambios para mantener la UI sincronizada
+const catalogChangeListeners = new Set<(catalogCode: string) => void>();
+
+export function onCatalogChange(callback: (catalogCode: string) => void): () => void {
+  catalogChangeListeners.add(callback);
+  return () => catalogChangeListeners.delete(callback);
+}
+
+function notifyCatalogChange(catalogCode: string): void {
+  catalogChangeListeners.forEach((listener) => listener(catalogCode));
+}
+
 export function getCatalogs(): CatalogDefinition[] {
   return CATALOG_REGISTRY;
 }
@@ -186,6 +198,9 @@ export function upsertCatalogValues(params: {
   };
 
   catalogChangeLogs.push(log);
+
+  // Notificar a los listeners sobre el cambio
+  notifyCatalogChange(params.catalogCode);
 
   return {
     success: errors.length === 0,

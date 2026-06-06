@@ -1,0 +1,557 @@
+================================================================================
+ANÁLISIS EXHAUSTIVO DE CONSISTENCIA DE CATÁLOGOS - PROYECTO AMCOR ODISEO
+================================================================================
+
+RESUMEN EJECUTIVO
+================================================================================
+
+El proyecto tiene 3 FUENTES DE DATOS DE CATÁLOGOS EN CONFLICTO:
+1. mockDatabase.ts - Catálogos legacy (STATUS, PLANTS, WRAPPINGS, FINAL_USE)
+2. projectCatalogStorage.ts - Catálogos de proyectos (27+ catálogos para P1-P4)
+3. catalog.registry.ts - Catálogos maestros centralizados (39+ catálogos ODISEO)
+
+Esto crea INCONSISTENCIAS CRÍTICAS en la arquitectura de datos.
+
+================================================================================
+1. INVENTARIO DE CATÁLOGOS MAESTROS (catalog.registry.ts)
+================================================================================
+
+TOTAL: 39 CATÁLOGOS
+
+FASE 1 - CRÍTICOS:
+- catalog_wrapping_type: Tipo de Envoltura (products, SISTEMA_INTEGRAL)
+- catalog_subclassification: Sub-clasificación (products, ODISEO)
+- catalog_layer_material: Material de Capa (products, ODISEO)
+- catalog_unit_measure: Unidad de Medida (products, ODISEO)
+
+FASE 1 - COMERCIALES:
+- catalog_sale_type: Tipo de Venta (products, ODISEO)
+- catalog_incoterm: Incoterm (products, ODISEO)
+- catalog_destination_country: País de Destino (products, ODISEO)
+- catalog_currency: Tipo de Moneda (products, ODISEO)
+
+FASE 1 - IMPRESIÓN Y ESTRUCTURA:
+- catalog_print_class: Clase de Impresión (products, ODISEO)
+- catalog_print_type: Tipo de Impresión (products, ODISEO)
+- catalog_structure_type: Tipo de Estructura (products, ODISEO)
+
+FASE 1 - PORTFOLIO:
+- catalog_final_use: Uso Final (portfolio, ODISEO)
+- catalog_plant: Planta/Instalación (portfolio, ODISEO) **DUPLICADO**
+- catalog_request_origin_plant: Planta de Origen AF (portfolio, ODISEO) **USADO**
+
+FASE 2 - ESPECIFICACIONES:
+- catalog_blueprint_format: Formato de Plano
+- catalog_technical_application: Aplicación Técnica
+- catalog_zipper_type: Tipo de Zipper
+- catalog_valve_type: Tipo de Válvula
+- catalog_rounded_corners_type: Tipo de Esquinas
+- catalog_pouch_perforation_type: Perforación Pouch
+- catalog_bag_perforation_type: Perforación Bolsa
+- catalog_precut_type: Tipo de Pre-Corte
+- catalog_payment_terms: Términos de Pago
+- catalog_core_material: Material del Core
+
+FASE 2 - AUXILIARES:
+- catalog_peruvian_logo: Logo Producto Peruano
+- catalog_printing_footer: Pie de Imprenta
+- catalog_salesforce_action: Acción Salesforce
+- catalog_project_type: Tipo de Proyecto
+- catalog_yes_no: Sí/No
+- catalog_artwork_file_type: Tipo de Archivo de Arte
+
+FASE 3 - CLIENTES:
+- catalog_client_type: Tipo de Cliente **NO USADO**
+- catalog_client_sector: Sector Cliente **NO USADO**
+- catalog_client_country: País Cliente **NO USADO**
+
+FASE 3 - USUARIOS:
+- catalog_user_role: Rol de Usuario
+- catalog_user_area: Área de Usuario
+- catalog_user_status: Estado de Usuario (tabla espejo SISTEMA_INTEGRAL)
+
+FASE 3 - PORTAFOLIO:
+- catalog_portfolio_status: Estado de Portafolio
+- catalog_product_status: Estado de Producto
+
+FASE 4 - SISTEMA INTEGRAL:
+- catalog_packaging_machine: Tipo de Envasado (tabla espejo)
+
+OTROS:
+- catalog_product_line: Línea de Producto **NO USADO**
+- catalog_market_segment: Segmento de Mercado **NO USADO**
+
+================================================================================
+2. BÚSQUEDA DE USO DE CATÁLOGOS POR MÓDULO
+================================================================================
+
+MÓDULO: portfolio (PortfolioCreatePage.tsx, PortfolioEditPage.tsx)
+------------------------------------------------------------------------
+CATÁLOGOS USADOS: mockDatabase (PROBLEMA)
+- STATUS_CATALOG (6 items): getStatusById()
+- PLANTS_CATALOG (4 items): getPlantById()
+- WRAPPINGS_CATALOG (4 items): getWrappingById()
+- FINAL_USE_CATALOG (300+ items): getFinalUseById()
+- PACKING_MACHINES_CATALOG: getPackingMachinesByWrappingId()
+
+ESTADO: ❌ CRÍTICO - Usa mockDatabase en lugar de catalog.service
+IMPACTO: Portfolio no sincroniza con cambios en catálogos
+
+---
+
+MÓDULO: catalog-management (CatalogsList.tsx, CatalogPreviewModal.tsx)
+------------------------------------------------------------------------
+CATÁLOGOS USADOS: catalog.service (CORRECTO)
+- getCatalogValues() - dinámico desde storage
+- getCatalogByCode() - búsqueda por código
+- CATALOG_REGISTRY - para listar y metadatos
+
+ESTADO: ✓ CORRECTO - Usa catalog.service centralizado
+
+---
+
+MÓDULO: products (ProductEditPage.tsx, ProductCreatePage.tsx)
+------------------------------------------------------------------------
+CATÁLOGOS USADOS: productCatalogs.ts (INCONSISTENTE)
+- PRODUCT_CATALOGS (30+ subcatálogos)
+- PRODUCT_FIELD_CATALOG_MAP (mapeo de campos P1-P4)
+- NO usa getCatalogValues()
+
+ESTADO: ❌ ALTA INCONSISTENCIA - Duplica ~1300 líneas de datos
+
+---
+
+MÓDULO: users (UserCreatePage.tsx)
+------------------------------------------------------------------------
+COMPONENTES CON HARDCODE:
+✓ PlantSelector.tsx: getCatalogValues("request_origin_plant")
+  - Conectado a catalog.service (CORRECTO)
+  - Observa cambios vía onCatalogChange()
+
+ESTADO: ✓ PARCIALMENTE CORRECTO para plantas
+
+---
+
+COMPONENTES SHARED:
+------------------------------------------------------------------------
+EnvolturaSelector.tsx:
+const ENVOLTURAS = [
+  { id: "LAMINA", label: "Lámina", ... },
+  { id: "BOLSA", label: "Bolsa", ... },
+  { id: "POUCH", label: "Pouch", ... },
+]
+
+ESTADO: ❌ HARDCODED - Debería usar getCatalogValues("wrapping_type")
+IMPACTO: Si se agregan nuevas envolturas, no se reflejan en UI
+
+---
+
+FinalUseCatalogModal.tsx:
+import { FINAL_USE_CATALOG } from "../../data/mockDatabase";
+
+ESTADO: ❌ HARDCODED a mockDatabase (anticuado)
+IMPACTO: No sincroniza con cambios en PRODUCT_CATALOGS.usoFinal
+
+================================================================================
+3. CATÁLOGOS SIN REFERENCIAS (HUÉRFANOS)
+================================================================================
+
+Catálogos en registry.ts que NO se usan en ningún lado:
+
+CATÁLOGO                    USO EN CÓDIGO    OBSERVABLE
+--------------------------------------------------------------
+catalog_client_type         NO              Nunca referenciado
+catalog_client_sector       NO              Nunca referenciado
+catalog_client_country      NO              Nunca referenciado
+catalog_product_line        NO              Nunca referenciado
+catalog_market_segment      NO              Nunca referenciado
+
+NOTA: Estos catálogos están definidos pero listos para ser usados.
+      El problema es que no hay código que los consuma.
+
+================================================================================
+4. INCONSISTENCIAS CRÍTICAS ENCONTRADAS
+================================================================================
+
+INCONSISTENCIA #1: PLANTAS (CONFLICTO SEMÁNTICO)
+--------------------------------------------------
+Problema: Dos catálogos definen el concepto de "planta"
+
+FUENTE 1: catalog_plant
+  - Definición: "Planta/Instalación" (genérico)
+  - Ubicación: catalog.registry.ts (líneas 125-131)
+  - Estado: NUNCA USADO EN CÓDIGO
+  - Código: "plant"
+
+FUENTE 2: catalog_request_origin_plant
+  - Definición: "Planta de Origen de solicitud" (AF específico)
+  - Ubicación: catalog.registry.ts (líneas 134-140)
+  - Estado: USADO en PlantSelector.tsx
+  - Código: "request_origin_plant"
+
+FUENTE 3: PRODUCT_CATALOGS.planta
+  - Valores: "AF Lima", "AF Cali", "AF Santiago Norte", "AF San Luis"
+  - Ubicación: productCatalogs.ts (línea 576-579)
+
+FUENTE 4: mockDatabase.PLANTS_CATALOG
+  - Valores: { AF-LIM, AF-CAL, AF-STN, AF-SL }
+  - Ubicación: mockDatabase.ts (líneas 74-79)
+
+PROBLEMA: 4 versiones distintas del mismo concepto
+RECOMENDACIÓN: Usar SOLO catalog_request_origin_plant, eliminar catalog_plant
+
+---
+
+INCONSISTENCIA #2: ENVOLTURA (HARDCODED vs CATÁLOGO)
+-----------------------------------------------------
+FUENTE 1: mockDatabase.WRAPPINGS_CATALOG
+  Items: POUCH, BOLSA, LAMINA, ETIQUETA (4)
+  Ubicación: mockDatabase.ts (líneas 81-86)
+  Usado en: Portfolio (create/edit)
+
+FUENTE 2: EnvolturaSelector.tsx (HARDCODED)
+  Items: LAMINA, BOLSA, POUCH (solo 3)
+  Ubicación: src/shared/components/forms/EnvolturaSelector.tsx (líneas 10-29)
+  Usado en: Portfolio, Product (visualmente)
+
+FUENTE 3: PRODUCT_CATALOGS.envoltura
+  Items: POUCH, BOLSA, LAMINA, ETIQUETA (4)
+  Ubicación: productCatalogs.ts (línea 580-584)
+
+FUENTE 4: catalog.registry.catalog_wrapping_type
+  Items: POUCH, BOLSA, LÁMINA (definición genérica)
+  Ubicación: catalog.registry.ts (líneas 10-17)
+
+PROBLEMA CRÍTICO:
+  - UI está hardcoded (no dinámico)
+  - Portfolio usa mockDatabase (no sincronizado)
+  - Products usa productCatalogs
+  - 3 fuentes de verdad = inconsistencia garantizada
+
+RECOMENDACIÓN: Usar SOLO catalog.registry > wrapping_type, dinámico con getCatalogValues()
+
+---
+
+INCONSISTENCIA #3: ESTADOS (STATUS)
+-------------------------------------
+PROBLEMA: Estados anticuados en mockDatabase
+
+mockDatabase.STATUS_CATALOG (4 items):
+  { id: 1, code: "REG", name: "Registrado" }
+  { id: 2, code: "REV", name: "En revisión" }
+  { id: 3, code: "CER", name: "Cerrado" }
+  { id: 4, code: "DES", name: "Desestimado" }
+
+ESTADO EN PORTFOLIO:
+  - Portfolio crea registros con STATUS_CATALOG[0].id
+  - Estos IDs (1,2,3,4) no corresponden a portfolio_status reales
+
+catalog.registry.portfolio_status (3 items):
+  { code: "portfolio_status", name: "Estado de Portafolio" }
+  - Valores: "Activo", "Inactivo", "Borrador"
+
+PROBLEMA: Hay desconexión entre lo que Portfolio guarda y lo que registry define
+
+---
+
+INCONSISTENCIA #4: USO FINAL (FINAL_USE)
+-------------------------------------------
+FUENTE 1: mockDatabase.FINAL_USE_CATALOG (300+ items)
+  - Basado en Excel antiguo
+  - Ubicación: mockDatabase.ts (líneas 88-2272)
+  - Usado en: Portfolio (FinalUseCatalogModal)
+
+FUENTE 2: PRODUCT_CATALOGS.usoFinal (1100+ items)
+  - MUCHO MÁS COMPLETO
+  - Valores normalizados
+  - Ubicación: productCatalogs.ts (línea 838-1193)
+  - Usado en: Products (campo P1)
+
+PROBLEMA:
+  - mockDatabase tiene versión ANTICUADA (~300 items)
+  - productCatalogs tiene versión COMPLETA (~1100 items)
+  - Portfolio y Products usan distintas fuentes
+
+RECOMENDACIÓN: Sincronizar a PRODUCT_CATALOGS.usoFinal como fuente única
+
+---
+
+INCONSISTENCIA #5: PACKING MACHINES (MÁQUINAS DE CLIENTE)
+-----------------------------------------------------------
+FUENTE 1: mockDatabase.PACKING_MACHINES_CATALOG
+  Ubicación: mockDatabase.ts (múltiples referencias)
+  Función: getPackingMachinesByWrappingId()
+
+FUENTE 2: PRODUCT_CATALOGS.tipoDeEnvasadoMaquinaDeCliente
+  Items: 18 tipos (VFFS, HFFS, Twist, etc.)
+  Ubicación: productCatalogs.ts (líneas 1199-1222)
+
+FUENTE 3: catalog.registry (NO EXISTE)
+  El registry NO tiene "packing_machine" mapeado correctamente
+
+PROBLEMA: mockDatabase tiene datos desactualizados, PRODUCT_CATALOGS tiene versión nueva
+RECOMENDACIÓN: Agregar a catalog.registry como nuevo catálogo
+
+================================================================================
+5. DATOS NO USADOS (CÓDIGO MUERTO)
+================================================================================
+
+ARCHIVO: src/shared/data/mockDatabase.ts (4,011 líneas)
+---------------------------------------------------------
+✗ STATUS_CATALOG (6 items)
+  - Función: getStatusById()
+  - Uso: Solo Portfolio
+  - Problema: Anticuado (REG, REV, CER, DES)
+
+✗ CLIENTS_CATALOG (5 items)
+  - Función: getClientById()
+  - Uso: Solo Portfolio (read-only)
+  - Problema: Legacy, debería usar clientStorage.ts
+
+✗ EXECUTIVES_CATALOG (4 items)
+  - Función: getExecutiveById()
+  - Uso: Solo Portfolio (read-only)
+  - Problema: Legacy, debería usar userStorage.ts
+
+✗ PACKING_MACHINES_CATALOG
+  - Función: getPackingMachineById(), getPackingMachinesByWrappingId()
+  - Uso: Portfolio
+  - Problema: Desactualizado vs PRODUCT_CATALOGS.tipoDeEnvasado
+
+✗ FINAL_USE_CATALOG (300+ items)
+  - Función: getFinalUseById()
+  - Uso: FinalUseCatalogModal, Portfolio
+  - Problema: Anticuado vs PRODUCT_CATALOGS.usoFinal (1100 items)
+
+---
+
+ARCHIVO: src/shared/data/catalogStorage.ts (54 líneas)
+-------------------------------------------------------
+✗ CATALOGS object con 5 sub-catálogos:
+  - AREAS (6 items): Comercial, R&D, CX, Calidad, Producción, Pre-Prensa
+  - PROJECT_STATUSES (6 items): Registrado, En Evaluación, Observado, etc.
+  - PORTFOLIO_STATUSES (3 items): Borrador, Activo, Inactivo
+  - PRIORITIES (3 items): Baja, Media, Alta
+  - PROJECT_TYPES (3 items): Nuevo Producto, Modificación, Réplica
+
+Funciones: getAreas(), getProjectStatuses(), getPortfolioStatuses(), etc.
+
+PROBLEMA CRÍTICO: NUNCA SE USA EN NINGÚN LADO DEL CÓDIGO
+  - Búsqueda en todo el proyecto: 0 referencias
+  - Código muerto que debería:
+    a) Eliminarse, o
+    b) Integrarse a catalog.registry.ts
+
+---
+
+ARCHIVO: src/shared/components/forms/EnvolturaSelector.tsx
+------------------------------------------------------------
+const ENVOLTURAS = [
+  { id: "LAMINA", ... },
+  { id: "BOLSA", ... },
+  { id: "POUCH", ... },
+]
+
+PROBLEMA: Hardcoded, no sincroniza con otros catálogos
+IMPACTO: Si se agrega ETIQUETA a los otros catálogos, EnvolturaSelector no la muestra
+
+================================================================================
+6. ARCHIVOS PROBLEMÁTICOS (RANKING DE RIESGO)
+================================================================================
+
+CRITICIDAD  |  ARCHIVO                                    |  PROBLEMA
+------------|---------------------------------------------|------------------------
+CRÍTICA     | mockDatabase.ts (4,011 líneas)            | 6+ catálogos duplicados
+CRÍTICA     | PortfolioCreatePage.tsx (798 líneas)      | Importa mockDatabase
+CRÍTICA     | PortfolioEditPage.tsx (797 líneas)        | Importa mockDatabase
+ALTA        | EnvolturaSelector.tsx (103 líneas)        | Hardcoded, no dinámico
+ALTA        | FinalUseCatalogModal.tsx                  | Importa mockDatabase
+ALTA        | productCatalogs.ts (1,302 líneas)         | Duplica registry (~1300 LOC)
+MEDIA       | catalogStorage.ts (54 líneas)             | Dead code, nunca usado
+BAJA        | catalog.registry.ts (414 líneas)          | Incompleto (falta packing_machine)
+
+================================================================================
+7. RECOMENDACIONES DE CONSOLIDACIÓN (PLAN DE ACCIÓN)
+================================================================================
+
+FASE 1: ELIMINAR DUPLICADOS (Estimado: 3-4 días)
+==================================================
+
+[1.1] Consolidar PLANTAS
+  Acción:
+    a) Eliminar: catalog_plant de catalog.registry (línea 125-131)
+    b) Renombrar: catalog_request_origin_plant → catalog_plant
+    c) Actualizar: PlantSelector.tsx para usar "plant" en lugar de "request_origin_plant"
+    d) Sincronizar: mockDatabase.PLANTS_CATALOG con catálogo maestro
+
+  Archivos a cambiar: 3
+    - src/shared/catalogs/catalog.registry.ts
+    - src/shared/components/forms/PlantSelector.tsx
+    - src/shared/data/mockDatabase.ts
+
+[1.2] Consolidar ENVOLTURAS
+  Acción:
+    a) Eliminar: hardcode en EnvolturaSelector.tsx
+    b) Fuente única: getCatalogValues("wrapping_type")
+    c) Dinamizar: permitir agregar nuevas envolturas sin cambiar código
+
+  Archivos a cambiar: 1
+    - src/shared/components/forms/EnvolturaSelector.tsx
+
+  Antes:
+    const ENVOLTURAS = [
+      { id: "LAMINA", ... },
+      { id: "BOLSA", ... },
+      { id: "POUCH", ... },
+    ]
+
+  Después:
+    const wrappings = useMemo(() =>
+      getCatalogValues("wrapping_type", { activeOnly: true })
+        .map(v => ({
+          id: v.item,
+          label: v.name,
+          image: `/assets/envolturas/${v.item.toLowerCase()}.png`,
+        }))
+    , [catalogVersion])
+
+[1.3] Consolidar USO FINAL
+  Acción:
+    a) Fuente única: productCatalogs.usoFinal (más completo)
+    b) Migrar: FinalUseCatalogModal a usar productCatalogs
+    c) Deprecar: mockDatabase.FINAL_USE_CATALOG
+
+  Archivos a cambiar: 1
+    - src/shared/components/catalog/FinalUseCatalogModal.tsx
+
+---
+
+FASE 2: LIMPIAR CÓDIGO MUERTO (Estimado: 2-3 días)
+====================================================
+
+[2.1] Eliminar catalogStorage.ts
+  Acción:
+    a) Verificar que NADA lo importa (ya verificado: 0 referencias)
+    b) Definir catálogos faltantes en catalog.registry:
+       - user_area → YA EXISTE
+       - project_status (6 items)
+       - priority (3 items)
+    c) Mover contenido a catalog.seed.ts si es necesario
+    d) Eliminar archivo
+
+  Impacto: CERO - Nadie lo usa
+
+[2.2] Limpiar Portfolio de mockDatabase
+  Acción:
+    a) Portfolio: reemplazar STATUS_CATALOG → getCatalogValues("portfolio_status")
+    b) Portfolio: reemplazar PLANTS_CATALOG → getCatalogValues("plant")
+    c) Portfolio: reemplazar WRAPPINGS_CATALOG → getCatalogValues("wrapping_type")
+    d) Portfolio: reemplazar FINAL_USE_CATALOG → getCatalogValues("final_use")
+    e) Portfolio: reemplazar PACKING_MACHINES → getCatalogValues("packaging_machine")
+
+  Archivos a cambiar: 2
+    - src/modules/portfolio/pages/PortfolioCreatePage.tsx
+    - src/modules/portfolio/pages/PortfolioEditPage.tsx
+
+---
+
+FASE 3: SINCRONIZAR PRODUCTOS (Estimado: 1-2 días)
+====================================================
+
+[3.1] Migrar productCatalogs a catalog.registry
+  Acción:
+    a) NO eliminar productCatalogs.ts (se usa en muchos lugares)
+    b) Crear vinculación: productCatalogs → catalog.registry
+    c) Opción 1: productCatalogs como wrapper de getCatalogValues()
+    d) Opción 2: mantener como está (compatible backward)
+
+  Impacto: Media - Requiere testing extensivo
+
+  Recomendación: Por ahora, mantener como está pero:
+    - Documentar que es fuente de verdad para P1-P4
+    - Sincronizar manualmente con mockDatabase cambios
+    - Considerar refactor en futuro (Fase 4)
+
+---
+
+FASE 4: COMPLETAR REGISTRY (Estimado: 1 día)
+===============================================
+
+[4.1] Agregar catálogos faltantes
+  Agregar a catalog.registry:
+    - catalog_packaging_machine: Tipo de Envasado (18 items)
+    - catalog_project_status: Estado de Proyecto (6 items)
+    - catalog_priority: Prioridad (3 items)
+    - catalog_packing_machine_client: Máquina de Cliente (tabla espejo)
+
+  Ubicación: src/shared/catalogs/catalog.registry.ts
+
+================================================================================
+8. TABLA DE MIGRACIÓN (POR ARCHIVO)
+================================================================================
+
+ARCHIVO                               ACCIÓN               COMPLEJIDAD  IMPACTO
+-----------------------------------------------------------------------------------
+EnvolturaSelector.tsx                 Refactor             Baja         Alto
+PortfolioCreatePage.tsx              Reemplazar imports    Baja         Alto
+PortfolioEditPage.tsx                Reemplazar imports    Baja         Alto
+FinalUseCatalogModal.tsx             Reemplazar imports    Media        Medio
+PlantSelector.tsx                    Refactor             Baja         Bajo
+mockDatabase.ts                       Deprecate            Media        Alto
+catalogStorage.ts                     Eliminar             Nula         Nulo
+catalog.registry.ts                   Completar            Baja         Medio
+productCatalogs.ts                    Mantener (por ahora) Nula         Nulo
+
+================================================================================
+9. MAPEO DE INCONSISTENCIAS A CATÁLOGOS
+================================================================================
+
+INCONSISTENCIA          CATÁLOGOS AFECTADOS             PRIORIDAD
+----------------------------------------------------------------------
+Plantas duplicadas      catalog_plant vs catalog_request_origin_plant  CRÍTICA
+Envolturas hardcoded    wrapping_type                                  CRÍTICA
+Estados desactualizados portfolio_status vs STATUS_CATALOG             ALTA
+Uso Final duplicado     final_use vs usoFinal                          ALTA
+Máquinas de cliente     packaging_machine (no existe)                  MEDIA
+Datos huérfanos         client_type, product_line, etc.               BAJA
+
+================================================================================
+10. MÉTRICAS DE IMPACTO
+================================================================================
+
+LÍNEAS DE CÓDIGO DUPLICADAS: ~2,000
+  - mockDatabase.ts: 4,011 (6 catálogos)
+  - productCatalogs.ts: 1,302 (30+ catálogos)
+  - Hardcoding en UI: ~200
+
+ARCHIVOS CON IMPORTS INCONSISTENTES: 5 archivos críticos
+  - Portfolio (2 archivos)
+  - FinalUseModal (1 archivo)
+  - UI Components (2 archivos)
+
+CATÁLOGOS SIN USAR: 5 catálogos (huérfanos)
+  - client_type, client_sector, client_country
+  - product_line, market_segment
+
+CATÁLOGOS FALTANTES: 3 catálogos
+  - project_status (necesario para tracking)
+  - priority (necesario para priorización)
+  - packing_machine (espejo de SISTEMA_INTEGRAL)
+
+================================================================================
+CONCLUSIÓN
+================================================================================
+
+El proyecto necesita URGENTEMENTE consolidar sus fuentes de catálogos.
+Actualmente hay conflictos críticos que impiden mantener datos sincronizados.
+
+La propuesta de consolidación requiere ~1-2 semanas de esfuerzo pero resultará en:
+✓ Una sola fuente de verdad para cada catálogo
+✓ 2,000 líneas de código duplicado eliminadas
+✓ Mejor mantenibilidad y sincronización automática
+✓ Arquitectura más escalable
+
+Recomendación: Ejecutar Fases 1 y 2 INMEDIATAMENTE (semana 1-2)
+             Fases 3 y 4 en sprint siguiente (menos críticas)
+
+================================================================================

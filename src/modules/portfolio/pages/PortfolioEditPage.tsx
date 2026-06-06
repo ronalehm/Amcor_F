@@ -4,17 +4,17 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import {
-  STATUS_CATALOG,
-  PLANTS_CATALOG,
-  WRAPPINGS_CATALOG,
-  FINAL_USE_CATALOG,
+  getStatusCatalog,
+  getPlantsCatalog,
+  getWrappingsCatalog,
   getStatusById,
   getPlantById,
   getWrappingById,
   getFinalUseById,
   getPackingMachineById,
   getPackingMachinesByWrappingId,
-} from "../../../shared/data/mockDatabase";
+  getFinalUses,
+} from "../../../shared/catalogs/portfolio-adapters";
 
 import {
   getActiveExecutiveRecords,
@@ -26,6 +26,7 @@ import { getCurrentUser, getCommercialExecutives } from "../../../shared/data/us
 import { getClientCatalogRecords, canClientHavePortfolio } from "../../../shared/data/clientStorage";
 
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
+import ClientSearch from "../../../shared/components/catalog/ClientSearch";
 import FinalUseCatalogModal from "../../../shared/components/catalog/FinalUseCatalogModal";
 import PortfolioPreview from "../../../shared/components/ui/PortfolioPreview";
 import SectionCard from "../../../shared/components/ui/SectionCard";
@@ -69,7 +70,7 @@ const AMCOR = {
 function recordToFormData(record: Record<string, unknown>): PortfolioFormData {
   return {
     codigo: String(record.codigo || record.id || ""),
-    estadoId: String(record.estadoId || record.statusId || STATUS_CATALOG[0].id),
+    estadoId: String(record.estadoId || record.statusId || getStatusCatalog()[0]?.id || 1),
     clienteId: String(record.clienteId || record.clienteId || ""),
     ejecutivoId: String(record.ejecutivoId || record.ejecutivoId || ""),
     plantaId: String(record.plantaId || record.plantaId || ""),
@@ -236,8 +237,9 @@ export default function PortfolioEditPage() {
   };
 
   const getIdFromEnvolturaOption = (option: "LAMINA" | "BOLSA" | "POUCH"): string => {
-    const wrapping = WRAPPINGS_CATALOG.find((w) => {
-      const name = w.name.toLowerCase();
+    const wrappings = getWrappingsCatalog();
+    const wrapping = wrappings.find((w) => {
+      const name = (w.name || "").toLowerCase();
       if (option === "LAMINA" && (name.includes("lámina") || name.includes("lǭmina"))) return true;
       if (option === "BOLSA" && name.includes("bolsa")) return true;
       if (option === "POUCH" && name.includes("pouch")) return true;
@@ -260,8 +262,9 @@ export default function PortfolioEditPage() {
   };
 
   const getIdFromPlantOption = (option: "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS"): string => {
-    const plant = PLANTS_CATALOG.find((p) => {
-      const code = p.code.toLowerCase();
+    const plants = getPlantsCatalog();
+    const plant = plants.find((p) => {
+      const code = (p.code || "").toLowerCase();
       if (option === "AF_LIMA" && code.includes("lim")) return true;
       if (option === "AF_CALI" && code.includes("cal")) return true;
       if (option === "AF_SANTIAGO" && code.includes("stn")) return true;
@@ -514,9 +517,10 @@ useEffect(() => {
               required
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <SmartCatalogSearch
+                <ClientSearch
                   label="Nombre del Cliente *"
                   value={form.clienteId}
+                  clients={eligibleClients}
                   onChange={(value) => updateField("clienteId", value)}
                   onBlur={() => markFieldAsTouched("clienteId")}
                   error={
@@ -524,14 +528,7 @@ useEffect(() => {
                       ? validationErrors.clienteId
                       : ""
                   }
-                  options={eligibleClients.map((item) => ({
-                    id: item.id,
-                    code: item.code,
-                    name: item.businessName,
-                    meta: item.ruc,
-                  }))}
                   placeholder="Escribe para buscar cliente..."
-                  emptyMessage="Cliente no encontrado. Regístrelo en el módulo Clientes."
                 />
 
                 <SmartCatalogSearch
@@ -629,7 +626,7 @@ useEffect(() => {
                         ? validationErrors.usoFinalId
                         : ""
                     }
-                    options={FINAL_USE_CATALOG.map((item) => ({
+                    options={getFinalUses().map((item) => ({
                       value: String(item.id),
                       label: item.useFinal,
                     }))}

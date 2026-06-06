@@ -5,17 +5,17 @@ import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
 
 import {
-  STATUS_CATALOG,
-  PLANTS_CATALOG,
-  WRAPPINGS_CATALOG,
-  FINAL_USE_CATALOG,
+  getStatusCatalog,
+  getPlantsCatalog,
+  getWrappingsCatalog,
   getStatusById,
   getPlantById,
   getWrappingById,
   getFinalUseById,
   getPackingMachineById,
   getPackingMachinesByWrappingId,
-} from "../../../shared/data/mockDatabase";
+  getFinalUses,
+} from "../../../shared/catalogs/portfolio-adapters";
 
 import { getClientCatalogRecords, getClientByCode, canClientHavePortfolio } from "../../../shared/data/clientStorage";
 import { getCommercialExecutives } from "../../../shared/data/userStorage";
@@ -24,6 +24,7 @@ import { savePortfolioRecord } from "../../../shared/data/portfolioStorage";
 const RECENT_NEW_PORTFOLIO_KEY = "odiseo_recent_new_portfolio";
 
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
+import ClientSearch from "../../../shared/components/catalog/ClientSearch";
 import FinalUseSelector from "../../../shared/components/catalog/FinalUseSelector";
 import FinalUseCatalogModal from "../../../shared/components/catalog/FinalUseCatalogModal";
 import PortfolioPreview from "../../../shared/components/ui/PortfolioPreview.tsx";
@@ -86,7 +87,7 @@ function getTemporaryPortfolioCode() {
 
 const buildInitialForm = (): PortfolioFormData => ({
   codigo: getTemporaryPortfolioCode(),
-  estadoId: String(STATUS_CATALOG[0].id),
+  estadoId: String(getStatusCatalog()[0]?.id || 1),
   clienteId: "",
   ejecutivoId: "",
   plantaId: "",
@@ -315,8 +316,9 @@ useEffect(() => {
   };
 
   const getIdFromEnvolturaOption = (option: "LAMINA" | "BOLSA" | "POUCH"): string => {
-    const wrapping = WRAPPINGS_CATALOG.find((w) => {
-      const name = w.name.toLowerCase();
+    const wrappings = getWrappingsCatalog();
+    const wrapping = wrappings.find((w) => {
+      const name = (w.name || "").toLowerCase();
       if (option === "LAMINA" && name.includes("lámina")) return true;
       if (option === "BOLSA" && name.includes("bolsa")) return true;
       if (option === "POUCH" && name.includes("pouch")) return true;
@@ -339,8 +341,9 @@ useEffect(() => {
   };
 
   const getIdFromPlantOption = (option: "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS"): string => {
-    const plant = PLANTS_CATALOG.find((p) => {
-      const code = p.code.toLowerCase();
+    const plants = getPlantsCatalog();
+    const plant = plants.find((p) => {
+      const code = (p.code || "").toLowerCase();
       if (option === "AF_LIMA" && code.includes("lim")) return true;
       if (option === "AF_CALI" && code.includes("cal")) return true;
       if (option === "AF_SANTIAGO" && code.includes("stn")) return true;
@@ -520,9 +523,10 @@ useEffect(() => {
                     </span>
                   </div>
                 ) : (
-                  <SmartCatalogSearch
+                  <ClientSearch
                     label="Nombre del Cliente *"
                     value={form.clienteId}
+                    clients={eligibleClients}
                     onChange={(value) => updateField("clienteId", value)}
                     onBlur={() => markFieldAsTouched("clienteId")}
                     error={
@@ -530,14 +534,7 @@ useEffect(() => {
                         ? validationErrors.clienteId
                         : ""
                     }
-                    options={eligibleClients.map((item) => ({
-                      id: item.id,
-                      code: item.code,
-                      name: item.businessName,
-                      meta: item.ruc,
-                    }))}
                     placeholder="Escribe para buscar cliente..."
-                    emptyMessage="Cliente no encontrado. Regístrelo en el módulo Clientes."
                   />
                 )}
 
@@ -634,7 +631,7 @@ useEffect(() => {
                         ? validationErrors.usoFinalId
                         : ""
                     }
-                    options={FINAL_USE_CATALOG.map((item) => ({
+                    options={getFinalUses().map((item) => ({
                       value: String(item.id),
                       label: item.useFinal,
                     }))}

@@ -34,38 +34,6 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     sortOrder: 3,
   },
 
-  // ============ CLASSIFICATION (Clasificación - 3 items) ============
-  {
-    id: "class_001",
-    catalogId: "catalog_classification",
-    catalogCode: "classification",
-    item: "CLASS-001",
-    name: "Nuevo",
-    description: "Producto completamente nuevo",
-    status: "Activo",
-    sortOrder: 1,
-  },
-  {
-    id: "class_002",
-    catalogId: "catalog_classification",
-    catalogCode: "classification",
-    item: "CLASS-002",
-    name: "Modificado",
-    description: "Producto con modificaciones",
-    status: "Activo",
-    sortOrder: 2,
-  },
-  {
-    id: "class_003",
-    catalogId: "catalog_classification",
-    catalogCode: "classification",
-    item: "CLASS-003",
-    name: "Estándar",
-    description: "Producto estándar existente",
-    status: "Activo",
-    sortOrder: 3,
-  },
-
   // ============ SUBCLASSIFICATION (Sub-clasificación - 5 items) ============
   {
     id: "subclass_001",
@@ -706,44 +674,6 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     sortOrder: 4,
   },
 
-  // ============ STATUS (Estados - 4 items) ============
-  {
-    id: "status_001",
-    catalogId: "catalog_status",
-    catalogCode: "status",
-    item: "REG",
-    name: "Registrado",
-    status: "Activo",
-    sortOrder: 1,
-  },
-  {
-    id: "status_002",
-    catalogId: "catalog_status",
-    catalogCode: "status",
-    item: "REV",
-    name: "En revisión",
-    status: "Activo",
-    sortOrder: 2,
-  },
-  {
-    id: "status_003",
-    catalogId: "catalog_status",
-    catalogCode: "status",
-    item: "CER",
-    name: "Cerrado",
-    status: "Activo",
-    sortOrder: 3,
-  },
-  {
-    id: "status_004",
-    catalogId: "catalog_status",
-    catalogCode: "status",
-    item: "DES",
-    name: "Desestimado",
-    status: "Activo",
-    sortOrder: 4,
-  },
-
   // ============ YES_NO (Sí/No - 2 items) ============
   {
     id: "yn_001",
@@ -1047,7 +977,7 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     sortOrder: 4,
   },
 
-  // ============ PORTFOLIO_STATUS (Estado de Portafolio - 4 items) ============
+  // ============ PORTFOLIO_STATUS (Estado de Portafolio - 2 items) ============
   {
     id: "ps_001",
     catalogId: "catalog_portfolio_status",
@@ -1066,21 +996,41 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     status: "Activo",
     sortOrder: 2,
   },
+
+  // ============ REQUEST_ORIGIN_PLANT (Planta de Origen de solicitud - 4 items) ============
   {
-    id: "ps_003",
-    catalogId: "catalog_portfolio_status",
-    catalogCode: "portfolio_status",
-    item: "PS-003",
-    name: "En Desarrollo",
+    id: "rop_001",
+    catalogId: "catalog_request_origin_plant",
+    catalogCode: "request_origin_plant",
+    item: "AF-LIM",
+    name: "AF Lima",
+    status: "Activo",
+    sortOrder: 1,
+  },
+  {
+    id: "rop_002",
+    catalogId: "catalog_request_origin_plant",
+    catalogCode: "request_origin_plant",
+    item: "AF-CAL",
+    name: "AF Cali",
+    status: "Activo",
+    sortOrder: 2,
+  },
+  {
+    id: "rop_003",
+    catalogId: "catalog_request_origin_plant",
+    catalogCode: "request_origin_plant",
+    item: "AF-STN",
+    name: "AF Santiago Norte",
     status: "Activo",
     sortOrder: 3,
   },
   {
-    id: "ps_004",
-    catalogId: "catalog_portfolio_status",
-    catalogCode: "portfolio_status",
-    item: "PS-004",
-    name: "Aprobado",
+    id: "rop_004",
+    catalogId: "catalog_request_origin_plant",
+    catalogCode: "request_origin_plant",
+    item: "AF-SL",
+    name: "AF San Luis",
     status: "Activo",
     sortOrder: 4,
   },

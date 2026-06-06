@@ -1,55 +1,44 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Search } from "lucide-react";
+import type { Client } from "../../data/clientStorage";
 
-export type SmartCatalogOption = {
-  id: number | string;
-  code: string;
-  name: string;
-  meta?: string;
-};
-
-type SmartCatalogSearchProps = {
+type ClientSearchProps = {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
+  value: string; // Client ID
+  clients: Client[];
+  onChange: (clientId: string) => void;
   onBlur?: () => void;
-  options: SmartCatalogOption[];
-  placeholder?: string;
   error?: string;
-  emptyMessage?: string;
+  placeholder?: string;
 };
 
-export default function SmartCatalogSearch({
+export default function ClientSearch({
   label,
   value,
+  clients,
   onChange,
   onBlur,
-  options,
-  placeholder,
   error,
-  emptyMessage,
-}: SmartCatalogSearchProps) {
+  placeholder = "Escribe para buscar cliente...",
+}: ClientSearchProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const selectedOption = options.find((option) => String(option.id) === value);
+  const selectedClient = clients.find((c) => c.id === value);
 
-  const [query, setQuery] = useState(selectedOption?.name || "");
+  const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [dropdownPosition, setDropdownPosition] = useState<"bottom" | "top">("bottom");
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
-  // Sincronizar query con el valor del padre cuando hay una selección
+  // Mostrar nombre del cliente seleccionado en el input
   useEffect(() => {
-    if (selectedOption) {
-      setQuery(selectedOption.name);
-    } else if (!value && query.trim() === "") {
-      // Solo limpiar si tanto value como query están vacíos
+    if (selectedClient) {
+      setQuery(selectedClient.businessName);
+    } else {
       setQuery("");
     }
-  }, [value, selectedOption]);
+  }, [selectedClient?.id]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -69,53 +58,36 @@ export default function SmartCatalogSearch({
       const rect = inputRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - rect.bottom;
-      const dropdownHeight = 256; // max-h-64 = 16rem = 256px
+      const dropdownHeight = 256;
 
       const shouldOpenUp = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
 
-      if (shouldOpenUp) {
-        setDropdownPosition("top");
-        setDropdownStyle({
-          position: "fixed",
-          bottom: viewportHeight - rect.top,
-          left: rect.left,
-          width: rect.width,
-          maxHeight: "256px",
-          zIndex: 9999,
-        });
-      } else {
-        setDropdownPosition("bottom");
-        setDropdownStyle({
-          position: "fixed",
-          top: rect.bottom,
-          left: rect.left,
-          width: rect.width,
-          maxHeight: "256px",
-          zIndex: 9999,
-        });
-      }
+      setDropdownStyle({
+        position: "fixed",
+        ...(shouldOpenUp
+          ? { bottom: viewportHeight - rect.top }
+          : { top: rect.bottom }),
+        left: rect.left,
+        width: rect.width,
+        maxHeight: "256px",
+        zIndex: 9999,
+      });
     }
   }, [isOpen]);
 
-  const filteredOptions = useMemo(() => {
+  const filteredClients = useMemo(() => {
     const search = query.trim().toLowerCase();
-    if (!search) {
-      return options;
-    }
+    if (!search) return clients;
 
-    return options.filter((option) => {
-      const searchableText = [option.name, option.code, option.meta]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return searchableText.includes(search);
+    return clients.filter((client) => {
+      const searchText = `${client.businessName} ${client.code} ${client.ruc}`.toLowerCase();
+      return searchText.includes(search);
     });
-  }, [options, query]);
+  }, [clients, query]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setQuery(newValue);
-    onChange("");
     setSelectedIndex(-1);
 
     if (newValue.trim().length > 0) {
@@ -128,7 +100,7 @@ export default function SmartCatalogSearch({
       case "ArrowDown":
         e.preventDefault();
         setIsOpen(true);
-        setSelectedIndex((prev) => Math.min(prev + 1, filteredOptions.length - 1));
+        setSelectedIndex((prev) => Math.min(prev + 1, filteredClients.length - 1));
         break;
       case "ArrowUp":
         e.preventDefault();
@@ -136,8 +108,8 @@ export default function SmartCatalogSearch({
         break;
       case "Enter":
         e.preventDefault();
-        if (selectedIndex >= 0 && filteredOptions[selectedIndex]) {
-          selectOption(filteredOptions[selectedIndex]);
+        if (selectedIndex >= 0 && filteredClients[selectedIndex]) {
+          selectClient(filteredClients[selectedIndex]);
         }
         break;
       case "Escape":
@@ -149,14 +121,14 @@ export default function SmartCatalogSearch({
     }
   };
 
-  const selectOption = (option: SmartCatalogOption) => {
-    onChange(String(option.id));
-    setQuery(option.name);
+  const selectClient = (client: Client) => {
+    onChange(client.id);
+    setQuery(client.businessName);
     setIsOpen(false);
     setSelectedIndex(-1);
   };
 
-  const showDropdown = isOpen && (query.trim().length === 0 || filteredOptions.length > 0);
+  const showDropdown = isOpen && (query.trim().length === 0 || filteredClients.length > 0);
 
   return (
     <div className="relative" ref={wrapperRef}>
@@ -189,18 +161,17 @@ export default function SmartCatalogSearch({
       {showDropdown &&
         createPortal(
           <div
-            ref={dropdownRef}
             style={dropdownStyle}
             className="overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
           >
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((option, index) => (
+            {filteredClients.length > 0 ? (
+              filteredClients.map((client, index) => (
                 <button
-                  key={option.id}
+                  key={client.id}
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  onClick={() => selectOption(option)}
+                  onClick={() => selectClient(client)}
                   className={`block w-full border-b border-slate-100 px-3 py-2 text-left transition-colors last:border-0 ${
                     index === selectedIndex
                       ? "bg-brand-secondary-soft"
@@ -208,17 +179,16 @@ export default function SmartCatalogSearch({
                   }`}
                 >
                   <div className="text-sm font-semibold text-slate-800">
-                    {option.name}
+                    {client.businessName}
                   </div>
                   <div className="text-xs text-slate-500">
-                    {option.code}
-                    {option.meta ? ` · ${option.meta}` : ""}
+                    {client.code} · {client.ruc}
                   </div>
                 </button>
               ))
             ) : (
               <div className="px-3 py-3 text-sm text-amber-700 bg-amber-50">
-                {emptyMessage || "No se encontraron resultados."}
+                Cliente no encontrado. Regístrelo en el módulo Clientes.
               </div>
             )}
           </div>,

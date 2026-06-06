@@ -1,3 +1,6 @@
+import { useMemo, useState, useEffect } from "react";
+import { getCatalogValues, onCatalogChange } from "../../catalogs/catalog.service";
+
 type PlantOption = "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS";
 
 type PlantSelectorProps = {
@@ -7,32 +10,20 @@ type PlantSelectorProps = {
   error?: string;
 };
 
-const PLANTS = [
-  {
-    id: "AF_LIMA",
-    label: "AF Lima",
-    description: "Planta Lima",
-    emoji: "🌴",
-  },
-  {
-    id: "AF_CALI",
-    label: "AF Cali",
-    description: "Planta Cali",
-    emoji: "🏭",
-  },
-  {
-    id: "AF_SANTIAGO",
-    label: "AF Santiago Norte",
-    description: "Planta Santiago",
-    emoji: "⛰️",
-  },
-  {
-    id: "AF_SAN_LUIS",
-    label: "AF San Luis",
-    description: "Planta San Luis",
-    emoji: "🏢",
-  },
-] as const;
+const PLANT_EMOJIS: Record<string, string> = {
+  "AF-LIM": "🌴",
+  "AF-CAL": "🏭",
+  "AF-STN": "⛰️",
+  "AF-SL": "🏢",
+};
+
+const mapItemToOption = (item: string): PlantOption | null => {
+  if (item.includes("LIM")) return "AF_LIMA";
+  if (item.includes("CAL")) return "AF_CALI";
+  if (item.includes("STN")) return "AF_SANTIAGO";
+  if (item.includes("SL")) return "AF_SAN_LUIS";
+  return null;
+};
 
 export default function PlantSelector({
   value,
@@ -40,10 +31,35 @@ export default function PlantSelector({
   readOnly = false,
   error,
 }: PlantSelectorProps) {
+  // Estado para forzar re-render cuando el catálogo cambia
+  const [catalogVersion, setCatalogVersion] = useState(0);
+
+  // Escuchar cambios en el catálogo
+  useEffect(() => {
+    const unsubscribe = onCatalogChange((catalogCode) => {
+      if (catalogCode === "plant") {
+        setCatalogVersion((prev) => prev + 1);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const plants = useMemo(() => {
+    const catalogValues = getCatalogValues("plant", { activeOnly: true });
+    return catalogValues.map((v) => ({
+      id: mapItemToOption(v.item) || ("AF_LIMA" as PlantOption),
+      label: v.name,
+      description: v.name,
+      emoji: PLANT_EMOJIS[v.item] || "🏭",
+      item: v.item,
+    }));
+  }, [catalogVersion]);
+
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 gap-2">
-        {PLANTS.map((plant) => (
+        {plants.map((plant) => (
           <button
             key={plant.id}
             type="button"

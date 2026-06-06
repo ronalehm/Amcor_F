@@ -91,11 +91,11 @@ export default function TemplateDownloadCard({
         {isSistemaIntegral && (
           <div className="border-l-4 border-amber-300 bg-amber-50 p-4 rounded-lg">
             <div className="flex gap-3">
-              <span className="text-xl flex-shrink-0">ℹ️</span>
+              <span className="text-xl flex-shrink-0">🔒</span>
               <div>
-                <p className="text-sm font-semibold text-amber-900">Catálogo del Sistema Integral</p>
+                <p className="text-sm font-semibold text-amber-900">Catálogo del Sistema Integral (Solo Lectura)</p>
                 <p className="text-sm text-amber-800 mt-1">
-                  Este catálogo proviene del Sistema Integral y solo puede ser consultado o sincronizado desde ODISEO. No es posible cargar plantillas para modificarlo directamente.
+                  Este catálogo viene del Sistema Integral como tabla espejo sincronizada. Puedes visualizar los valores descargando la plantilla o usando "Vista previa", pero no es posible modificar o cargar cambios desde ODISEO.
                 </p>
               </div>
             </div>

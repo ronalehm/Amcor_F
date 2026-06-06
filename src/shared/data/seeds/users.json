@@ -1,5 +1,18 @@
 [
   {
+    "id": "USR-000002",
+    "code": "US-000002",
+    "email": "comercial@amcor.com",
+    "password": "123456",
+    "fullName": "Usuario Comercial",
+    "role": "commercial",
+    "status": "active",
+    "workerCode": "GEN-COMERCIAL",
+    "position": "Ejecutivo Comercial",
+    "area": "Comercial",
+    "createdAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
     "id": "USR-000001",
     "code": "US-000001",
     "email": "admin@amcor.com",
