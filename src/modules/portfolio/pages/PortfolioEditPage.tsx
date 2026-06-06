@@ -34,9 +34,6 @@ import EnvolturaSelector from "../../../shared/components/forms/EnvolturaSelecto
 import PlantSelector from "../../../shared/components/forms/PlantSelector";
 import { useLayout } from "../../../components/layout/LayoutContext";
 
-import seedClients from "../../../shared/data/seeds/clients.json";
-import seedUsers from "../../../shared/data/seeds/users.json";
-
 import {
   FormInput,
   FormSelect,
@@ -59,8 +56,6 @@ type PortfolioFormData = {
   envasadoId: string;
 };
 
-type EnvolturaOption = "POUCH" | "BOLSA" | "LAMINA";
-
 const AMCOR = {
   navy: "#00395A",
   navyDark: "#002b43",
@@ -76,16 +71,16 @@ function recordToFormData(record: Record<string, unknown>): PortfolioFormData {
   return {
     codigo: String(record.codigo || record.id || ""),
     estadoId: String(record.estadoId || record.statusId || getStatusCatalog()[0]?.id || 1),
-    clienteId: String(record.clienteId || ""),
-    ejecutivoId: String(record.ejecutivoId || ""),
-    plantaId: String(record.plantaId || ""),
+    clienteId: String(record.clienteId || record.clienteId || ""),
+    ejecutivoId: String(record.ejecutivoId || record.ejecutivoId || ""),
+    plantaId: String(record.plantaId || record.plantaId || ""),
     licitacion: (record.licitacion as "Sí" | "No") || "No",
-    codigoRFQ: String(record.codigoRFQ || ""),
+    codigoRFQ: String(record.codigoRFQ || record.codigoRFQ || ""),
     nombrePortafolio: String(record.nombrePortafolio || record.nom || ""),
     descripcionPortafolio: String(record.descripcionPortafolio || record.desc || ""),
-    envolturaId: String(record.envolturaId || ""),
-    usoFinalId: String(record.usoFinalId || ""),
-    envasadoId: String(record.envasadoId || ""),
+    envolturaId: String(record.envolturaId || record.envolturaId || ""),
+    usoFinalId: String(record.usoFinalId || record.usoFinalId || ""),
+    envasadoId: String(record.envasadoId || record.envasadoId || ""),
   };
 }
 
@@ -106,30 +101,10 @@ export default function PortfolioEditPage() {
 
   // Check if user is authenticated
   const [canEdit, setCanEdit] = useState(false);
-
+  
   useEffect(() => {
     const user = getCurrentUser();
     setCanEdit(!!user);
-  }, []);
-
-  // ── Initialize seed data if needed ──
-  useEffect(() => {
-    const clientsLS = localStorage.getItem("odiseo_clients");
-    const usersLS = localStorage.getItem("odiseo_users");
-
-    // Initialize clients if empty
-    if (!clientsLS || JSON.parse(clientsLS || "[]").length === 0) {
-      if (Array.isArray(seedClients) && seedClients.length > 0) {
-        localStorage.setItem("odiseo_clients", JSON.stringify(seedClients));
-      }
-    }
-
-    // Initialize users if empty
-    if (!usersLS || JSON.parse(usersLS || "[]").length === 0) {
-      if (Array.isArray(seedUsers) && seedUsers.length > 0) {
-        localStorage.setItem("odiseo_users", JSON.stringify(seedUsers));
-      }
-    }
   }, []);
 
   const portfolioCodeStr = portfolioCode || "";
@@ -152,39 +127,39 @@ export default function PortfolioEditPage() {
     setLoading(false);
   }, [portfolioCodeStr]);
 
-  const selectedStatus = getStatusById(Number(form?.estadoId));
+  const selectedStatus = getStatusById(form?.estadoId || "");
   const allClients = getClientCatalogRecords();
   const eligibleClients = useMemo(() => allClients.filter((c) => canClientHavePortfolio(c.status)), [allClients]);
   const selectedClient = allClients.find((c) => c.id === form?.clienteId);
 
   const comercialUsers = useMemo(() => getActiveExecutiveRecords(), []);
   const selectedExecutive = comercialUsers.find((u) => String(u.id) === form?.ejecutivoId);
-  const selectedPlant = getPlantById(Number(form?.plantaId));
-  const selectedWrapping = getWrappingById(Number(form?.envolturaId));
-  const selectedFinalUse = getFinalUseById(Number(form?.usoFinalId));
+  const selectedPlant = getPlantById(form?.plantaId || "");
+  const selectedWrapping = getWrappingById(form?.envolturaId || "");
+  const selectedFinalUse = getFinalUseById(form?.usoFinalId || "");
 
   const selectedPackingMachine = useMemo(() => {
     if (!form?.envasadoId) return null;
     if (form.envasadoId === "generic") {
       return {
-        id: "generic" as any,
+        id: "generic",
         code: "GENERIC",
         name: "Máquina genérica",
-        wrappingId: Number(form?.envolturaId)
+        wrappingId: form.envolturaId
       };
     }
-    return getPackingMachineById(Number(form?.envasadoId));
+    return getPackingMachineById(form.envasadoId);
   }, [form?.envasadoId, form?.envolturaId]);
 
   const packingMachines = useMemo(() => {
     if (!form?.envolturaId) return [];
-    const machines = getPackingMachinesByWrappingId(Number(form.envolturaId));
+    const machines = getPackingMachinesByWrappingId(form.envolturaId);
     return [
       {
-        id: "generic" as any,
+        id: "generic",
         code: "GENERIC",
         name: "Máquina genérica",
-        wrappingId: Number(form.envolturaId)
+        wrappingId: form.envolturaId
       },
       ...machines
     ];
@@ -252,7 +227,7 @@ export default function PortfolioEditPage() {
   const normalizeText = (value?: string | number | null) =>
     String(value ?? "")
       .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .trim();
 
@@ -268,23 +243,51 @@ export default function PortfolioEditPage() {
     return "";
   };
 
-  const getEnvolturaOption = (id: string): EnvolturaOption | "" => {
-    if (!id) return "";
-
-    const wrapping = getWrappingById(Number(id));
-
-    const text = normalizeText(
+  const getCatalogItemText = (item: any): string =>
+    normalizeText(
       [
-        id,
-        wrapping?.id,
-        wrapping?.code,
-        wrapping?.name,
-        wrapping?.raw?.id,
-        wrapping?.raw?.item,
-        wrapping?.raw?.code,
-        wrapping?.raw?.name,
+        item?.id,
+        item?.legacyId,
+        item?.code,
+        item?.name,
+        item?.raw?.id,
+        item?.raw?.item,
+        item?.raw?.code,
+        item?.raw?.value,
+        item?.raw?.name,
       ].join(" ")
     );
+
+  const findWrappingItem = (value?: string | number | null) => {
+    if (!value) return undefined;
+
+    const target = normalizeText(value);
+    const direct = getWrappingById(value);
+
+    if (direct) return direct;
+
+    return getWrappingsCatalog().find((item) => {
+      const candidates = [
+        item.id,
+        item.legacyId,
+        item.code,
+        item.name,
+        item.raw?.id,
+        item.raw?.item,
+        item.raw?.code,
+        item.raw?.value,
+        item.raw?.name,
+      ];
+
+      return candidates.some((candidate) => normalizeText(candidate) === target);
+    });
+  };
+
+  const getEnvolturaOption = (value: string): EnvolturaOption | "" => {
+    if (!value) return "";
+
+    const wrapping = findWrappingItem(value);
+    const text = normalizeText([value, getCatalogItemText(wrapping)].join(" "));
 
     return normalizeEnvolturaOption(text);
   };
@@ -294,36 +297,39 @@ export default function PortfolioEditPage() {
 
     if (!normalizedOption) return "";
 
-    const wrappings = getWrappingsCatalog();
+    const wrapping = getWrappingsCatalog().find((item) => {
+      const text = getCatalogItemText(item);
 
-    const wrapping = wrappings.find((w) => {
-      const text = normalizeText(
-        [
-          w.id,
-          w.code,
-          w.name,
-          w.raw?.id,
-          w.raw?.item,
-          w.raw?.code,
-          w.raw?.name,
-        ].join(" ")
-      );
+      if (normalizedOption === "POUCH") return text.includes("pouch");
+      if (normalizedOption === "BOLSA") return text.includes("bolsa");
+      if (normalizedOption === "LAMINA") return text.includes("lamina");
 
-      return normalizeEnvolturaOption(text) === normalizedOption;
+      return false;
     });
 
-    // Fallback: mantener un código funcional estable si el catálogo no tiene match.
-    // Esto evita que "LÁMINA" quede vacío por diferencia de tilde.
     return wrapping ? String(wrapping.id) : normalizedOption;
   };
 
-  const getPlantOption = (id: string): "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS" | "" => {
+  const getPlantOption = (
+    id: string
+  ): "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS" | "" => {
     if (!id) return "";
 
-    const plant = getPlantById(Number(id));
+    const plant = getPlantById(id);
     if (!plant) return "";
 
-    const text = normalizeText(`${plant.code ?? ""} ${plant.name ?? ""}`);
+    const text = normalizeText(
+      [
+        id,
+        plant.id,
+        plant.code,
+        plant.name,
+        plant.raw?.id,
+        plant.raw?.item,
+        plant.raw?.code,
+        plant.raw?.name,
+      ].join(" ")
+    );
 
     if (text.includes("lim")) return "AF_LIMA";
     if (text.includes("cal")) return "AF_CALI";
@@ -333,11 +339,13 @@ export default function PortfolioEditPage() {
     return "";
   };
 
-  const getIdFromPlantOption = (option: "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS"): string => {
+  const getIdFromPlantOption = (
+    option: "AF_LIMA" | "AF_CALI" | "AF_SANTIAGO" | "AF_SAN_LUIS"
+  ): string => {
     const plants = getPlantsCatalog();
 
     const plant = plants.find((p) => {
-      const text = normalizeText(`${p.code ?? ""} ${p.name ?? ""}`);
+      const text = getCatalogItemText(p);
 
       if (option === "AF_LIMA") return text.includes("lim");
       if (option === "AF_CALI") return text.includes("cal");
@@ -428,21 +436,9 @@ useEffect(() => {
     );
   };
 
-  const handleEnvolturaChange = (optionOrId: string) => {
-    console.log("handleEnvolturaChange called with:", optionOrId);
-    const normalizedOption = normalizeEnvolturaOption(optionOrId);
-    console.log("normalizedOption:", normalizedOption);
-    const wrappingId = normalizedOption
-      ? getIdFromEnvolturaOption(normalizedOption)
-      : optionOrId;
-    console.log("wrappingId:", wrappingId);
+  const handleEnvolturaChange = (option: string) => {
+    const wrappingId = getIdFromEnvolturaOption(option);
 
-    if (!wrappingId) {
-      console.log("wrappingId is empty, returning");
-      return;
-    }
-
-    console.log("Setting form with envolturaId:", wrappingId);
     setForm((prev) =>
       prev
         ? {
@@ -453,10 +449,8 @@ useEffect(() => {
         : null
     );
 
-    setTouchedFields((prev) => ({
-      ...prev,
-      envolturaId: true,
-    }));
+    markFieldAsTouched("envolturaId");
+    markFieldAsTouched("envasadoId");
   };
 
   const handleLicitacionChange = (value: string) => {
@@ -477,22 +471,6 @@ useEffect(() => {
     setSubmitAttempted(true);
 
     if (!form || !portfolioCodeStr) return;
-
-    const requiredTouchedFields: Partial<Record<keyof PortfolioFormData, boolean>> = {
-      clienteId: true,
-      ejecutivoId: true,
-      plantaId: true,
-      nombrePortafolio: true,
-      envolturaId: true,
-      usoFinalId: true,
-      envasadoId: true,
-      ...(form.licitacion === "Sí" ? { codigoRFQ: true } : {}),
-    };
-
-    setTouchedFields((prev) => ({
-      ...prev,
-      ...requiredTouchedFields,
-    }));
 
     if (Object.keys(validationErrors).length > 0) {
       const fieldsWithErrors = Object.keys(validationErrors).reduce(
@@ -524,6 +502,15 @@ useEffect(() => {
     }
 
     const now = new Date().toISOString();
+    const currentUser = getCurrentUser() as any;
+    const currentUserName =
+      currentUser?.name ||
+      currentUser?.displayName ||
+      currentUser?.email ||
+      "Usuario Comercial";
+    const currentUserId = String(
+      currentUser?.id || currentUser?.email || currentUserName || "frontend-user"
+    );
 
     updatePortfolioRecord(portfolioCodeStr, {
       estadoId: selectedStatus.id,
@@ -559,6 +546,14 @@ useEffect(() => {
       TbPoNPro: form.nombrePortafolio,
       TbPoDPro: form.descripcionPortafolio,
       updatedAt: now,
+      TbPoFUlt: now,
+      updatedBy: currentUserId,
+      updatedByName: currentUserName,
+      updatedByEmail: currentUser?.email || "",
+      lastUpdatedBy: currentUserName,
+      realizadoPor: currentUserName,
+      TbPoUUlt: currentUserId,
+      TbPoUUltNom: currentUserName,
     });
 
     navigate("/portfolio");
@@ -632,10 +627,7 @@ useEffect(() => {
                   label="Nombre del Cliente *"
                   value={form.clienteId}
                   clients={eligibleClients}
-                  onChange={(value) => {
-                    updateField("clienteId", value);
-                    markFieldAsTouched("clienteId");
-                  }}
+                  onChange={(value) => updateField("clienteId", value)}
                   onBlur={() => markFieldAsTouched("clienteId")}
                   error={
                     shouldShowFieldError("clienteId")
@@ -649,10 +641,7 @@ useEffect(() => {
                   label="Ejecutivo Comercial *"
                   value={form.ejecutivoId}
                   executives={comercialUsers}
-                  onChange={(value) => {
-                    updateField("ejecutivoId", value);
-                    markFieldAsTouched("ejecutivoId");
-                  }}
+                  onChange={(value) => updateField("ejecutivoId", value)}
                   onBlur={() => markFieldAsTouched("ejecutivoId")}
                   error={
                     shouldShowFieldError("ejecutivoId")
