@@ -94,7 +94,7 @@ export default function UserCreatePage() {
 
   const roleOptions = useMemo(
     () =>
-      ROLE_PROFILES.filter((profile) => profile.code !== "operations").map(
+      ROLE_PROFILES.map(
         (profile) => ({
           value: profile.code,
           label: profile.name,

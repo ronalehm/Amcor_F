@@ -14,7 +14,7 @@ import {
   updateUser,
   STATUS_LABELS,
   STATUS_COLORS,
-  getUserByEmail,
+  findDuplicateUser,
 } from "../../../shared/data/userStorage";
 import {
   AREAS,
@@ -95,13 +95,19 @@ export default function UserEditPage() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errors.email = "El formato del correo no es válido.";
     } else {
-      const existingUser = getUserByEmail(form.email);
-      const currentUser = getUserById(userId || "");
-      if (existingUser && existingUser.id !== currentUser?.id) {
+      const duplicate = findDuplicateUser(form.email, undefined, userId);
+      if (duplicate) {
         errors.email = "Este correo ya está registrado.";
       }
     }
-    if (!form.workerCode.trim()) errors.workerCode = "Ingresa el código de trabajador.";
+    if (!form.workerCode.trim()) {
+      errors.workerCode = "Ingresa el código de trabajador.";
+    } else {
+      const duplicate = findDuplicateUser(form.email, form.workerCode.trim(), userId);
+      if (duplicate) {
+        errors.workerCode = "Este código de trabajador ya está registrado.";
+      }
+    }
     if (!form.area.trim()) errors.area = "Selecciona el área.";
     if (!form.position.trim()) errors.position = "Selecciona el puesto.";
 
