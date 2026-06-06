@@ -10,10 +10,10 @@ import {
   getNextUserCode,
   getUserByEmail,
   findDuplicateUser,
-  ROLE_LABELS,
 } from "../../../shared/data/userStorage";
 import { mockSendEmail } from "../../../shared/data/notificationStorage";
 import { getCatalogOptions } from "../../../shared/catalogs";
+import { ROLE_PROFILES, suggestRoleByArea } from "../../../shared/security/roleProfiles";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -61,9 +61,9 @@ export default function UserCreatePage() {
 
 
   const roleOptions = useMemo(() =>
-    Object.entries(ROLE_LABELS).map(([value, label]) => ({
-      value,
-      label,
+    ROLE_PROFILES.map((profile) => ({
+      value: profile.code,
+      label: profile.name,
     })), []);
 
   const flowState = useMemo((): ComputedFlowState => {
@@ -157,7 +157,8 @@ export default function UserCreatePage() {
 
     const imported = await parseUserTemplate(file);
     if (imported && imported.email) {
-      setForm((prev) => ({ ...prev, ...imported }));
+      const suggestedRole = imported.area ? suggestRoleByArea(imported.area) : form.role;
+      setForm((prev) => ({ ...prev, ...imported, role: suggestedRole }));
       validateCorporateEmail(imported.email);
     }
 
@@ -214,7 +215,7 @@ export default function UserCreatePage() {
       }
 
       if (!form.role) {
-        errors.role = "Selecciona el rol ODISEO.";
+        errors.role = "Selecciona el perfil ODISEO.";
       }
     }
 
@@ -445,17 +446,20 @@ export default function UserCreatePage() {
                     <FormSelect
                       label="Área"
                       value={form.area}
-                      onChange={(value) => setForm({ ...form, area: value })}
+                      onChange={(value) => {
+                        const suggestedRole = suggestRoleByArea(value);
+                        setForm({ ...form, area: value, role: suggestedRole });
+                      }}
                       options={getCatalogOptions("user_area", { activeOnly: true })}
                       placeholder="Selecciona el área"
                       error={submitAttempted ? validationErrors.area : undefined}
                     />
                     <FormSelect
-                      label="Rol ODISEO"
+                      label="Perfil ODISEO"
                       value={form.role}
                       onChange={(value) => setForm({ ...form, role: value })}
                       options={roleOptions}
-                      placeholder="Selecciona el rol"
+                      placeholder="Selecciona el perfil"
                       error={submitAttempted ? validationErrors.role : undefined}
                     />
                   </div>
@@ -543,7 +547,7 @@ export default function UserCreatePage() {
                           {form.area ? "✓" : "○"} Área
                         </li>
                         <li className={form.role ? "text-green-600" : "text-slate-400"}>
-                          {form.role ? "✓" : "○"} Rol ODISEO
+                          {form.role ? "✓" : "○"} Perfil ODISEO
                         </li>
                       </ul>
                     </div>
