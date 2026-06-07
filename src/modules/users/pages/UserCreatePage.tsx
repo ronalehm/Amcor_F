@@ -558,7 +558,7 @@ export default function UserCreatePage() {
         <div className="grid min-h-[calc(100vh-270px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
           <div className="space-y-5">
             <FormCard
-              title="1. Identificar usuario"
+              title="1. Identificación"
               icon="📧"
               color="#6366F1"
               required
@@ -616,7 +616,7 @@ export default function UserCreatePage() {
             {explicitFlowState === "newEmailConfirmed" && (
               <>
                 <FormCard
-                  title="2. Completar datos del usuario"
+                  title="2. Datos ODISEO"
                   icon="👤"
                   color="#00395A"
                   required
@@ -705,7 +705,7 @@ export default function UserCreatePage() {
                 </FormCard>
 
                 <FormCard
-                  title="3. Asignar organización y perfil"
+                  title="3. Área y perfil"
                   icon="🧩"
                   color="#0EA5E9"
                   required
@@ -736,39 +736,21 @@ export default function UserCreatePage() {
                     </div>
 
                     {selectedRoleProfile && (
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                          Vista previa del perfil
-                        </p>
-                        <p className="mt-1 text-sm font-bold text-slate-800">
-                          {selectedRoleProfile.name}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-600">
-                          {selectedRoleProfile.description}
-                        </p>
-                      </div>
+                      <p className="mt-1 text-xs text-slate-600">
+                        <span className="font-semibold text-slate-800">
+                          {selectedRoleProfile.name}:{" "}
+                        </span>
+                        {selectedRoleProfile.description}
+                      </p>
                     )}
                   </div>
-                </FormCard>
-
-                <FormCard
-                  title="4. Estado inicial"
-                  icon="✅"
-                  color="#7C3AED"
-                  required
-                  infoTitle="Estado inicial"
-                  infoContent="El usuario se crea como pendiente de activación hasta completar la habilitación correspondiente."
-                >
-                  <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
-                    Pendiente de activación
-                  </span>
                 </FormCard>
               </>
             )}
           </div>
 
           <div className="space-y-5">
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="sticky top-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
               <div className="bg-gradient-to-br from-brand-primary to-brand-secondary px-5 py-4 text-white">
                 <div className="text-xs font-bold uppercase tracking-wide text-white/75">
                   Revisión final
@@ -923,38 +905,31 @@ export default function UserCreatePage() {
                     </div>
 
                     <div className="border-t border-slate-100 pt-4">
-                      <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
-                        Checklist de campos requeridos
-                      </p>
-
-                      <ul className="space-y-1 text-sm">
-                        {checklistItems.map((item) => (
-                          <li
-                            key={item.label}
-                            className={getChecklistClass(item.complete)}
-                          >
-                            {getChecklistIcon(item.complete)} {item.label}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {selectedRoleProfile && (
-                      <div className="border-t border-slate-100 pt-4">
-                        <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
-                          Vista previa de permisos
-                        </p>
-
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                          <p className="text-sm font-bold text-slate-800">
-                            {selectedRoleProfile.name}
-                          </p>
-                          <p className="mt-1 text-xs text-slate-600">
-                            {selectedRoleProfile.description}
+                      {completionPercentage === 100 ? (
+                        <div className="rounded-lg border border-green-100 bg-green-50 p-3">
+                          <p className="text-sm font-semibold text-green-800">
+                            ✓ Registro completo. Todos los campos requeridos están listos.
                           </p>
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <>
+                          <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
+                            Checklist de campos requeridos
+                          </p>
+
+                          <ul className="space-y-1 text-sm">
+                            {checklistItems.map((item) => (
+                              <li
+                                key={item.label}
+                                className={getChecklistClass(item.complete)}
+                              >
+                                {getChecklistIcon(item.complete)} {item.label}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
+                    </div>
 
                     <div className="border-t border-slate-100 pt-4">
                       <p className="mb-2 text-xs font-semibold uppercase text-slate-500">

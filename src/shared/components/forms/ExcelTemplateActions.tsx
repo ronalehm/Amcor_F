@@ -20,7 +20,7 @@ export default function ExcelTemplateActions({
         onClick={() => setOpen((prev) => !prev)}
         className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:border-brand-primary hover:text-brand-primary"
       >
-        Importar desde Excel
+        Importar Excel
         <ChevronDown size={14} />
       </button>
 
