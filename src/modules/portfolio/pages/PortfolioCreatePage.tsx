@@ -991,6 +991,7 @@ useEffect(() => {
               codigo={form.codigo}
               completionPercentage={completionPercentage}
               items={[
+                { label: "Estado", value: selectedStatus?.name || "—" },
                 { label: "Cliente", value: selectedClient?.businessName || "—" },
                 { label: "Ejecutivo", value: selectedExecutive?.name || "—" },
                 { label: "Planta", value: selectedPlant?.name || "—" },
