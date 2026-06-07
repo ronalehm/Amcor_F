@@ -19,6 +19,7 @@ type FormSelectProps = {
   required?: boolean;
   className?: string;
   selectClassName?: string;
+  labelAction?: React.ReactNode;
 };
 
 export default function FormSelect({
@@ -36,16 +37,20 @@ export default function FormSelect({
   required = false,
   className = "",
   selectClassName = "",
+  labelAction,
 }: FormSelectProps) {
   const selectId = id || name || label.toLowerCase().replace(/\s+/g, "-");
 
   return (
     <div className={`block ${className}`}>
       <label htmlFor={selectId} className="block">
-        <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-          {label}
-          {required && <span className="ml-1 text-red-500">*</span>}
-        </span>
+        <div className="mb-1 flex items-center gap-1.5">
+          <span className="text-xs font-bold uppercase tracking-wide text-slate-600">
+            {label}
+            {required && <span className="ml-1 text-red-500">*</span>}
+          </span>
+          {labelAction}
+        </div>
       </label>
 
       <select

@@ -15,6 +15,7 @@ import {
   ROLE_PROFILES,
   suggestRoleByArea,
 } from "../../../shared/security/roleProfiles";
+import InfoTooltip from "../../../shared/components/ui/InfoTooltip";
 
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -51,6 +52,8 @@ const USER_AREA_OPTIONS = [
 ];
 
 const EMPTY_VALUE = "-";
+
+const PROFILES_INFO = "Administrador: acceso total al portal ODISEO.\n\nTI Soporte: soporte técnico, gestión de usuarios, auditoría y configuración.\n\nMaster Data: gestión de datos maestros, catálogos, restricciones, productos y portafolios.\n\nComercial: gestión comercial de portafolios, clientes y consulta de productos.\n\nCustomer Service: consulta, seguimiento y creación/actualización de portafolios y productos según casuística.\n\nR&D: creación y actualización de productos; soporte técnico funcional del producto.\n\nSolo Consulta: acceso solo lectura.";
 
 function formatPreviewValue(value?: string) {
   return value?.trim() ? value : EMPTY_VALUE;
@@ -732,6 +735,12 @@ export default function UserCreatePage() {
                         placeholder="Selecciona el perfil"
                         error={submitAttempted ? validationErrors.role : undefined}
                         required
+                        labelAction={
+                          <InfoTooltip
+                            title="Perfiles ODISEO"
+                            content={PROFILES_INFO}
+                          />
+                        }
                       />
                     </div>
 
