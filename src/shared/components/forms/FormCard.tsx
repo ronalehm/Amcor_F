@@ -12,6 +12,7 @@ type FormCardProps = {
   headerClassName?: string;
   infoTitle?: string;
   infoContent?: string;
+  action?: ReactNode;
 };
 
 export default function FormCard({
@@ -25,6 +26,7 @@ export default function FormCard({
   headerClassName = "",
   infoTitle,
   infoContent,
+  action,
 }: FormCardProps) {
   return (
     <section
@@ -50,7 +52,10 @@ export default function FormCard({
           )}
         </div>
 
-        {required && <span className="text-red-500">*</span>}
+        <div className="flex items-center gap-3">
+          {action && <div>{action}</div>}
+          {required && <span className="text-red-500">*</span>}
+        </div>
       </div>
 
       <div className={`p-5 ${contentClassName}`}>{children}</div>

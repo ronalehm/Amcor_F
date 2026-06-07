@@ -20,6 +20,7 @@ import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
+import ExcelTemplateActions from "../../../shared/components/forms/ExcelTemplateActions";
 
 const RECENT_NEW_USER_KEY = "odiseo_recent_new_user";
 
@@ -621,35 +622,21 @@ export default function UserCreatePage() {
                   required
                   infoTitle="Datos del usuario ODISEO"
                   infoContent="Completa los datos propios del usuario dentro del portal. Puedes ingresar la información manualmente o cargar una plantilla Excel después de validar que el correo no existe."
+                  action={
+                    <ExcelTemplateActions
+                      onDownloadTemplate={handleDownloadTemplate}
+                      onUploadTemplateClick={() => fileInputRef.current?.click()}
+                    />
+                  }
                 >
                   <div className="space-y-4">
-                    <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                      <div className="flex flex-col gap-3 md:flex-row">
-                        <button
-                          type="button"
-                          onClick={handleDownloadTemplate}
-                          className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-                        >
-                          ⬇ Descargar plantilla
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-                        >
-                          📁 Cargar plantilla Excel
-                        </button>
-
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".xlsx,.xls"
-                          onChange={handleUploadTemplate}
-                          className="hidden"
-                        />
-                      </div>
-                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleUploadTemplate}
+                      className="hidden"
+                    />
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <FormInput
