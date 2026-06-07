@@ -59,14 +59,6 @@ function formatPreviewValue(value?: string) {
   return value?.trim() ? value : EMPTY_VALUE;
 }
 
-function getChecklistClass(isComplete: boolean) {
-  return isComplete ? "text-green-600" : "text-slate-400";
-}
-
-function getChecklistIcon(isComplete: boolean) {
-  return isComplete ? "✓" : "○";
-}
-
 export default function UserCreatePage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
@@ -141,9 +133,6 @@ export default function UserCreatePage() {
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
             ID: {userCode}
-          </span>
-          <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
-            Pendiente de activación
           </span>
         </div>
       ),
@@ -409,6 +398,7 @@ export default function UserCreatePage() {
   );
 
   const shouldDisableSubmit =
+    Boolean(existingUserPreview) ||
     explicitFlowState === "existingEmailFound" ||
     flowState !== "readyToRegister" ||
     validationErrorList.length > 0;
@@ -526,36 +516,11 @@ export default function UserCreatePage() {
       <button
         type="button"
         onClick={() => navigate("/users")}
-        className="mb-3 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 transition-colors hover:text-brand-primary"
+        className="mb-5 flex items-center gap-1.5 px-1 text-sm font-semibold text-slate-600 transition-colors hover:text-brand-primary"
       >
         <ArrowLeft size={16} />
         Atrás
       </button>
-
-      <div className="mb-5 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-brand-primary">
-              Alta de acceso al portal
-            </p>
-            <h2 className="mt-1 text-xl font-extrabold text-slate-900">
-              Registrar Usuario ODISEO
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Alta de acceso al portal ODISEO.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-              ID: {userCode}
-            </span>
-            <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
-              Estado: Pendiente de activación
-            </span>
-          </div>
-        </div>
-      </div>
 
       <form onSubmit={handleSubmit}>
         <div className="grid min-h-[calc(100vh-270px)] grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(380px,0.75fr)]">
@@ -743,15 +708,6 @@ export default function UserCreatePage() {
                         }
                       />
                     </div>
-
-                    {selectedRoleProfile && (
-                      <p className="mt-1 text-xs text-slate-600">
-                        <span className="font-semibold text-slate-800">
-                          {selectedRoleProfile.name}:{" "}
-                        </span>
-                        {selectedRoleProfile.description}
-                      </p>
-                    )}
                   </div>
                 </FormCard>
               </>
@@ -760,13 +716,15 @@ export default function UserCreatePage() {
 
           <div className="space-y-5">
             <div className="sticky top-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="bg-gradient-to-br from-brand-primary to-brand-secondary px-5 py-4 text-white">
-                <div className="text-xs font-bold uppercase tracking-wide text-white/75">
-                  Revisión final
+              <div className="border-b border-slate-100 px-5 py-4">
+                <div className="text-lg font-extrabold text-slate-800">
+                  {existingUserPreview ? "Usuario encontrado" : "Confirmar alta"}
                 </div>
-                <div className="mt-2 text-lg font-extrabold">
-                  Resumen del registro
-                </div>
+                {!existingUserPreview && (
+                  <div className="mt-1 text-xs font-medium text-slate-500">
+                    Revisa los datos antes de registrar
+                  </div>
+                )}
               </div>
 
               <div className="space-y-5 p-5">
@@ -774,31 +732,36 @@ export default function UserCreatePage() {
                   <div className="space-y-4">
                     <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                       <p className="text-xs font-bold uppercase tracking-wide text-red-600">
-                        Usuario ya registrado
+                        Usuario encontrado
                       </p>
-                      <p className="mt-1 text-sm font-semibold text-red-700">
-                        No se puede crear un nuevo usuario con este correo porque ya existe en ODISEO.
+                      <p className="mt-1 text-sm text-red-700">
+                        Este correo ya pertenece a un usuario ODISEO.
                       </p>
                     </div>
 
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
-                      <div className="grid gap-2">
+                    <div className="rounded-lg border border-slate-200 bg-white p-4">
+                      <p className="text-base font-extrabold text-slate-900">
+                        {existingUserPreview.fullName || "-"}
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-600">
+                        {existingUserPreview.email || "-"}
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        Código ODISEO: {existingUserPreview.code || "-"}
+                      </p>
+
+                      <div className="mt-4 grid gap-2 text-sm">
                         <div className="flex justify-between gap-3">
-                          <span className="text-slate-500">Código ODISEO:</span>
+                          <span className="text-slate-500">Código trabajador</span>
                           <span className="font-semibold text-slate-800">
-                            {existingUserPreview.code || "-"}
+                            {existingUserPreview.workerCode || "-"}
                           </span>
                         </div>
 
                         <div className="flex justify-between gap-3">
-                          <span className="text-slate-500">Correo:</span>
-                          <span className="font-semibold text-slate-800">
-                            {existingUserPreview.email || "-"}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between gap-3">
-                          <span className="text-slate-500">Usuario ODISEO:</span>
+                          <span className="text-slate-500">Usuario ODISEO</span>
                           <span className="font-semibold text-slate-800">
                             {existingUserPreview.odiseoUser ||
                               existingUserPreview.fullName ||
@@ -807,162 +770,117 @@ export default function UserCreatePage() {
                         </div>
 
                         <div className="flex justify-between gap-3">
-                          <span className="text-slate-500">Código Trabajador:</span>
-                          <span className="font-semibold text-slate-800">
-                            {existingUserPreview.workerCode || "-"}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between gap-3">
-                          <span className="text-slate-500">Nombre completo:</span>
-                          <span className="font-semibold text-slate-800">
-                            {existingUserPreview.fullName || "-"}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between gap-3">
-                          <span className="text-slate-500">Área:</span>
+                          <span className="text-slate-500">Área</span>
                           <span className="font-semibold text-slate-800">
                             {existingUserPreview.area || "-"}
                           </span>
                         </div>
 
                         <div className="flex justify-between gap-3">
-                          <span className="text-slate-500">Puesto:</span>
-                          <span className="font-semibold text-slate-800">
-                            {existingUserPreview.position || "-"}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between gap-3">
-                          <span className="text-slate-500">Perfil ODISEO:</span>
+                          <span className="text-slate-500">Perfil</span>
                           <span className="font-semibold text-slate-800">
                             {getRoleLabel(existingUserPreview.role)}
                           </span>
                         </div>
 
                         <div className="flex justify-between gap-3">
-                          <span className="text-slate-500">Estado:</span>
-                          <span className="font-semibold text-slate-800">
+                          <span className="text-slate-500">Estado actual</span>
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">
                             {getUserStatusLabel(existingUserPreview.status)}
                           </span>
                         </div>
                       </div>
                     </div>
-
-                    <div className="border-t border-slate-100 pt-4">
-                      <p className="text-xs font-semibold uppercase text-red-500">
-                        Registro bloqueado
+                  </div>
+                ) : completionPercentage < 100 ? (
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-amber-700">
+                        Registro incompleto
                       </p>
-                      <p className="mt-1 text-sm text-slate-600">
-                        Este correo ya pertenece a un usuario ODISEO existente.
+                      <p className="mt-2 text-sm font-semibold text-amber-900">
+                        Faltan {7 - checklistItems.filter((item) => item.complete).length} campos requeridos:
                       </p>
+                      <ul className="mt-3 space-y-1">
+                        {checklistItems
+                          .filter((item) => !item.complete)
+                          .map((item) => (
+                            <li
+                              key={item.label}
+                              className="text-sm text-amber-800"
+                            >
+                              - {item.label}
+                            </li>
+                          ))}
+                      </ul>
                     </div>
                   </div>
                 ) : (
-                  <>
-                    <div className="grid grid-cols-1 gap-3">
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-green-700">
+                        Listo para registrar
+                      </p>
+                      <p className="mt-1 text-sm text-green-800">
+                        Todos los datos requeridos están completos.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
                       <div>
                         <p className="text-xs font-semibold uppercase text-slate-500">
-                          Código
+                          Usuario
                         </p>
-                        <p className="text-lg font-bold text-brand-primary">
-                          {userCode}
-                        </p>
+                        <div className="mt-1 space-y-1">
+                          <p className="font-semibold text-slate-800">
+                            {formatPreviewValue(form.fullName)}
+                          </p>
+                          <p className="text-slate-600">
+                            {formatPreviewValue(form.email)}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Código: {formatPreviewValue(form.workerCode)}
+                          </p>
+                        </div>
                       </div>
 
-                      <div>
+                      <div className="border-t border-slate-200 pt-3">
                         <p className="text-xs font-semibold uppercase text-slate-500">
-                          Estado
+                          Acceso
                         </p>
-                        <p className="text-sm font-bold text-purple-600">
+                        <div className="mt-1 space-y-1">
+                          <p className="text-slate-700">
+                            <span className="font-semibold">Área:</span>{" "}
+                            {formatPreviewValue(form.area)}
+                          </p>
+                          <p className="text-slate-700">
+                            <span className="font-semibold">Perfil:</span>{" "}
+                            {selectedRoleProfile?.name || EMPTY_VALUE}
+                          </p>
+                        </div>
+                      </div>
+
+                      {selectedRoleProfile && (
+                        <div className="border-t border-slate-200 pt-3">
+                          <p className="text-xs font-semibold uppercase text-slate-500">
+                            Permisos principales
+                          </p>
+                          <p className="mt-1 text-sm text-slate-700">
+                            {selectedRoleProfile.description}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="border-t border-slate-200 pt-3">
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                          Resultado al guardar
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-purple-700">
                           Pendiente de activación
                         </p>
                       </div>
-
-                      <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm">
-                        <div className="grid gap-2">
-                          <div className="flex justify-between gap-3">
-                            <span className="text-slate-500">Correo:</span>
-                            <span className="font-semibold text-slate-800">
-                              {formatPreviewValue(form.email)}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between gap-3">
-                            <span className="text-slate-500">Usuario ODISEO:</span>
-                            <span className="font-semibold text-slate-800">
-                              {formatPreviewValue(form.odiseoUser)}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between gap-3">
-                            <span className="text-slate-500">Área:</span>
-                            <span className="font-semibold text-slate-800">
-                              {formatPreviewValue(form.area)}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between gap-3">
-                            <span className="text-slate-500">Perfil ODISEO:</span>
-                            <span className="font-semibold text-slate-800">
-                              {selectedRoleProfile?.name || EMPTY_VALUE}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
                     </div>
-
-                    <div className="border-t border-slate-100 pt-4">
-                      {completionPercentage === 100 ? (
-                        <div className="rounded-lg border border-green-100 bg-green-50 p-3">
-                          <p className="text-sm font-semibold text-green-800">
-                            ✓ Registro completo. Todos los campos requeridos están listos.
-                          </p>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
-                            Checklist de campos requeridos
-                          </p>
-
-                          <ul className="space-y-1 text-sm">
-                            {checklistItems.map((item) => (
-                              <li
-                                key={item.label}
-                                className={getChecklistClass(item.complete)}
-                              >
-                                {getChecklistIcon(item.complete)} {item.label}
-                              </li>
-                            ))}
-                          </ul>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="border-t border-slate-100 pt-4">
-                      <p className="mb-2 text-xs font-semibold uppercase text-slate-500">
-                        Progreso
-                      </p>
-
-                      <div className="text-sm font-bold text-amber-600">
-                        {completionPercentage}% completado
-                      </div>
-
-                      <div className="mt-1 h-2 w-full rounded-full bg-slate-200">
-                        <div
-                          className="h-2 rounded-full bg-amber-500 transition-all"
-                          style={{ width: `${completionPercentage}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="border-t border-slate-100 pt-4">
-                      <p className="text-xs text-slate-500">
-                        <span className="text-red-500">*</span> Campos obligatorios
-                      </p>
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
