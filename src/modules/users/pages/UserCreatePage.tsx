@@ -775,22 +775,18 @@ export default function UserCreatePage() {
                 </div>
               ) : (
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase text-slate-400">
-                      Código
-                    </span>
-                    <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                      {completionPercentage}%
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-[90px_1fr] gap-2 border-b border-slate-100 pb-1">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                     <span className="text-xs font-bold uppercase text-slate-400">
                       ID
                     </span>
-                    <span className="text-xs font-semibold text-slate-700">
-                      {userCode}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-700">
+                        {userCode}
+                      </span>
+                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                        {completionPercentage}%
+                      </span>
+                    </div>
                   </div>
 
                   {previewItems.map((item, index) => (
