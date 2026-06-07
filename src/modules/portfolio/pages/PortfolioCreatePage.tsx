@@ -749,6 +749,8 @@ useEffect(() => {
               title="Cliente y responsable"
               status={getSectionStatus(["clienteId", "ejecutivoId"])}
               required
+              infoTitle="Identificar portafolio"
+              infoContent="Selecciona el cliente para el que se crea este portafolio y el ejecutivo comercial responsable."
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {clientInheritanceError ? (
@@ -797,6 +799,17 @@ useEffect(() => {
                   }
                   placeholder="Escribe para buscar ejecutivo..."
                 />
+
+                <FormSelect
+                  label="Estado del Portafolio"
+                  value={form.estadoId}
+                  onChange={(value) => updateField("estadoId", value)}
+                  options={getStatusCatalog().map((status) => ({
+                    value: String(status.id),
+                    label: status.name,
+                  }))}
+                  placeholder="-- Seleccione --"
+                />
               </div>
             </SectionCard>
 
@@ -806,6 +819,8 @@ useEffect(() => {
               title="Información del portafolio"
               status={getSectionStatus(["nombrePortafolio"])}
               required
+              infoTitle="Datos del portafolio"
+              infoContent="Define el nombre y descripción de este portafolio. El nombre debe ser descriptivo de la familia de productos que contiene."
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <FormInput
@@ -839,6 +854,8 @@ useEffect(() => {
               title="Producto y uso final"
               status={getSectionStatus(["envolturaId", "usoFinalId"])}
               required
+              infoTitle="Especificaciones del producto"
+              infoContent="Selecciona el tipo de envoltura del producto y su uso final en el mercado. La taxonomía de uso final define el sector, segmento y subsegmento."
             >
               <div className="space-y-3">
                 <div>
@@ -932,6 +949,8 @@ useEffect(() => {
               title="Configuración técnica"
               status={getSectionStatus(["envasadoId"])}
               required
+              infoTitle="Máquina de empaque"
+              infoContent="Especifica la máquina de empaque que se utilizará en el cliente. Selecciona primero una envoltura para ver las máquinas disponibles."
             >
               <FormSelect
                 label="Envasado / Máquina de Cliente *"
@@ -988,6 +1007,8 @@ useEffect(() => {
               title="Planta de Origen de solicitud"
               status={getSectionStatus(["plantaId"])}
               required
+              infoTitle="Ubicación de origen"
+              infoContent="Indica la planta Amcor que origina la solicitud de este portafolio. Esto ayuda a rastrear y gestionar los portafolios por ubicación."
             >
               <PlantSelector
                 value={getPlantOption(form.plantaId)}
