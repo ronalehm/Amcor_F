@@ -43,15 +43,15 @@ export default function FormSelect({
 
   return (
     <div className={`block ${className}`}>
-      <label htmlFor={selectId} className="block">
-        <div className="mb-1 flex items-center justify-between gap-3">
+      <div className="mb-1 flex items-center gap-2">
+        <label htmlFor={selectId} className="inline-flex items-baseline gap-1.5">
           <span className="text-xs font-bold uppercase tracking-wide text-slate-600">
             {label}
-            {required && <span className="ml-1 text-red-500">*</span>}
+            {required && <span className="text-red-500">*</span>}
           </span>
-          {labelAction && <div className="flex-shrink-0">{labelAction}</div>}
-        </div>
-      </label>
+        </label>
+        {labelAction && <div className="flex-shrink-0">{labelAction}</div>}
+      </div>
 
       <select
         id={selectId}
