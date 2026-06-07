@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import InfoTooltip from "../ui/InfoTooltip";
 
 type FormCardProps = {
   title: string;
@@ -9,6 +10,8 @@ type FormCardProps = {
   className?: string;
   contentClassName?: string;
   headerClassName?: string;
+  infoTitle?: string;
+  infoContent?: string;
 };
 
 export default function FormCard({
@@ -20,6 +23,8 @@ export default function FormCard({
   className = "",
   contentClassName = "",
   headerClassName = "",
+  infoTitle,
+  infoContent,
 }: FormCardProps) {
   return (
     <section
@@ -28,7 +33,7 @@ export default function FormCard({
       <div
         className={`flex items-center justify-between border-b border-slate-100 px-5 py-4 ${headerClassName}`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span
             className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold"
             style={{ backgroundColor: `${color}15`, color }}
@@ -39,6 +44,10 @@ export default function FormCard({
           <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-800">
             {title}
           </h2>
+
+          {infoContent && (
+            <InfoTooltip title={infoTitle || title} content={infoContent} />
+          )}
         </div>
 
         {required && <span className="text-red-500">*</span>}

@@ -537,9 +537,8 @@ export default function UserCreatePage() {
             <h2 className="mt-1 text-xl font-extrabold text-slate-900">
               Registrar Usuario ODISEO
             </h2>
-            <p className="mt-1 max-w-3xl text-sm text-slate-600">
-              Crea el acceso del usuario al portal, valida sus datos base y
-              asigna el perfil que definirá sus permisos.
+            <p className="mt-1 text-sm text-slate-600">
+              Alta de acceso al portal ODISEO.
             </p>
           </div>
 
@@ -562,15 +561,10 @@ export default function UserCreatePage() {
               icon="📧"
               color="#6366F1"
               required
+              infoTitle="Identificar usuario"
+              infoContent="Ingresa el correo corporativo para validar si el usuario ya existe en ODISEO. Si el correo ya está registrado, no se podrá continuar con el alta."
             >
               <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-700">
-                    Ingresa el correo corporativo para validar si el usuario ya
-                    existe en ODISEO.
-                  </p>
-                </div>
-
                 <FormInput
                   label="Correo Corporativo"
                   value={form.email}
@@ -625,14 +619,10 @@ export default function UserCreatePage() {
                   icon="👤"
                   color="#00395A"
                   required
+                  infoTitle="Datos del usuario ODISEO"
+                  infoContent="Completa los datos propios del usuario dentro del portal. Puedes ingresar la información manualmente o cargar una plantilla Excel después de validar que el correo no existe."
                 >
                   <div className="space-y-4">
-                    <p className="text-sm font-semibold text-slate-700">
-                      Registra los datos propios del usuario dentro del portal
-                      ODISEO. Puedes completar los datos manualmente o cargar la
-                      plantilla Excel.
-                    </p>
-
                     <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
                       <div className="flex flex-col gap-3 md:flex-row">
                         <button
@@ -732,13 +722,10 @@ export default function UserCreatePage() {
                   icon="🧩"
                   color="#0EA5E9"
                   required
+                  infoTitle="Organización y perfil"
+                  infoContent="El área y el puesto son datos organizacionales. El Perfil ODISEO es el que define los permisos del usuario dentro del portal."
                 >
                   <div className="space-y-4">
-                    <p className="text-sm font-semibold text-slate-700">
-                      Selecciona el área organizacional y el perfil que definirá
-                      los permisos del usuario en ODISEO.
-                    </p>
-
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <FormSelect
                         label="Área"
@@ -759,11 +746,6 @@ export default function UserCreatePage() {
                         error={submitAttempted ? validationErrors.role : undefined}
                         required
                       />
-                    </div>
-
-                    <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
-                      El perfil define los permisos del usuario dentro del
-                      portal. El área y el puesto son datos organizacionales.
                     </div>
 
                     {selectedRoleProfile && (
@@ -787,17 +769,12 @@ export default function UserCreatePage() {
                   icon="✅"
                   color="#7C3AED"
                   required
+                  infoTitle="Estado inicial"
+                  infoContent="El usuario se crea como pendiente de activación hasta completar la habilitación correspondiente."
                 >
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-slate-700">
-                      El usuario se creará como pendiente de activación hasta
-                      completar la habilitación correspondiente.
-                    </p>
-
-                    <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
-                      Pendiente de activación
-                    </span>
-                  </div>
+                  <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-700">
+                    Pendiente de activación
+                  </span>
                 </FormCard>
               </>
             )}
