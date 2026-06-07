@@ -524,6 +524,8 @@ export default function UserCreatePage() {
               }
               color="#00395A"
               required
+              infoTitle="Identificar usuario"
+              infoContent="Ingresa el correo corporativo para validar si el usuario ya existe en ODISEO. Si el correo ya está registrado, no se podrá continuar con el alta."
             >
               <div className="space-y-3">
                 <FormInput
@@ -581,6 +583,8 @@ export default function UserCreatePage() {
                 status={isUserDataStepComplete ? "completed" : "pending"}
                 color="#00395A"
                 required
+                infoTitle="Datos del usuario ODISEO"
+                infoContent="Completa los datos propios del usuario dentro del portal. Puedes ingresar la información manualmente o cargar una plantilla Excel después de validar que el correo no existe."
               >
                 <div className="space-y-3">
                   <input
@@ -678,6 +682,8 @@ export default function UserCreatePage() {
                 status={isAccessStepComplete ? "completed" : "pending"}
                 color="#00395A"
                 required
+                infoTitle="Organización y perfil"
+                infoContent="El área y el puesto son datos organizacionales. El Perfil ODISEO es el que define los permisos del usuario dentro del portal."
               >
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
