@@ -522,7 +522,7 @@ export default function UserCreatePage() {
                     ? "completed"
                     : "pending"
               }
-              color="#6366F1"
+              color="#00395A"
               required
             >
               <div className="space-y-3">
@@ -676,7 +676,7 @@ export default function UserCreatePage() {
                 number={3}
                 title="Área y perfil"
                 status={isAccessStepComplete ? "completed" : "pending"}
-                color="#0EA5E9"
+                color="#00395A"
                 required
               >
                 <div className="space-y-3">
