@@ -54,8 +54,6 @@ type PortfolioFormData = {
   envolturaId: string;
   usoFinalId: string;
   envasadoId: string;
-  codigoRFQ: string;
-  licitacion: string;
 };
 
 type EnvolturaOption = "POUCH" | "BOLSA" | "LAMINA";
@@ -232,9 +230,6 @@ const buildInitialForm = (): PortfolioFormData => ({
   clienteId: "",
   ejecutivoId: "",
   plantaId: "",
-
-  codigoRFQ: "",
-  licitacion: "No",
   nombrePortafolio: "",
   descripcionPortafolio: "",
   envolturaId: "",
@@ -752,7 +747,7 @@ useEffect(() => {
             <SectionCard
               number={1}
               title="Cliente y responsable"
-              status={getSectionStatus(form.licitacion === "Sí" ? ["clienteId", "ejecutivoId"] : ["clienteId", "ejecutivoId"])}
+              status={getSectionStatus(["clienteId", "ejecutivoId"])}
               required
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
