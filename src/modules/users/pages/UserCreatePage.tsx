@@ -805,7 +805,7 @@ export default function UserCreatePage() {
                     <span className="text-xs font-bold uppercase text-slate-400">
                       Estado
                     </span>
-                    <p className="mt-1 text-xs font-semibold text-purple-700">
+                    <p className="mt-1 text-xs font-semibold text-slate-900">
                       Pendiente de activación
                     </p>
                   </div>
