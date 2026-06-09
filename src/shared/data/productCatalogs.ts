@@ -415,6 +415,36 @@ export const PRODUCT_CATALOGS = {
       "TERMOFORMADO ALTA - 200",
     ],
   },
+  // MODIFICACIÓN - Depende de Clasificación
+  modificacionProductoNuevo: {
+    label: "Modificación",
+    code: "MOD_NUEVO",
+    values: [
+      "Nueva estructura",
+      "Nuevos insumos",
+      "Nuevo formato de envasado",
+      "Diseño nuevo",
+    ],
+  },
+  modificacionProductoModificado: {
+    label: "Modificación",
+    code: "MOD_MODIFICADO",
+    values: [
+      "Nuevo equipamiento / proceso / temperatura",
+      "Modifica dimensiones",
+      "Modifica propiedades",
+      "Cambia estructura",
+      "Cambia materia prima",
+      "Cambia diseño",
+      "Misma estructura",
+      "Cambia dimensión fuera de tolerancia",
+      "Cambia diseño por variante",
+      "Referencia aprobada sin cambios",
+      "Mismo producto, misma especificación",
+      "Cambio de insumo no homologado",
+    ],
+  },
+  // Catálogo consolidado de todos los motivos (para retrocompatibilidad)
   motivo: {
     label: "Motivo",
     code: "MOT",

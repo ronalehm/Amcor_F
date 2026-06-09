@@ -60,6 +60,31 @@ const getText = (...values: any[]) => {
   return value ? String(value) : "";
 };
 
+const getProductNavigationCode = (item: any) =>
+  getText(
+    item.code,
+    item.projectCode,
+    item.productRequestCode,
+    item.id
+  );
+
+const findProductByRouteParam = (products: any[], routeParam: string) => {
+  const normalizedParam = String(routeParam || "").trim().toLowerCase();
+
+  return products.find((product) => {
+    const identifiers = [
+      product.code,
+      product.projectCode,
+      product.productRequestCode,
+      product.id,
+    ]
+      .filter(Boolean)
+      .map((value) => String(value).trim().toLowerCase());
+
+    return identifiers.includes(normalizedParam);
+  });
+};
+
 const getUnitAbbreviation = (unitValue: any) => {
   const unit = getText(unitValue);
   if (!unit) return "";
@@ -199,7 +224,7 @@ const getSortValue = (project: any, key: SortKey): string | number => {
   }
 };
 
-export default function ProjectListPage() {
+export default function ProductListPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
 
@@ -840,23 +865,33 @@ export default function ProjectListPage() {
                         label="Ver"
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/products/${item.code || item.id}`)}
+                        onClick={() => {
+                          const productCode = getProductNavigationCode(item);
+                          if (!productCode) return;
+                          navigate(`/products/${encodeURIComponent(productCode)}`);
+                        }}
                       />
 
                       <ActionButton
                         label="Editar"
                         variant="outline"
                         size="sm"
-                        onClick={() =>
-                          navigate(`/products/${item.code || item.id}/edit`)
-                        }
+                        onClick={() => {
+                          const productCode = getProductNavigationCode(item);
+                          if (!productCode) return;
+                          navigate(`/products/${encodeURIComponent(productCode)}/edit`);
+                        }}
                       />
 
                       <ActionButton
                         label="Copia"
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDuplicate(item.code || item.id)}
+                        onClick={() => {
+                          const productCode = getProductNavigationCode(item);
+                          if (!productCode) return;
+                          handleDuplicate(productCode);
+                        }}
                         className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
                       />
                     </div>

@@ -587,7 +587,7 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectFormData>> = {
   4: [],
 };
 
-export default function ProjectCreatePage() {
+export default function ProductCreatePage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
   const [searchParams] = useSearchParams();

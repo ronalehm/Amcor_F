@@ -1,0 +1,58 @@
+Eje Auditado,Tipo Producto,MOT,Envoltura,FDP,Campo / Regla,Estado Actual,Resultado Esperado,Brecha Detectada,Severidad,Acción Recomendada,Archivo / Función
+A. Productos,Nuevo,-,-,-,P1-P4 inicializan vacíos,✅ Correcto,Vacíos,Ninguna,OK,Verificado,useState línea 1746-1854
+A. Productos,Modificado,-,-,-,P1-P4 cargan desde project,✅ Correcto,Cargan desde BD,Ninguna,OK,Verificado,useEffect línea 1934-2149
+A. Productos,Modificado,-,-,-,P1-P4 autofill desde aprobado,✅ Correcto,Autofill,Ninguna,OK,Verificado,getMotRule() línea 2098-2125
+A. Productos,Modificado,-,-,-,Campos bloqueados por MOT,⚠️ Parcial,Bloqueados no editables,Ver brechas 1 2 4,CRÍTICA,Mapear grupos fantasma,isFieldEditableByMot línea 557-567
+B. MOT,Nuevo,Nueva estructura,-,-,Casuística definida,✅ Definida,Definida,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 270-276
+B. MOT,Nuevo,Nuevos insumos,-,-,Casuística definida,✅ Definida,Definida,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 277-283
+B. MOT,Nuevo,Nuevo formato de envasado,-,-,Casuística definida,✅ Definida,Definida,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 284-290
+B. MOT,Nuevo,Diseño nuevo,-,-,Casuística definida,✅ Definida,Definida,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 291-297
+B. MOT,Modificado,Nuevo equipamiento,-,-,editableFieldGroups mapeados,❌ No mapeados,Mapeados a campos reales,"Grupos fantasma: process, packingMachine",CRÍTICA,Crear MOT_FIELD_MAPPING,MOT_FIELD_RULES línea 298-304
+B. MOT,Modificado,Modifica dimensiones,-,-,editableFieldGroups mapeados,✅ Existe,Mapeados a campos reales,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 305-311
+B. MOT,Modificado,Modifica propiedades,-,-,editableFieldGroups mapeados,✅ Existe,Mapeados a campos reales,Verificar mapeo,MENOR,Audit propiedades,MOT_FIELD_RULES línea 312-318
+B. MOT,Modificado,Cambia estructura,-,-,editableFieldGroups mapeados,✅ Existe,Mapeados a campos reales,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 319-325
+B. MOT,Modificado,Cambia materia prima,-,-,editableFieldGroups mapeados,✅ Existe,Mapeados a campos reales,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 326-332
+B. MOT,Modificado,Cambia diseño,-,-,editableFieldGroups mapeados,✅ Existe,Mapeados a campos reales,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 333-339
+B. MOT,Modificado,Misma estructura,-,-,editableFieldGroups mapeados,✅ Existe,Mapeados a campos reales,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 340-346
+B. MOT,Modificado,Cambia dimensión fuera tolerancia,-,-,editableFieldGroups mapeados,✅ Existe,Mapeados a campos reales,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 347-353
+B. MOT,Modificado,Cambia diseño por variante,-,-,editableFieldGroups mapeados,❌ No mapeados,Mapeados a campos reales,Grupo fantasma: designVariant,CRÍTICA,Crear mapeo,MOT_FIELD_RULES línea 354-360
+B. MOT,Modificado,Referencia aprobada sin cambios,-,-,editableFieldGroups mapeados,✅ Existe,Mapeados a campos reales,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 361-367
+B. MOT,Modificado,Mismo producto misma especificación,-,-,editableFieldGroups mapeados,✅ Existe,Mapeados a campos reales,Ninguna,OK,Verificado,MOT_FIELD_RULES línea 368-374
+B. MOT,Modificado,Cambio de insumo no homologado,-,-,editableFieldGroups mapeados,❌ No mapeados,Mapeados a campos reales,Grupo fantasma: inputs,CRÍTICA,Crear mapeo,MOT_FIELD_RULES línea 375-381
+C. Envoltura,-,-,POUCH,-,Preguntas guiadas,✅ Correctas,Correctas,Ninguna,OK,Verificado,isPouchWrapping línea 2681-2708
+C. Envoltura,-,-,BOLSA,-,Preguntas guiadas,✅ Correctas,Correctas,Ninguna,OK,Verificado,isBolsaWrapping línea 2661-2678
+C. Envoltura,-,-,LAMINA,-,Preguntas guiadas,✅ Correctas,Correctas,Ninguna,OK,Verificado,isLaminaWrapping línea 2710-2713
+D. FDP,-,-,POUCH,POUCH C/SELLO EN FUELLE\TIPO 4-1,Se calcula automático,✅ Automático,Calculado no selector,Ninguna,OK,Verificado,calculatePouchFormatPlan línea 2737-2768
+D. FDP,-,-,POUCH,POUCH STAND UP\TIPO K,Se calcula automático,✅ Automático,Calculado no selector,Ninguna,OK,Verificado,calculatePouchFormatPlan línea 2737-2768
+D. FDP,-,-,POUCH,POUCH STAND UP\DOY PACK,Se calcula automático,✅ Automático,Calculado no selector,Ninguna,OK,Verificado,calculatePouchFormatPlan línea 2737-2768
+D. FDP,-,-,BOLSA,SELLO LATERAL\CORTE,Se calcula automático,✅ Automático,Calculado no selector,Ninguna,OK,Verificado,calculateBolsaFormatPlan línea 2711-2735
+D. FDP,-,-,BOLSA,SELLO DE FONDO,Se calcula automático,✅ Automático,Calculado no selector,Ninguna,OK,Verificado,calculateBolsaFormatPlan línea 2711-2735
+D. FDP,-,-,BOLSA,WICKET,Se calcula automático,✅ Automático,Calculado no selector,Ninguna,OK,Verificado,calculateBolsaFormatPlan línea 2711-2735
+D. FDP,-,-,LAMINA,GENERICA,Se calcula automático,✅ Automático,Calculado no selector,Ninguna,OK,Verificado,calculateLaminaFormatPlan línea 2770-2788
+D. FDP,-,-,LAMINA,TISSUE,Se calcula automático,✅ Automático,Calculado no selector,Ninguna,OK,Verificado,calculateLaminaFormatPlan línea 2770-2788
+D. FDP,-,-,LAMINA,FOOD,Se calcula automático,⚠️ Inconsistencia,Calculado no selector,Width mostrado/limpiado,CRÍTICA,Resolver width FOOD,calculateLaminaFormatPlan línea 2770-2788
+E. P1-P4,-,-,-,-,Existen en ProjectEditFormData,✅ 100%,100%,Ninguna,OK,Verificado,ProjectEditFormData línea 58-255
+E. P1-P4,-,-,-,-,Se inicializan en useState,✅ 100%,100%,Ninguna,OK,Verificado,useState línea 1746-1854
+E. P1-P4,-,-,-,-,Se cargan en useEffect,✅ 100%,100%,Ninguna,OK,Verificado,useEffect línea 1934-2149
+E. P1-P4,-,-,-,-,Tienen label en FIELD_LABELS,⚠️ 85%,100%,Faltán 3-5 labels,MENOR,Completar FIELD_LABELS,FIELD_LABELS línea 1543-1600
+E. P1-P4,-,-,-,-,Están en STEP_FIELDS,✅ 100%,100%,Ninguna,OK,Verificado,STEP_FIELDS línea 1628-1690
+E. P1-P4,-,-,-,-,Se validan si aplican,⚠️ Parcial,Validar solo visibles,Ver brechas 2 4,CRÍTICA,Excluir heredados/ocultos,validationErrors línea 3253-3371
+E. P1-P4,-,-,-,-,Se guardan en handleSubmit,✅ Sí,Guardados,Ninguna,OK,Verificado,handleSubmit línea 3811-4013
+E. P1-P4,-,-,-,-,Se guardan en handleSaveAndExit,✅ Sí,Guardados,Ninguna,OK,Verificado,handleSaveAndExit línea 4025-4213
+E. P1-P4,-,-,-,-,Badge "Campo SI",⚠️ Solo 3,En todos SI,Integración parcial,MAYOR,Completar integración,FieldBadges línea 1873-1898
+E. P1-P4,-,-,-,-,Badge "Heredado",⚠️ Solo 3,En todos heredados,Integración parcial,MAYOR,Completar integración,FieldBadges línea 1873-1898
+F. Validación,-,-,-,-,No valida ocultos,❌ Valida,No valida,Ver brecha 4,CRÍTICA,Integrar isFieldVisibleByFormat,shouldValidateField línea 3253-3261
+F. Validación,-,-,-,-,No valida heredados bloqueados,❌ Valida,No valida,Ver brecha 2,CRÍTICA,Excluir inheritedFields,shouldValidateField línea 3253-3261
+F. Validación,Modificado,-,Modificado,-,Valida solo editables,✅ Parcial,Valida editables,Brecha 2: heredados,CRÍTICA,Refactor validation,validationErrors línea 3263-3371
+F. Validación,-,-,-,-,Modal campos faltantes correcto,✅ Sí,Muestra reales,Incluye ocultos,MAYOR,Filtrar ocultos,showMissingFieldsModal línea 3704-3743
+F. Validación,-,-,-,-,% completitud correcto,❌ Inflado,% editable,Ver brecha 6,MAYOR,Excluir heredados,completionPercentage línea 3426-3432
+G. Persistencia,-,-,-,-,normalizeComparableProjectForm,✅ Sí,Completo,Ninguna,OK,Verificado,normalizeComparableProjectForm línea 1550-1591
+G. Persistencia,-,-,-,-,handleSubmit persiste,✅ Sí,Persiste todos,Ver brecha 5: SI,MAYOR,Crear payload SI,handleSubmit línea 3811-4013
+G. Persistencia,-,-,-,-,handleSaveAndExit persiste,✅ Sí,Persiste todos,Ver brecha 5: SI,MAYOR,Crear payload SI,handleSaveAndExit línea 4025-4213
+G. Persistencia,-,-,-,-,Payload SI separado,❌ No,Separado,Ver brecha 5,MAYOR,buildSistemaIntegralProductPayload,handleSubmit línea 3811-4013
+H. Duplicidad,-,-,-,-,width única fuente,⚠️ Múltiple,Una fuente,shouldShowWidth + FORMAT,MENOR,Unificar,shouldShowWidth línea 4040
+H. Duplicidad,-,-,-,-,blueprintFormat única fuente FDP,✅ Sí,Una fuente,Ninguna,OK,Verificado,calculatePouchFormatPlan calculateBolsaFormatPlan calculateLaminaFormatPlan
+H. Duplicidad,-,-,-,-,Sin campos duplicados Diseño/Estructura,✅ Sí,Sin duplicidad,Ninguna,OK,Verificado,Campos separados por sección
+H. Duplicidad,-,-,POUCH,-,Sin campos BOLSA/LAMINA,⚠️ Parcial,Limpio,Cleanup incompleto,MENOR,Verificar effects,isPouchWrapping línea 2681-2708
+H. Duplicidad,-,-,BOLSA,-,Sin campos POUCH/LAMINA,⚠️ Parcial,Limpio,Cleanup incompleto,MENOR,Verificar effects,isBolsaWrapping línea 2661-2678
+H. Duplicidad,-,-,LAMINA,-,Sin campos POUCH/BOLSA,⚠️ Parcial,Limpio,Cleanup incompleto,MENOR,Verificar effects,isLaminaWrapping línea 2710-2713

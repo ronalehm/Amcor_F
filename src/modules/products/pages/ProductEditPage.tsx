@@ -7,6 +7,7 @@ import { useLayout } from "../../../components/layout/LayoutContext";
 import { getPortfolioDisplayRecords } from "../../../shared/data/portfolioStorage";
 import {
   getProjectByCode,
+  getProjectRecords,
   updateProjectRecord,
   type ProjectRecord,
   type BooleanLike,
@@ -16,6 +17,7 @@ import { getDocumentsByProject } from "../../../shared/data/projectDocumentStora
 import {
   computeProjectPreparationStatus,
   normalizeProjectStatus,
+  normalizeProjectWorkflow,
   hasAnyEditableSection2To6Data,
   resolveProjectStage,
   requiresManualGraphicArtsValidation,
@@ -48,6 +50,7 @@ import { normalizeUnit, UNITS_OF_MEASURE, UNIT_LABELS } from "../../../shared/da
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
+import { FormatoPlanoBadge } from "../../../shared/components/forms/FormatoPlanoBadge";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
@@ -259,25 +262,554 @@ const YES_NO_OPTIONS = [
   { value: "No", label: "No" },
 ];
 
-const CAUSAL_OPTIONS_NUEVO = [
-  { value: "Nueva estructura", label: "Nueva estructura" },
-  { value: "Nuevos insumos", label: "Nuevos insumos" },
-  { value: "Nuevo formato de envasado", label: "Nuevo formato de envasado" },
-  { value: "Diseño nuevo", label: "Diseño nuevo" },
-];
+// MOT (Motivo de Modificación) - Configuración central que define qué campos se habilitan/bloquean
+const MOT_FIELD_RULES: Record<string, {
+  mode: "new" | "modified";
+  enabledSections: string[];
+  editableFieldGroups: string[];
+  lockedFieldGroups: string[];
+  requiresBaseProductAutofill: boolean;
+}> = {
+  "Nueva estructura": {
+    mode: "new",
+    enabledSections: ["producto", "diseno", "estructura", "dimensiones", "embalaje"],
+    editableFieldGroups: ["productBase", "format", "structure", "dimensions", "packaging"],
+    lockedFieldGroups: [],
+    requiresBaseProductAutofill: false
+  },
+  "Nuevos insumos": {
+    mode: "new",
+    enabledSections: ["producto", "estructura", "dimensiones", "embalaje"],
+    editableFieldGroups: ["productBase", "materials", "structure", "technicalComments", "sample"],
+    lockedFieldGroups: [],
+    requiresBaseProductAutofill: false
+  },
+  "Nuevo formato de envasado": {
+    mode: "new",
+    enabledSections: ["producto", "diseno", "estructura", "dimensiones", "embalaje"],
+    editableFieldGroups: ["formatDecisionTree", "dimensions", "accessories", "packaging"],
+    lockedFieldGroups: [],
+    requiresBaseProductAutofill: false
+  },
+  "Diseño nuevo": {
+    mode: "new",
+    enabledSections: ["producto", "diseno", "estructura", "dimensiones", "embalaje"],
+    editableFieldGroups: ["design", "printing", "edag", "photoregister", "rewinding", "photocell", "designPlans"],
+    lockedFieldGroups: [],
+    requiresBaseProductAutofill: false
+  },
+  "Nuevo equipamiento / proceso / temperatura": {
+    mode: "modified",
+    enabledSections: ["producto", "estructura", "dimensiones", "embalaje"],
+    editableFieldGroups: ["process", "packingMachine", "technicalComments", "sample"],
+    lockedFieldGroups: ["design", "structureBase"],
+    requiresBaseProductAutofill: true
+  },
+  "Modifica dimensiones": {
+    mode: "modified",
+    enabledSections: ["producto", "estructura"],
+    editableFieldGroups: ["dimensions", "perimeter", "dimensionValidation"],
+    lockedFieldGroups: ["design", "materials", "packaging"],
+    requiresBaseProductAutofill: true
+  },
+  "Modifica propiedades": {
+    mode: "modified",
+    enabledSections: ["producto", "estructura"],
+    editableFieldGroups: ["properties", "grammage", "technicalComments", "sample"],
+    lockedFieldGroups: ["design", "dimensions"],
+    requiresBaseProductAutofill: true
+  },
+  "Cambia estructura": {
+    mode: "modified",
+    enabledSections: ["producto", "estructura"],
+    editableFieldGroups: ["structure", "materials", "layers", "micron", "grammage"],
+    lockedFieldGroups: ["design", "packaging"],
+    requiresBaseProductAutofill: true
+  },
+  "Cambia materia prima": {
+    mode: "modified",
+    enabledSections: ["producto", "estructura"],
+    editableFieldGroups: ["materials", "layers", "micron", "grammage"],
+    lockedFieldGroups: ["design", "dimensions", "packaging"],
+    requiresBaseProductAutofill: true
+  },
+  "Cambia diseño": {
+    mode: "modified",
+    enabledSections: ["producto", "diseno"],
+    editableFieldGroups: ["design", "printing", "edag", "photoregister", "rewinding", "photocell", "designPlans"],
+    lockedFieldGroups: ["structure", "materials", "dimensions"],
+    requiresBaseProductAutofill: true
+  },
+  "Misma estructura": {
+    mode: "modified",
+    enabledSections: ["producto", "estructura"],
+    editableFieldGroups: ["technicalComments"],
+    lockedFieldGroups: ["structure", "materials", "layers", "dimensions", "design"],
+    requiresBaseProductAutofill: true
+  },
+  "Cambia dimensión fuera de tolerancia": {
+    mode: "modified",
+    enabledSections: ["producto", "estructura"],
+    editableFieldGroups: ["dimensions", "perimeter", "dimensionValidation", "designPlans"],
+    lockedFieldGroups: ["materials"],
+    requiresBaseProductAutofill: true
+  },
+  "Cambia diseño por variante": {
+    mode: "modified",
+    enabledSections: ["producto", "diseno"],
+    editableFieldGroups: ["designVariant", "edag", "printing", "photoregister", "rewinding", "photocell"],
+    lockedFieldGroups: ["structure", "materials", "dimensions"],
+    requiresBaseProductAutofill: true
+  },
+  "Referencia aprobada sin cambios": {
+    mode: "modified",
+    enabledSections: ["producto", "diseno", "estructura", "embalaje"],
+    editableFieldGroups: ["productBase", "comments"],
+    lockedFieldGroups: ["design", "structure", "materials", "dimensions", "packaging"],
+    requiresBaseProductAutofill: true
+  },
+  "Mismo producto, misma especificación": {
+    mode: "modified",
+    enabledSections: ["producto", "diseno", "estructura", "embalaje"],
+    editableFieldGroups: ["productBase", "comments"],
+    lockedFieldGroups: ["design", "structure", "materials", "dimensions", "packaging"],
+    requiresBaseProductAutofill: true
+  },
+  "Cambio de insumo no homologado": {
+    mode: "modified",
+    enabledSections: ["producto", "estructura"],
+    editableFieldGroups: ["materials", "inputs", "technicalComments", "sample", "validation"],
+    lockedFieldGroups: ["design", "dimensions"],
+    requiresBaseProductAutofill: true
+  }
+};
 
-const CAUSAL_OPTIONS_MODIFICADO = [
-  { value: "Nuevo equipamiento / proceso / temperatura", label: "Nuevo equipamiento / proceso / temperatura" },
-  { value: "Modifica dimensiones", label: "Modifica dimensiones" },
-  { value: "Modifica propiedades", label: "Modifica propiedades" },
-  { value: "Cambia estructura", label: "Cambia estructura" },
-  { value: "Cambia materia prima", label: "Cambia materia prima" },
-  { value: "Cambia diseño", label: "Cambia diseño" },
-];
+// Mapeo de campos a grupos de edición
+const FIELD_TO_EDITABLE_GROUP: Record<string, string> = {
+  projectName: "productBase",
+  projectDescription: "productBase",
+  portfolioCode: "productBase",
+  executiveId: "productBase",
+  customerAdditionalInfo: "productBase",
+  additionalComment: "productBase",
+  deliveryAddress: "productBase",
+  blueprintFormat: "formatDecisionTree",
+  tipoFormatoLamina: "formatDecisionTree",
+  tipoPresentacionBolsa: "formatDecisionTree",
+  tipoSelloBolsa: "formatDecisionTree",
+  acabadoBolsa: "formatDecisionTree",
+  tieneFuelleBolsa: "formatDecisionTree",
+  tipoFuelleBolsa: "formatDecisionTree",
+  tipoFamiliaPouch: "formatDecisionTree",
+  tipoStandUpPouch: "formatDecisionTree",
+  formaDoyPackPouch: "formatDecisionTree",
+  tipoFuelleStandUpPouch: "formatDecisionTree",
+  cantidadSellosPouchPlano: "formatDecisionTree",
+  tieneFuelleSelloCentralPouch: "formatDecisionTree",
+  materialSelloCentralPouch: "formatDecisionTree",
+  tipoSelloEnFuellePouch: "formatDecisionTree",
+  printClass: "design",
+  printType: "design",
+  printForm: "design",
+  specialDesignSpecs: "design",
+  specialDesignComments: "design",
+  hasEdagReference: "edag",
+  referenceEdagCode: "edag",
+  referenceEdagVersion: "edag",
+  edagCode: "edag",
+  edagVersion: "edag",
+  hasDesignPlan: "designPlans",
+  designPlanFiles: "designPlans",
+  hasReferenceStructure: "structure",
+  referenceEmCode: "structure",
+  referenceEmVersion: "structure",
+  structureType: "structure",
+  layer1MaterialGroup: "materials",
+  layer1Material: "materials",
+  layer1Micron: "materials",
+  layer1Grammage: "materials",
+  layer2MaterialGroup: "materials",
+  layer2Material: "materials",
+  layer2Micron: "materials",
+  layer2Grammage: "materials",
+  layer3MaterialGroup: "materials",
+  layer3Material: "materials",
+  layer3Micron: "materials",
+  layer3Grammage: "materials",
+  layer4MaterialGroup: "materials",
+  layer4Material: "materials",
+  layer4Micron: "materials",
+  layer4Grammage: "materials",
+  grammage: "properties",
+  sampleRequest: "sample",
+  specialStructureSpecs: "technicalComments",
+  width: "dimensions",
+  length: "dimensions",
+  repetition: "dimensions",
+  doyPackBase: "dimensions",
+  gussetWidth: "dimensions",
+  gussetType: "dimensions",
+  hasZipper: "accessories",
+  zipperType: "accessories",
+  hasTinTie: "accessories",
+  hasValve: "accessories",
+  valveType: "accessories",
+  hasDieCutHandle: "accessories",
+  hasReinforcement: "accessories",
+  reinforcementThickness: "accessories",
+  reinforcementWidth: "accessories",
+  hasAngularCut: "accessories",
+  hasRoundedCorners: "accessories",
+  roundedCornersType: "accessories",
+  hasNotch: "accessories",
+  hasPerforation: "accessories",
+  pouchPerforationType: "accessories",
+  bagPerforationType: "accessories",
+  perforationLocation: "accessories",
+  hasPreCut: "accessories",
+  preCutType: "accessories",
+  otherAccessories: "accessories",
+  materialPackaging: "packaging",
+  specialMaterialPackaging: "packaging",
+  exportProductPackaging: "packaging",
+  splices: "packaging",
+  hasCustomerTechnicalSpec: "technicalSpec",
+  customerTechnicalSpecAttachment: "technicalSpec",
+  estimatedVolume: "commercial",
+  unitOfMeasure: "commercial",
+  saleType: "commercial",
+  incoterm: "commercial",
+  destinationCountry: "commercial",
+  targetPrice: "commercial",
+  currencyType: "commercial",
+  coreMaterial: "core",
+  coreDiameter: "core",
+  externalDiameter: "core",
+  externalVariationPlus: "core",
+  externalVariationMinus: "core",
+  maxRollWeight: "core",
+};
 
+// Helpers para MOT
+function getMotRule(mot: string) {
+  return MOT_FIELD_RULES[mot] || null;
+}
+
+function isFieldEditableByMot(fieldName: string, mot: string | null): boolean {
+  if (!mot) return true;
+  const rule = getMotRule(mot);
+  if (!rule) return true;
+  const group = FIELD_TO_EDITABLE_GROUP[fieldName];
+  if (!group) return true;
+  return rule.editableFieldGroups.includes(group);
+}
+
+function isFieldLockedByMot(fieldName: string, mot: string | null): boolean {
+  if (!mot) return false;
+  const rule = getMotRule(mot);
+  if (!rule) return false;
+  const group = FIELD_TO_EDITABLE_GROUP[fieldName];
+  if (!group) return false;
+  return rule.lockedFieldGroups.includes(group);
+}
+
+function getEnabledSectionsByMot(mot: string | null): string[] {
+  if (!mot) return ["producto", "diseno", "estructura", "embalaje"];
+  const rule = getMotRule(mot);
+  return rule?.enabledSections || ["producto", "diseno", "estructura", "embalaje"];
+}
+
+function requiresBaseProductAutofill(mot: string | null): boolean {
+  if (!mot) return false;
+  const rule = getMotRule(mot);
+  return rule?.requiresBaseProductAutofill || false;
+}
+
+// Nueva función: Determinar si un campo debe ser visible (basado en FDP, NO en MOT)
+function shouldFieldBeVisibleByFormat(fieldName: string, blueprintFormat: string | null | undefined): boolean {
+  if (!blueprintFormat) {
+    return true; // Sin FDP, mostrar todos
+  }
+  const rules = FORMAT_FIELD_RULES_BY_FDP[blueprintFormat];
+  if (!rules) {
+    return true; // Sin reglas FDP, mostrar campo
+  }
+  return rules.visibleFields.has(fieldName);
+}
+
+// Nueva función: Determinar si un campo debe estar deshabilitado
+function shouldFieldBeDisabledByMot(
+  fieldName: string,
+  mot: string | null,
+  inheritedFields?: Set<string>
+): boolean {
+  // 1. Si es heredado, deshabilitar
+  if (inheritedFields?.has(fieldName)) {
+    return true;
+  }
+
+  // 2. Si está bloqueado por MOT, deshabilitar
+  if (isFieldLockedByMot(fieldName, mot)) {
+    return true;
+  }
+
+  return false;
+}
+
+// Nueva función: Determinar si un campo es requerido por MOT
+function isFieldRequiredByMot(fieldName: string, mot: string | null): boolean {
+  if (!mot) return false;
+  const rule = getMotRule(mot);
+  if (!rule) return false;
+  const fieldGroup = FIELD_TO_EDITABLE_GROUP[fieldName];
+  if (!fieldGroup) return false;
+  return rule.editableFieldGroups.includes(fieldGroup);
+}
+
+// Nueva función: Determinar si una sección debe ser visible por MOT
+function shouldSectionBeVisibleByMot(section: string, mot: string | null): boolean {
+  if (!mot) return true; // Sin MOT, mostrar todas las secciones
+  const rule = getMotRule(mot);
+  if (!rule) return true;
+  return rule.enabledSections.includes(section);
+}
+
+// Fields that are sent to Sistema Integral
+const SI_FIELDS = new Set<string>([
+  "approvedProductCode",
+  "technicalApplication",
+  "portafolioEstandar",
+  "customerPackingCode",
+  "structureType",
+  "layer1Material",
+  "layer2Material",
+  "layer3Material",
+  "layer4Material",
+  "grammage",
+  "grammageTolerance",
+  "width",
+  "length",
+  "repetition",
+  "gussetWidth",
+  "gussetType",
+  "blueprintFormat",
+  "rewindingDirection",
+  "hasPhotocell",
+  "coreMaterial",
+  "coreDiameter",
+  "materialPackaging",
+  "splices",
+]);
+
+// FORMAT_FIELD_RULES_BY_FDP - Define visible/required fields by blueprint format
+const FORMAT_FIELD_RULES_BY_FDP: Record<string, {
+  visibleFields: Set<string>;
+  requiredFields: Set<string>;
+  siFields: Set<string>;
+}> = {
+  // LAMINA formats
+  "GENERICA": {
+    visibleFields: new Set([
+      "width", "length", "repetition", "perimeterMm", "dimensionCrossCheckStatus", "perimeterValidationStatus",
+      "rewindingDirection", "rewindingDirectionRef", "hasPhotocell", "photocellLocation",
+      "fr1Width", "fr1Height", "fr1MarginRight", "fr1MarginBottom", "fr1MarginLeft", "fr1MarginTop",
+      "fr2Width", "fr2Height", "fr2MarginRight", "fr2MarginBottom", "fr2MarginLeft", "fr2MarginTop",
+      "coreMaterial", "coreDiameter", "externalDiameter", "externalVariationPlus", "externalVariationMinus", "maxRollWeight",
+      "materialPackaging", "specialMaterialPackaging", "exportProductPackaging", "splices"
+    ]),
+    requiredFields: new Set(["width", "rewindingDirection", "coreMaterial"]),
+    siFields: new Set(["width", "length", "repetition", "rewindingDirection", "hasPhotocell", "coreMaterial", "coreDiameter", "materialPackaging", "splices"])
+  },
+  "TISSUE": {
+    visibleFields: new Set([
+      "width", "repetition", "perimeterMm", "dimensionCrossCheckStatus", "perimeterValidationStatus",
+      "rewindingDirection", "rewindingDirectionRef", "hasPhotocell", "photocellLocation",
+      "fr1Width", "fr1Height", "fr1MarginRight", "fr1MarginBottom", "fr1MarginLeft", "fr1MarginTop",
+      "fr2Width", "fr2Height", "fr2MarginRight", "fr2MarginBottom", "fr2MarginLeft", "fr2MarginTop",
+      "coreMaterial", "coreDiameter", "externalDiameter", "externalVariationPlus", "externalVariationMinus", "maxRollWeight",
+      "materialPackaging", "specialMaterialPackaging", "exportProductPackaging", "splices"
+    ]),
+    requiredFields: new Set(["width", "rewindingDirection", "coreMaterial"]),
+    siFields: new Set(["width", "repetition", "rewindingDirection", "hasPhotocell", "coreMaterial", "coreDiameter", "materialPackaging", "splices"])
+  },
+  "FOOD": {
+    visibleFields: new Set([
+      "width", "repetition", "perimeterMm", "dimensionCrossCheckStatus", "perimeterValidationStatus",
+      "rewindingDirection", "rewindingDirectionRef", "hasPhotocell", "photocellLocation",
+      "fr1Width", "fr1Height", "fr1MarginRight", "fr1MarginBottom", "fr1MarginLeft", "fr1MarginTop",
+      "fr2Width", "fr2Height", "fr2MarginRight", "fr2MarginBottom", "fr2MarginLeft", "fr2MarginTop",
+      "coreMaterial", "coreDiameter", "externalDiameter", "externalVariationPlus", "externalVariationMinus", "maxRollWeight",
+      "materialPackaging", "specialMaterialPackaging", "exportProductPackaging", "splices"
+    ]),
+    requiredFields: new Set(["width", "rewindingDirection", "coreMaterial"]),
+    siFields: new Set(["width", "repetition", "rewindingDirection", "hasPhotocell", "coreMaterial", "coreDiameter", "materialPackaging", "splices"])
+  },
+  // Default POUCH format (shows all POUCH-related fields)
+  "POUCH_DEFAULT": {
+    visibleFields: new Set([
+      "width", "length", "repetition", "gussetWidth", "gussetType",
+      "hasZipper", "zipperType", "hasTinTie", "hasValve", "valveType",
+      "hasRiñonera", "hasWicket", "wicketDiameter", "wicketDistSuperior", "wicketDistDerecho",
+      "hasWicketControl", "wicketControlDiameter", "wicketControlUbicacion", "wicketControlDistSuperior", "wicketControlDistDerecho",
+      "hasDieCutHandle", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
+      "hasRoundedCorners", "roundedCornersType", "hasNotch", "distanciaAbocaPerforacion",
+      "hasPerforation", "pouchPerforationType", "perforationLocation",
+      "hasAngularCut", "hasPreCut", "preCutType", "distanciaAbocaPrecorte", "otherAccessories",
+      "materialPackaging", "specialMaterialPackaging", "exportProductPackaging", "splices",
+      "rewindingDirection", "rewindingDirectionRef", "hasPhotocell", "photocellLocation",
+      "fr1Width", "fr1Height", "fr1MarginRight", "fr1MarginBottom", "fr1MarginLeft", "fr1MarginTop",
+      "fr2Width", "fr2Height", "fr2MarginRight", "fr2MarginBottom", "fr2MarginLeft", "fr2MarginTop"
+    ]),
+    requiredFields: new Set(["width", "length", "gussetWidth", "materialPackaging"]),
+    siFields: new Set(["width", "length", "repetition", "gussetWidth", "gussetType", "rewindingDirection", "hasPhotocell", "materialPackaging", "splices"])
+  },
+  // Default BOLSA format (shows all BOLSA-related fields)
+  "BOLSA_DEFAULT": {
+    visibleFields: new Set([
+      "width", "length", "repetition",
+      "hasWicket", "wicketDiameter", "wicketDistSuperior", "wicketDistDerecho",
+      "hasWicketControl", "wicketControlDiameter", "wicketControlUbicacion", "wicketControlDistSuperior", "wicketControlDistDerecho",
+      "hasDieCutHandle", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
+      "hasRoundedCorners", "roundedCornersType", "hasNotch", "distanciaAbocaPerforacion",
+      "hasPerforation", "bagPerforationType", "perforationLocation",
+      "hasAngularCut", "hasPreCut", "preCutType", "distanciaAbocaPrecorte", "otherAccessories",
+      "materialPackaging", "specialMaterialPackaging", "exportProductPackaging", "splices",
+      "rewindingDirection", "rewindingDirectionRef", "hasPhotocell", "photocellLocation",
+      "fr1Width", "fr1Height", "fr1MarginRight", "fr1MarginBottom", "fr1MarginLeft", "fr1MarginTop",
+      "fr2Width", "fr2Height", "fr2MarginRight", "fr2MarginBottom", "fr2MarginLeft", "fr2MarginTop"
+    ]),
+    requiredFields: new Set(["width", "length", "materialPackaging"]),
+    siFields: new Set(["width", "length", "repetition", "rewindingDirection", "hasPhotocell", "materialPackaging", "splices"])
+  },
+};
+
+// Helper functions for FORMAT_FIELD_RULES_BY_FDP
+function getFormatRulesByFdp(blueprintFormat: string | null | undefined) {
+  if (!blueprintFormat) return null;
+
+  // Check if it's a specific LAMINA format
+  if (blueprintFormat === "GENERICA" || blueprintFormat === "TISSUE" || blueprintFormat === "FOOD") {
+    return FORMAT_FIELD_RULES_BY_FDP[blueprintFormat];
+  }
+
+  // Check if it's a POUCH format
+  if (blueprintFormat.includes("POUCH")) {
+    return FORMAT_FIELD_RULES_BY_FDP["POUCH_DEFAULT"];
+  }
+
+  // Check if it's a BOLSA format
+  if (blueprintFormat.includes("SELLO") || blueprintFormat.includes("FONDO") || blueprintFormat === "WICKET" || blueprintFormat === "HOJAS") {
+    return FORMAT_FIELD_RULES_BY_FDP["BOLSA_DEFAULT"];
+  }
+
+  return null;
+}
+
+function isFieldVisibleByFormat(fieldName: string, blueprintFormat: string | null | undefined): boolean {
+  const rule = getFormatRulesByFdp(blueprintFormat);
+  return rule ? rule.visibleFields.has(fieldName) : true; // Default to visible if no format selected
+}
+
+function isFieldRequiredByFormat(fieldName: string, blueprintFormat: string | null | undefined, mot: string | null): boolean {
+  const rule = getFormatRulesByFdp(blueprintFormat);
+  if (!rule) return false;
+
+  // Field must be both visible and in required set for the format
+  if (!rule.visibleFields.has(fieldName) || !rule.requiredFields.has(fieldName)) {
+    return false;
+  }
+
+  // Additional MOT-based requirement filtering could go here
+  return true;
+}
+
+function isSiField(fieldName: string, blueprintFormat: string | null | undefined): boolean {
+  const rule = getFormatRulesByFdp(blueprintFormat);
+  if (rule && rule.siFields.has(fieldName)) return true;
+  return SI_FIELDS.has(fieldName); // Fallback to global SI_FIELDS
+}
+
+function getVisibleFieldsByFormat(blueprintFormat: string | null | undefined): Set<string> {
+  const rule = getFormatRulesByFdp(blueprintFormat);
+  return rule ? rule.visibleFields : new Set();
+}
+
+function getRequiredFieldsByFormat(blueprintFormat: string | null | undefined, mot: string | null): Set<string> {
+  const rule = getFormatRulesByFdp(blueprintFormat);
+  if (!rule) return new Set();
+
+  const requiredFields = new Set(rule.requiredFields);
+
+  // MOT-based requirements could be added here
+  // For example, if MOT requires certain structure fields, add them to requiredFields
+
+  return requiredFields;
+}
+
+// Determine if a field should be visible/enabled based on MOT and FDP
+function shouldFieldBeVisible(
+  fieldName: string,
+  mot: string | null,
+  blueprintFormat: string | null | undefined
+): boolean {
+  // Check MOT visibility first
+  const motRule = getMotRule(mot);
+  if (motRule) {
+    // If MOT is set, only show fields in its editable groups or non-locked groups
+    const fieldGroup = FIELD_TO_EDITABLE_GROUP[fieldName];
+    if (fieldGroup && motRule.lockedFieldGroups.includes(fieldGroup)) {
+      return false; // Field is locked by MOT
+    }
+  }
+
+  // Check FDP visibility
+  if (blueprintFormat) {
+    if (!isFieldVisibleByFormat(fieldName, blueprintFormat)) {
+      return false; // Field is not visible for this FDP
+    }
+  }
+
+  return true; // Field is visible
+}
+
+// Determine if a field should be disabled (locked) based on MOT
+function shouldFieldBeDisabled(
+  fieldName: string,
+  mot: string | null,
+  inheritedFields: Set<string>
+): boolean {
+  // Inherited fields from modified product are effectively disabled/read-only
+  if (inheritedFields.has(fieldName)) {
+    return true;
+  }
+
+  // Check if field is locked by MOT
+  const motRule = getMotRule(mot);
+  if (motRule) {
+    const fieldGroup = FIELD_TO_EDITABLE_GROUP[fieldName];
+    if (fieldGroup && motRule.lockedFieldGroups.includes(fieldGroup)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Generar opciones de MOT dinámicamente desde MOT_FIELD_RULES
 const getCausalOptions = (classification: string) => {
-  if (classification === "Nuevo") return CAUSAL_OPTIONS_NUEVO;
-  if (classification === "Modificado") return CAUSAL_OPTIONS_MODIFICADO;
+  // Los valores del catálogo son "Producto Nuevo" y "Producto Modificado"
+  if (classification === "Producto Nuevo" || classification === "Nuevo") {
+    // Filtrar MOTs con mode: "new"
+    return Object.keys(MOT_FIELD_RULES)
+      .filter(motKey => MOT_FIELD_RULES[motKey].mode === "new")
+      .map(motKey => ({ value: motKey, label: motKey }));
+  }
+  if (classification === "Producto Modificado" || classification === "Modificado") {
+    // Filtrar MOTs con mode: "modified"
+    return Object.keys(MOT_FIELD_RULES)
+      .filter(motKey => MOT_FIELD_RULES[motKey].mode === "modified")
+      .map(motKey => ({ value: motKey, label: motKey }));
+  }
   return [];
 };
 
@@ -560,11 +1092,39 @@ const resolveInitialUnit = (
   ]);
 };
 
+// NUEVA FUNCIÓN: Resolver comentarios desde múltiples alias de storage
+const resolveInitialComment = (
+  project: ProjectRecord | null | undefined,
+): string => {
+  return getAnyProjectValue(project, [
+    "additionalComment",
+    "comentarios",
+    "comment",
+    "comentario",
+  ]);
+};
+
+// NUEVA FUNCIÓN: Resolver tipo de estructura desde múltiples alias
+const resolveInitialStructureType = (
+  project: ProjectRecord | null | undefined,
+): string => {
+  const explicit = getAnyProjectValue(project, [
+    "structureType",
+    "estructura",
+  ]);
+  if (explicit) return explicit;
+
+  // Si no hay structureType explícito, intenta calcularlo desde estructuraCalculada
+  return getAnyProjectValue(project, [
+    "estructuraCalculada",
+  ]);
+};
+
 const isProductoNuevo = (classification: string): boolean =>
-  classification === "Nuevo";
+  classification === "Producto Nuevo" || classification === "Nuevo";
 
 const isProductoModificado = (classification: string): boolean =>
-  classification === "Modificado";
+  classification === "Producto Modificado" || classification === "Modificado";
 
 const isDisenoNuevo = (classification: string, projectType: string): boolean =>
   isProductoNuevo(classification) && projectType === "Diseño nuevo";
@@ -1331,10 +1891,184 @@ function hasUnsavedChanges(
   return JSON.stringify(initialFormState) !== JSON.stringify(normalized);
 }
 
-export default function ProjectEditPage() {
+// Badge component for inherited and SI fields
+interface FieldBadgesProps {
+  isInherited?: boolean;
+  isSiField?: boolean;
+  isLocked?: boolean;
+}
+
+function FieldBadges({ isInherited, isSiField, isLocked }: FieldBadgesProps) {
+  if (!isInherited && !isSiField && !isLocked) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2 mt-1">
+      {isInherited && (
+        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700">
+          Heredado del producto base
+        </span>
+      )}
+      {isSiField && (
+        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+          Campo SI
+        </span>
+      )}
+      {isLocked && (
+        <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-600">
+          Bloqueado por MOT
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Wrapper for FormInput with MOT/FDP visibility and badges
+interface FormInputWithBadgesProps {
+  fieldName: keyof ProjectEditFormData;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  placeholder?: string;
+  error?: string;
+  disabled?: boolean;
+  mot?: string | null;
+  blueprintFormat?: string | null;
+  inheritedFields?: Set<string>;
+  visibilityOverride?: boolean;
+}
+
+function FormInputWithBadges({
+  fieldName,
+  label,
+  value,
+  onChange,
+  onBlur,
+  placeholder,
+  error,
+  disabled = false,
+  mot = null,
+  blueprintFormat = null,
+  inheritedFields = new Set(),
+  visibilityOverride = true,
+}: FormInputWithBadgesProps) {
+  const isInherited = inheritedFields.has(fieldName as string);
+  const isLocked = shouldFieldBeDisabled(fieldName as string, mot, inheritedFields);
+  const isSi = isSiField(fieldName as string, blueprintFormat);
+  const isVisible = visibilityOverride || shouldFieldBeVisible(fieldName as string, mot, blueprintFormat);
+
+  if (!isVisible) return null;
+
+  return (
+    <div>
+      <FormInput
+        label={label}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        error={error}
+        disabled={disabled || isLocked}
+      />
+      <FieldBadges isInherited={isInherited} isSiField={isSi} isLocked={isLocked} />
+    </div>
+  );
+}
+
+/**
+ * MOT (Motivo de Modificación) & FDP (Formato de Plano) Integration Guide
+ *
+ * This component integrates three key visibility/editability systems:
+ *
+ * 1. MOT System (Casuísticas):
+ *    - MOT_FIELD_RULES defines which field groups are editable, locked, or visible per casuística
+ *    - FIELD_TO_EDITABLE_GROUP maps each form field to its editable group
+ *    - isFieldEditableByMot() checks if a field can be edited based on MOT
+ *    - isFieldLockedByMot() checks if a field is locked by MOT
+ *    - inheritedFields Set<string> tracks fields auto-filled from base product
+ *    - Inherited fields are displayed with "Heredado del producto base" badge
+ *
+ * 2. FDP System (Blueprint Format):
+ *    - FORMAT_FIELD_RULES_BY_FDP defines which fields are visible/required per FDP
+ *    - isFieldVisibleByFormat() checks field visibility based on FDP
+ *    - isSiField() determines if a field is sent to Sistema Integral
+ *    - Fields can have "Campo SI" badge when they're SI fields
+ *
+ * 3. Field Display Pattern:
+ *    For each form field, add:
+ *    - FieldBadges component to show inheritance/SI status
+ *    - shouldFieldBeDisabled() check for MOT-based disability
+ *    - Example in width/length/gussetWidth fields (see lines 5014-5070)
+ *
+ * To apply this pattern to a new field:
+ *    <div>
+ *      <FormInput
+ *        label="Field Label"
+ *        value={form.fieldName}
+ *        onChange={(value) => updateField("fieldName", value)}
+ *        disabled={existingDisabledLogic || shouldFieldBeDisabled("fieldName", form.projectType, inheritedFields)}
+ *      />
+ *      <FieldBadges
+ *        isInherited={inheritedFields.has("fieldName")}
+ *        isSiField={isSiField("fieldName", form.blueprintFormat)}
+ *        isLocked={isFieldLockedByMot("fieldName", form.projectType)}
+ *      />
+ *    </div>
+ */
+
+const normalizeRouteIdentifier = (value: unknown) =>
+  decodeURIComponent(String(value ?? ""))
+    .trim()
+    .toLowerCase();
+
+const getProductIdentifiers = (product: any) => {
+  const normalizedProduct = normalizeProjectWorkflow(product);
+
+  return [
+    // Registro original
+    product.code,
+    product.projectCode,
+    product.productRequestCode,
+    product.id,
+    product.productId,
+    product.productCode,
+    product.currentSkuCode,
+    product.skuCode,
+    product.siProductCode,
+
+    // Compatibilidad con normalizado
+    normalizedProduct.code,
+    (normalizedProduct as any).projectCode,
+    (normalizedProduct as any).productRequestCode,
+    (normalizedProduct as any).id,
+    (normalizedProduct as any).productId,
+    (normalizedProduct as any).productCode,
+    (normalizedProduct as any).currentSkuCode,
+    (normalizedProduct as any).skuCode,
+    (normalizedProduct as any).siProductCode,
+  ]
+    .filter(Boolean)
+    .map(normalizeRouteIdentifier);
+};
+
+const findProductByRouteParam = (
+  products: ProjectRecord[],
+  routeParam: string
+): ProjectRecord | undefined => {
+  const normalizedParam = normalizeRouteIdentifier(routeParam);
+
+  if (!normalizedParam) return undefined;
+
+  return products.find((product) =>
+    getProductIdentifiers(product).includes(normalizedParam)
+  );
+};
+
+export default function ProductEditPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
-  const { projectCode } = useParams<{ projectCode: string }>();
+  const { productCode } = useParams<{ productCode: string }>();
+  const projectCode = productCode;
 
   const [form, setForm] = useState<ProjectEditFormData>({
     code: "",
@@ -1537,6 +2271,7 @@ export default function ProjectEditPage() {
   });
   const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
   const [visibleLayerCount, setVisibleLayerCount] = useState(1);
+  const [inheritedFields, setInheritedFields] = useState<Set<string>>(new Set());
   const allowIncompleteSaveRef = useRef(false);
   const initialFormStateRef = useRef<Record<string, any> | null>(null);
 
@@ -1550,7 +2285,11 @@ export default function ProjectEditPage() {
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
 
-  const classificationOpt = useMemo(() => getCatalogOptions("classification"), []);
+  // Obtener opciones de Clasificación directamente de PRODUCT_CATALOGS
+  const classificationOpt = useMemo(() => {
+    const catalogValues = (PRODUCT_CATALOGS.clasificacion as any)?.values || [];
+    return catalogValues.map((value: string) => ({ value, label: value }));
+  }, []);
   const subclassificationOpt = useMemo(() => getCatalogOptions("subclassification"), []);
   // unitOfMeasureOpt removed - using UNIT_OPTIONS from PRODUCT_CATALOGS directly
   const printClassOpt = useMemo(() => getCatalogOptions("print_class"), []);
@@ -1574,7 +2313,27 @@ export default function ProjectEditPage() {
       return;
     }
 
-    const project = getProjectByCode(projectCode);
+const allProjects = getProjectRecords();
+const decodedProjectCode = decodeURIComponent(projectCode);
+
+const project =
+  findProductByRouteParam(allProjects, decodedProjectCode) ||
+  getProjectByCode(decodedProjectCode) ||
+  getProjectByCode(projectCode);
+
+if (!project) {
+  console.warn("[ProductEditPage] Producto no encontrado", {
+    routeProductCode: projectCode,
+    decodedProjectCode,
+    availableIdentifiers: allProjects.map((product: any) => ({
+      name: product.projectName || product.productName || product.name,
+      identifiers: getProductIdentifiers(product),
+    })),
+  });
+
+  setLoading(false);
+  return;
+}
     if (!project) {
       setLoading(false);
       return;
@@ -1679,20 +2438,23 @@ export default function ProjectEditPage() {
       referenceEmVersion: project.referenceEmVersion || "",
       hasCustomerTechnicalSpec: toYesNo((project as any).hasCustomerTechnicalSpec),
       customerTechnicalSpecAttachment: (project as any).customerTechnicalSpecAttachment || "",
-      structureType: project.structureType || "Monocapa",
-      layer1MaterialGroup: extractMaterialGroupFromValue(project.layer1Material || (project as any).layer1MaterialLabel || ""),
+      // CORRECCIÓN: Usar resolver para structureType (puede venir como estructuraCalculada desde modal)
+      structureType: resolveInitialStructureType(project) || "Monocapa",
+      // CORRECCIÓN: Intentar cargar material group si viene del modal (ProductInitialCreateModal guarda esto)
+      layer1MaterialGroup: (project as any).layer1MaterialGroup || extractMaterialGroupFromValue(project.layer1Material || (project as any).layer1MaterialLabel || ""),
       layer1Material: project.layer1Material || (project as any).layer1MaterialLabel || "",
       layer1Micron: project.layer1Micron || (project as any).layer1Micraje || "",
       layer1Grammage: project.layer1Grammage || "",
-      layer2MaterialGroup: extractMaterialGroupFromValue(project.layer2Material || (project as any).layer2MaterialLabel || ""),
+      // CORRECCIÓN: Material groups con fallback a extracción
+      layer2MaterialGroup: (project as any).layer2MaterialGroup || extractMaterialGroupFromValue(project.layer2Material || (project as any).layer2MaterialLabel || ""),
       layer2Material: project.layer2Material || (project as any).layer2MaterialLabel || "",
       layer2Micron: project.layer2Micron || (project as any).layer2Micraje || "",
       layer2Grammage: project.layer2Grammage || "",
-      layer3MaterialGroup: extractMaterialGroupFromValue(project.layer3Material || (project as any).layer3MaterialLabel || ""),
+      layer3MaterialGroup: (project as any).layer3MaterialGroup || extractMaterialGroupFromValue(project.layer3Material || (project as any).layer3MaterialLabel || ""),
       layer3Material: project.layer3Material || (project as any).layer3MaterialLabel || "",
       layer3Micron: project.layer3Micron || (project as any).layer3Micraje || "",
       layer3Grammage: project.layer3Grammage || "",
-      layer4MaterialGroup: extractMaterialGroupFromValue(project.layer4Material || (project as any).layer4MaterialLabel || ""),
+      layer4MaterialGroup: (project as any).layer4MaterialGroup || extractMaterialGroupFromValue(project.layer4Material || (project as any).layer4MaterialLabel || ""),
       layer4Material: project.layer4Material || (project as any).layer4MaterialLabel || "",
       layer4Micron: project.layer4Micron || (project as any).layer4Micraje || "",
       layer4Grammage: project.layer4Grammage || "",
@@ -1786,12 +2548,39 @@ export default function ProjectEditPage() {
       maxRollWeight: project.maxRollWeight || "",
       customerAdditionalInfo: project.customerAdditionalInfo || "",
       deliveryAddress: (project as any).deliveryAddress || "",
-      additionalComment: (project as any).additionalComment || "",
+      // CORRECCIÓN: Usar resolver para comentarios (puede venir como "comentarios" desde modal)
+      additionalComment: resolveInitialComment(project),
       licitacion: toYesNo((project as any).licitacion),
       designPlanFiles: (project as any).designPlanFiles || [],
     };
 
+    // Apply MOT-based autofill for modified products
+    const motRule = getMotRule(convertedForm.motivoModificacion);
+    const inheritedFieldsSet = new Set<string>();
+
+    if (
+      initialClassification === "Modificado" &&
+      motRule &&
+      requiresBaseProductAutofill(convertedForm.motivoModificacion) &&
+      project.approvedProductSnapshot
+    ) {
+      const baseProduct = project.approvedProductSnapshot as Record<string, any>;
+      const editableFieldGroups = motRule.editableFieldGroups;
+
+      // Only autofill fields that are NOT in editableFieldGroups (i.e., they're inherited/locked)
+      for (const [fieldName, groupName] of Object.entries(FIELD_TO_EDITABLE_GROUP)) {
+        if (!editableFieldGroups.includes(groupName) && (convertedForm as any)[fieldName] === "") {
+          const baseValue = baseProduct[fieldName];
+          if (baseValue !== undefined && baseValue !== null && baseValue !== "") {
+            (convertedForm as any)[fieldName] = baseValue;
+            inheritedFieldsSet.add(fieldName);
+          }
+        }
+      }
+    }
+
     setForm(convertedForm);
+    setInheritedFields(inheritedFieldsSet);
 
     // Initialize visibleLayerCount based on existing layers
     const layerCount = [
@@ -2067,11 +2856,11 @@ export default function ProjectEditPage() {
   }, [visibleLayerCount]);
 
   const projectTypeOptions = useMemo(() => {
-    if (form.classification === "Nuevo") {
+    if (isProductoNuevo(form.classification)) {
       return PROJECT_TYPE_RD_OPTIONS;
     }
 
-    if (form.classification === "Modificado") {
+    if (isProductoModificado(form.classification)) {
       return PROJECT_TYPE_TECNICA_OPTIONS;
     }
 
@@ -2083,8 +2872,8 @@ export default function ProjectEditPage() {
   }, [form.blueprintFormat]);
 
   const isModifiedProject =
-    form.classification === "Modificado" ||
-    originalProject?.classification === "Modificado";
+    isProductoModificado(form.classification) ||
+    isProductoModificado(originalProject?.classification || "");
 
   const motivoModificacion =
     form.motivoModificacion ||
@@ -2092,19 +2881,28 @@ export default function ProjectEditPage() {
     originalProject?.modificationReason ||
     "";
 
-  const canEditDesign =
-    !isModifiedProject ||
-    motivoModificacion === "Diseño y Dimensiones" ||
-    motivoModificacion === "Diseño y Estructura";
+  // NUEVA LÓGICA: Basada en MOT_FIELD_RULES
+  const motRule = getMotRule(form.projectType);
+  const enabledGroupsByMot = motRule?.editableFieldGroups || [];
 
-  const canEditDimensions =
-    !isModifiedProject ||
-    motivoModificacion === "Diseño y Dimensiones";
+  const canEditDesignByMot = enabledGroupsByMot.some(group =>
+    ["design", "printing", "edag", "photoregister", "rewinding", "photocell", "designPlans", "designVariant"].includes(group)
+  );
 
-  const canEditStructure =
-    !isModifiedProject ||
-    motivoModificacion === "Estructura" ||
-    motivoModificacion === "Diseño y Estructura";
+  const canEditDimensionsByMot = enabledGroupsByMot.includes("dimensions") || enabledGroupsByMot.includes("perimeter");
+
+  const canEditStructureByMot = enabledGroupsByMot.some(group =>
+    ["structure", "materials", "layers", "micron", "grammage"].includes(group)
+  );
+
+  const canEditPackagingByMot = enabledGroupsByMot.includes("packaging") || enabledGroupsByMot.includes("accessories");
+
+  // Si es Producto Nuevo, habilitar todo. Si es Modificado, usar lógica MOT
+  const isNuevoClassification = isProductoNuevo(form.classification);
+  const canEditDesign = isNuevoClassification || (isProductoModificado(form.classification) && canEditDesignByMot);
+  const canEditDimensions = isNuevoClassification || (isProductoModificado(form.classification) && canEditDimensionsByMot);
+  const canEditStructure = isNuevoClassification || (isProductoModificado(form.classification) && canEditStructureByMot);
+  const canEditPackaging = isNuevoClassification || (isProductoModificado(form.classification) && canEditPackagingByMot);
 
   const canEditCommercial = !isModifiedProject;
 
@@ -2112,6 +2910,18 @@ export default function ProjectEditPage() {
 
   const requiredFields = useMemo<Array<keyof ProjectEditFormData>>(() => {
     const fields = [...BASE_REQUIRED_FIELDS];
+
+    // Add FDP-based required fields
+    const fDPRequiredFields = getRequiredFieldsByFormat(form.blueprintFormat, form.motivoModificacion);
+    if (fDPRequiredFields.size > 0) {
+      fDPRequiredFields.forEach(field => {
+        const fieldKey = field as keyof ProjectEditFormData;
+        if (!fields.includes(fieldKey)) {
+          fields.push(fieldKey);
+        }
+      });
+    }
+
     if (form.hasReferenceStructure !== "Sí") {
       fields.push("structureType");
 
@@ -2232,6 +3042,7 @@ export default function ProjectEditPage() {
     form.printClass,
     form.hasReferenceStructure,
     form.structureType,
+    form.motivoModificacion,
     visibleLayerCount,
     projectTypeOptions,
     shouldApplyPouchDoyPackRestrictions,
@@ -2598,18 +3409,9 @@ export default function ProjectEditPage() {
   const shouldValidateField = (field: keyof ProjectEditFormData): boolean => {
     if (!isModifiedProject) return true;
 
-    const designFields = ["hasEdagReference", "printClass", "printType", "specialDesignSpecs", "designPlanFiles"];
-    const dimensionFields = ["width", "length", "gussetWidth"];
-    const structureFields = ["hasReferenceStructure", "structureType", "doyPackBase", "gussetType", "coreMaterial", "coreDiameter", "externalDiameter", "maxRollWeight"];
-    const commercialFields = ["estimatedVolume", "unitOfMeasure", "incoterm", "targetPrice", "currencyType"];
-    const customerDataFields = ["technicalApplication", "customerPackingCode", "customerAdditionalInfo", "additionalComment"];
-
-    // Check if field is in a locked section
-    if (designFields.includes(field as string) && !canEditDesign) return false;
-    if (dimensionFields.includes(field as string) && !canEditDimensions) return false;
-    if (structureFields.includes(field as string) && !canEditStructure) return false;
-    if (commercialFields.includes(field as string) && !canEditCommercial) return false;
-    if (customerDataFields.includes(field as string) && !canEditAdditionalCustomerData) return false;
+    // Verificar si el campo es editable según el MOT
+    const mot = form.projectType;
+    if (!isFieldEditableByMot(field as string, mot)) return false;
 
     return true;
   };
@@ -3532,7 +4334,8 @@ export default function ProjectEditPage() {
               <div className="space-y-5">
                 <FormCard title="Información inicial del producto" icon="📋" color="#00395A" required>
                   {/* ========== CLASIFICACIÓN Y MOTIVO ========== */}
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {/* COLUMNA IZQUIERDA: Clasificación (desplegable) */}
                     <FormSelect
                       label="Clasificación *"
                       value={form.classification}
@@ -3547,24 +4350,40 @@ export default function ProjectEditPage() {
                       placeholder="-- Seleccione --"
                     />
 
+                    {/* COLUMNA DERECHA: MODIFICACIÓN (MOT) - Checkboxes dinámicos */}
                     {form.classification && (
-                      <FormSelect
-                        label="Motivo *"
-                        value={form.projectType}
-                        onChange={(value) => {
-                          updateField("projectType", value);
-                          markFieldAsTouched("projectType");
-                        }}
-                        onBlur={() => markFieldAsTouched("projectType")}
-                        error={getError("projectType")}
-                        options={getCausalOptions(form.classification)}
-                        placeholder="-- Seleccione --"
-                      />
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-3">
+                          MODIFICACIÓN *
+                        </label>
+                        <div className="space-y-2 max-h-64 overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
+                          {getCausalOptions(form.classification).map((motOption) => (
+                            <label key={motOption.value} className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition">
+                              <input
+                                type="checkbox"
+                                checked={form.projectType === motOption.value}
+                                onChange={() => {
+                                  const isCurrentlySelected = form.projectType === motOption.value;
+                                  const nextMot = isCurrentlySelected ? "" : motOption.value;
+                                  updateField("projectType", nextMot);
+                                  markFieldAsTouched("projectType");
+                                  // Los errores de validación se limpian automáticamente en el useMemo
+                                }}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm text-slate-700">{motOption.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {getError("projectType") && (
+                          <p className="text-xs text-red-600 mt-2">{getError("projectType")}</p>
+                        )}
+                      </div>
                     )}
                   </div>
 
                   {/* ========== PRODUCTO BASE (Condicional para Modificado) ========== */}
-                  {form.classification === "Modificado" && isModifiedProject && originalProject?.approvedProductSnapshot && (
+                  {isProductoModificado(form.classification) && isModifiedProject && originalProject?.approvedProductSnapshot && (
                     <div className="rounded-xl border-2 border-orange-200 bg-orange-50 p-5 space-y-3 mt-4">
                       <h3 className="flex items-center gap-2 text-sm font-bold text-orange-900">
                         <span>⚠️</span>
@@ -3953,6 +4772,18 @@ export default function ProjectEditPage() {
                                   placeholder="-- Seleccione --"
                                 />
                               )}
+
+                              {form.blueprintFormat && (
+                                <div className="mt-4">
+                                  <FormatoPlanoBadge
+                                    value={form.blueprintFormat}
+                                    wrappingType="POUCH"
+                                    onCopy={() => {
+                                      navigator.clipboard.writeText(form.blueprintFormat);
+                                    }}
+                                  />
+                                </div>
+                              )}
                             </div>
                           ) : isBolsaWrapping(inheritedWrapping) ? (
                             <div className="space-y-4">
@@ -4035,6 +4866,18 @@ export default function ProjectEditPage() {
                                   </>
                                 )}
                               </div>
+
+                              {form.blueprintFormat && (
+                                <div className="mt-4">
+                                  <FormatoPlanoBadge
+                                    value={form.blueprintFormat}
+                                    wrappingType="BOLSA"
+                                    onCopy={() => {
+                                      navigator.clipboard.writeText(form.blueprintFormat);
+                                    }}
+                                  />
+                                </div>
+                              )}
                             </div>
                           ) : isLaminaWrapping(inheritedWrapping) ? (
                             <div className="space-y-4">
@@ -4054,6 +4897,18 @@ export default function ProjectEditPage() {
                                 ]}
                                 placeholder="-- Seleccione --"
                               />
+
+                              {form.blueprintFormat && (
+                                <div className="mt-4">
+                                  <FormatoPlanoBadge
+                                    value={form.blueprintFormat}
+                                    wrappingType="LAMINA"
+                                    onCopy={() => {
+                                      navigator.clipboard.writeText(form.blueprintFormat);
+                                    }}
+                                  />
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -4412,13 +5267,18 @@ export default function ProjectEditPage() {
                                 onBlur={() => markFieldAsTouched("width")}
                                 error={getError("width")}
                                 placeholder={widthRestriction ? `${widthRestriction.min} - ${widthRestriction.max} mm` : "mm"}
-                                disabled={!canEditDimensions || isWidthDisabled}
+                                disabled={!canEditDimensions || isWidthDisabled || shouldFieldBeDisabled("width", form.projectType, inheritedFields)}
                               />
                               {widthRestriction && (
                                 <p className="mt-1 text-xs text-slate-500">
                                   {formatDimensionRange(widthRestriction)}
                                 </p>
                               )}
+                              <FieldBadges
+                                isInherited={inheritedFields.has("width")}
+                                isSiField={isSiField("width", form.blueprintFormat)}
+                                isLocked={isFieldLockedByMot("width", form.projectType)}
+                              />
                             </div>
                           )}
                           {!isLaminaFood && (
@@ -4430,13 +5290,18 @@ export default function ProjectEditPage() {
                                 onBlur={() => markFieldAsTouched("length")}
                                 error={getError("length")}
                                 placeholder={lengthRestriction ? `${lengthRestriction.min} - ${lengthRestriction.max} mm` : "mm"}
-                                disabled={!canEditDimensions || isLengthDisabled}
+                                disabled={!canEditDimensions || isLengthDisabled || shouldFieldBeDisabled("length", form.projectType, inheritedFields)}
                               />
                               {lengthRestriction && (
                                 <p className="mt-1 text-xs text-slate-500">
                                   {formatDimensionRange(lengthRestriction)}
                                 </p>
                               )}
+                              <FieldBadges
+                                isInherited={inheritedFields.has("length")}
+                                isSiField={isSiField("length", form.blueprintFormat)}
+                                isLocked={isFieldLockedByMot("length", form.projectType)}
+                              />
                             </div>
                           )}
                           {showRepetition && (
@@ -4458,13 +5323,18 @@ export default function ProjectEditPage() {
                                 onBlur={() => markFieldAsTouched("gussetWidth")}
                                 error={getError("gussetWidth")}
                                 placeholder={gussetRestriction ? `${gussetRestriction.min} - ${gussetRestriction.max} mm` : "mm"}
-                                disabled={!canEditDimensions || isGussetDisabled}
+                                disabled={!canEditDimensions || isGussetDisabled || shouldFieldBeDisabled("gussetWidth", form.projectType, inheritedFields)}
                               />
                               {gussetRestriction && (
                                 <p className="mt-1 text-xs text-slate-500">
                                   {formatDimensionRange(gussetRestriction)}
                                 </p>
                               )}
+                              <FieldBadges
+                                isInherited={inheritedFields.has("gussetWidth")}
+                                isSiField={isSiField("gussetWidth", form.blueprintFormat)}
+                                isLocked={isFieldLockedByMot("gussetWidth", form.projectType)}
+                              />
                             </div>
                           )}
                         </>
@@ -4828,9 +5698,9 @@ export default function ProjectEditPage() {
                 <PreviewRow
                   label="Clasificación"
                   value={
-                    form.classification === "Nuevo"
+                    isProductoNuevo(form.classification)
                       ? "Producto nuevo"
-                      : form.classification === "Modificado"
+                      : isProductoModificado(form.classification)
                         ? "Producto modificado"
                         : "—"
                   }
@@ -4842,16 +5712,8 @@ export default function ProjectEditPage() {
                 />
 
                 <PreviewRow
-                  label="Ruta sugerida"
-                  value={
-                    goesToGraphicArts(form.classification, form.projectType)
-                      ? "Artes Gráficas"
-                      : goesToRDDesarrollo(form.classification, form.projectType)
-                        ? "R&D Desarrollo"
-                        : goesToRDAreaTecnica(form.classification, form.projectType)
-                          ? "R&D Área Técnica"
-                          : "—"
-                  }
+                  label="Formato de Plano"
+                  value={form.blueprintFormat || "Pendiente de definir"}
                 />
 
                 <PreviewRow
@@ -4862,13 +5724,6 @@ export default function ProjectEditPage() {
                       : "—"
                   }
                 />
-
-                {form.blueprintFormat && (
-                  <PreviewRow
-                    label="Formato de plano calculado"
-                    value={form.blueprintFormat}
-                  />
-                )}
 
                 {form.printClass && (
                   <PreviewRow

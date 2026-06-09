@@ -2,14 +2,14 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useLayout } from "../../../components/layout/LayoutContext";
-import { getProjectByCode, updateProjectRecord, type ProjectRecord } from "../../../shared/data/projectStorage";
+import { getProjectByCode, getProjectRecords, updateProjectRecord, type ProjectRecord } from "../../../shared/data/projectStorage";
 import { getPortfolioByCode, type PortfolioRecord } from "../../../shared/data/portfolioStorage";
 import { getProjectSlaSummary, getProjectStatusHistory } from "../../../shared/data/slaStorage";
 import { getProjectObservations } from "../../../shared/data/observationStorage";
 import { getProjectTrackingState, advanceProjectStage, initializeProjectTracking } from "../../../shared/data/projectTrackingStorage";
 import { getStageConfig, isPortalStage, type ProjectStage } from "../../../shared/data/projectStageConfig";
 import { PHASE_CONFIGS } from "../../../shared/data/projectPhaseConfig";
-import { type ProjectStatus, resolveProjectStage } from "../../../shared/data/projectWorkflow";
+import { type ProjectStatus, resolveProjectStage, normalizeProjectWorkflow } from "../../../shared/data/projectWorkflow";
 import { exportProjectToExcelMock } from "../services/productExportService";
 
 import PreviewRow from "../../../shared/components/display/PreviewRow";
@@ -25,10 +25,31 @@ import ProjectSlaPanel from "../../../shared/components/projectTracking/ProjectS
 import ProjectProductsPanel from "../components/ProjectProductsPanel";
 import UnifiedProjectHistory from "../components/UnifiedProjectHistory";
 
-export default function ProjectDetailPage() {
+const findProductByRouteParam = (products: ProjectRecord[], routeParam: string): any => {
+  const normalizedParam = String(routeParam || "").trim().toLowerCase();
+  if (!normalizedParam) return undefined;
+
+  const product = products.find((product) => {
+    const identifiers = [
+      product.code,
+      (product as any).projectCode,
+      (product as any).productRequestCode,
+      product.id,
+    ]
+      .filter(Boolean)
+      .map((value) => String(value).trim().toLowerCase());
+
+    return identifiers.includes(normalizedParam);
+  });
+
+  return product ? normalizeProjectWorkflow(product) : undefined;
+};
+
+export default function ProductDetailPage() {
   const navigate = useNavigate();
   const { setHeader, resetHeader } = useLayout();
-  const { projectCode } = useParams<{ projectCode: string }>();
+  const { productCode } = useParams<{ productCode: string }>();
+  const projectCode = productCode;
 
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioRecord | null>(null);
@@ -43,7 +64,8 @@ export default function ProjectDetailPage() {
 
   const fetchProjectData = () => {
     if (projectCode) {
-      const p = getProjectByCode(projectCode);
+      const allProjects = getProjectRecords();
+      const p = findProductByRouteParam(allProjects, projectCode) || getProjectByCode(projectCode);
       setProject(p || null);
       if (p) {
         // Load portfolio
