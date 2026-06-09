@@ -41,6 +41,8 @@ import {
   FormActionButtons,
 } from "../../../shared/components/forms";
 
+type EnvolturaOption = "POUCH" | "BOLSA" | "LAMINA";
+
 type PortfolioFormData = {
   codigo: string;
   estadoId: string;
