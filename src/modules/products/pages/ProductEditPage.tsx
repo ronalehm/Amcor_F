@@ -13,7 +13,6 @@ import {
   type BooleanLike,
   type YesNoPending,
 } from "../../../shared/data/projectStorage";
-import { getDocumentsByProject } from "../../../shared/data/projectDocumentStorage";
 import {
   computeProjectPreparationStatus,
   normalizeProjectStatus,
@@ -50,13 +49,14 @@ import { normalizeUnit, UNITS_OF_MEASURE, UNIT_LABELS } from "../../../shared/da
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
-import { FormatoPlanoBadge } from "../../../shared/components/forms/FormatoPlanoBadge";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import FormActionButtons from "../../../shared/components/forms/FormActionButtons";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import CommercialExecutiveMultiSearch from "../../../shared/components/forms/CommercialExecutiveMultiSearch";
-import ProjectDocumentsSection from "../components/ProjectDocumentsSection";
 import ProjectPlansUploadSection from "../components/ProjectPlansUploadSection";
+import CustomerTechnicalSpecUploadSection from "../components/CustomerTechnicalSpecUploadSection";
+import DimensionalPlanPreview from "../components/DimensionalPlanPreview";
+import RewindingDirectionSelector from "../components/RewindingDirectionSelector";
 
 export type ProjectEditFormData = {
   code: string;
@@ -71,6 +71,9 @@ export type ProjectEditFormData = {
   projectType: string;
   motivoModificacion: string;
   salesforceAction: string;
+
+  designPlanType: string;
+  designPlanComments: string;
 
   blueprintFormat: string;
   tipoPresentacionBolsa: string;
@@ -127,6 +130,14 @@ export type ProjectEditFormData = {
   edagCode: string;
   edagVersion: string;
 
+  colorObjectiveCode: string;
+  colorObjective: string;
+  colorObjectiveOther: string;
+  pressApproverCode: string;
+  pressApprover: string;
+  alusaReferenceCode: string;
+  designWorkInstructions: string;
+
   perimeterMm: string;
   dimensionCrossCheckStatus: string;
   perimeterValidationStatus: string;
@@ -140,6 +151,8 @@ export type ProjectEditFormData = {
   referenceEmVersion: string;
   hasCustomerTechnicalSpec: string;
   customerTechnicalSpecAttachment: string;
+  customerTechnicalSpecFiles: string[];
+  customerTechnicalSpecComments: string;
   structureType: string;
 
   layer1MaterialGroup: string;
@@ -268,6 +281,60 @@ export type ProjectEditFormData = {
 const YES_NO_OPTIONS = [
   { value: "Sí", label: "Sí" },
   { value: "No", label: "No" },
+];
+
+const COLOR_OBJECTIVE_OPTIONS = [
+  {
+    code: "1",
+    value: "No existe objetivo trabajar a criterio",
+    label: "No existe objetivo trabajar a criterio",
+    catalogCode: "ODC",
+  },
+  {
+    code: "2",
+    value: "Muestra física",
+    label: "Muestra física",
+    catalogCode: "ODC",
+  },
+  {
+    code: "3",
+    value: "Color Pantone del archivo",
+    label: "Color Pantone del archivo",
+    catalogCode: "ODC",
+  },
+  {
+    code: "4",
+    value: "Producción de referencia",
+    label: "Producción de referencia",
+    catalogCode: "ODC",
+  },
+  {
+    code: "5",
+    value: "Otros",
+    label: "Otros",
+    catalogCode: "ODC",
+  },
+];
+
+const PRESS_APPROVER_OPTIONS = [
+  {
+    code: "1",
+    value: "Cliente",
+    label: "Cliente",
+    catalogCode: "APR",
+  },
+  {
+    code: "2",
+    value: "Supervisor",
+    label: "Supervisor",
+    catalogCode: "APR",
+  },
+  {
+    code: "3",
+    value: "Ejecutivo Comercial / Coordinador AAGG",
+    label: "Ejecutivo Comercial / Coordinador AAGG",
+    catalogCode: "APR",
+  },
 ];
 
 // MOT (Motivo de Modificación) - Configuración central que define qué campos se habilitan/bloquean
@@ -428,6 +495,13 @@ const FIELD_TO_EDITABLE_GROUP: Record<string, string> = {
   edagVersion: "edag",
   hasDesignPlan: "designPlans",
   designPlanFiles: "designPlans",
+  colorObjectiveCode: "design",
+  colorObjective: "design",
+  colorObjectiveOther: "design",
+  pressApproverCode: "design",
+  pressApprover: "design",
+  alusaReferenceCode: "design",
+  designWorkInstructions: "design",
   hasReferenceStructure: "structure",
   referenceEmCode: "structure",
   referenceEmVersion: "structure",
@@ -496,6 +570,28 @@ const FIELD_TO_EDITABLE_GROUP: Record<string, string> = {
   externalVariationPlus: "core",
   externalVariationMinus: "core",
   maxRollWeight: "core",
+  perimeterMm: "dimensions",
+  dimensionCrossCheckStatus: "dimensions",
+  perimeterValidationStatus: "dimensions",
+  perimeterComment: "dimensions",
+  hasPhotoregister1: "design",
+  fr1Width: "design",
+  fr1Height: "design",
+  fr1MarginLeft: "design",
+  fr1MarginRight: "design",
+  fr1MarginTop: "design",
+  fr1MarginBottom: "design",
+  hasPhotoregister2: "design",
+  fr2Width: "design",
+  fr2Height: "design",
+  fr2MarginLeft: "design",
+  fr2MarginRight: "design",
+  fr2MarginTop: "design",
+  fr2MarginBottom: "design",
+  rewindingDirection: "design",
+  rewindingDirectionRef: "design",
+  hasPhotocell: "design",
+  photocellLocation: "design",
 };
 
 // Helpers para MOT
@@ -1526,6 +1622,37 @@ const POUCH_DOY_PACK_DIMENSION_RESTRICTIONS = {
   gussetWidth: { min: 0, max: 3, label: "Ancho fuelle" },
 } as const;
 
+const DESIGN_PLAN_TYPE_OPTIONS = [
+  {
+    value: "AI_ZIP_EMPAQUETADO",
+    label: "Archivo .ai empaquetado en formato ZIP",
+    description: "Guardado con la opción EMPAQUETAR de Illustrator.",
+    acceptedExtensions: [".zip"],
+    requiresFile: true,
+  },
+  {
+    value: "AI_PDF_FUENTES_LINKS_ZIP",
+    label: "Archivos individuales múltiples .ai, .pdf con fuentes y links empaquetados en ZIP",
+    description: "Debe cargarse en un archivo ZIP consolidado.",
+    acceptedExtensions: [".zip"],
+    requiresFile: true,
+  },
+  {
+    value: "AI_PDF_BAJA_ALTA_RESOLUCION",
+    label: "Archivos individuales .ai, .pdf baja resolución y .pdf alta resolución",
+    description: "Debe incluir fuentes y links correspondientes.",
+    acceptedExtensions: [".ai", ".pdf", ".zip"],
+    requiresFile: true,
+  },
+  {
+    value: "SOLO_DATOS_SIN_WEBCENTER",
+    label: "Solo datos. Archivo de arte no enviado con WebCenter.",
+    description: "No se carga archivo de arte. Registrar comentario obligatorio.",
+    acceptedExtensions: [],
+    requiresFile: false,
+  },
+];
+
 const STEPS = [
   { label: "Producto" },
   { label: "Diseño" },
@@ -1562,6 +1689,16 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "printClass",
     "printType",
     "hasDesignPlan",
+    "designPlanType",
+    "designPlanComments",
+    "designPlanFiles",
+    "colorObjectiveCode",
+    "colorObjective",
+    "colorObjectiveOther",
+    "pressApproverCode",
+    "pressApprover",
+    "alusaReferenceCode",
+    "designWorkInstructions",
     "tipoFamiliaPouch",
     "tipoStandUpPouch",
     "formaDoyPackPouch",
@@ -1572,7 +1709,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "tipoSelloEnFuellePouch",
     "specialDesignSpecs",
     "specialDesignComments",
-    "designPlanFiles",
     "perimeterMm",
     "dimensionCrossCheckStatus",
     "perimeterValidationStatus",
@@ -1620,6 +1756,7 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "hasPreCut", "preCutType", "otherAccessories",
 
     "hasCustomerTechnicalSpec", "customerTechnicalSpecAttachment",
+    "customerTechnicalSpecFiles", "customerTechnicalSpecComments",
 
     "coreMaterial", "coreDiameter", "externalDiameter",
     "externalVariationPlus", "externalVariationMinus", "maxRollWeight",
@@ -1671,6 +1808,13 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   hasEdagReference: "¿Tiene Diseño de referencia?",
   edagCode: "Código EDAG",
   edagVersion: "Versión EDAG",
+  colorObjectiveCode: "Objetivo de color",
+  colorObjective: "Objetivo de color",
+  colorObjectiveOther: "Objetivo de color - otro",
+  pressApproverCode: "Aprobador de prensa",
+  pressApprover: "Aprobador de prensa",
+  alusaReferenceCode: "Código de referencia (ALUSA)",
+  designWorkInstructions: "Instrucciones de trabajo para diseño",
   tipoFormatoLamina: "Tipo de Lámina",
   tipoFamiliaPouch: "Familia de pouch",
   tipoStandUpPouch: "Tipo de Stand Up",
@@ -1708,6 +1852,12 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   fr2MarginRight: "FR2 - Margen Derecho",
   fr2MarginTop: "FR2 - Margen Superior",
   fr2MarginBottom: "FR2 - Margen Inferior",
+
+  designPlanType: "Tipo de plano",
+  designPlanComments: "Comentario de planos / WebCenter",
+
+  customerTechnicalSpecFiles: "Archivos de especificación técnica del cliente",
+  customerTechnicalSpecComments: "Comentario de especificación técnica",
 
   hasReferenceStructure: "¿Tiene estructura de referencia?",
   referenceEmCode: "Código E/M Referencia",
@@ -1864,6 +2014,16 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     specialDesignComments: form.specialDesignComments?.trim() || "",
     edagCode: form.edagCode,
     edagVersion: form.edagVersion,
+    designPlanType: form.designPlanType,
+    designPlanComments: form.designPlanComments?.trim() || "",
+    designPlanFiles: form.designPlanFiles.slice(),
+    colorObjectiveCode: form.colorObjectiveCode,
+    colorObjective: form.colorObjective,
+    colorObjectiveOther: form.colorObjectiveOther?.trim() || "",
+    pressApproverCode: form.pressApproverCode,
+    pressApprover: form.pressApprover,
+    alusaReferenceCode: form.alusaReferenceCode?.trim() || "",
+    designWorkInstructions: form.designWorkInstructions?.trim() || "",
     perimeterMm: form.perimeterMm,
     dimensionCrossCheckStatus: form.dimensionCrossCheckStatus,
     perimeterValidationStatus: form.perimeterValidationStatus,
@@ -1891,6 +2051,8 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     referenceEmVersion: form.referenceEmVersion,
     hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec,
     customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
+    customerTechnicalSpecFiles: form.customerTechnicalSpecFiles.slice(),
+    customerTechnicalSpecComments: form.customerTechnicalSpecComments?.trim() || "",
     structureType: form.structureType,
     layer1MaterialGroup: form.layer1MaterialGroup,
     layer1Material: form.layer1Material,
@@ -1956,7 +2118,6 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     deliveryAddress: form.deliveryAddress?.trim() || "",
     additionalComment: form.additionalComment?.trim() || "",
     licitacion: form.licitacion,
-    designPlanFiles: form.designPlanFiles.slice(),
   };
 }
 
@@ -2160,6 +2321,8 @@ export default function ProductEditPage() {
     projectType: "",
     motivoModificacion: "",
     salesforceAction: "",
+    designPlanType: "",
+    designPlanComments: "",
     blueprintFormat: "",
     tipoPresentacionBolsa: "",
     tipoSelloBolsa: "",
@@ -2212,6 +2375,13 @@ export default function ProductEditPage() {
     specialDesignComments: "",
     edagCode: "",
     edagVersion: "",
+    colorObjectiveCode: "",
+    colorObjective: "",
+    colorObjectiveOther: "",
+    pressApproverCode: "",
+    pressApprover: "",
+    alusaReferenceCode: "",
+    designWorkInstructions: "",
     perimeterMm: "",
     dimensionCrossCheckStatus: "",
     perimeterValidationStatus: "",
@@ -2223,6 +2393,8 @@ export default function ProductEditPage() {
     referenceEmVersion: "",
     hasCustomerTechnicalSpec: "",
     customerTechnicalSpecAttachment: "",
+    customerTechnicalSpecFiles: [],
+    customerTechnicalSpecComments: "",
     structureType: "",
     layer1MaterialGroup: "",
     layer1Material: "",
@@ -2517,6 +2689,36 @@ if (!project) {
       specialDesignComments: project.specialDesignComments || "",
       edagCode: project.edagCode || "",
       edagVersion: project.edagVersion || "",
+      designPlanType: (project as any).designPlanType || "",
+      designPlanComments: (project as any).designPlanComments || "",
+      colorObjectiveCode: getAnyProjectValue(project, [
+        "colorObjectiveCode",
+        "objetivoColorCodigo",
+      ]),
+      colorObjective: getAnyProjectValue(project, [
+        "colorObjective",
+        "objetivoColor",
+      ]),
+      colorObjectiveOther: getAnyProjectValue(project, [
+        "colorObjectiveOther",
+        "objetivoColorOtro",
+      ]),
+      pressApproverCode: getAnyProjectValue(project, [
+        "pressApproverCode",
+        "aprobadorPrensaCodigo",
+      ]),
+      pressApprover: getAnyProjectValue(project, [
+        "pressApprover",
+        "aprobadorPrensa",
+      ]),
+      alusaReferenceCode: getAnyProjectValue(project, [
+        "alusaReferenceCode",
+        "codigoReferenciaAlusa",
+      ]),
+      designWorkInstructions: getAnyProjectValue(project, [
+        "designWorkInstructions",
+        "instruccionesTrabajoDiseno",
+      ]),
       perimeterMm: (project as any).perimeterMm || "",
       dimensionCrossCheckStatus: (project as any).dimensionCrossCheckStatus || "",
       perimeterValidationStatus: (project as any).perimeterValidationStatus || "",
@@ -2528,6 +2730,8 @@ if (!project) {
       referenceEmVersion: project.referenceEmVersion || "",
       hasCustomerTechnicalSpec: toYesNo((project as any).hasCustomerTechnicalSpec),
       customerTechnicalSpecAttachment: (project as any).customerTechnicalSpecAttachment || "",
+      customerTechnicalSpecFiles: (project as any).customerTechnicalSpecFiles || [],
+      customerTechnicalSpecComments: (project as any).customerTechnicalSpecComments || "",
       // CORRECCIÓN: Usar resolver para structureType (puede venir como estructuraCalculada desde modal)
       structureType: resolveInitialStructureType(project) || "Monocapa",
       // CORRECCIÓN: Intentar cargar material group si viene del modal (ProductInitialCreateModal guarda esto)
@@ -3588,19 +3792,41 @@ if (!project) {
     }
 
     if (canEditDesign) {
-      if (form.hasDesignPlan === "Sí" && (!form.designPlanFiles || form.designPlanFiles.length === 0)) {
-        errors.designPlanFiles = "Debe cargar al menos un plano de diseño.";
+      if (form.hasDesignPlan === "Sí") {
+        if (!form.designPlanType) {
+          errors.designPlanType = "Selecciona el tipo de plano.";
+        } else {
+          const selectedDesignPlanType = DESIGN_PLAN_TYPE_OPTIONS.find(
+            (item) => item.value === form.designPlanType
+          );
+
+          if (selectedDesignPlanType?.requiresFile && (!form.designPlanFiles || form.designPlanFiles.length === 0)) {
+            errors.designPlanFiles = "Debe cargar al menos un archivo de plano de diseño.";
+          }
+
+          if (form.designPlanType === "SOLO_DATOS_SIN_WEBCENTER" && !form.designPlanComments?.trim()) {
+            errors.designPlanComments = "Registra el comentario cuando el archivo de arte no se envía con WebCenter.";
+          }
+        }
       }
     }
 
     // Validar Especificación Técnica del Cliente
-    // Si selecciona "Sí", debe haber al menos un archivo cargado en ProjectDocumentsSection
-    if (form.hasCustomerTechnicalSpec === "Sí" && projectCode) {
-      const uploadedDocuments = getDocumentsByProject(projectCode);
-      if (uploadedDocuments.length === 0) {
-        errors.customerTechnicalSpecAttachment =
+    // Si selecciona "Sí", debe haber al menos un archivo cargado
+    if (form.hasCustomerTechnicalSpec === "Sí") {
+      if (form.customerTechnicalSpecFiles.length === 0) {
+        errors.customerTechnicalSpecFiles =
           "Debe adjuntar al menos un archivo de especificación técnica del cliente.";
       }
+    }
+
+    // Validar Objetivo de color - otro
+    // Solo se valida si se selecciona "Otros" (código "5")
+    if (
+      (form.colorObjectiveCode === "5" || form.colorObjective === "Otros") &&
+      !form.colorObjectiveOther.trim()
+    ) {
+      errors.colorObjectiveOther = "Debe especificar el objetivo de color.";
     }
 
     // Validar tipo de perforación según la envoltura
@@ -3614,7 +3840,7 @@ if (!project) {
     }
 
     return errors;
-  }, [form, requiredFields, shouldApplyPouchDoyPackRestrictions, inheritedWrapping, projectCode, shouldShowInternalAccessories, hasPerforation, isPouch, isBolsa, dimensionRestrictions]);
+  }, [form, requiredFields, shouldApplyPouchDoyPackRestrictions, inheritedWrapping, projectCode, shouldShowInternalAccessories, hasPerforation, isPouch, isBolsa, dimensionRestrictions, canEditDesign]);
 
   const shouldShowFieldError = (field: keyof ProjectEditFormData) => {
     return Boolean(validationErrors[field] && (submitAttempted || touchedFields[field]));
@@ -3879,12 +4105,33 @@ if (!project) {
       previousEdagCode: form.referenceEdagCode,
       previousEdagVersion: form.referenceEdagVersion,
       hasDesignPlan: form.hasDesignPlan as BooleanLike,
+      designPlanType: form.designPlanType,
+      designPlanComments: form.designPlanComments,
+
+      colorObjectiveCode: form.colorObjectiveCode,
+      colorObjective: form.colorObjective,
+      colorObjectiveOther: form.colorObjectiveOther,
+      objetivoColorCodigo: form.colorObjectiveCode,
+      objetivoColor: form.colorObjective,
+      objetivoColorOtro: form.colorObjectiveOther,
+
+      pressApproverCode: form.pressApproverCode,
+      pressApprover: form.pressApprover,
+      aprobadorPrensaCodigo: form.pressApproverCode,
+      aprobadorPrensa: form.pressApprover,
+
+      alusaReferenceCode: form.alusaReferenceCode,
+      codigoReferenciaAlusa: form.alusaReferenceCode,
+      designWorkInstructions: form.designWorkInstructions,
+      instruccionesTrabajoDiseno: form.designWorkInstructions,
 
       hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
       referenceEmCode: form.referenceEmCode,
       referenceEmVersion: form.referenceEmVersion,
       hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec as BooleanLike,
       customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
+      customerTechnicalSpecFiles: form.customerTechnicalSpecFiles,
+      customerTechnicalSpecComments: form.customerTechnicalSpecComments,
       structureType: form.structureType,
 
       layer1Material: form.layer1Material,
@@ -3965,6 +4212,30 @@ if (!project) {
       additionalComment: form.additionalComment,
       licitacion: form.licitacion as YesNoPending,
       designPlanFiles: form.designPlanFiles,
+
+      // Design field persistence - Perímetros, Fotoregistro, Sentido de Bobinado, Fotocelda
+      perimeterMm: form.perimeterMm,
+      dimensionCrossCheckStatus: form.dimensionCrossCheckStatus,
+      perimeterValidationStatus: form.perimeterValidationStatus,
+      perimeterComment: form.perimeterComment,
+      hasPhotoregister1: form.hasPhotoregister1 as BooleanLike,
+      fr1Width: form.fr1Width,
+      fr1Height: form.fr1Height,
+      fr1MarginLeft: form.fr1MarginLeft,
+      fr1MarginRight: form.fr1MarginRight,
+      fr1MarginTop: form.fr1MarginTop,
+      fr1MarginBottom: form.fr1MarginBottom,
+      hasPhotoregister2: form.hasPhotoregister2 as BooleanLike,
+      fr2Width: form.fr2Width,
+      fr2Height: form.fr2Height,
+      fr2MarginLeft: form.fr2MarginLeft,
+      fr2MarginRight: form.fr2MarginRight,
+      fr2MarginTop: form.fr2MarginTop,
+      fr2MarginBottom: form.fr2MarginBottom,
+      rewindingDirection: form.rewindingDirection,
+      rewindingDirectionRef: form.rewindingDirectionRef,
+      hasPhotocell: form.hasPhotocell as BooleanLike,
+      photocellLocation: form.photocellLocation,
 
       status: needsRevalidation ? (nextStatus === "Validado" ? "Ficha Completa" : nextStatus) : nextStatus,
       stage: needsRevalidation ? (nextStage === "P3_GESTION_PRODUCTOS_PRELIMINARES" ? "P1_FICHA_PROYECTO" : nextStage) : nextStage,
@@ -4138,12 +4409,33 @@ if (!project) {
       previousEdagCode: form.referenceEdagCode,
       previousEdagVersion: form.referenceEdagVersion,
       hasDesignPlan: form.hasDesignPlan as BooleanLike,
+      designPlanType: form.designPlanType,
+      designPlanComments: form.designPlanComments,
+
+      colorObjectiveCode: form.colorObjectiveCode,
+      colorObjective: form.colorObjective,
+      colorObjectiveOther: form.colorObjectiveOther,
+      objetivoColorCodigo: form.colorObjectiveCode,
+      objetivoColor: form.colorObjective,
+      objetivoColorOtro: form.colorObjectiveOther,
+
+      pressApproverCode: form.pressApproverCode,
+      pressApprover: form.pressApprover,
+      aprobadorPrensaCodigo: form.pressApproverCode,
+      aprobadorPrensa: form.pressApprover,
+
+      alusaReferenceCode: form.alusaReferenceCode,
+      codigoReferenciaAlusa: form.alusaReferenceCode,
+      designWorkInstructions: form.designWorkInstructions,
+      instruccionesTrabajoDiseno: form.designWorkInstructions,
 
       hasReferenceStructure: form.hasReferenceStructure as BooleanLike,
       referenceEmCode: form.referenceEmCode,
       referenceEmVersion: form.referenceEmVersion,
       hasCustomerTechnicalSpec: form.hasCustomerTechnicalSpec as BooleanLike,
       customerTechnicalSpecAttachment: form.customerTechnicalSpecAttachment,
+      customerTechnicalSpecFiles: form.customerTechnicalSpecFiles,
+      customerTechnicalSpecComments: form.customerTechnicalSpecComments,
       structureType: form.structureType,
 
       layer1Material: form.layer1Material,
@@ -4224,6 +4516,30 @@ if (!project) {
       additionalComment: form.additionalComment,
       licitacion: form.licitacion as YesNoPending,
       designPlanFiles: form.designPlanFiles,
+
+      // Design field persistence - Perímetros, Fotoregistro, Sentido de Bobinado, Fotocelda
+      perimeterMm: form.perimeterMm,
+      dimensionCrossCheckStatus: form.dimensionCrossCheckStatus,
+      perimeterValidationStatus: form.perimeterValidationStatus,
+      perimeterComment: form.perimeterComment,
+      hasPhotoregister1: form.hasPhotoregister1 as BooleanLike,
+      fr1Width: form.fr1Width,
+      fr1Height: form.fr1Height,
+      fr1MarginLeft: form.fr1MarginLeft,
+      fr1MarginRight: form.fr1MarginRight,
+      fr1MarginTop: form.fr1MarginTop,
+      fr1MarginBottom: form.fr1MarginBottom,
+      hasPhotoregister2: form.hasPhotoregister2 as BooleanLike,
+      fr2Width: form.fr2Width,
+      fr2Height: form.fr2Height,
+      fr2MarginLeft: form.fr2MarginLeft,
+      fr2MarginRight: form.fr2MarginRight,
+      fr2MarginTop: form.fr2MarginTop,
+      fr2MarginBottom: form.fr2MarginBottom,
+      rewindingDirection: form.rewindingDirection,
+      rewindingDirectionRef: form.rewindingDirectionRef,
+      hasPhotocell: form.hasPhotocell as BooleanLike,
+      photocellLocation: form.photocellLocation,
 
       status: shouldSubmitForValidation ? "En validación" : calculatedStatus,
       stage: shouldSubmitForValidation ? "P2_VALIDACION_VIABILIDAD_TECNICA" : "P1_PREPARACION_FICHA_PROYECTO",
@@ -4740,7 +5056,7 @@ if (!project) {
                           <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
                             Configuración de Formato
                           </h4>
-
+                          
                           {isPouchWrapping(inheritedWrapping) ? (
                             <div className="space-y-4">
                               <FormSelect
@@ -4862,18 +5178,6 @@ if (!project) {
                                   placeholder="-- Seleccione --"
                                 />
                               )}
-
-                              {form.blueprintFormat && (
-                                <div className="mt-4">
-                                  <FormatoPlanoBadge
-                                    value={form.blueprintFormat}
-                                    wrappingType="POUCH"
-                                    onCopy={() => {
-                                      navigator.clipboard.writeText(form.blueprintFormat);
-                                    }}
-                                  />
-                                </div>
-                              )}
                             </div>
                           ) : isBolsaWrapping(inheritedWrapping) ? (
                             <div className="space-y-4">
@@ -4956,18 +5260,6 @@ if (!project) {
                                   </>
                                 )}
                               </div>
-
-                              {form.blueprintFormat && (
-                                <div className="mt-4">
-                                  <FormatoPlanoBadge
-                                    value={form.blueprintFormat}
-                                    wrappingType="BOLSA"
-                                    onCopy={() => {
-                                      navigator.clipboard.writeText(form.blueprintFormat);
-                                    }}
-                                  />
-                                </div>
-                              )}
                             </div>
                           ) : isLaminaWrapping(inheritedWrapping) ? (
                             <div className="space-y-4">
@@ -4987,18 +5279,6 @@ if (!project) {
                                 ]}
                                 placeholder="-- Seleccione --"
                               />
-
-                              {form.blueprintFormat && (
-                                <div className="mt-4">
-                                  <FormatoPlanoBadge
-                                    value={form.blueprintFormat}
-                                    wrappingType="LAMINA"
-                                    onCopy={() => {
-                                      navigator.clipboard.writeText(form.blueprintFormat);
-                                    }}
-                                  />
-                                </div>
-                              )}
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -5015,6 +5295,7 @@ if (!project) {
                             </div>
                           )}
                         </div>
+                        
                       </div>
                     );
                   })()}
@@ -5028,8 +5309,11 @@ if (!project) {
                     onChange={(value) => {
                       updateField("hasDesignPlan", value);
                       if (value === "No") {
+                        updateField("designPlanType", "");
                         updateField("designPlanFiles", []);
+                        updateField("designPlanComments", "");
                       }
+                      markFieldAsTouched("hasDesignPlan");
                     }}
                     onBlur={() => markFieldAsTouched("hasDesignPlan")}
                     error={getError("hasDesignPlan")}
@@ -5038,15 +5322,160 @@ if (!project) {
                   />
                 </div>
 
-                <ProjectPlansUploadSection
-                  projectCode={projectCode}
-                  error={getError("designPlanFiles")}
-                  required={form.hasDesignPlan === "Sí"}
-                  onFilesChange={(fileNames) => {
-                    updateField("designPlanFiles", fileNames);
-                    markFieldAsTouched("designPlanFiles");
-                  }}
-                />
+                <FormCard title="Información técnica de diseño" icon="🎨" color="#00395A">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <FormSelect
+                      label="Objetivo de color"
+                      value={form.colorObjectiveCode}
+                      onChange={(value) => {
+                        const selected = COLOR_OBJECTIVE_OPTIONS.find((item) => item.code === value);
+
+                        updateField("colorObjectiveCode", selected?.code || "");
+                        updateField("colorObjective", selected?.value || "");
+
+                        if (selected?.code !== "5") {
+                          updateField("colorObjectiveOther", "");
+                        }
+
+                        markFieldAsTouched("colorObjectiveCode");
+                      }}
+                      placeholder="-- Seleccione --"
+                      options={COLOR_OBJECTIVE_OPTIONS.map((item) => ({
+                        value: item.code,
+                        label: item.label,
+                      }))}
+                      disabled={!canEditDesign}
+                      error={getError("colorObjectiveCode")}
+                    />
+
+                    {(form.colorObjectiveCode === "5" || form.colorObjective === "Otros") && (
+                      <FormInput
+                        label="Objetivo de color - otro"
+                        value={form.colorObjectiveOther}
+                        onChange={(value) => updateField("colorObjectiveOther", value)}
+                        onBlur={() => markFieldAsTouched("colorObjectiveOther")}
+                        placeholder="Especifique el objetivo de color..."
+                        disabled={!canEditDesign}
+                        error={getError("colorObjectiveOther")}
+                      />
+                    )}
+
+                    <FormSelect
+                      label="Aprobador de prensa"
+                      value={form.pressApproverCode}
+                      onChange={(value) => {
+                        const selected = PRESS_APPROVER_OPTIONS.find((item) => item.code === value);
+
+                        updateField("pressApproverCode", selected?.code || "");
+                        updateField("pressApprover", selected?.value || "");
+
+                        markFieldAsTouched("pressApproverCode");
+                      }}
+                      placeholder="-- Seleccione --"
+                      options={PRESS_APPROVER_OPTIONS.map((item) => ({
+                        value: item.code,
+                        label: item.label,
+                      }))}
+                      disabled={!canEditDesign}
+                      error={getError("pressApproverCode")}
+                    />
+
+                    <FormInput
+                      label="Código de referencia (ALUSA)"
+                      value={form.alusaReferenceCode}
+                      onChange={(value) => updateField("alusaReferenceCode", value)}
+                      onBlur={() => markFieldAsTouched("alusaReferenceCode")}
+                      placeholder="Ingrese código de referencia ALUSA..."
+                      disabled={!canEditDesign}
+                      error={getError("alusaReferenceCode")}
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    <FormTextarea
+                      label="Instrucciones de trabajo para diseño"
+                      value={form.designWorkInstructions}
+                      onChange={(value) => updateField("designWorkInstructions", value)}
+                      onBlur={() => markFieldAsTouched("designWorkInstructions")}
+                      placeholder="Ingrese instrucciones específicas para diseño..."
+                      disabled={!canEditDesign}
+                      error={getError("designWorkInstructions")}
+                    />
+                  </div>
+                </FormCard>
+
+                {form.hasDesignPlan === "Sí" && (
+                  <FormCard title="Carga de planos de diseño" icon="📎" color="#00395A" required>
+                    <div className="space-y-4">
+                      <FormSelect
+                        label="Tipo de plano *"
+                        value={form.designPlanType}
+                        onChange={(value) => {
+                          updateField("designPlanType", value);
+                          updateField("designPlanFiles", []);
+                          markFieldAsTouched("designPlanType");
+                        }}
+                        onBlur={() => markFieldAsTouched("designPlanType")}
+                        error={getError("designPlanType")}
+                        placeholder="-- Seleccione el tipo de plano --"
+                        options={DESIGN_PLAN_TYPE_OPTIONS.map((item) => ({
+                          value: item.value,
+                          label: item.label,
+                        }))}
+                      />
+
+                      {form.designPlanType && (
+                        <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
+                          {
+                            DESIGN_PLAN_TYPE_OPTIONS.find(
+                              (item) => item.value === form.designPlanType
+                            )?.description
+                          }
+                        </div>
+                      )}
+
+                      {form.designPlanType &&
+                        DESIGN_PLAN_TYPE_OPTIONS.find((item) => item.value === form.designPlanType)?.requiresFile && (
+                          <ProjectPlansUploadSection
+                            projectCode={projectCode}
+                            error={getError("designPlanFiles")}
+                            required
+                            acceptedExtensions={
+                              DESIGN_PLAN_TYPE_OPTIONS.find((item) => item.value === form.designPlanType)?.acceptedExtensions || []
+                            }
+                            onFilesChange={(fileNames) => {
+                              updateField("designPlanFiles", fileNames);
+                              markFieldAsTouched("designPlanFiles");
+                            }}
+                          />
+                        )}
+
+                      {form.designPlanType === "SOLO_DATOS_SIN_WEBCENTER" && (
+                        <FormTextarea
+                          label="Comentario de planos / WebCenter *"
+                          value={form.designPlanComments}
+                          onChange={(value) => updateField("designPlanComments", value)}
+                          onBlur={() => markFieldAsTouched("designPlanComments")}
+                          error={getError("designPlanComments")}
+                          placeholder="Indicar por qué no se envía archivo de arte con WebCenter..."
+                        />
+                      )}
+                    </div>
+                  </FormCard>
+                )}
+
+                {/* BLOQUE: VISTA PREVIA DEL PLANO DIMENSIONAL */}
+                {canEditDesign && (
+                  <DimensionalPlanPreview
+                    wrappingType={inheritedWrapping}
+                    blueprintFormat={form.blueprintFormat}
+                    width={form.width}
+                    repeat={form.length}
+                    perimeterMm={form.perimeterMm}
+                    dimensionCrossCheckStatus={form.dimensionCrossCheckStatus}
+                    perimeterValidationStatus={form.perimeterValidationStatus}
+                  />
+                )}
 
                 {/* BLOQUE 1: PERÍMETROS */}
                 {canEditDesign && (
@@ -5266,34 +5695,25 @@ if (!project) {
 
                 {/* BLOQUE 3: SENTIDO DE BOBINADO */}
                 {canEditDesign && (
-                  <FormCard title="Sentido de Bobinado" icon="🔄" color="#27ae60">
+                  <FormCard title="Sentido de Embobinado" icon="🔄" color="#27ae60">
                     <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <FormSelect
-                          label="Sentido de bobinado"
-                          value={form.rewindingDirection}
-                          onChange={(value) => updateField("rewindingDirection", value)}
-                          placeholder="-- Seleccione --"
-                          options={[
-                            { value: "Sentido 1", label: "Sentido 1" },
-                            { value: "Sentido 2", label: "Sentido 2" },
-                            { value: "Sentido 3", label: "Sentido 3" },
-                            { value: "Sentido 4", label: "Sentido 4" },
-                            { value: "Sentido 5", label: "Sentido 5" },
-                            { value: "Sentido 6", label: "Sentido 6" },
-                            { value: "Sentido 7", label: "Sentido 7" },
-                            { value: "Sentido 8", label: "Sentido 8" },
-                          ]}
-                          disabled={!canEditDesign}
-                        />
-                        <FormInput
-                          label="Referencia de sentido"
-                          value={form.rewindingDirectionRef}
-                          onChange={(value) => updateField("rewindingDirectionRef", value)}
-                          placeholder="Descripción o referencia"
-                          disabled={!canEditDesign}
-                        />
-                      </div>
+                      <RewindingDirectionSelector
+                        value={form.rewindingDirection}
+                        onChange={(value) => {
+                          updateField("rewindingDirection", value);
+                          markFieldAsTouched("rewindingDirection");
+                        }}
+                        disabled={!canEditDesign}
+                      />
+
+                      <FormInput
+                        label="Referencia de sentido"
+                        value={form.rewindingDirectionRef}
+                        onChange={(value) => updateField("rewindingDirectionRef", value)}
+                        onBlur={() => markFieldAsTouched("rewindingDirectionRef")}
+                        placeholder="Descripción o referencia"
+                        disabled={!canEditDesign}
+                      />
                     </div>
                   </FormCard>
                 )}
@@ -5894,16 +6314,27 @@ if (!project) {
 
                   {form.hasCustomerTechnicalSpec === "Sí" && (
                     <>
-                      <ProjectDocumentsSection
+                      <CustomerTechnicalSpecUploadSection
                         projectCode={projectCode}
-                        showPlans={false}
+                        error={getError("customerTechnicalSpecFiles")}
+                        required={true}
+                        onFilesChange={(fileNames) => {
+                          updateField("customerTechnicalSpecFiles", fileNames);
+                          markFieldAsTouched("customerTechnicalSpecFiles");
+                        }}
                         embedded={true}
                       />
-                      {getError("customerTechnicalSpecAttachment") && (
-                        <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
-                          {getError("customerTechnicalSpecAttachment")}
-                        </div>
-                      )}
+                      <FormTextarea
+                        label="Comentarios (Opcional)"
+                        value={form.customerTechnicalSpecComments}
+                        onChange={(value) => {
+                          updateField("customerTechnicalSpecComments", value);
+                          markFieldAsTouched("customerTechnicalSpecComments");
+                        }}
+                        onBlur={() => markFieldAsTouched("customerTechnicalSpecComments")}
+                        placeholder="Comentarios adicionales sobre la especificación técnica"
+                        rows={3}
+                      />
                     </>
                   )}
                 </div>

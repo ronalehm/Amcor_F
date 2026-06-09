@@ -2,26 +2,26 @@ import { Upload, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getDocumentsByProject, saveDocument, deleteDocument, generateDocumentId } from "../../../shared/data/projectDocumentStorage";
 
-interface ProjectPlansUploadSectionProps {
+interface CustomerTechnicalSpecUploadSectionProps {
   projectCode: string;
   error?: string;
   required?: boolean;
-  acceptedExtensions?: string[];
   onFilesChange: (fileNames: string[]) => void;
   embedded?: boolean;
 }
 
-export default function ProjectPlansUploadSection({
+export default function CustomerTechnicalSpecUploadSection({
   projectCode,
   error,
   required = false,
-  acceptedExtensions = [".ai", ".pdf", ".zip"],
   onFilesChange,
   embedded = false,
-}: ProjectPlansUploadSectionProps) {
+}: CustomerTechnicalSpecUploadSectionProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string>("");
+
+  const acceptedExtensions = [".png", ".jpg", ".jpeg", ".webp", ".pdf", ".doc", ".docx", ".xls", ".xlsx"];
 
   useEffect(() => {
     const files = getDocumentsByProject(projectCode);
@@ -36,7 +36,6 @@ export default function ProjectPlansUploadSection({
   };
 
   const isValidFileExtension = (fileName: string): boolean => {
-    if (acceptedExtensions.length === 0) return false;
     const extension = getFileExtension(fileName);
     return acceptedExtensions.some((ext) => ext.toLowerCase() === extension.toLowerCase());
   };
@@ -121,7 +120,7 @@ export default function ProjectPlansUploadSection({
     <div className={containerClass}>
       {!embedded && (
         <h3 className="text-sm font-semibold text-slate-900 mb-3">
-          Carga de planos de diseño
+          Carga de especificación técnica del cliente
         </h3>
       )}
 
@@ -150,7 +149,7 @@ export default function ProjectPlansUploadSection({
             className={`${error || uploadError ? "text-red-500" : isDragging ? "text-brand-primary" : "text-slate-400"}`}
           />
           <p className="text-sm font-semibold text-slate-900">
-            Arrastra aquí tus planos o haz clic para seleccionar archivos
+            Arrastra aquí tus documentos o haz clic para seleccionar archivos
           </p>
           {acceptedExtensions.length > 0 && (
             <p className="text-xs text-slate-500">
@@ -164,12 +163,12 @@ export default function ProjectPlansUploadSection({
           multiple
           onChange={(e) => handleFiles(e.target.files)}
           className="hidden"
-          id={`file-input-${projectCode}`}
-          accept={acceptedExtensions.length > 0 ? acceptedExtensions.join(",") : ""}
+          id={`file-input-spec-${projectCode}`}
+          accept={acceptedExtensions.join(",")}
         />
 
         <label
-          htmlFor={`file-input-${projectCode}`}
+          htmlFor={`file-input-spec-${projectCode}`}
           className="mt-3 inline-block cursor-pointer px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
         >
           Seleccionar archivos

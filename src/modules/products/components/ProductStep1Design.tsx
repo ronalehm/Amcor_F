@@ -4,7 +4,6 @@ import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import SegmentedControl from "../../../shared/components/forms/SegmentedControl";
-import ProjectPlansUploadSection from "./ProjectPlansUploadSection";
 import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
 
 type StepProps = {
@@ -350,14 +349,6 @@ export default function ProductStep1Design({
             />
           </div>
 
-          {/* ProjectPlansUploadSection */}
-          {form.hasDesignPlan === "Sí" && (
-            <ProjectPlansUploadSection
-              form={form}
-              updateField={updateField}
-              markFieldAsTouched={markFieldAsTouched}
-            />
-          )}
         </div>
       </FormCard>
     </div>
