@@ -127,6 +127,14 @@ export type ProjectEditFormData = {
   edagCode: string;
   edagVersion: string;
 
+  perimeterMm: string;
+  dimensionCrossCheckStatus: string;
+  perimeterValidationStatus: string;
+  perimeterComment: string;
+
+  hasPhotoregister1: string;
+  hasPhotoregister2: string;
+
   hasReferenceStructure: string;
   referenceEmCode: string;
   referenceEmVersion: string;
@@ -1565,6 +1573,28 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "specialDesignSpecs",
     "specialDesignComments",
     "designPlanFiles",
+    "perimeterMm",
+    "dimensionCrossCheckStatus",
+    "perimeterValidationStatus",
+    "perimeterComment",
+    "rewindingDirection",
+    "rewindingDirectionRef",
+    "hasPhotocell",
+    "photocellLocation",
+    "hasPhotoregister1",
+    "fr1Width",
+    "fr1Height",
+    "fr1MarginLeft",
+    "fr1MarginRight",
+    "fr1MarginTop",
+    "fr1MarginBottom",
+    "hasPhotoregister2",
+    "fr2Width",
+    "fr2Height",
+    "fr2MarginLeft",
+    "fr2MarginRight",
+    "fr2MarginTop",
+    "fr2MarginBottom",
   ],
 
   // 3. Estructura
@@ -1652,6 +1682,32 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   tipoSelloEnFuellePouch: "Tipo de sello en fuelle",
   specialDesignSpecs: "Especificaciones Especiales",
   specialDesignComments: "Comentarios de diseños especiales",
+
+  perimeterMm: "Perímetro (mm)",
+  dimensionCrossCheckStatus: "Validación de dimensiones",
+  perimeterValidationStatus: "Validación de perímetros",
+  perimeterComment: "Comentario de perímetro",
+
+  rewindingDirection: "Sentido de bobinado",
+  rewindingDirectionRef: "Referencia de sentido",
+  hasPhotocell: "¿Tiene fotocelda?",
+  photocellLocation: "Ubicación fotocelda",
+
+  hasPhotoregister1: "¿Tiene Fotoregistro 1?",
+  fr1Width: "FR1 - Ancho",
+  fr1Height: "FR1 - Alto",
+  fr1MarginLeft: "FR1 - Margen Izquierdo",
+  fr1MarginRight: "FR1 - Margen Derecho",
+  fr1MarginTop: "FR1 - Margen Superior",
+  fr1MarginBottom: "FR1 - Margen Inferior",
+
+  hasPhotoregister2: "¿Tiene Fotoregistro 2?",
+  fr2Width: "FR2 - Ancho",
+  fr2Height: "FR2 - Alto",
+  fr2MarginLeft: "FR2 - Margen Izquierdo",
+  fr2MarginRight: "FR2 - Margen Derecho",
+  fr2MarginTop: "FR2 - Margen Superior",
+  fr2MarginBottom: "FR2 - Margen Inferior",
 
   hasReferenceStructure: "¿Tiene estructura de referencia?",
   referenceEmCode: "Código E/M Referencia",
@@ -1808,6 +1864,28 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     specialDesignComments: form.specialDesignComments?.trim() || "",
     edagCode: form.edagCode,
     edagVersion: form.edagVersion,
+    perimeterMm: form.perimeterMm,
+    dimensionCrossCheckStatus: form.dimensionCrossCheckStatus,
+    perimeterValidationStatus: form.perimeterValidationStatus,
+    perimeterComment: form.perimeterComment?.trim() || "",
+    rewindingDirection: form.rewindingDirection,
+    rewindingDirectionRef: form.rewindingDirectionRef?.trim() || "",
+    hasPhotocell: form.hasPhotocell,
+    photocellLocation: form.photocellLocation,
+    hasPhotoregister1: form.hasPhotoregister1,
+    fr1Width: form.fr1Width,
+    fr1Height: form.fr1Height,
+    fr1MarginLeft: form.fr1MarginLeft,
+    fr1MarginRight: form.fr1MarginRight,
+    fr1MarginTop: form.fr1MarginTop,
+    fr1MarginBottom: form.fr1MarginBottom,
+    hasPhotoregister2: form.hasPhotoregister2,
+    fr2Width: form.fr2Width,
+    fr2Height: form.fr2Height,
+    fr2MarginLeft: form.fr2MarginLeft,
+    fr2MarginRight: form.fr2MarginRight,
+    fr2MarginTop: form.fr2MarginTop,
+    fr2MarginBottom: form.fr2MarginBottom,
     hasReferenceStructure: form.hasReferenceStructure,
     referenceEmCode: form.referenceEmCode,
     referenceEmVersion: form.referenceEmVersion,
@@ -2134,6 +2212,12 @@ export default function ProductEditPage() {
     specialDesignComments: "",
     edagCode: "",
     edagVersion: "",
+    perimeterMm: "",
+    dimensionCrossCheckStatus: "",
+    perimeterValidationStatus: "",
+    perimeterComment: "",
+    hasPhotoregister1: "",
+    hasPhotoregister2: "",
     hasReferenceStructure: "",
     referenceEmCode: "",
     referenceEmVersion: "",
@@ -2433,6 +2517,12 @@ if (!project) {
       specialDesignComments: project.specialDesignComments || "",
       edagCode: project.edagCode || "",
       edagVersion: project.edagVersion || "",
+      perimeterMm: (project as any).perimeterMm || "",
+      dimensionCrossCheckStatus: (project as any).dimensionCrossCheckStatus || "",
+      perimeterValidationStatus: (project as any).perimeterValidationStatus || "",
+      perimeterComment: (project as any).perimeterComment || "",
+      hasPhotoregister1: (project as any).hasPhotoregister1 || "",
+      hasPhotoregister2: (project as any).hasPhotoregister2 || "",
       hasReferenceStructure: toYesNo(project.hasReferenceStructure),
       referenceEmCode: project.referenceEmCode || "",
       referenceEmVersion: project.referenceEmVersion || "",
@@ -4957,6 +5047,295 @@ if (!project) {
                     markFieldAsTouched("designPlanFiles");
                   }}
                 />
+
+                {/* BLOQUE 1: PERÍMETROS */}
+                {canEditDesign && (
+                  <FormCard title="Perímetros" icon="📏" color="#e74c3c">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <FormInput
+                          label="Perímetro (mm)"
+                          type="number"
+                          value={form.perimeterMm}
+                          onChange={(value) => updateField("perimeterMm", value)}
+                          placeholder="0"
+                          disabled={!canEditDesign}
+                        />
+                        <FormSelect
+                          label="Validación de dimensiones"
+                          value={form.dimensionCrossCheckStatus}
+                          onChange={(value) => updateField("dimensionCrossCheckStatus", value)}
+                          placeholder="-- Seleccione --"
+                          options={[
+                            { value: "Validado", label: "Validado" },
+                            { value: "Pendiente", label: "Pendiente" },
+                            { value: "No aplica", label: "No aplica" },
+                          ]}
+                          disabled={!canEditDesign}
+                        />
+                        <FormSelect
+                          label="Validación de perímetros"
+                          value={form.perimeterValidationStatus}
+                          onChange={(value) => updateField("perimeterValidationStatus", value)}
+                          placeholder="-- Seleccione --"
+                          options={[
+                            { value: "Validado", label: "Validado" },
+                            { value: "Pendiente", label: "Pendiente" },
+                            { value: "No aplica", label: "No aplica" },
+                          ]}
+                          disabled={!canEditDesign}
+                        />
+                      </div>
+                      <FormTextarea
+                        label="Comentario de perímetro"
+                        value={form.perimeterComment}
+                        onChange={(value) => updateField("perimeterComment", value)}
+                        placeholder="Comentarios adicionales sobre el perímetro..."
+                        disabled={!canEditDesign}
+                      />
+                    </div>
+                  </FormCard>
+                )}
+
+                {/* BLOQUE 2: FOTOREGISTRO */}
+                {canEditDesign && (
+                  <FormCard title="Datos del Fotoregistro" icon="📸" color="#3498db">
+                    <div className="space-y-6">
+                      {/* Fotoregistro 1 */}
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="mb-4 flex items-center gap-2">
+                          <h5 className="text-sm font-bold text-slate-900">Fotoregistro 1</h5>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <FormSelect
+                            label="¿Tiene Fotoregistro 1?"
+                            value={form.hasPhotoregister1}
+                            onChange={(value) => {
+                              updateField("hasPhotoregister1", value);
+                              if (value === "No") {
+                                updateField("fr1Width", "");
+                                updateField("fr1Height", "");
+                                updateField("fr1MarginLeft", "");
+                                updateField("fr1MarginRight", "");
+                                updateField("fr1MarginTop", "");
+                                updateField("fr1MarginBottom", "");
+                              }
+                            }}
+                            placeholder="-- Seleccione --"
+                            options={YES_NO_OPTIONS}
+                            disabled={!canEditDesign}
+                          />
+                        </div>
+
+                        {form.hasPhotoregister1 === "Sí" && (
+                          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <FormInput
+                              label="Ancho (mm)"
+                              type="number"
+                              value={form.fr1Width}
+                              onChange={(value) => updateField("fr1Width", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                            <FormInput
+                              label="Alto (mm)"
+                              type="number"
+                              value={form.fr1Height}
+                              onChange={(value) => updateField("fr1Height", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                            <FormInput
+                              label="Margen Izquierdo (mm)"
+                              type="number"
+                              value={form.fr1MarginLeft}
+                              onChange={(value) => updateField("fr1MarginLeft", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                            <FormInput
+                              label="Margen Derecho (mm)"
+                              type="number"
+                              value={form.fr1MarginRight}
+                              onChange={(value) => updateField("fr1MarginRight", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                            <FormInput
+                              label="Margen Superior (mm)"
+                              type="number"
+                              value={form.fr1MarginTop}
+                              onChange={(value) => updateField("fr1MarginTop", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                            <FormInput
+                              label="Margen Inferior (mm)"
+                              type="number"
+                              value={form.fr1MarginBottom}
+                              onChange={(value) => updateField("fr1MarginBottom", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Fotoregistro 2 */}
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="mb-4 flex items-center gap-2">
+                          <h5 className="text-sm font-bold text-slate-900">Fotoregistro 2</h5>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <FormSelect
+                            label="¿Tiene Fotoregistro 2?"
+                            value={form.hasPhotoregister2}
+                            onChange={(value) => {
+                              updateField("hasPhotoregister2", value);
+                              if (value === "No") {
+                                updateField("fr2Width", "");
+                                updateField("fr2Height", "");
+                                updateField("fr2MarginLeft", "");
+                                updateField("fr2MarginRight", "");
+                                updateField("fr2MarginTop", "");
+                                updateField("fr2MarginBottom", "");
+                              }
+                            }}
+                            placeholder="-- Seleccione --"
+                            options={YES_NO_OPTIONS}
+                            disabled={!canEditDesign}
+                          />
+                        </div>
+
+                        {form.hasPhotoregister2 === "Sí" && (
+                          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <FormInput
+                              label="Ancho (mm)"
+                              type="number"
+                              value={form.fr2Width}
+                              onChange={(value) => updateField("fr2Width", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                            <FormInput
+                              label="Alto (mm)"
+                              type="number"
+                              value={form.fr2Height}
+                              onChange={(value) => updateField("fr2Height", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                            <FormInput
+                              label="Margen Izquierdo (mm)"
+                              type="number"
+                              value={form.fr2MarginLeft}
+                              onChange={(value) => updateField("fr2MarginLeft", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                            <FormInput
+                              label="Margen Derecho (mm)"
+                              type="number"
+                              value={form.fr2MarginRight}
+                              onChange={(value) => updateField("fr2MarginRight", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                            <FormInput
+                              label="Margen Superior (mm)"
+                              type="number"
+                              value={form.fr2MarginTop}
+                              onChange={(value) => updateField("fr2MarginTop", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                            <FormInput
+                              label="Margen Inferior (mm)"
+                              type="number"
+                              value={form.fr2MarginBottom}
+                              onChange={(value) => updateField("fr2MarginBottom", value)}
+                              placeholder="0"
+                              disabled={!canEditDesign}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </FormCard>
+                )}
+
+                {/* BLOQUE 3: SENTIDO DE BOBINADO */}
+                {canEditDesign && (
+                  <FormCard title="Sentido de Bobinado" icon="🔄" color="#27ae60">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <FormSelect
+                          label="Sentido de bobinado"
+                          value={form.rewindingDirection}
+                          onChange={(value) => updateField("rewindingDirection", value)}
+                          placeholder="-- Seleccione --"
+                          options={[
+                            { value: "Sentido 1", label: "Sentido 1" },
+                            { value: "Sentido 2", label: "Sentido 2" },
+                            { value: "Sentido 3", label: "Sentido 3" },
+                            { value: "Sentido 4", label: "Sentido 4" },
+                            { value: "Sentido 5", label: "Sentido 5" },
+                            { value: "Sentido 6", label: "Sentido 6" },
+                            { value: "Sentido 7", label: "Sentido 7" },
+                            { value: "Sentido 8", label: "Sentido 8" },
+                          ]}
+                          disabled={!canEditDesign}
+                        />
+                        <FormInput
+                          label="Referencia de sentido"
+                          value={form.rewindingDirectionRef}
+                          onChange={(value) => updateField("rewindingDirectionRef", value)}
+                          placeholder="Descripción o referencia"
+                          disabled={!canEditDesign}
+                        />
+                      </div>
+                    </div>
+                  </FormCard>
+                )}
+
+                {/* BLOQUE OPCIONAL: FOTOCELDA */}
+                {canEditDesign && (
+                  <FormCard title="Fotocelda" icon="📹" color="#9b59b6">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <FormSelect
+                          label="¿Tiene fotocelda?"
+                          value={form.hasPhotocell}
+                          onChange={(value) => {
+                            updateField("hasPhotocell", value);
+                            if (value === "No") {
+                              updateField("photocellLocation", "");
+                            }
+                          }}
+                          placeholder="-- Seleccione --"
+                          options={YES_NO_OPTIONS}
+                          disabled={!canEditDesign}
+                        />
+                        {form.hasPhotocell === "Sí" && (
+                          <FormSelect
+                            label="Ubicación fotocelda"
+                            value={form.photocellLocation}
+                            onChange={(value) => updateField("photocellLocation", value)}
+                            placeholder="-- Seleccione --"
+                            options={[
+                              { value: "Superior", label: "Superior" },
+                              { value: "Inferior", label: "Inferior" },
+                              { value: "Izquierda", label: "Izquierda" },
+                              { value: "Derecha", label: "Derecha" },
+                              { value: "Centro", label: "Centro" },
+                            ]}
+                            disabled={!canEditDesign}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </FormCard>
+                )}
               </div>
             )}
 
