@@ -283,12 +283,13 @@ export default function NewStructureRequestModal({
             Cancelar
           </Button>
 
-          <Button
-            variant="primary"
+          <button
+            type="button"
             onClick={handleSaveClick}
+            className="h-10 px-4 text-sm rounded-lg font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 bg-[#00395A] text-white hover:bg-[#002b43] focus:ring-brand-primary"
           >
             Registrar solicitud
-          </Button>
+          </button>
         </div>
       </div>
     </div>,
