@@ -112,10 +112,13 @@ export function getMaterialAvailabilityForLayer(params: {
   );
 
   return getAllMaterialLayerOptions()
+    .filter((material) => {
+      // Only show materials that are used in validated structures for this layer
+      const code = normalizeCode(material.value);
+      return codesUsedInLayer.has(code);
+    })
     .map((material) => {
       const code = normalizeCode(material.value);
-      const isUsedInLayer =
-        codesUsedInLayer.has(code);
       const isAvailable =
         availableCodes.has(code);
 
@@ -127,9 +130,7 @@ export function getMaterialAvailabilityForLayer(params: {
           : "NO_DISPONIBLE",
         reason: isAvailable
           ? "Disponible para la secuencia seleccionada."
-          : isUsedInLayer
-            ? "No disponible para la secuencia actual."
-            : "No forma parte de una estructura homologada en esta capa.",
+          : "No disponible para la secuencia actual.",
       } satisfies StructureMaterialAvailabilityOption;
     })
     .sort((left, right) => {
