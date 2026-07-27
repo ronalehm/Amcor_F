@@ -39,12 +39,14 @@ export default function NewStructureRequestModal({
 }: NewStructureRequestModalProps) {
   const [reason, setReason] = useState("");
   const [comment, setComment] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!isOpen) return;
 
     setReason("");
     setComment("");
+    setErrors({});
   }, [isOpen]);
 
   const sequenceLabel = useMemo(
@@ -57,13 +59,42 @@ export default function NewStructureRequestModal({
     [layers, sequence],
   );
 
-  const canSubmit = Boolean(
-    structureType &&
-      layers.length > 0 &&
-      layers.every((layer) => Boolean(layer.materialCode)) &&
-      reason.trim() &&
-      comment.trim(),
-  );
+  const validateForm = useMemo(() => {
+    const newErrors: Record<string, string> = {};
+
+    if (!structureType) {
+      newErrors.structureType = "Selecciona un tipo de estructura";
+    }
+
+    const hasCompleteLayers = layers.length > 0 &&
+      layers.every((layer) => Boolean(layer.materialCode));
+    if (!hasCompleteLayers) {
+      newErrors.layers = "Completa todos los materiales de cada capa";
+    }
+
+    if (!reason.trim()) {
+      newErrors.reason = "Ingresa el motivo técnico o comercial";
+    }
+
+    if (!comment.trim()) {
+      newErrors.comment = "Ingresa comentarios para la homologación";
+    }
+
+    return newErrors;
+  }, [structureType, layers, reason, comment]);
+
+  const canSubmit = Object.keys(validateForm).length === 0;
+
+  const handleSaveClick = () => {
+    if (!canSubmit) {
+      setErrors(validateForm);
+      return;
+    }
+    onSave({
+      reason: reason.trim(),
+      comment: comment.trim(),
+    });
+  };
 
   if (!isOpen) return null;
 
@@ -92,15 +123,26 @@ export default function NewStructureRequestModal({
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto p-6">
-          <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+          <div className={`rounded-xl border p-4 ${
+            errors.structureType || errors.layers
+              ? "border-red-300 bg-red-50"
+              : "border-blue-100 bg-blue-50/60"
+          }`}>
             <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
               <div>
-                <span className="font-semibold text-slate-500">
+                <span className={`font-semibold ${
+                  errors.structureType ? "text-red-700" : "text-slate-500"
+                }`}>
                   Tipo de estructura
                 </span>
                 <p className="mt-1 font-bold text-slate-800">
                   {structureType || "—"}
                 </p>
+                {errors.structureType && (
+                  <p className="mt-1 text-xs font-semibold text-red-600">
+                    {errors.structureType}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -141,11 +183,26 @@ export default function NewStructureRequestModal({
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200">
-            <div className="border-b border-slate-200 bg-slate-50 px-4 py-2">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-slate-600">
+          <div className={`overflow-hidden rounded-xl border ${
+            errors.layers
+              ? "border-red-300 bg-red-50"
+              : "border-slate-200 bg-white"
+          }`}>
+            <div className={`border-b px-4 py-2 ${
+              errors.layers
+                ? "border-red-300 bg-red-100"
+                : "border-slate-200 bg-slate-50"
+            }`}>
+              <h4 className={`text-xs font-bold uppercase tracking-wide ${
+                errors.layers ? "text-red-700" : "text-slate-600"
+              }`}>
                 Materiales propuestos
               </h4>
+              {errors.layers && (
+                <p className="mt-1 text-xs font-semibold text-red-600">
+                  {errors.layers}
+                </p>
+              )}
             </div>
 
             <div className="divide-y divide-slate-100">
@@ -176,11 +233,23 @@ export default function NewStructureRequestModal({
             </label>
             <textarea
               value={reason}
-              onChange={(event) => setReason(event.target.value)}
+              onChange={(event) => {
+                setReason(event.target.value);
+                if (errors.reason) setErrors((prev) => ({ ...prev, reason: "" }));
+              }}
               rows={3}
               placeholder="Explica por qué se requiere una estructura que no se encuentra en las combinaciones validadas."
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+              className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition ${
+                errors.reason
+                  ? "border-red-500 bg-red-50 focus:border-red-600 focus:ring-1 focus:ring-red-500"
+                  : "border-slate-300 bg-white focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+              }`}
             />
+            {errors.reason && (
+              <span className="block text-xs font-semibold text-red-600">
+                {errors.reason}
+              </span>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -189,11 +258,23 @@ export default function NewStructureRequestModal({
             </label>
             <textarea
               value={comment}
-              onChange={(event) => setComment(event.target.value)}
+              onChange={(event) => {
+                setComment(event.target.value);
+                if (errors.comment) setErrors((prev) => ({ ...prev, comment: "" }));
+              }}
               rows={3}
               placeholder="Incluye aplicación, requerimiento del cliente, desempeño esperado u otra evidencia."
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+              className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition ${
+                errors.comment
+                  ? "border-red-500 bg-red-50 focus:border-red-600 focus:ring-1 focus:ring-red-500"
+                  : "border-slate-300 bg-white focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+              }`}
             />
+            {errors.comment && (
+              <span className="block text-xs font-semibold text-red-600">
+                {errors.comment}
+              </span>
+            )}
           </div>
         </div>
 
@@ -204,13 +285,8 @@ export default function NewStructureRequestModal({
 
           <Button
             variant="primary"
-            disabled={!canSubmit}
-            onClick={() =>
-              onSave({
-                reason: reason.trim(),
-                comment: comment.trim(),
-              })
-            }
+            disabled={false}
+            onClick={handleSaveClick}
           >
             Registrar solicitud
           </Button>

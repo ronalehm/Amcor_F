@@ -2697,7 +2697,6 @@ const nombreTecnicoCalculado = useMemo(() => {
   };
 
   const handleRequestNewStructure = () => {
-    if (!isStructureSequenceComplete || exactStructureCombination) return;
     setIsNewStructureRequestOpen(true);
   };
 
@@ -4055,18 +4054,12 @@ const setLayerMicronValue = (index: number, value: string) => {
                         </span>
                       </Button>
 
-                      {isStructureSequenceComplete &&
-                        !exactStructureCombination && (
-                          <Button
-                            variant="outline"
-                            onClick={
-                              handleRequestNewStructure
-                            }
-                            disabled={!canEditMateriales}
-                          >
-                            Solicitar nueva estructura
-                          </Button>
-                        )}
+                      <Button
+                        variant="outline"
+                        onClick={handleRequestNewStructure}
+                      >
+                        Solicitar nueva estructura
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -4263,7 +4256,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                           variant="outline"
                           onClick={() => setPreviewProject(topMatch.project)}
                         >
-                          Ver proyecto
+                          Ver producto
                         </Button>
                         <Button
                           variant="primary"
@@ -4367,7 +4360,7 @@ const setLayerMicronValue = (index: number, value: string) => {
             onClick={handleCreateClick}
             disabled={!canCreate || isCreating}
           >
-            {isCreating ? "Creando Proyecto..." : "Nueva solicitud"}
+            {isCreating ? "Registrando solicitud..." : "Registrar solicitud"}
           </Button>
         </div>
 
