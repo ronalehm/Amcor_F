@@ -114,6 +114,11 @@ export default function ProductStructureConfigurator({
       ? "grid-cols-1"
       : "grid-cols-1 lg:grid-cols-2";
 
+  const materialGroupOptions = useMemo(
+    () => getActiveMaterialGroupOptions(),
+    [],
+  );
+
   return (
     <div
       className={`space-y-2.5 ${className}`}
@@ -190,13 +195,6 @@ export default function ProductStructureConfigurator({
                     item.materialCode,
                 );
 
-            const materialGroupOptions =
-              useMemo(
-                () =>
-                  getActiveMaterialGroupOptions(),
-                [],
-              );
-
             const materialAvailability =
               getMaterialAvailabilityForLayer({
                 structureType:
@@ -205,14 +203,10 @@ export default function ProductStructureConfigurator({
                 selectedMaterialCodes,
               });
 
-            const availabilityByCode = useMemo(
-              () =>
-                new Map(
-                  materialAvailability.map(
-                    (opt) => [opt.value, opt],
-                  ),
-                ),
-              [materialAvailability],
+            const availabilityByCode = new Map(
+              materialAvailability.map(
+                (opt) => [opt.value, opt],
+              ),
             );
 
             const micronControl =
