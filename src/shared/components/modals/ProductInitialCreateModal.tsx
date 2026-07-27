@@ -4008,6 +4008,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                   allowStructureChange={canModifyLayerStructure}
                   showCoverageWarning={false}
                   className="w-full"
+                  validationErrors={structureValidation.errors}
                   headerButton={
                     productStructure.structureType ? (
                       <Button

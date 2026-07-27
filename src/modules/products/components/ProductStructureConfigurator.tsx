@@ -32,6 +32,11 @@ export interface ProductStructureConfiguratorProps {
   showCoverageWarning?: boolean;
   className?: string;
   headerButton?: React.ReactNode;
+  validationErrors?: Array<{
+    field: string;
+    layerNumber?: number;
+    message: string;
+  }>;
 }
 
 const emptyLayer =
@@ -50,6 +55,7 @@ export default function ProductStructureConfigurator({
   allowStructureChange = true,
   className = "",
   headerButton,
+  validationErrors = [],
 }: ProductStructureConfiguratorProps) {
   const validation = useMemo(
     () => validateProductStructureValue(value),
@@ -115,6 +121,13 @@ export default function ProductStructureConfigurator({
     expectedLayerCount === 1
       ? "grid-cols-1"
       : "grid-cols-1 lg:grid-cols-2";
+
+  const getMicronError = (layerIndex: number): string => {
+    const error = validationErrors.find(
+      (e) => e.field === "micron" && e.layerNumber === layerIndex + 1
+    );
+    return error?.message || "";
+  };
 
   const materialGroupOptions = useMemo(
     () => getActiveMaterialGroupOptions(),
@@ -348,48 +361,55 @@ export default function ProductStructureConfigurator({
                     {layer.materialCode &&
                       micronControl.mode ===
                         "VALOR" && (
-                        <FormSelect
-                          label="Micraje *"
-                          value={
-                            layer.micronRuleCode
-                          }
-                          onChange={(
-                            micronRuleCode,
-                          ) => {
-                            const rule =
-                              getMicronRecordByCode(
-                                micronRuleCode,
-                              );
+                        <>
+                          <FormSelect
+                            label="Micraje *"
+                            value={
+                              layer.micronRuleCode
+                            }
+                            onChange={(
+                              micronRuleCode,
+                            ) => {
+                              const rule =
+                                getMicronRecordByCode(
+                                  micronRuleCode,
+                                );
 
-                            updateLayer(
-                              layerIndex,
-                              {
-                                micronRuleCode,
-                                micronValue:
-                                  rule?.TbMatMicVal ===
-                                    null ||
-                                  rule?.TbMatMicVal ===
-                                    undefined
-                                    ? ""
-                                    : String(
-                                        rule.TbMatMicVal,
-                                      ),
-                              },
-                            );
-                          }}
-                          options={orderedMicronOptions.map(
-                            (option) => ({
-                              value:
-                                option.code,
-                              label:
-                                option.label,
-                            }),
+                              updateLayer(
+                                layerIndex,
+                                {
+                                  micronRuleCode,
+                                  micronValue:
+                                    rule?.TbMatMicVal ===
+                                      null ||
+                                    rule?.TbMatMicVal ===
+                                      undefined
+                                      ? ""
+                                      : String(
+                                          rule.TbMatMicVal,
+                                        ),
+                                },
+                              );
+                            }}
+                            options={orderedMicronOptions.map(
+                              (option) => ({
+                                value:
+                                  option.code,
+                                label:
+                                  option.label,
+                              }),
+                            )}
+                            placeholder="Seleccionar"
+                            disabled={
+                              layerDisabled
+                            }
+                          />
+                          {getMicronError(layerIndex) && (
+                            <p className="mt-1 text-xs font-semibold text-red-600">
+                              {getMicronError(layerIndex)}
+                            </p>
                           )}
-                          placeholder="Seleccionar"
-                          disabled={
-                            layerDisabled
-                          }
-                        />
+                        </>
                       )}
 
                     {layer.materialCode &&
@@ -440,8 +460,17 @@ export default function ProductStructureConfigurator({
                             disabled={
                               layerDisabled
                             }
-                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-brand-primary focus:ring-1 focus:ring-brand-primary disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100"
+                            className={`h-10 w-full rounded-lg border px-3 text-sm outline-none transition disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 ${
+                              getMicronError(layerIndex)
+                                ? "border-red-500 bg-red-50 focus:border-red-600 focus:ring-1 focus:ring-red-500"
+                                : "border-slate-300 bg-white focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                            }`}
                           />
+                          {getMicronError(layerIndex) && (
+                            <p className="mt-1 text-xs font-semibold text-red-600">
+                              {getMicronError(layerIndex)}
+                            </p>
+                          )}
                         </>
                       )}
 
