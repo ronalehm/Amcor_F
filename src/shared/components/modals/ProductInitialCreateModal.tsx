@@ -4046,12 +4046,27 @@ const setLayerMicronValue = (index: number, value: string) => {
                         </span>
                       </Button>
 
-                      <Button
-                        variant="outline"
-                        onClick={handleRequestNewStructure}
-                      >
-                        Solicitar nueva estructura
-                      </Button>
+                      {exactStructureCombination?.status === "VALIDADA" ? (
+                        <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-3">
+                          <p className="text-sm font-bold text-green-700">
+                            ✓ Estructura válida
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3">
+                            <p className="text-sm font-bold text-red-700">
+                              ✗ Estructura NO válida
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={handleRequestNewStructure}
+                          >
+                            Solicitar nueva estructura
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
