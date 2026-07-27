@@ -2563,14 +2563,6 @@ const nombreTecnicoCalculado = useMemo(() => {
   const topMatch = similarityMatches[0];
   const topScore = topMatch?.score ?? 0;
 
-  const hasExactValidatedStructure =
-    exactStructureCombination?.status === "VALIDADA";
-
-  const canCreate =
-    requiredBaseFieldsFilled &&
-    structureValidation.canSave &&
-    hasExactValidatedStructure;
-
   const validateForm = useMemo(() => {
     const newErrors: Record<string, string> = {};
 
@@ -4358,7 +4350,7 @@ const setLayerMicronValue = (index: number, value: string) => {
           <Button
             variant="primary"
             onClick={handleCreateClick}
-            disabled={!canCreate || isCreating}
+            disabled={isCreating}
           >
             {isCreating ? "Registrando solicitud..." : "Registrar solicitud"}
           </Button>
