@@ -4008,28 +4008,8 @@ const setLayerMicronValue = (index: number, value: string) => {
                   allowStructureChange={canModifyLayerStructure}
                   showCoverageWarning={false}
                   className="w-full"
-                />
-
-                {productStructure.structureType && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                    <p
-                      className={[
-                        "text-xs font-semibold",
-                        !isStructureSequenceComplete
-                          ? "text-slate-500"
-                          : exactStructureCombination
-                            ? "text-green-700"
-                            : "text-slate-600",
-                      ].join(" ")}
-                    >
-                      {!isStructureSequenceComplete
-                        ? "Selecciona los materiales de cada capa."
-                        : exactStructureCombination
-                          ? "Estructura válida."
-                          : "Estructura no registrada."}
-                    </p>
-
-                    <div className="flex flex-wrap gap-2">
+                  headerButton={
+                    productStructure.structureType ? (
                       <Button
                         variant="outline"
                         onClick={() =>
@@ -4045,29 +4025,34 @@ const setLayerMicronValue = (index: number, value: string) => {
                             : ""}
                         </span>
                       </Button>
+                    ) : null
+                  }
+                />
 
-                      {exactStructureCombination?.status === "VALIDADA" ? (
-                        <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-3">
-                          <p className="text-sm font-bold text-green-700">
-                            ✓ Estructura válida
+                {productStructure.structureType && (
+                  <div className="space-y-2">
+                    {exactStructureCombination?.status === "VALIDADA" ? (
+                      <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-3">
+                        <p className="text-sm font-bold text-green-700">
+                          ✓ Estructura válida
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3">
+                          <p className="text-sm font-bold text-red-700">
+                            ✗ Estructura NO válida
                           </p>
                         </div>
-                      ) : (
-                        <>
-                          <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3">
-                            <p className="text-sm font-bold text-red-700">
-                              ✗ Estructura NO válida
-                            </p>
-                          </div>
-                          <Button
-                            variant="outline"
-                            onClick={handleRequestNewStructure}
-                          >
-                            Solicitar nueva estructura
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                        <Button
+                          variant="outline"
+                          onClick={handleRequestNewStructure}
+                          className="w-full"
+                        >
+                          Solicitar nueva estructura
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

@@ -31,6 +31,7 @@ export interface ProductStructureConfiguratorProps {
   allowStructureChange?: boolean;
   showCoverageWarning?: boolean;
   className?: string;
+  headerButton?: React.ReactNode;
 }
 
 const emptyLayer =
@@ -48,6 +49,7 @@ export default function ProductStructureConfigurator({
   inherited = false,
   allowStructureChange = true,
   className = "",
+  headerButton,
 }: ProductStructureConfiguratorProps) {
   const validation = useMemo(
     () => validateProductStructureValue(value),
@@ -123,28 +125,35 @@ export default function ProductStructureConfigurator({
     <div
       className={`space-y-2.5 ${className}`}
     >
-      <div className="max-w-xs">
-        <FormSelect
-          label="Tipo de estructura *"
-          value={value.structureType}
-          onChange={(selected) =>
-            updateStructureType(
-              selected as ProductStructureValue["structureType"],
-            )
-          }
-          options={PRODUCT_STRUCTURE_TYPES.filter(Boolean).map(
-            (type) => ({
-              value: type,
-              label: type,
-            })
-          )}
-          placeholder="Seleccionar estructura"
-          disabled={
-            disabled ||
-            (inherited &&
-              !allowStructureChange)
-          }
-        />
+      <div className="flex items-end gap-2">
+        <div className="max-w-xs flex-1">
+          <FormSelect
+            label="Tipo de estructura *"
+            value={value.structureType}
+            onChange={(selected) =>
+              updateStructureType(
+                selected as ProductStructureValue["structureType"],
+              )
+            }
+            options={PRODUCT_STRUCTURE_TYPES.filter(Boolean).map(
+              (type) => ({
+                value: type,
+                label: type,
+              })
+            )}
+            placeholder="Seleccionar estructura"
+            disabled={
+              disabled ||
+              (inherited &&
+                !allowStructureChange)
+            }
+          />
+        </div>
+        {headerButton && (
+          <div className="pb-0">
+            {headerButton}
+          </div>
+        )}
       </div>
 
       {inherited &&
