@@ -62,7 +62,7 @@ import {
 import {
   findCompatibleStructureCombinations,
   findExactStructureCombination,
-  getStructureCombinationsByType,
+  getValidatedStructureCombinationsByType,
   rankStructureCombinations,
   type StructureCombinationOption,
 } from "../../utils/productStructureCombinations";
@@ -1951,16 +1951,21 @@ const [layer4Micron, setLayer4Micron] = useState("");
   );
 
   const structureCombinations = useMemo(
-    () => getStructureCombinationsByType(productStructure.structureType),
+    () => getValidatedStructureCombinationsByType(productStructure.structureType),
     [productStructure.structureType],
   );
 
   const exactStructureCombination = useMemo(
-    () =>
-      findExactStructureCombination({
+    () => {
+      const match = findExactStructureCombination({
         structureType: productStructure.structureType,
         selectedMaterialCodes: selectedStructureMaterialCodes,
-      }),
+      });
+
+      return match?.status === "VALIDADA"
+        ? match
+        : null;
+    },
     [productStructure.structureType, selectedStructureMaterialCodes],
   );
 
@@ -1994,65 +1999,6 @@ const [layer4Micron, setLayer4Micron] = useState("");
     )
     .join(" → ");
 
-  const structureLiveStatus = useMemo(() => {
-    if (!productStructure.structureType) {
-      return {
-        tone: "neutral" as const,
-        title: "Seleccione el tipo de estructura",
-        detail: "La consulta de combinaciones se habilitará al seleccionar el tipo.",
-      };
-    }
-
-    if (!isStructureSequenceComplete) {
-      return {
-        tone: "info" as const,
-        title: "Estructura pendiente de completar",
-        detail:
-          compatibleStructureCombinations.length > 0
-            ? `${compatibleStructureCombinations.length} combinación(es) compatible(s) con las capas seleccionadas.`
-            : "Complete las capas en el orden indicado.",
-      };
-    }
-
-    if (!exactStructureCombination) {
-      return {
-        tone: "error" as const,
-        title: "Estructura no registrada",
-        detail: closestStructureMatch
-          ? `La alternativa más cercana tiene ${closestStructureMatch.similarity}% de similitud.`
-          : "No existe una combinación registrada para esta secuencia.",
-      };
-    }
-
-    if (exactStructureCombination.status === "PENDIENTE_NEGOCIO") {
-      return {
-        tone: "warning" as const,
-        title: "Estructura registrada, pendiente de validación con negocio",
-        detail: exactStructureCombination.pendingReason,
-      };
-    }
-
-    if (!structureValidation.areLayersTechnicallyValid) {
-      return {
-        tone: "warning" as const,
-        title: "Estructura registrada con configuración técnica incompleta",
-        detail: "Complete el micraje, la densidad y el gramaje de cada capa.",
-      };
-    }
-
-    return {
-      tone: "success" as const,
-      title: "Estructura válida registrada",
-      detail: `${exactStructureCombination.id} · ${exactStructureCombination.sequenceLabel}`,
-    };
-  }, [
-    productStructure.structureType,
-    isStructureSequenceComplete,
-    compatibleStructureCombinations.length,
-    exactStructureCombination,
-    closestStructureMatch,
-    structureValidation.areLayersTechnicallyValid,
-  ]);
 
   // Field completion flags - portfolioBelongsToClient will be calculated below after portfoliosForClient is available
   // For now, we use a simple check
@@ -4073,87 +4019,57 @@ const setLayerMicronValue = (index: number, value: string) => {
                   className="w-full"
                 />
 
-                {errors.productStructure && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                    {errors.productStructure}
-                  </div>
-                )}
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                  <div
-                    className={[
-                      "rounded-lg border px-3 py-2.5",
-                      structureLiveStatus.tone === "success"
-                        ? "border-green-200 bg-green-50"
-                        : structureLiveStatus.tone === "warning"
-                          ? "border-amber-200 bg-amber-50"
-                          : structureLiveStatus.tone === "error"
-                            ? "border-red-200 bg-red-50"
-                            : structureLiveStatus.tone === "info"
-                              ? "border-blue-200 bg-blue-50"
-                              : "border-slate-200 bg-white",
-                    ].join(" ")}
-                  >
+                {productStructure.structureType && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                     <p
                       className={[
-                        "text-xs font-bold",
-                        structureLiveStatus.tone === "success"
-                          ? "text-green-800"
-                          : structureLiveStatus.tone === "warning"
-                            ? "text-amber-800"
-                            : structureLiveStatus.tone === "error"
-                              ? "text-red-800"
-                              : structureLiveStatus.tone === "info"
-                                ? "text-blue-800"
-                                : "text-slate-700",
+                        "text-xs font-semibold",
+                        !isStructureSequenceComplete
+                          ? "text-slate-500"
+                          : exactStructureCombination
+                            ? "text-green-700"
+                            : "text-slate-600",
                       ].join(" ")}
                     >
-                      {structureLiveStatus.title}
+                      {!isStructureSequenceComplete
+                        ? "Selecciona los materiales de cada capa."
+                        : exactStructureCombination
+                          ? "Estructura válida."
+                          : "Estructura no registrada."}
                     </p>
 
-                    <p className="mt-1 text-xs text-slate-600">
-                      {structureLiveStatus.detail}
-                    </p>
-
-                    {productStructure.structureType && (
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        Secuencia actual: {currentStructureSequenceLabel || "Pendiente"}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsStructureCombinationsOpen(true)}
-                      disabled={!productStructure.structureType || !canEditMateriales}
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        <Layers3 size={16} />
-                        Consultar combinaciones válidas para este tipo de estructura
-                        {productStructure.structureType
-                          ? ` (${structureCombinations.length})`
-                          : ""}
-                      </span>
-                    </Button>
-
-                    {isStructureSequenceComplete && !exactStructureCombination && (
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         variant="outline"
-                        onClick={handleRequestNewStructure}
+                        onClick={() =>
+                          setIsStructureCombinationsOpen(true)
+                        }
                         disabled={!canEditMateriales}
                       >
-                        Solicitar nueva estructura
+                        <span className="inline-flex items-center gap-2">
+                          <Layers3 size={16} />
+                          Consultar combinaciones
+                          {productStructure.structureType
+                            ? ` (${structureCombinations.length})`
+                            : ""}
+                        </span>
                       </Button>
-                    )}
-                  </div>
 
-                  {stepNotice?.key === "productStructure" && (
-                    <p className="mt-2 text-xs font-medium text-green-600">
-                      {stepNotice.message}
-                    </p>
-                  )}
-                </div>
+                      {isStructureSequenceComplete &&
+                        !exactStructureCombination && (
+                          <Button
+                            variant="outline"
+                            onClick={
+                              handleRequestNewStructure
+                            }
+                            disabled={!canEditMateriales}
+                          >
+                            Solicitar nueva estructura
+                          </Button>
+                        )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1">

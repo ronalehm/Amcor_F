@@ -1,331 +1,501 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
+import { Info } from "lucide-react";
+
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import {
-  getActiveMaterialGroupOptions,
-  getMaterialLayerOptionsByGroup,
   getMicronFrontendControl,
+  getMicronRecordByCode,
 } from "../../../shared/data/productMaterialCatalog";
-import { PRODUCT_STRUCTURE_TYPES, getStructureLayerCount } from "../../../shared/data/productStructureMatrix";
+import {
+  PRODUCT_STRUCTURE_TYPES,
+  getStructureLayerCount,
+} from "../../../shared/data/productStructureMatrix";
+import {
+  getMaterialAvailabilityForLayer,
+} from "../../../shared/data/productStructureSelectableMaterials";
+import type {
+  ProductStructureLayerValue,
+  ProductStructureValue,
+} from "../../../shared/types/productStructure.types";
 import {
   validateProductStructureValue,
-  getLayerStructureError,
 } from "../../../shared/utils/productStructureValidation";
-import type { ProductStructureValue } from "../../../shared/types/productStructure.types";
 
-type Props = {
+export interface ProductStructureConfiguratorProps {
   value: ProductStructureValue;
-  onChange: (nextValue: ProductStructureValue) => void;
+  onChange: (value: ProductStructureValue) => void;
   disabled?: boolean;
   inherited?: boolean;
   allowStructureChange?: boolean;
   showCoverageWarning?: boolean;
   className?: string;
-};
+}
+
+const emptyLayer =
+  (): ProductStructureLayerValue => ({
+    materialCode: "",
+    micronRuleCode: "",
+    micronValue: "",
+  });
+
+interface MaterialSelectProps {
+  label: string;
+  value: string;
+  placeholder: string;
+  disabled: boolean;
+  options: ReturnType<
+    typeof getMaterialAvailabilityForLayer
+  >;
+  onChange: (value: string) => void;
+}
+
+function MaterialAvailabilitySelect({
+  label,
+  value,
+  placeholder,
+  disabled,
+  options,
+  onChange,
+}: MaterialSelectProps) {
+  const available = options.filter(
+    (option) => !option.disabled,
+  );
+  const unavailable = options.filter(
+    (option) => option.disabled,
+  );
+
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-semibold text-slate-700">
+        {label}
+      </label>
+
+      <select
+        value={value}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
+        disabled={disabled}
+        className={[
+          "h-10 w-full rounded-lg border px-3 text-sm outline-none transition",
+          "border-slate-300 bg-white text-slate-800",
+          "focus:border-brand-primary focus:ring-1 focus:ring-brand-primary",
+          "disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400",
+        ].join(" ")}
+      >
+        <option value="">
+          {placeholder}
+        </option>
+
+        {available.length > 0 && (
+          <optgroup label="Disponibles">
+            {available.map((option) => (
+              <option
+                key={`available-${option.value}`}
+                value={option.value}
+              >
+                {option.label}
+              </option>
+            ))}
+          </optgroup>
+        )}
+
+        {unavailable.length > 0 && (
+          <optgroup label="No disponibles">
+            {unavailable.map((option) => (
+              <option
+                key={`unavailable-${option.value}`}
+                value={option.value}
+                disabled
+              >
+                {option.label}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
+    </div>
+  );
+}
 
 export default function ProductStructureConfigurator({
   value,
   onChange,
   disabled = false,
   inherited = false,
-  allowStructureChange = false,
-  showCoverageWarning = false,
+  allowStructureChange = true,
   className = "",
-}: Props) {
-  const materialGroupOptions = useMemo(
-    () => getActiveMaterialGroupOptions(),
-    [],
-  );
-
+}: ProductStructureConfiguratorProps) {
   const validation = useMemo(
     () => validateProductStructureValue(value),
     [value],
   );
 
-  const expectedLayerCount = getStructureLayerCount(value.structureType);
+  const expectedLayerCount =
+    getStructureLayerCount(
+      value.structureType,
+    );
 
-  const handleStructureTypeChange = (newType: string) => {
-    if (disabled || (!allowStructureChange && inherited)) return;
-
-    const clearedLayers = [0, 1, 2, 3].map((i) => ({
-      materialCode: "",
-      micronRuleCode: "",
-      micronValue: "",
-    }));
+  const updateStructureType = (
+    structureType:
+      ProductStructureValue["structureType"],
+  ) => {
+    const layerCount =
+      getStructureLayerCount(structureType);
 
     onChange({
-      structureType: newType as any,
-      layers: clearedLayers,
+      structureType,
+      layers: Array.from({
+        length: layerCount,
+      }).map(() => emptyLayer()),
     });
   };
 
-  const handleMaterialChange = (layerIndex: number, materialCode: string) => {
-    if (disabled) return;
+  const updateLayer = (
+    layerIndex: number,
+    patch:
+      Partial<ProductStructureLayerValue>,
+    clearFollowingLayers = false,
+  ) => {
+    const layers = Array.from({
+      length: expectedLayerCount,
+    }).map(
+      (_, index) =>
+        value.layers[index] ??
+        emptyLayer(),
+    );
 
-    const newLayers = [...value.layers];
-    if (!newLayers[layerIndex]) {
-      newLayers[layerIndex] = {
-        materialCode: "",
-        micronRuleCode: "",
-        micronValue: "",
-      };
+    layers[layerIndex] = {
+      ...layers[layerIndex],
+      ...patch,
+    };
+
+    if (clearFollowingLayers) {
+      for (
+        let index = layerIndex + 1;
+        index < layers.length;
+        index += 1
+      ) {
+        layers[index] = emptyLayer();
+      }
     }
 
-    newLayers[layerIndex].materialCode = materialCode;
-    newLayers[layerIndex].micronRuleCode = "";
-    newLayers[layerIndex].micronValue = "";
-
     onChange({
-      ...value,
-      layers: newLayers,
+      structureType: value.structureType,
+      layers,
     });
   };
 
-  const handleMicronChange = (layerIndex: number, micronValue: string) => {
-    if (disabled) return;
-
-    const newLayers = [...value.layers];
-    if (!newLayers[layerIndex]) {
-      newLayers[layerIndex] = {
-        materialCode: "",
-        micronRuleCode: "",
-        micronValue: "",
-      };
-    }
-
-    newLayers[layerIndex].micronValue = micronValue;
-    newLayers[layerIndex].micronRuleCode = "";
-
-    onChange({
-      ...value,
-      layers: newLayers,
-    });
-  };
+  const gridClass =
+    expectedLayerCount === 1
+      ? "grid-cols-1"
+      : "grid-cols-1 lg:grid-cols-2";
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Tipo de Estructura */}
-      <div>
+    <div
+      className={`space-y-2.5 ${className}`}
+    >
+      <div className="max-w-xs">
         <FormSelect
-          label="Tipo de Estructura"
+          label="Tipo de estructura *"
           value={value.structureType}
-          onChange={handleStructureTypeChange}
-          options={PRODUCT_STRUCTURE_TYPES.filter(Boolean).map((type) => ({
-            value: type,
-            label: type,
-          }))}
-          placeholder="-- Seleccione Tipo --"
-          disabled={disabled || (!allowStructureChange && inherited)}
+          onChange={(selected) =>
+            updateStructureType(
+              selected as ProductStructureValue["structureType"],
+            )
+          }
+          options={PRODUCT_STRUCTURE_TYPES.filter(Boolean).map(
+            (type) => ({
+              value: type,
+              label: type,
+            })
+          )}
+          placeholder="Seleccionar estructura"
+          disabled={
+            disabled ||
+            (inherited &&
+              !allowStructureChange)
+          }
         />
       </div>
 
-      {validation.errors.length > 0 && validation.errors[0]?.field === "structureType" && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-          {validation.errors[0].message}
-        </div>
-      )}
+      {inherited &&
+        !allowStructureChange && (
+          <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-500" />
+            <p className="text-xs text-slate-600">
+              Estructura heredada del SKU
+              base. Se muestra en modo
+              consulta.
+            </p>
+          </div>
+        )}
 
-      {/* Capas */}
       {value.structureType && (
-        <div className="space-y-4">
-          {Array.from({ length: expectedLayerCount }).map((_, index) => {
-            const layerNumber = index + 1;
-            const layer = value.layers[index];
-            const micronControl = getMicronFrontendControl(layer?.materialCode);
-            const layerError = getLayerStructureError(validation, layerNumber);
+        <div
+          className={`grid gap-2.5 ${gridClass}`}
+        >
+          {Array.from({
+            length: expectedLayerCount,
+          }).map((_, layerIndex) => {
+            const layerNumber =
+              layerIndex + 1;
+
+            const layer =
+              value.layers[layerIndex] ??
+              emptyLayer();
+
+            const previousLayerCompleted =
+              layerIndex === 0 ||
+              Boolean(
+                value.layers[
+                  layerIndex - 1
+                ]?.materialCode,
+              );
+
+            const layerDisabled =
+              disabled ||
+              !previousLayerCompleted ||
+              (inherited &&
+                !allowStructureChange);
+
+            const selectedMaterialCodes =
+              value.layers
+                .slice(0, layerIndex)
+                .map(
+                  (item) =>
+                    item.materialCode,
+                );
+
+            const materialOptions =
+              getMaterialAvailabilityForLayer({
+                structureType:
+                  value.structureType,
+                layerIndex,
+                selectedMaterialCodes,
+              });
+
+            const micronControl =
+              getMicronFrontendControl(
+                layer.materialCode,
+              );
+
+            const orderedMicronOptions =
+              micronControl.mode === "VALOR"
+                ? [
+                    ...micronControl.options,
+                  ].sort(
+                    (left, right) =>
+                      Number(
+                        left.micronValue,
+                      ) -
+                        Number(
+                          right.micronValue,
+                        ) ||
+                      (left.sortOrder || 0) -
+                        (right.sortOrder || 0),
+                  )
+                : [];
+
+            const snapshot =
+              validation.snapshots[
+                layerIndex
+              ];
 
             return (
               <div
-                key={layerNumber}
-                className={`p-4 border rounded-lg ${
-                  disabled ? "bg-slate-100 opacity-60" : "bg-slate-50"
-                } border-slate-200`}
+                key={`structure-layer-${layerNumber}`}
+                className="rounded-lg border border-slate-200 bg-slate-50/60 p-2.5"
               >
-                <h4 className="font-semibold text-slate-700 mb-3">
-                  CAPA {layerNumber}
-                </h4>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <MaterialAvailabilitySelect
+                    label={`CAPA ${layerNumber} *`}
+                    value={
+                      layer.materialCode
+                    }
+                    onChange={(
+                      materialCode,
+                    ) =>
+                      updateLayer(
+                        layerIndex,
+                        {
+                          materialCode,
+                          micronRuleCode:
+                            "",
+                          micronValue: "",
+                        },
+                        true,
+                      )
+                    }
+                    options={
+                      materialOptions
+                    }
+                    placeholder={
+                      previousLayerCompleted
+                        ? "Seleccionar material"
+                        : `Completa CAPA ${
+                            layerNumber - 1
+                          }`
+                    }
+                    disabled={
+                      layerDisabled
+                    }
+                  />
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {/* Material */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Material
-                    </label>
-                    <select
-                      value={layer?.materialCode || ""}
-                      onChange={(e) =>
-                        handleMaterialChange(index, e.target.value)
-                      }
-                      disabled={disabled}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        disabled
-                          ? "bg-slate-100 border-slate-300 text-slate-500"
-                          : "border-slate-300 bg-white"
-                      }`}
-                    >
-                      <option value="">-- Seleccione Material --</option>
-                      {materialGroupOptions.map((group) => {
-                        const materialsInGroup = getMaterialLayerOptionsByGroup(group.value);
-                        return (
-                          <optgroup key={group.value} label={group.label}>
-                            {materialsInGroup.map((material) => (
-                              <option
-                                key={material.code}
-                                value={material.code}
-                              >
-                                {material.label}
-                              </option>
-                            ))}
-                          </optgroup>
-                        );
-                      })}
-                    </select>
-                    {layerError && (
-                      <p className="text-sm text-red-600 mt-1">{layerError}</p>
-                    )}
-                  </div>
-
-                  {/* Micraje */}
-                  {micronControl.mode === "VALOR" && (() => {
-                    const orderedMicronOptions =
-                      micronControl.mode === "VALOR"
-                        ? [...(micronControl.options || [])].sort((left, right) => {
-                            const micronDifference =
-                              Number(left.micronValue) - Number(right.micronValue);
-
-                            if (micronDifference !== 0) return micronDifference;
-
-                            if ((left.sortOrder || 0) !== (right.sortOrder || 0)) {
-                              return (left.sortOrder || 0) - (right.sortOrder || 0);
-                            }
-
-                            return left.label.localeCompare(right.label, "es");
-                          })
-                        : [];
-
-                    return (
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Micraje (µm)
-                        </label>
-                        <select
-                          value={layer?.micronValue || ""}
-                          onChange={(e) =>
-                            handleMicronChange(index, e.target.value)
+                    {layer.materialCode &&
+                      micronControl.mode ===
+                        "VALOR" && (
+                        <FormSelect
+                          label="Micraje *"
+                          value={
+                            layer.micronRuleCode
                           }
-                          disabled={disabled || !layer?.materialCode}
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            disabled || !layer?.materialCode
-                              ? "bg-slate-100 border-slate-300 text-slate-500"
-                              : "border-slate-300 bg-white"
-                          }`}
-                        >
-                          <option value="">-- Seleccione Micraje --</option>
-                          {orderedMicronOptions.map((option) => (
-                            <option key={option.code} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  })()}
+                          onChange={(
+                            micronRuleCode,
+                          ) => {
+                            const rule =
+                              getMicronRecordByCode(
+                                micronRuleCode,
+                              );
 
-                  {micronControl.mode === "RANGO" && (
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Micraje (µm)
-                      </label>
-                      <input
-                        type="number"
-                        value={layer?.micronValue || ""}
-                        onChange={(e) =>
-                          handleMicronChange(index, e.target.value)
-                        }
-                        disabled={disabled || !layer?.materialCode}
-                        min={micronControl.minValue}
-                        max={micronControl.maxValue}
-                        step={micronControl.stepValue}
-                        placeholder={`${micronControl.minValue} - ${micronControl.maxValue}`}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          disabled || !layer?.materialCode
-                            ? "bg-slate-100 border-slate-300 text-slate-500"
-                            : "border-slate-300 bg-white"
-                        }`}
-                      />
-                      <p className="text-xs text-slate-500 mt-1">
-                        Rango: {micronControl.minValue}-{micronControl.maxValue} µm
-                      </p>
-                    </div>
-                  )}
+                            updateLayer(
+                              layerIndex,
+                              {
+                                micronRuleCode,
+                                micronValue:
+                                  rule?.TbMatMicVal ===
+                                    null ||
+                                  rule?.TbMatMicVal ===
+                                    undefined
+                                    ? ""
+                                    : String(
+                                        rule.TbMatMicVal,
+                                      ),
+                              },
+                            );
+                          }}
+                          options={orderedMicronOptions.map(
+                            (option) => ({
+                              value:
+                                option.code,
+                              label:
+                                option.label,
+                            }),
+                          )}
+                          placeholder="Seleccionar"
+                          disabled={
+                            layerDisabled
+                          }
+                        />
+                      )}
+
+                    {layer.materialCode &&
+                      micronControl.mode ===
+                        "RANGO" && (
+                        <>
+                          <label className="mb-1 block text-xs font-semibold text-slate-700">
+                            Micraje * (
+                            {
+                              micronControl.minValue
+                            }
+                            –
+                            {
+                              micronControl.maxValue
+                            }{" "}
+                            µm)
+                          </label>
+
+                          <input
+                            type="number"
+                            min={
+                              micronControl.minValue
+                            }
+                            max={
+                              micronControl.maxValue
+                            }
+                            step={
+                              micronControl.stepValue
+                            }
+                            value={
+                              layer.micronValue
+                            }
+                            onChange={(
+                              event,
+                            ) =>
+                              updateLayer(
+                                layerIndex,
+                                {
+                                  micronRuleCode:
+                                    micronControl.code,
+                                  micronValue:
+                                    event.target
+                                      .value,
+                                },
+                              )
+                            }
+                            placeholder={`${micronControl.minValue}-${micronControl.maxValue}`}
+                            disabled={
+                              layerDisabled
+                            }
+                            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-brand-primary focus:ring-1 focus:ring-brand-primary disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100"
+                          />
+                        </>
+                      )}
+
+                    {!layer.materialCode && (
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold text-slate-400">
+                          Micraje *
+                        </label>
+                        <div className="flex h-10 items-center rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm text-slate-400">
+                          Selecciona material
+                        </div>
+                      </div>
+                    )}
+
+                    {layer.materialCode &&
+                      micronControl.mode ===
+                        "NONE" && (
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-slate-400">
+                            Micraje *
+                          </label>
+                          <div className="flex h-10 items-center rounded-lg border border-slate-200 bg-slate-100 px-3 text-xs text-slate-500">
+                            Sin configuración
+                          </div>
+                        </div>
+                      )}
+                  </div>
                 </div>
 
-                {/* Snapshot Técnico */}
-                {validation.snapshots[index] && (
-                  <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-2 gap-3 md:grid-cols-4 text-xs">
-                    {validation.snapshots[index]?.micronValue && (
-                      <div>
-                        <div className="text-slate-500">Micraje</div>
-                        <div className="font-medium">
-                          {validation.snapshots[index]?.micronValue}{" "}
-                          {validation.snapshots[index]?.micronUnit}
-                        </div>
-                      </div>
-                    )}
-                    {validation.snapshots[index]?.density !== null && (
-                      <div>
-                        <div className="text-slate-500">Densidad</div>
-                        <div className="font-medium">
-                          {validation.snapshots[index]?.density}{" "}
-                          {validation.snapshots[index]?.densityUnit}
-                        </div>
-                      </div>
-                    )}
-                    {validation.snapshots[index]?.grammage && (
-                      <div>
-                        <div className="text-slate-500">Gramaje</div>
-                        <div className="font-medium">
-                          {validation.snapshots[index]?.grammage}{" "}
-                          {validation.snapshots[index]?.grammageUnit}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {snapshot?.micronId &&
+                  snapshot.density !== null &&
+                  snapshot.grammage !==
+                    null &&
+                  snapshot.grammage !==
+                    undefined && (
+                    <p className="mt-1.5 text-[11px] text-slate-500">
+                      Densidad:{" "}
+                      <span className="font-semibold text-slate-700">
+                        {snapshot.density}{" "}
+                        {
+                          snapshot.densityUnit
+                        }
+                      </span>
+                      {" · "}
+                      Gramaje:{" "}
+                      <span className="font-semibold text-slate-700">
+                        {snapshot.grammage}{" "}
+                        {
+                          snapshot.grammageUnit
+                        }
+                      </span>
+                    </p>
+                  )}
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Resumen Validación */}
-      {validation.errors.length > 0 && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <h4 className="font-semibold text-amber-900 mb-2">
-            Problemas detectados:
-          </h4>
-          <ul className="space-y-1">
-            {validation.errors.map((error, idx) => (
-              <li
-                key={idx}
-                className="text-sm text-amber-800 flex items-start gap-2"
-              >
-                <span className="text-amber-600 font-bold">•</span>
-                <span>{error.message}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {validation.canSave && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
-          ✓ Estructura válida y registrada en el catálogo.
-        </div>
-      )}
-
-      {showCoverageWarning && inherited && !allowStructureChange && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-          ℹ Estructura heredada del producto base. No se puede modificar el tipo.
         </div>
       )}
     </div>
