@@ -285,7 +285,6 @@ export default function NewStructureRequestModal({
 
           <Button
             variant="primary"
-            disabled={false}
             onClick={handleSaveClick}
           >
             Registrar solicitud
