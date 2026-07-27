@@ -46,7 +46,7 @@ export default function NewStructureRequestModal({
 
     setReason("");
     setComment("");
-    setErrors({});
+    setErrors({}); // Reset errors when modal opens
   }, [isOpen]);
 
   const sequenceLabel = useMemo(
@@ -123,26 +123,15 @@ export default function NewStructureRequestModal({
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto p-6">
-          <div className={`rounded-xl border p-4 ${
-            errors.structureType || errors.layers
-              ? "border-red-300 bg-red-50"
-              : "border-blue-100 bg-blue-50/60"
-          }`}>
+          <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
             <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
               <div>
-                <span className={`font-semibold ${
-                  errors.structureType ? "text-red-700" : "text-slate-500"
-                }`}>
+                <span className="font-semibold text-slate-500">
                   Tipo de estructura
                 </span>
                 <p className="mt-1 font-bold text-slate-800">
                   {structureType || "—"}
                 </p>
-                {errors.structureType && (
-                  <p className="mt-1 text-xs font-semibold text-red-600">
-                    {errors.structureType}
-                  </p>
-                )}
               </div>
 
               <div>
@@ -183,26 +172,11 @@ export default function NewStructureRequestModal({
             </div>
           </div>
 
-          <div className={`overflow-hidden rounded-xl border ${
-            errors.layers
-              ? "border-red-300 bg-red-50"
-              : "border-slate-200 bg-white"
-          }`}>
-            <div className={`border-b px-4 py-2 ${
-              errors.layers
-                ? "border-red-300 bg-red-100"
-                : "border-slate-200 bg-slate-50"
-            }`}>
-              <h4 className={`text-xs font-bold uppercase tracking-wide ${
-                errors.layers ? "text-red-700" : "text-slate-600"
-              }`}>
+          <div className="overflow-hidden rounded-xl border border-slate-200">
+            <div className="border-b border-slate-200 bg-slate-50 px-4 py-2">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-slate-600">
                 Materiales propuestos
               </h4>
-              {errors.layers && (
-                <p className="mt-1 text-xs font-semibold text-red-600">
-                  {errors.layers}
-                </p>
-              )}
             </div>
 
             <div className="divide-y divide-slate-100">
@@ -286,7 +260,8 @@ export default function NewStructureRequestModal({
           <button
             type="button"
             onClick={handleSaveClick}
-            className="h-10 px-4 text-sm rounded-lg font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 bg-[#00395A] text-white hover:bg-[#002b43] focus:ring-brand-primary"
+            className="h-10 px-4 text-sm rounded-lg font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 bg-[#00395A] text-white hover:bg-[#002b43] focus:ring-brand-primary cursor-pointer pointer-events-auto"
+            style={{ pointerEvents: "auto", cursor: "pointer" }}
           >
             Registrar solicitud
           </button>
