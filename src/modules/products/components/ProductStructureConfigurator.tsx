@@ -3,6 +3,8 @@ import { Info } from "lucide-react";
 
 import FormSelect from "../../../shared/components/forms/FormSelect";
 import {
+  getActiveMaterialGroupOptions,
+  getMaterialLayerOptionsByGroup,
   getMicronFrontendControl,
   getMicronRecordByCode,
 } from "../../../shared/data/productMaterialCatalog";
@@ -38,85 +40,6 @@ const emptyLayer =
     micronValue: "",
   });
 
-interface MaterialSelectProps {
-  label: string;
-  value: string;
-  placeholder: string;
-  disabled: boolean;
-  options: ReturnType<
-    typeof getMaterialAvailabilityForLayer
-  >;
-  onChange: (value: string) => void;
-}
-
-function MaterialAvailabilitySelect({
-  label,
-  value,
-  placeholder,
-  disabled,
-  options,
-  onChange,
-}: MaterialSelectProps) {
-  const available = options.filter(
-    (option) => !option.disabled,
-  );
-  const unavailable = options.filter(
-    (option) => option.disabled,
-  );
-
-  return (
-    <div>
-      <label className="mb-1 block text-xs font-semibold text-slate-700">
-        {label}
-      </label>
-
-      <select
-        value={value}
-        onChange={(event) =>
-          onChange(event.target.value)
-        }
-        disabled={disabled}
-        className={[
-          "h-10 w-full rounded-lg border px-3 text-sm outline-none transition",
-          "border-slate-300 bg-white text-slate-800",
-          "focus:border-brand-primary focus:ring-1 focus:ring-brand-primary",
-          "disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400",
-        ].join(" ")}
-      >
-        <option value="">
-          {placeholder}
-        </option>
-
-        {available.length > 0 && (
-          <optgroup label="Disponibles">
-            {available.map((option) => (
-              <option
-                key={`available-${option.value}`}
-                value={option.value}
-              >
-                {option.label}
-              </option>
-            ))}
-          </optgroup>
-        )}
-
-        {unavailable.length > 0 && (
-          <optgroup label="No disponibles">
-            {unavailable.map((option) => (
-              <option
-                key={`unavailable-${option.value}`}
-                value={option.value}
-                disabled
-              >
-                {option.label}
-              </option>
-            ))}
-          </optgroup>
-        )}
-      </select>
-    </div>
-  );
-}
 
 export default function ProductStructureConfigurator({
   value,
@@ -267,13 +190,30 @@ export default function ProductStructureConfigurator({
                     item.materialCode,
                 );
 
-            const materialOptions =
+            const materialGroupOptions =
+              useMemo(
+                () =>
+                  getActiveMaterialGroupOptions(),
+                [],
+              );
+
+            const materialAvailability =
               getMaterialAvailabilityForLayer({
                 structureType:
                   value.structureType,
                 layerIndex,
                 selectedMaterialCodes,
               });
+
+            const availabilityByCode = useMemo(
+              () =>
+                new Map(
+                  materialAvailability.map(
+                    (opt) => [opt.value, opt],
+                  ),
+                ),
+              [materialAvailability],
+            );
 
             const micronControl =
               getMicronFrontendControl(
@@ -308,39 +248,98 @@ export default function ProductStructureConfigurator({
                 className="rounded-lg border border-slate-200 bg-slate-50/60 p-2.5"
               >
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <MaterialAvailabilitySelect
-                    label={`CAPA ${layerNumber} *`}
-                    value={
-                      layer.materialCode
-                    }
-                    onChange={(
-                      materialCode,
-                    ) =>
-                      updateLayer(
-                        layerIndex,
-                        {
-                          materialCode,
-                          micronRuleCode:
-                            "",
-                          micronValue: "",
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                      {`CAPA ${layerNumber} *`}
+                    </label>
+                    <select
+                      value={
+                        layer.materialCode
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateLayer(
+                          layerIndex,
+                          {
+                            materialCode:
+                              event.target
+                                .value,
+                            micronRuleCode:
+                              "",
+                            micronValue:
+                              "",
+                          },
+                          true,
+                        )
+                      }
+                      disabled={
+                        layerDisabled
+                      }
+                      className={[
+                        "h-10 w-full rounded-lg border px-3 text-sm outline-none transition",
+                        "border-slate-300 bg-white text-slate-800",
+                        "focus:border-brand-primary focus:ring-1 focus:ring-brand-primary",
+                        "disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400",
+                      ].join(" ")}
+                    >
+                      <option value="">
+                        {previousLayerCompleted
+                          ? "Seleccionar material"
+                          : `Completa CAPA ${
+                              layerNumber - 1
+                            }`}
+                      </option>
+
+                      {materialGroupOptions.map(
+                        (group) => {
+                          const materialsInGroup =
+                            getMaterialLayerOptionsByGroup(
+                              group.value,
+                            );
+
+                          return (
+                            <optgroup
+                              key={
+                                group.value
+                              }
+                              label={
+                                group.label
+                              }
+                            >
+                              {materialsInGroup.map(
+                                (material) => {
+                                  const avail =
+                                    availabilityByCode.get(
+                                      material.code,
+                                    );
+
+                                  return (
+                                    <option
+                                      key={
+                                        material.code
+                                      }
+                                      value={
+                                        material.code
+                                      }
+                                      disabled={
+                                        avail?.disabled ||
+                                        false
+                                      }
+                                    >
+                                      {
+                                        material.label
+                                      }
+                                    </option>
+                                  );
+                                },
+                              )}
+                            </optgroup>
+                          );
                         },
-                        true,
-                      )
-                    }
-                    options={
-                      materialOptions
-                    }
-                    placeholder={
-                      previousLayerCompleted
-                        ? "Seleccionar material"
-                        : `Completa CAPA ${
-                            layerNumber - 1
-                          }`
-                    }
-                    disabled={
-                      layerDisabled
-                    }
-                  />
+                      )}
+                    </select>
+                  </div>
 
                   <div>
                     {layer.materialCode &&
