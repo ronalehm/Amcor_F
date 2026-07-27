@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { createPortal } from "react-dom";
-import { Info, Search, X } from "lucide-react";
+import { Info, Layers3, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { type SkuLifecycleCode } from "../../data/projectWorkflow";
 import Button from "../ui/Button";
@@ -52,6 +52,22 @@ import {
 import {
   generateSKUForNewRequest,
 } from "../../utils/productSkuCodeUtils";
+import ProductStructureConfigurator from "../../../modules/products/components/ProductStructureConfigurator";
+import ValidStructureCombinationsModal from "./ValidStructureCombinationsModal";
+import NewStructureRequestModal from "./NewStructureRequestModal";
+import {
+  validateProductStructureValue,
+  getFirstStructureError,
+} from "../../utils/productStructureValidation";
+import {
+  findCompatibleStructureCombinations,
+  findExactStructureCombination,
+  getStructureCombinationsByType,
+  rankStructureCombinations,
+  type StructureCombinationOption,
+} from "../../utils/productStructureCombinations";
+import { getStructureLayerCount } from "../../data/productStructureMatrix";
+import type { ProductStructureValue } from "../../types/productStructure.types";
 
 type AnyRecord = Record<string, unknown>;
 type PortfolioRecord = AnyRecord;
@@ -112,24 +128,7 @@ const getCausalOptions = (classification: string) => {
   return getActiveModificationOptionsByClassification(normalized);
 };
 
-// Get material options from catalog
-const getMaterialOptions = () => {
-  const groups = getActiveMaterialGroupOptions();
-  const allMaterials: Array<{ value: string; label: string; materialName: string }> = [];
-
-  for (const group of groups) {
-    const materials = getMaterialLayerOptionsByGroup(group.value);
-    allMaterials.push(...materials.map(m => ({
-      value: m.code,
-      label: m.materialName,
-      materialName: m.materialName,
-    })));
-  }
-
-  return allMaterials;
-};
-
-const MATERIAL_OPTIONS = getMaterialOptions();
+// Material options removed - using ProductStructureConfigurator for layer management
 
 const getMaterialLabel = (materialCode: string): string => {
   const material = resolveMaterialLayer(materialCode);
@@ -1646,12 +1645,40 @@ const createHydrateFunction = (setters: any) => {
     setters.setLayer4(String(baseProduct.layer4Material || ""));
     setters.setLayer4Micron(String(baseProduct.layer4Micron || ""));
 
-    // Determinar cantidad visible de capas
-    let visibleLayers = 1;
-    if (baseProduct.layer2Material) visibleLayers = 2;
-    if (baseProduct.layer3Material) visibleLayers = 3;
-    if (baseProduct.layer4Material) visibleLayers = 4;
-    setters.setVisibleLayerCount(visibleLayers);
+    // Construir productStructure heredada
+    const inheritedMaterialCodes = [
+      normalizeMaterialValue(baseProduct.layer1Material),
+      normalizeMaterialValue(baseProduct.layer2Material),
+      normalizeMaterialValue(baseProduct.layer3Material),
+      normalizeMaterialValue(baseProduct.layer4Material),
+    ].filter(Boolean);
+
+    const inheritedMicrons = [
+      String(baseProduct.layer1Micron || ""),
+      String(baseProduct.layer2Micron || ""),
+      String(baseProduct.layer3Micron || ""),
+      String(baseProduct.layer4Micron || ""),
+    ];
+
+    const inheritedStructureType =
+      inheritedMaterialCodes.length === 1
+        ? "Monocapa"
+        : inheritedMaterialCodes.length === 2
+          ? "Bilaminado"
+          : inheritedMaterialCodes.length === 3
+            ? "Trilaminado"
+            : inheritedMaterialCodes.length === 4
+              ? "Tetralaminado"
+              : "";
+
+    setters.setProductStructure({
+      structureType: inheritedStructureType,
+      layers: inheritedMaterialCodes.map((materialCode, index) => ({
+        materialCode,
+        micronRuleCode: "",
+        micronValue: inheritedMicrons[index] || "",
+      })),
+    });
 
     setters.setIsInheritedFromBase(true);
     setters.setSimilarityMatches([]);
@@ -1676,10 +1703,27 @@ const createClearFunction = (setters: any) => {
     setters.setLayer2Micron("");
     setters.setLayer3Micron("");
     setters.setLayer4Micron("");
-    setters.setVisibleLayerCount(1);
     setters.setIsInheritedFromBase(false);
     setters.setNewSkuCode("");
     setters.setSelectedBaseProduct(null);
+  };
+};
+
+// Factory function para crear resetProductStructure
+const createResetProductStructureFunction = (setters: any) => {
+  return () => {
+    setters.setProductStructure({
+      structureType: "",
+      layers: [],
+    });
+    setters.setLayer1("");
+    setters.setLayer2("");
+    setters.setLayer3("");
+    setters.setLayer4("");
+    setters.setLayer1Micron("");
+    setters.setLayer2Micron("");
+    setters.setLayer3Micron("");
+    setters.setLayer4Micron("");
   };
 };
 
@@ -1719,7 +1763,11 @@ const [layer1Micron, setLayer1Micron] = useState("");
 const [layer2Micron, setLayer2Micron] = useState("");
 const [layer3Micron, setLayer3Micron] = useState("");
 const [layer4Micron, setLayer4Micron] = useState("");
-const [visibleLayerCount, setVisibleLayerCount] = useState(1);
+
+  const [productStructure, setProductStructure] = useState<ProductStructureValue>({
+    structureType: "",
+    layers: [],
+  });
 
   const [comentarios, setComentarios] = useState("");
 
@@ -1751,6 +1799,11 @@ const [visibleLayerCount, setVisibleLayerCount] = useState(1);
   } | null>(null);
 
   const [previewProject, setPreviewProject] = useState<ProjectRecord | null>(null);
+  const [isStructureCombinationsOpen, setIsStructureCombinationsOpen] =
+    useState(false);
+  const [isNewStructureRequestOpen, setIsNewStructureRequestOpen] =
+    useState(false);
+  const [structureRequestNotice, setStructureRequestNotice] = useState("");
 
   const stepNoticeTimeoutRef = useRef<number | null>(null);
 
@@ -1765,6 +1818,38 @@ const [visibleLayerCount, setVisibleLayerCount] = useState(1);
       setStepNotice(null);
       stepNoticeTimeoutRef.current = null;
     }, 5000);
+  };
+
+  // ============= Product Structure Handler =============
+
+  const handleProductStructureChange = (nextValue: ProductStructureValue) => {
+    const validation = validateProductStructureValue(nextValue);
+    const normalized = validation.normalizedValue;
+    const layers = normalized.layers;
+
+    setProductStructure(normalized);
+
+    setLayer1(layers[0]?.materialCode ?? "");
+    setLayer2(layers[1]?.materialCode ?? "");
+    setLayer3(layers[2]?.materialCode ?? "");
+    setLayer4(layers[3]?.materialCode ?? "");
+
+    setLayer1Micron(layers[0]?.micronValue ?? "");
+    setLayer2Micron(layers[1]?.micronValue ?? "");
+    setLayer3Micron(layers[2]?.micronValue ?? "");
+    setLayer4Micron(layers[3]?.micronValue ?? "");
+
+    setErrors((previous) => ({
+      ...previous,
+      productStructure: "",
+      layer1: "",
+      layer2: "",
+      layer3: "",
+      layer4: "",
+    }));
+
+    setSimilarityMatches([]);
+    setSelectedReference(null);
   };
 
   // ============= SKU Generation Helpers =============
@@ -1846,7 +1931,128 @@ const [visibleLayerCount, setVisibleLayerCount] = useState(1);
     return null;
   }, [propPortfolio, portfolioCode]);
 
-  // unitOfMeasureOpt removed - using UNIT_OPTIONS from unitOfMeasureStorage directly
+  // Validate product structure
+  const structureValidation = useMemo(
+    () => validateProductStructureValue(productStructure),
+    [productStructure],
+  );
+
+  // Structure combinations
+  const expectedStructureLayerCount = getStructureLayerCount(
+    productStructure.structureType,
+  );
+
+  const selectedStructureMaterialCodes = useMemo(
+    () =>
+      Array.from({ length: expectedStructureLayerCount }).map(
+        (_, index) => productStructure.layers[index]?.materialCode ?? "",
+      ),
+    [productStructure.layers, expectedStructureLayerCount],
+  );
+
+  const structureCombinations = useMemo(
+    () => getStructureCombinationsByType(productStructure.structureType),
+    [productStructure.structureType],
+  );
+
+  const exactStructureCombination = useMemo(
+    () =>
+      findExactStructureCombination({
+        structureType: productStructure.structureType,
+        selectedMaterialCodes: selectedStructureMaterialCodes,
+      }),
+    [productStructure.structureType, selectedStructureMaterialCodes],
+  );
+
+  const compatibleStructureCombinations = useMemo(
+    () =>
+      findCompatibleStructureCombinations({
+        structureType: productStructure.structureType,
+        selectedMaterialCodes: selectedStructureMaterialCodes,
+      }),
+    [productStructure.structureType, selectedStructureMaterialCodes],
+  );
+
+  const closestStructureMatch = useMemo(
+    () =>
+      rankStructureCombinations({
+        structureType: productStructure.structureType,
+        selectedMaterialCodes: selectedStructureMaterialCodes,
+      })[0] ?? null,
+    [productStructure.structureType, selectedStructureMaterialCodes],
+  );
+
+  const isStructureSequenceComplete = Boolean(
+    expectedStructureLayerCount > 0 &&
+      selectedStructureMaterialCodes.length === expectedStructureLayerCount &&
+      selectedStructureMaterialCodes.every(Boolean),
+  );
+
+  const currentStructureSequenceLabel = selectedStructureMaterialCodes
+    .map((materialCode) =>
+      materialCode ? getMaterialLabel(materialCode) : "Pendiente",
+    )
+    .join(" → ");
+
+  const structureLiveStatus = useMemo(() => {
+    if (!productStructure.structureType) {
+      return {
+        tone: "neutral" as const,
+        title: "Seleccione el tipo de estructura",
+        detail: "La consulta de combinaciones se habilitará al seleccionar el tipo.",
+      };
+    }
+
+    if (!isStructureSequenceComplete) {
+      return {
+        tone: "info" as const,
+        title: "Estructura pendiente de completar",
+        detail:
+          compatibleStructureCombinations.length > 0
+            ? `${compatibleStructureCombinations.length} combinación(es) compatible(s) con las capas seleccionadas.`
+            : "Complete las capas en el orden indicado.",
+      };
+    }
+
+    if (!exactStructureCombination) {
+      return {
+        tone: "error" as const,
+        title: "Estructura no registrada",
+        detail: closestStructureMatch
+          ? `La alternativa más cercana tiene ${closestStructureMatch.similarity}% de similitud.`
+          : "No existe una combinación registrada para esta secuencia.",
+      };
+    }
+
+    if (exactStructureCombination.status === "PENDIENTE_NEGOCIO") {
+      return {
+        tone: "warning" as const,
+        title: "Estructura registrada, pendiente de validación con negocio",
+        detail: exactStructureCombination.pendingReason,
+      };
+    }
+
+    if (!structureValidation.areLayersTechnicallyValid) {
+      return {
+        tone: "warning" as const,
+        title: "Estructura registrada con configuración técnica incompleta",
+        detail: "Complete el micraje, la densidad y el gramaje de cada capa.",
+      };
+    }
+
+    return {
+      tone: "success" as const,
+      title: "Estructura válida registrada",
+      detail: `${exactStructureCombination.id} · ${exactStructureCombination.sequenceLabel}`,
+    };
+  }, [
+    productStructure.structureType,
+    isStructureSequenceComplete,
+    compatibleStructureCombinations.length,
+    exactStructureCombination,
+    closestStructureMatch,
+    structureValidation.areLayersTechnicallyValid,
+  ]);
 
   // Field completion flags - portfolioBelongsToClient will be calculated below after portfoliosForClient is available
   // For now, we use a simple check
@@ -2037,15 +2243,8 @@ const filteredPortfoliosForClient = useMemo(() => {
   const canEditMotivo = canEditForm && isPortfolioStepComplete;
 
 const estructuraCalculada = useMemo(() => {
-  const caps = [layer1, layer2, layer3, layer4].filter(Boolean).length;
-
-  if (caps === 1) return "Monocapa";
-  if (caps === 2) return "Bilaminado";
-  if (caps === 3) return "Trilaminado";
-  if (caps === 4) return "Tetralaminado";
-
-  return "";
-}, [layer1, layer2, layer3, layer4]);
+  return productStructure.structureType || "";
+}, [productStructure.structureType]);
 
 const nombreTecnicoCalculado = useMemo(() => {
   const capasStr = [
@@ -2172,7 +2371,12 @@ const nombreTecnicoCalculado = useMemo(() => {
     setLayer2Micron("");
     setLayer3Micron("");
     setLayer4Micron("");
-    setVisibleLayerCount(1);
+
+    setProductStructure({
+      structureType: "",
+      layers: [],
+    });
+    setIsStructureCombinationsOpen(false);
 
     setComentarios("");
 
@@ -2358,7 +2562,7 @@ const nombreTecnicoCalculado = useMemo(() => {
         setLayer3Micron,
         setLayer4,
         setLayer4Micron,
-        setVisibleLayerCount,
+        setProductStructure,
         setIsInheritedFromBase,
         setSimilarityMatches,
         setSelectedReference,
@@ -2413,7 +2617,13 @@ const nombreTecnicoCalculado = useMemo(() => {
   const topMatch = similarityMatches[0];
   const topScore = topMatch?.score ?? 0;
 
-  const canCreate = requiredBaseFieldsFilled;
+  const hasExactValidatedStructure =
+    exactStructureCombination?.status === "VALIDADA";
+
+  const canCreate =
+    requiredBaseFieldsFilled &&
+    structureValidation.canSave &&
+    hasExactValidatedStructure;
 
   const validateForm = useMemo(() => {
     const newErrors: Record<string, string> = {};
@@ -2484,6 +2694,12 @@ const nombreTecnicoCalculado = useMemo(() => {
       newErrors.declaresApproved = "Debe confirmar que el producto se encuentra aprobado.";
     }
 
+    if (!structureValidation.canSave) {
+      newErrors.productStructure =
+        getFirstStructureError(structureValidation) ||
+        "Completa y valida la estructura del producto.";
+    }
+
     return newErrors;
   }, [
     selectedClientId,
@@ -2501,7 +2717,88 @@ const nombreTecnicoCalculado = useMemo(() => {
     productoBaseVersion,
     selectedBaseProduct,
     declaresApproved,
+    structureValidation,
   ]);
+
+  const handleApplyStructureCombination = (
+    combination: StructureCombinationOption,
+  ) => {
+    if (!combination.canApply) return;
+
+    const nextLayers = combination.materialCodes.map(
+      (materialCode, index) => {
+        const previousLayer = productStructure.layers[index];
+        const sameMaterial = previousLayer?.materialCode === materialCode;
+
+        return {
+          materialCode,
+          micronRuleCode: sameMaterial
+            ? previousLayer?.micronRuleCode ?? ""
+            : "",
+          micronValue: sameMaterial
+            ? previousLayer?.micronValue ?? ""
+            : "",
+        };
+      },
+    );
+
+    handleProductStructureChange({
+      structureType: combination.structureType,
+      layers: nextLayers,
+    });
+
+    setIsStructureCombinationsOpen(false);
+  };
+
+  const handleRequestNewStructure = () => {
+    if (!isStructureSequenceComplete || exactStructureCombination) return;
+    setIsNewStructureRequestOpen(true);
+  };
+
+  const handleSaveNewStructureRequest = (values: {
+    reason: string;
+    comment: string;
+  }) => {
+    const storageKey = "odiseo.pendingStructureRequests";
+    let currentDrafts: Array<Record<string, unknown>> = [];
+
+    try {
+      currentDrafts = JSON.parse(
+        window.localStorage.getItem(storageKey) || "[]",
+      );
+    } catch {
+      currentDrafts = [];
+    }
+
+    const draft = {
+      id: `EST-REQ-${Date.now()}`,
+      status: "PENDIENTE_HOMOLOGACION",
+      createdAt: new Date().toISOString(),
+      structureType: productStructure.structureType,
+      materialCodes: selectedStructureMaterialCodes,
+      materialNames: selectedStructureMaterialCodes.map(getMaterialLabel),
+      sequence: currentStructureSequenceLabel,
+      reason: values.reason,
+      comment: values.comment,
+      clientCode: inheritedClientCode || resolvedSelectedClient.code,
+      clientName: inheritedClientName || resolvedSelectedClient.name,
+      portfolioCode: inheritedPortfolioCode,
+      portfolioName: inheritedPortfolioName,
+      useFinal: usoFinal,
+    };
+
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify([...currentDrafts, draft]),
+    );
+
+    setIsNewStructureRequestOpen(false);
+    setIsStructureCombinationsOpen(false);
+    showStepNotice(
+      "productStructure",
+      "Solicitud de nueva estructura guardada como borrador pendiente de homologación.",
+    );
+  };
 
   const handleClientChange = (value: string) => {
     setSelectedClientId(value);
@@ -2528,7 +2825,11 @@ const nombreTecnicoCalculado = useMemo(() => {
     setLayer2Micron("");
     setLayer3Micron("");
     setLayer4Micron("");
-    setVisibleLayerCount(1);
+    setProductStructure({
+      structureType: "",
+      layers: [],
+    });
+    setIsStructureCombinationsOpen(false);
     setComentarios("");
     setSimilarityMatches([]);
     setSelectedReference(null);
@@ -2594,7 +2895,6 @@ const nombreTecnicoCalculado = useMemo(() => {
     setLayer2Micron("");
     setLayer3Micron("");
     setLayer4Micron("");
-    setVisibleLayerCount(1);
     setComentarios("");
     setSimilarityMatches([]);
     setSelectedReference(null);
@@ -2639,7 +2939,6 @@ const nombreTecnicoCalculado = useMemo(() => {
     setLayer2Micron("");
     setLayer3Micron("");
     setLayer4Micron("");
-    setVisibleLayerCount(1);
     setComentarios("");
     setSimilarityMatches([]);
     setSelectedReference(null);
@@ -2669,76 +2968,7 @@ const setLayerMicronValue = (index: number, value: string) => {
   if (index === 3) setLayer4Micron(value);
 };
 
-const clearLayerMicronsAfter = (index: number) => {
-  if (index < 0) return;
-  if (index < 1) setLayer2Micron("");
-  if (index < 2) setLayer3Micron("");
-  if (index < 3) setLayer4Micron("");
-};
-
-const clearLayersAfter = (index: number) => {
-  if (index < 0) return;
-
-  if (index < 1) {
-    setLayer2("");
-    setLayer2Micron("");
-  }
-
-  if (index < 2) {
-    setLayer3("");
-    setLayer3Micron("");
-  }
-
-  if (index < 3) {
-    setLayer4("");
-    setLayer4Micron("");
-  }
-};
-
-const handleLayerChange = (index: number, value: string) => {
-  setLayerValue(index, value);
-
-  setErrors((prev) => ({
-    ...prev,
-    layer1: "",
-  }));
-
-  if (value) {
-    // Clear micron when material changes to let user select based on available options
-    setLayerMicronValue(index, "");
-    setSimilarityMatches([]);
-    setSelectedReference(null);
-  } else {
-    clearLayersAfter(index);
-    clearLayerMicronsAfter(index);
-    setVisibleLayerCount(Math.max(1, index + 1));
-    setSimilarityMatches([]);
-    setSelectedReference(null);
-  }
-};
-
-const handleAddLayer = () => {
-  if (!canModifyLayerStructure) return;
-  if (visibleLayerCount >= 4) return;
-
-  const lastVisibleLayerValue = getLayerValue(visibleLayerCount - 1);
-
-  if (!lastVisibleLayerValue) return;
-
-  setVisibleLayerCount((prev) => Math.min(prev + 1, 4));
-};
-
-const handleRemoveLastLayer = () => {
-  if (!canModifyLayerStructure) return;
-  if (visibleLayerCount <= 1) return;
-
-  const layerIndexToRemove = visibleLayerCount - 1;
-
-  setLayerValue(layerIndexToRemove, "");
-  clearLayersAfter(layerIndexToRemove);
-
-  setVisibleLayerCount((prev) => Math.max(prev - 1, 1));
-};
+// Layer management functions removed - using ProductStructureConfigurator component
 
   const validate = () => {
     setErrors(validateForm);
@@ -3373,7 +3603,6 @@ const handleRemoveLastLayer = () => {
                     setLayer2Micron("");
                     setLayer3Micron("");
                     setLayer4Micron("");
-                    setVisibleLayerCount(1);
                     setComentarios("");
 
                     if (value !== "Producto Modificado" && value !== "Producto modificado") {
@@ -3478,7 +3707,6 @@ const handleRemoveLastLayer = () => {
                             setLayer2Micron("");
                             setLayer3Micron("");
                             setLayer4Micron("");
-                            setVisibleLayerCount(1);
                             setComentarios("");
                             setSimilarityMatches([]);
                             setSelectedReference(null);
@@ -3630,7 +3858,6 @@ const handleRemoveLastLayer = () => {
                       setLayer2Micron("");
                       setLayer3Micron("");
                       setLayer4Micron("");
-                      setVisibleLayerCount(1);
                       setComentarios("");
                       setSimilarityMatches([]);
                       setSelectedReference(null);
@@ -3827,138 +4054,107 @@ const handleRemoveLastLayer = () => {
               </div>
 
               <div className={`space-y-3 border-t border-slate-200 pt-4 transition-opacity ${canEditMateriales ? "opacity-100" : "opacity-60"}`}>
-  <div className="flex flex-wrap items-start justify-between gap-3">
-    <div>
-      <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
-        Materiales por capa
-      </label>
-      <p className="mt-1 text-xs text-slate-500">
-        Opcional. El micraje mejora la precisión de búsqueda de similitudes.
-      </p>
-    </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
+                    Materiales por capa *
+                  </label>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Configura el tipo de estructura y selecciona los materiales requeridos.
+                  </p>
+                </div>
 
-    <div className="flex items-center gap-2">
-      {visibleLayerCount > 1 && (
-        <button
-          type="button"
-          onClick={handleRemoveLastLayer}
-          disabled={!canEditMateriales || !canModifyLayerStructure}
-          title={!canModifyLayerStructure ? "Eliminar capas solo está disponible para Producto Nuevo con Nueva estructura" : ""}
-          className={`h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold transition ${
-            canEditMateriales && canModifyLayerStructure
-              ? "text-slate-600 hover:bg-slate-50"
-              : "cursor-not-allowed bg-slate-50 text-slate-400"
-          }`}
-        >
-          Quitar capa
-        </button>
-      )}
-
-      <button
-        type="button"
-        onClick={handleAddLayer}
-        disabled={
-          !canEditMateriales ||
-          !canModifyLayerStructure ||
-          visibleLayerCount >= 4 ||
-          !getLayerValue(visibleLayerCount - 1)
-        }
-        title={!canModifyLayerStructure ? "Agregar capas solo está disponible para Producto Nuevo con Nueva estructura" : ""}
-        className={[
-          "h-9 rounded-lg px-3 text-xs font-semibold transition",
-          !canEditMateriales ||
-          !canModifyLayerStructure ||
-          visibleLayerCount >= 4 ||
-          !getLayerValue(visibleLayerCount - 1)
-            ? "cursor-not-allowed bg-slate-100 text-slate-400"
-            : "border border-brand-primary bg-white text-brand-primary hover:bg-brand-primary/5",
-        ].join(" ")}
-      >
-        + Nueva capa
-      </button>
-    </div>
-  </div>
-
-  {!canModifyLayerStructure && canEditMateriales && (
-    <div className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5">
-      <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
-      <p className="text-xs text-amber-700">
-        {isProductoNuevo(motivo) ? (
-          <>La modificación de capas solo está disponible para <strong>Producto Nuevo</strong> con <strong>Nueva estructura</strong>.</>
-        ) : (
-          <>La cantidad de capas no puede modificarse para <strong>{motivo}</strong>. Las capas están heredadas del portafolio.</>
-        )}
-      </p>
-    </div>
-  )}
-
-  <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-  {Array.from({ length: visibleLayerCount }).map((_, index) => {
-    const layerNumber = index + 1;
-    const isFirstLayer = index === 0;
-    const selectedMaterial = getLayerValue(index);
-    const selectedMicron = getLayerMicronValue(index);
-    const micronControl = getMicronControlForMaterial(selectedMaterial);
-    const isDisabled = !canEditMateriales || (isInheritedFromBase && !canModifyLayerStructure);
-
-    return (
-      <div
-        key={`layer-${layerNumber}`}
-        className="rounded-xl border border-slate-200 bg-slate-50/60 p-3"
-      >
-        <FormSelect
-          label="Tipo de material por capa"
-          value={selectedMaterial}
-          onChange={(value) => handleLayerChange(index, value)}
-          options={MATERIAL_OPTIONS}
-          placeholder="Material"
-          error={isFirstLayer ? errors.layer1 : undefined}
-          disabled={isDisabled}
-        />
-
-        {selectedMaterial && (
-          <div className="mt-2">
-            {micronControl.mode === "VALOR" && (
-              <FormSelect
-                label={`Micraje ${layerNumber}`}
-                value={selectedMicron}
-                onChange={(value) => setLayerMicronValue(index, value)}
-                options={micronControl.options.map((option) => ({
-                  value: option.value,
-                  label: `${option.value} µm`,
-                }))}
-                placeholder="Opcional"
-                disabled={isDisabled}
-              />
-            )}
-            {micronControl.mode === "RANGO" && (
-              <div>
-                <FormInput
-                  label={`Micraje ${layerNumber} (${micronControl.minValue}-${micronControl.maxValue} µm)`}
-                  value={selectedMicron}
-                  onChange={(value) => setLayerMicronValue(index, value)}
-                  placeholder={`${micronControl.minValue}-${micronControl.maxValue} µm`}
-                  disabled={isDisabled}
+                <ProductStructureConfigurator
+                  value={productStructure}
+                  onChange={handleProductStructureChange}
+                  disabled={!canEditMateriales}
+                  inherited={isInheritedFromBase}
+                  allowStructureChange={canModifyLayerStructure}
+                  showCoverageWarning={false}
+                  className="w-full"
                 />
-              </div>
-            )}
-            {micronControl.mode === "NONE" && (
-              <FormInput
-                label={`Micraje ${layerNumber}`}
-                value={selectedMicron}
-                onChange={(value) => setLayerMicronValue(index, value)}
-                placeholder="Opcional (µm)"
-                disabled={isDisabled}
-              />
-            )}
-          </div>
-        )}
-      </div>
-    );
-  })}
-</div>
 
-</div>
+                {errors.productStructure && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                    {errors.productStructure}
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                  <div
+                    className={[
+                      "rounded-lg border px-3 py-2.5",
+                      structureLiveStatus.tone === "success"
+                        ? "border-green-200 bg-green-50"
+                        : structureLiveStatus.tone === "warning"
+                          ? "border-amber-200 bg-amber-50"
+                          : structureLiveStatus.tone === "error"
+                            ? "border-red-200 bg-red-50"
+                            : structureLiveStatus.tone === "info"
+                              ? "border-blue-200 bg-blue-50"
+                              : "border-slate-200 bg-white",
+                    ].join(" ")}
+                  >
+                    <p
+                      className={[
+                        "text-xs font-bold",
+                        structureLiveStatus.tone === "success"
+                          ? "text-green-800"
+                          : structureLiveStatus.tone === "warning"
+                            ? "text-amber-800"
+                            : structureLiveStatus.tone === "error"
+                              ? "text-red-800"
+                              : structureLiveStatus.tone === "info"
+                                ? "text-blue-800"
+                                : "text-slate-700",
+                      ].join(" ")}
+                    >
+                      {structureLiveStatus.title}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-600">
+                      {structureLiveStatus.detail}
+                    </p>
+
+                    {productStructure.structureType && (
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Secuencia actual: {currentStructureSequenceLabel || "Pendiente"}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsStructureCombinationsOpen(true)}
+                      disabled={!productStructure.structureType || !canEditMateriales}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <Layers3 size={16} />
+                        Consultar combinaciones válidas para este tipo de estructura
+                        {productStructure.structureType
+                          ? ` (${structureCombinations.length})`
+                          : ""}
+                      </span>
+                    </Button>
+
+                    {isStructureSequenceComplete && !exactStructureCombination && (
+                      <Button
+                        variant="outline"
+                        onClick={handleRequestNewStructure}
+                        disabled={!canEditMateriales}
+                      >
+                        Solicitar nueva estructura
+                      </Button>
+                    )}
+                  </div>
+
+                  {stepNotice?.key === "productStructure" && (
+                    <p className="mt-2 text-xs font-medium text-green-600">
+                      {stepNotice.message}
+                    </p>
+                  )}
+                </div>
+              </div>
 
               <div className="space-y-1">
                 <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
@@ -3987,7 +4183,8 @@ const handleRemoveLastLayer = () => {
                   </span>
                 )}
               </div>
-                            {estructuraCalculada && (
+
+              {nombreTecnicoCalculado && (
                 <div className="rounded-xl border border-green-100 bg-green-50/50 p-4">
                   <h4 className="mb-3 border-b border-green-100 pb-2 text-sm font-bold text-green-700">
                     Resultado
@@ -3995,12 +4192,8 @@ const handleRemoveLastLayer = () => {
 
                   <div className="space-y-2">
                     <PreviewRow
-                      label="Estructura (Calculado)"
-                      value={estructuraCalculada}
-                    />
-                    <PreviewRow
                       label="Nombre de producto (Calculado)"
-                      value={nombreTecnicoCalculado || "—"}
+                      value={nombreTecnicoCalculado}
                     />
                   </div>
                 </div>
@@ -4511,6 +4704,29 @@ const handleRemoveLastLayer = () => {
           </div>
         </div>
       )}
+
+      <ValidStructureCombinationsModal
+        isOpen={isStructureCombinationsOpen}
+        structureType={productStructure.structureType}
+        currentLayers={productStructure.layers}
+        onApply={handleApplyStructureCombination}
+        onRequestNew={handleRequestNewStructure}
+        onClose={() => setIsStructureCombinationsOpen(false)}
+      />
+
+      <NewStructureRequestModal
+        isOpen={isNewStructureRequestOpen}
+        structureType={productStructure.structureType}
+        layers={productStructure.layers}
+        sequence={currentStructureSequenceLabel}
+        clientName={inheritedClientName || resolvedSelectedClient.name}
+        portfolioName={inheritedPortfolioName}
+        wrappingName={envoltura}
+        useFinal={usoFinal}
+        productName={projectName}
+        onSave={handleSaveNewStructureRequest}
+        onClose={() => setIsNewStructureRequestOpen(false)}
+      />
     </div>,
     document.body
   );

@@ -6,7 +6,8 @@ import FormSelect from "../../../shared/components/forms/FormSelect";
 import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import CommercialExecutiveMultiSearch from "../../../shared/components/forms/CommercialExecutiveMultiSearch";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
-import LayerComboInputs from "./LayerComboInputs";
+import ProductStructureConfigurator from "./ProductStructureConfigurator";
+import type { ProductStructureValue } from "../../../shared/types/productStructure.types";
 
 type StepProps = {
   form: ProjectEditFormData;
@@ -45,6 +46,49 @@ export default function ProductStep0General({
   modificationReasonOptions,
   shouldShowFieldError,
 }: StepProps) {
+  const handleProductStructureChange = (nextValue: any) => {
+    updateField("structureType", nextValue.structureType);
+    const layers = nextValue.layers || [];
+    updateField("layer1Material", layers[0]?.materialCode ?? "");
+    updateField("layer1MicronRuleCode", layers[0]?.micronRuleCode ?? "");
+    updateField("layer1Micron", layers[0]?.micronValue ?? "");
+    updateField("layer2Material", layers[1]?.materialCode ?? "");
+    updateField("layer2MicronRuleCode", layers[1]?.micronRuleCode ?? "");
+    updateField("layer2Micron", layers[1]?.micronValue ?? "");
+    updateField("layer3Material", layers[2]?.materialCode ?? "");
+    updateField("layer3MicronRuleCode", layers[2]?.micronRuleCode ?? "");
+    updateField("layer3Micron", layers[2]?.micronValue ?? "");
+    updateField("layer4Material", layers[3]?.materialCode ?? "");
+    updateField("layer4MicronRuleCode", layers[3]?.micronRuleCode ?? "");
+    updateField("layer4Micron", layers[3]?.micronValue ?? "");
+  };
+
+  const productStructureValue: ProductStructureValue = {
+    structureType: (form.structureType || "") as any,
+    layers: [
+      {
+        materialCode: form.layer1Material || "",
+        micronRuleCode: form.layer1MicronRuleCode || "",
+        micronValue: form.layer1Micron || "",
+      },
+      {
+        materialCode: form.layer2Material || "",
+        micronRuleCode: form.layer2MicronRuleCode || "",
+        micronValue: form.layer2Micron || "",
+      },
+      {
+        materialCode: form.layer3Material || "",
+        micronRuleCode: form.layer3MicronRuleCode || "",
+        micronValue: form.layer3Micron || "",
+      },
+      {
+        materialCode: form.layer4Material || "",
+        micronRuleCode: form.layer4MicronRuleCode || "",
+        micronValue: form.layer4Micron || "",
+      },
+    ],
+  };
+
   return (
     <div className="space-y-6">
       {/* Información General */}
@@ -178,24 +222,35 @@ export default function ProductStep0General({
           </div>
 
           {/* Capas Material + Micron */}
-          <div>
+          <div className="border-t pt-6">
             <label className="block text-sm font-medium text-slate-700 mb-3">
               Estructura de Capas
             </label>
-            <LayerComboInputs
-              form={form}
-              updateField={updateField}
-              markFieldAsTouched={markFieldAsTouched}
-              shouldShowFieldError={shouldShowFieldError}
-              getError={getError}
+            <ProductStructureConfigurator
+              value={productStructureValue}
+              onChange={handleProductStructureChange}
+              className="w-full"
             />
           </div>
 
           {/* Estructura calculada, Nombre calculado */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <PreviewRow label="Estructura Calculada" value={form.structureType} />
-            <PreviewRow label="Nombre Calculado" value={form.projectName} />
-          </div>
+          {form.structureType && (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 pt-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Resumen de Estructura
+                </label>
+                <div className="text-sm text-slate-700">
+                  <p><strong>Tipo:</strong> {form.structureType}</p>
+                  {form.layer1Material && <p><strong>Capa 1:</strong> {form.layer1Material} {form.layer1Micron ? `- ${form.layer1Micron} µm` : ""}</p>}
+                  {form.layer2Material && <p><strong>Capa 2:</strong> {form.layer2Material} {form.layer2Micron ? `- ${form.layer2Micron} µm` : ""}</p>}
+                  {form.layer3Material && <p><strong>Capa 3:</strong> {form.layer3Material} {form.layer3Micron ? `- ${form.layer3Micron} µm` : ""}</p>}
+                  {form.layer4Material && <p><strong>Capa 4:</strong> {form.layer4Material} {form.layer4Micron ? `- ${form.layer4Micron} µm` : ""}</p>}
+                </div>
+              </div>
+              <PreviewRow label="Nombre Calculado" value={form.projectName} />
+            </div>
+          )}
 
           {/* Acción Salesforce */}
           <FormInput

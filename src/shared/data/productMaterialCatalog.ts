@@ -61,6 +61,7 @@ export interface MicronRangeControl {
   code: string;
   minValue: number;
   maxValue: number;
+  stepValue: number;
   unit: string;
   density: number | null;
   densityUnit: string;
@@ -2538,6 +2539,7 @@ export function getMicronFrontendControl(
       code: rangeRule.TbMatMicCod,
       minValue,
       maxValue,
+      stepValue: 1,
       unit: normalizeMicronUnit(rangeRule.TbMatMicUni),
       density: parseCatalogNumber(rangeRule.TbMatMicDens),
       densityUnit: rangeRule.TbMatMicDensUni,
@@ -2608,6 +2610,48 @@ export function findMicronRecordForValue(params: {
   );
 }
 
+export function findMicronRecordsForValue(params: {
+  materialValue: unknown;
+  micronValue: unknown;
+}): MaterialMicronCatalogRecord[] {
+  const micronNumber = parseCatalogNumber(params.micronValue);
+
+  if (micronNumber === null) return [];
+
+  const rules = getMicronRecordsByMaterial(params.materialValue);
+
+  return rules.filter((rule) => {
+    if (rule.TbMatMicTip === "VALOR") {
+      const ruleValue = parseCatalogNumber(rule.TbMatMicVal);
+      return ruleValue !== null && ruleValue === micronNumber;
+    }
+
+    const minValue = parseCatalogNumber(rule.TbMatMicMin);
+    const maxValue = parseCatalogNumber(rule.TbMatMicMax);
+
+    return (
+      minValue !== null &&
+      maxValue !== null &&
+      micronNumber >= minValue &&
+      micronNumber <= maxValue
+    );
+  });
+}
+
+export function getMicronRecordByCode(
+  code: unknown,
+): MaterialMicronCatalogRecord | null {
+  const normalizedCode = String(code ?? "").trim().toUpperCase();
+
+  if (!normalizedCode) return null;
+
+  return (
+    getActiveMicronRecords().find(
+      (record) => record.TbMatMicCod.toUpperCase() === normalizedCode,
+    ) || null
+  );
+}
+
 export function isMicronAllowedForMaterial(params: {
   materialValue: unknown;
   micronValue: unknown;
@@ -2638,12 +2682,22 @@ export function calculateGrammageForMicron(params: {
 export function buildLayerTechnicalSnapshot(params: {
   materialValue: unknown;
   micronValue: unknown;
+  micronRuleCode?: unknown;
 }): LayerTechnicalSnapshot {
   const material = resolveMaterialLayer(params.materialValue);
-  const micron = findMicronRecordForValue({
-    materialValue: params.materialValue,
-    micronValue: params.micronValue,
-  });
+
+  let micron: MaterialMicronCatalogRecord | null = null;
+
+  if (params.micronRuleCode) {
+    micron = getMicronRecordByCode(params.micronRuleCode);
+  }
+
+  if (!micron) {
+    micron = findMicronRecordForValue({
+      materialValue: params.materialValue,
+      micronValue: params.micronValue,
+    });
+  }
 
   const grammage = calculateGrammageForMicron({
     materialValue: params.materialValue,

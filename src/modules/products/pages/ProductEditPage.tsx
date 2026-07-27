@@ -179,18 +179,22 @@ export type ProjectEditFormData = {
   layer1MaterialGroup: string;
   layer1Material: string;
   layer1Micron: string;
+  layer1MicronRuleCode: string;
   layer1Grammage: string;
   layer2MaterialGroup: string;
   layer2Material: string;
   layer2Micron: string;
+  layer2MicronRuleCode: string;
   layer2Grammage: string;
   layer3MaterialGroup: string;
   layer3Material: string;
   layer3Micron: string;
+  layer3MicronRuleCode: string;
   layer3Grammage: string;
   layer4MaterialGroup: string;
   layer4Material: string;
   layer4Micron: string;
+  layer4MicronRuleCode: string;
   layer4Grammage: string;
 
   specialStructureSpecs: string;
@@ -538,18 +542,22 @@ const FIELD_TO_EDITABLE_GROUP: Record<string, string> = {
   layer1MaterialGroup: "materials",
   layer1Material: "materials",
   layer1Micron: "materials",
+  layer1MicronRuleCode: "materials",
   layer1Grammage: "materials",
   layer2MaterialGroup: "materials",
   layer2Material: "materials",
   layer2Micron: "materials",
+  layer2MicronRuleCode: "materials",
   layer2Grammage: "materials",
   layer3MaterialGroup: "materials",
   layer3Material: "materials",
   layer3Micron: "materials",
+  layer3MicronRuleCode: "materials",
   layer3Grammage: "materials",
   layer4MaterialGroup: "materials",
   layer4Material: "materials",
   layer4Micron: "materials",
+  layer4MicronRuleCode: "materials",
   layer4Grammage: "materials",
   grammage: "properties",
   sampleRequest: "sample",
@@ -1907,21 +1915,25 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   layer1MaterialGroup: "Capa 1 - Grupo Material",
   layer1Material: "Capa 1 - Tipo de Material y Micraje",
   layer1Micron: "Capa 1 - Micraje",
+  layer1MicronRuleCode: "Capa 1 - Código Regla Micraje",
   layer1Grammage: "Capa 1 - Gramaje",
 
   layer2MaterialGroup: "Capa 2 - Grupo Material",
   layer2Material: "Capa 2 - Tipo de Material y Micraje",
   layer2Micron: "Capa 2 - Micraje",
+  layer2MicronRuleCode: "Capa 2 - Código Regla Micraje",
   layer2Grammage: "Capa 2 - Gramaje",
 
   layer3MaterialGroup: "Capa 3 - Grupo Material",
   layer3Material: "Capa 3 - Tipo de Material y Micraje",
   layer3Micron: "Capa 3 - Micraje",
+  layer3MicronRuleCode: "Capa 3 - Código Regla Micraje",
   layer3Grammage: "Capa 3 - Gramaje",
 
   layer4MaterialGroup: "Capa 4 - Grupo Material",
   layer4Material: "Capa 4 - Tipo de Material y Micraje",
   layer4Micron: "Capa 4 - Micraje",
+  layer4MicronRuleCode: "Capa 4 - Código Regla Micraje",
   layer4Grammage: "Capa 4 - Gramaje",
 
   materialPackaging: "Embalaje de material",
@@ -2088,18 +2100,22 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     layer1MaterialGroup: form.layer1MaterialGroup,
     layer1Material: form.layer1Material,
     layer1Micron: form.layer1Micron,
+    layer1MicronRuleCode: form.layer1MicronRuleCode,
     layer1Grammage: form.layer1Grammage,
     layer2MaterialGroup: form.layer2MaterialGroup,
     layer2Material: form.layer2Material,
     layer2Micron: form.layer2Micron,
+    layer2MicronRuleCode: form.layer2MicronRuleCode,
     layer2Grammage: form.layer2Grammage,
     layer3MaterialGroup: form.layer3MaterialGroup,
     layer3Material: form.layer3Material,
     layer3Micron: form.layer3Micron,
+    layer3MicronRuleCode: form.layer3MicronRuleCode,
     layer3Grammage: form.layer3Grammage,
     layer4MaterialGroup: form.layer4MaterialGroup,
     layer4Material: form.layer4Material,
     layer4Micron: form.layer4Micron,
+    layer4MicronRuleCode: form.layer4MicronRuleCode,
     layer4Grammage: form.layer4Grammage,
     specialStructureSpecs: form.specialStructureSpecs?.trim() || "",
     grammage: form.grammage,
@@ -2460,18 +2476,22 @@ export default function ProductEditPage() {
     layer1MaterialGroup: "",
     layer1Material: "",
     layer1Micron: "",
+    layer1MicronRuleCode: "",
     layer1Grammage: "",
     layer2MaterialGroup: "",
     layer2Material: "",
     layer2Micron: "",
+    layer2MicronRuleCode: "",
     layer2Grammage: "",
     layer3MaterialGroup: "",
     layer3Material: "",
     layer3Micron: "",
+    layer3MicronRuleCode: "",
     layer3Grammage: "",
     layer4MaterialGroup: "",
     layer4Material: "",
     layer4Micron: "",
+    layer4MicronRuleCode: "",
     layer4Grammage: "",
     specialStructureSpecs: "",
     grammageTolerance: "",
@@ -2839,19 +2859,23 @@ if (!project) {
       layer1MaterialGroup: (project as any).layer1MaterialGroup || extractMaterialGroupFromValue(project.layer1Material || (project as any).layer1MaterialLabel || ""),
       layer1Material: project.layer1Material || (project as any).layer1MaterialLabel || "",
       layer1Micron: project.layer1Micron || (project as any).layer1Micraje || "",
+      layer1MicronRuleCode: (project as any).layer1MicronRuleCode || "",
       layer1Grammage: project.layer1Grammage || "",
       // CORRECCIÓN: Material groups con fallback a extracción
       layer2MaterialGroup: (project as any).layer2MaterialGroup || extractMaterialGroupFromValue(project.layer2Material || (project as any).layer2MaterialLabel || ""),
       layer2Material: project.layer2Material || (project as any).layer2MaterialLabel || "",
       layer2Micron: project.layer2Micron || (project as any).layer2Micraje || "",
+      layer2MicronRuleCode: (project as any).layer2MicronRuleCode || "",
       layer2Grammage: project.layer2Grammage || "",
       layer3MaterialGroup: (project as any).layer3MaterialGroup || extractMaterialGroupFromValue(project.layer3Material || (project as any).layer3MaterialLabel || ""),
       layer3Material: project.layer3Material || (project as any).layer3MaterialLabel || "",
       layer3Micron: project.layer3Micron || (project as any).layer3Micraje || "",
+      layer3MicronRuleCode: (project as any).layer3MicronRuleCode || "",
       layer3Grammage: project.layer3Grammage || "",
       layer4MaterialGroup: (project as any).layer4MaterialGroup || extractMaterialGroupFromValue(project.layer4Material || (project as any).layer4MaterialLabel || ""),
       layer4Material: project.layer4Material || (project as any).layer4MaterialLabel || "",
       layer4Micron: project.layer4Micron || (project as any).layer4Micraje || "",
+      layer4MicronRuleCode: (project as any).layer4MicronRuleCode || "",
       layer4Grammage: project.layer4Grammage || "",
       specialStructureSpecs: project.specialStructureSpecs || "",
       grammageTolerance: (project as any).grammageTolerance || "",
