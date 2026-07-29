@@ -7,7 +7,8 @@ import {
 
 export type StructureCombinationStatus =
   | "VALIDADA"
-  | "PENDIENTE_NEGOCIO";
+  | "PENDIENTE_NEGOCIO"
+  | "NO_VALIDADA";
 
 export type StructureMatrixCode =
   | "MC-004"
@@ -107,7 +108,8 @@ function buildCombination(
   layerLabels: string[],
   index: number,
 ): StructureCombinationOption {
-  const materialCodeOptions: string[][] = layerLabels.map(() => []);
+  // materialCodeOptions: cada capa contiene exactamente un código de la matriz
+  const materialCodeOptions: string[][] = layerLabels.map((code) => [code]);
 
   const materialCodes = materialCodeOptions.map((codes) =>
     codes.length === 1 ? codes[0] : "",

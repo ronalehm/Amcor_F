@@ -106,8 +106,8 @@ export interface LayerTechnicalSnapshot {
  * Pegar aquÃ­ los 44 registros completos de la tabla padre.
  */
 export const TABMATCAPAODISEO_INITIAL_DATA: MaterialLayerCatalogRecord[] = [
-  { TbMatCapPk: 1, TbMatCapCod: "MATCAP-001", TbMatCapGmp: "Aluminio", TbMatCapNom: "Aluminio", TbMatCapOrd: 1, TbMatCapActi: true },
-  { TbMatCapPk: 2, TbMatCapCod: "MATCAP-002", TbMatCapGmp: "Aluminio", TbMatCapNom: "Aluminio-LACA TS", TbMatCapOrd: 2, TbMatCapActi: true },
+  { TbMatCapPk: 1, TbMatCapCod: "MATCAP-001", TbMatCapGmp: "ALU", TbMatCapNom: "Aluminio", TbMatCapOrd: 1, TbMatCapActi: true },
+  { TbMatCapPk: 2, TbMatCapCod: "MATCAP-002", TbMatCapGmp: "ALU", TbMatCapNom: "Aluminio-LACA TS", TbMatCapOrd: 2, TbMatCapActi: true },
   { TbMatCapPk: 3, TbMatCapCod: "MATCAP-003", TbMatCapGmp: "BOPA", TbMatCapNom: "PABO", TbMatCapOrd: 3, TbMatCapActi: true },
   { TbMatCapPk: 4, TbMatCapCod: "MATCAP-004", TbMatCapGmp: "BOPA", TbMatCapNom: "PABO HB", TbMatCapOrd: 4, TbMatCapActi: true },
   { TbMatCapPk: 5, TbMatCapCod: "MATCAP-005", TbMatCapGmp: "BOPA", TbMatCapNom: "Poliamida Biorientada", TbMatCapOrd: 5, TbMatCapActi: true },
@@ -127,10 +127,10 @@ export const TABMATCAPAODISEO_INITIAL_DATA: MaterialLayerCatalogRecord[] = [
   { TbMatCapPk: 19, TbMatCapCod: "MATCAP-019", TbMatCapGmp: "COEX", TbMatCapNom: "PE-EVOH", TbMatCapOrd: 19, TbMatCapActi: true },
   { TbMatCapPk: 20, TbMatCapCod: "MATCAP-020", TbMatCapGmp: "COEX", TbMatCapNom: "PE-PA", TbMatCapOrd: 20, TbMatCapActi: true },
   { TbMatCapPk: 21, TbMatCapCod: "MATCAP-021", TbMatCapGmp: "COEX", TbMatCapNom: "PE-PA-EVOH", TbMatCapOrd: 21, TbMatCapActi: true },
-  { TbMatCapPk: 22, TbMatCapCod: "MATCAP-022", TbMatCapGmp: "Compostable", TbMatCapNom: "Compostable", TbMatCapOrd: 22, TbMatCapActi: true },
+  { TbMatCapPk: 22, TbMatCapCod: "MATCAP-022", TbMatCapGmp: "COM", TbMatCapNom: "Compostable", TbMatCapOrd: 22, TbMatCapActi: true },
   { TbMatCapPk: 23, TbMatCapCod: "MATCAP-023", TbMatCapGmp: "PA", TbMatCapNom: "CPA", TbMatCapOrd: 23, TbMatCapActi: true },
-  { TbMatCapPk: 24, TbMatCapCod: "MATCAP-024", TbMatCapGmp: "Papel", TbMatCapNom: "Papel", TbMatCapOrd: 24, TbMatCapActi: true },
-  { TbMatCapPk: 25, TbMatCapCod: "MATCAP-025", TbMatCapGmp: "Papel", TbMatCapNom: "Papel Coteado", TbMatCapOrd: 25, TbMatCapActi: true },
+  { TbMatCapPk: 24, TbMatCapCod: "MATCAP-024", TbMatCapGmp: "PAP", TbMatCapNom: "Papel", TbMatCapOrd: 24, TbMatCapActi: true },
+  { TbMatCapPk: 25, TbMatCapCod: "MATCAP-025", TbMatCapGmp: "PAP", TbMatCapNom: "Papel Coteado", TbMatCapOrd: 25, TbMatCapActi: true },
   { TbMatCapPk: 26, TbMatCapCod: "MATCAP-026", TbMatCapGmp: "PE", TbMatCapNom: "BOPE", TbMatCapOrd: 26, TbMatCapActi: true },
   { TbMatCapPk: 27, TbMatCapCod: "MATCAP-027", TbMatCapGmp: "PE", TbMatCapNom: "Capa Sellante Blanca", TbMatCapOrd: 27, TbMatCapActi: true },
   { TbMatCapPk: 28, TbMatCapCod: "MATCAP-028", TbMatCapGmp: "PE", TbMatCapNom: "Capa Sellante Cristal", TbMatCapOrd: 28, TbMatCapActi: true },
@@ -149,7 +149,7 @@ export const TABMATCAPAODISEO_INITIAL_DATA: MaterialLayerCatalogRecord[] = [
   { TbMatCapPk: 41, TbMatCapCod: "MATCAP-041", TbMatCapGmp: "PPCAST", TbMatCapNom: "Polipropileno CAST", TbMatCapOrd: 41, TbMatCapActi: true },
   { TbMatCapPk: 42, TbMatCapCod: "MATCAP-042", TbMatCapGmp: "PP", TbMatCapNom: "PPBF", TbMatCapOrd: 42, TbMatCapActi: true },
   { TbMatCapPk: 43, TbMatCapCod: "MATCAP-043", TbMatCapGmp: "PPCAST", TbMatCapNom: "CPP Metalizado", TbMatCapOrd: 43, TbMatCapActi: true },
-  { TbMatCapPk: 44, TbMatCapCod: "MATCAP-044", TbMatCapGmp: "Termoformados", TbMatCapNom: "Termoformado", TbMatCapOrd: 44, TbMatCapActi: true }
+  { TbMatCapPk: 44, TbMatCapCod: "MATCAP-044", TbMatCapGmp: "TF", TbMatCapNom: "Termoformado", TbMatCapOrd: 44, TbMatCapActi: true }
 ];
 
 /**

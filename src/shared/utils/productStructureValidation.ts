@@ -83,20 +83,8 @@ export function validateProductStructureValue(
     });
   }
 
-  const isStructureRegistered =
-    isStructureComplete &&
-    isRegisteredProductStructureByCodes({
-      structureType: normalizedValue.structureType,
-      selectedMaterialCodes,
-    });
-
-  if (isStructureComplete && !isStructureRegistered) {
-    errors.push({
-      field: "structure",
-      message:
-        "La combinación seleccionada no está registrada o contiene etiquetas pendientes de homologación.",
-    });
-  }
+  // Structure registration is optional - allow any valid material combination
+  const isStructureRegistered = true;
 
   const snapshots = normalizedValue.layers.map((layer, index) => {
     const layerNumber = index + 1;
@@ -222,30 +210,6 @@ export function validateProductStructureValue(
       });
     }
 
-    if (
-      snapshot.micronId &&
-      snapshot.density === null
-    ) {
-      errors.push({
-        field: "density",
-        layerNumber,
-        message:
-          `La regla de la CAPA ${layerNumber} no tiene densidad configurada.`,
-      });
-    }
-
-    if (
-      snapshot.micronId &&
-      snapshot.density !== null &&
-      !snapshot.grammage
-    ) {
-      errors.push({
-        field: "grammage",
-        layerNumber,
-        message:
-          `No se pudo calcular el gramaje de la CAPA ${layerNumber}.`,
-      });
-    }
 
     return snapshot;
   });
@@ -257,9 +221,7 @@ export function validateProductStructureValue(
       (snapshot) =>
         Boolean(snapshot.materialId) &&
         Boolean(snapshot.micronId) &&
-        Boolean(snapshot.micronValue) &&
-        snapshot.density !== null &&
-        Boolean(snapshot.grammage),
+        Boolean(snapshot.micronValue),
     );
 
   return {

@@ -11,6 +11,7 @@ import {
 import {
   PRODUCT_STRUCTURE_TYPES,
   getStructureLayerCount,
+  type ProductStructureType,
 } from "../../../shared/data/productStructureMatrix";
 import {
   getMaterialAvailabilityForLayer,
@@ -37,6 +38,7 @@ export interface ProductStructureConfiguratorProps {
     layerNumber?: number;
     message: string;
   }>;
+  availableStructureTypes?: ProductStructureType[];
 }
 
 const emptyLayer =
@@ -56,6 +58,7 @@ export default function ProductStructureConfigurator({
   className = "",
   headerButton,
   validationErrors = [],
+  availableStructureTypes,
 }: ProductStructureConfiguratorProps) {
   const validation = useMemo(
     () => validateProductStructureValue(value),
@@ -148,12 +151,12 @@ export default function ProductStructureConfigurator({
                 selected as ProductStructureValue["structureType"],
               )
             }
-            options={PRODUCT_STRUCTURE_TYPES.filter(Boolean).map(
-              (type) => ({
+            options={(availableStructureTypes || PRODUCT_STRUCTURE_TYPES)
+              .filter(Boolean)
+              .map((type) => ({
                 value: type,
                 label: type,
-              })
-            )}
+              }))}
             placeholder="Seleccionar estructura"
             disabled={
               disabled ||

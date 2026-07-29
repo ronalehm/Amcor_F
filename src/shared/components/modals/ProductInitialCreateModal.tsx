@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { createPortal } from "react-dom";
-import { Info, Layers3, Search, X } from "lucide-react";
+import { Info, Layers3, Search, SlidersHorizontal, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { type SkuLifecycleCode } from "../../data/projectWorkflow";
 import Button from "../ui/Button";
@@ -66,8 +66,12 @@ import {
   rankStructureCombinations,
   type StructureCombinationOption,
 } from "../../utils/productStructureCombinations";
-import { getStructureLayerCount } from "../../data/productStructureMatrix";
+import { getStructureLayerCount, type ProductStructureType } from "../../data/productStructureMatrix";
 import type { ProductStructureValue } from "../../types/productStructure.types";
+import {
+  extractWrappingTypeCode,
+  getValidStructureTypesForWrapping,
+} from "../../data/productStructureByWrappingType";
 
 type AnyRecord = Record<string, unknown>;
 type PortfolioRecord = AnyRecord;
@@ -92,6 +96,109 @@ interface SimilarityMatch {
   score: number;
   scope: MatchScope;
 }
+
+interface SimilarityScopeFilters {
+  sameClientSamePortfolio: boolean;
+  sameClientOtherPortfolio: boolean;
+  otherClients: boolean;
+}
+
+interface SimilarityCriteriaFilters {
+  structureType: boolean;
+  layerCount: boolean;
+  materials: boolean;
+  microns: boolean;
+  wrapping: boolean;
+  finalUse: boolean;
+  volume: boolean;
+  packingMachine: boolean;
+}
+
+interface SimilarityCandidateData {
+  clientCode?: string;
+  clientName?: string;
+  portfolioCode?: string;
+  envoltura?: string;
+  usoFinal?: string;
+  maquinaCliente?: string;
+  afMarketId?: string;
+  estructuraCalculada?: string;
+  layer1?: string;
+  layer2?: string;
+  layer3?: string;
+  layer4?: string;
+  layer1Micron?: string;
+  layer2Micron?: string;
+  layer3Micron?: string;
+  layer4Micron?: string;
+  volumen?: string;
+  unidad?: string;
+}
+
+const DEFAULT_SIMILARITY_SCOPE_FILTERS: SimilarityScopeFilters = {
+  sameClientSamePortfolio: true,
+  sameClientOtherPortfolio: true,
+  otherClients: false,
+};
+
+const DEFAULT_SIMILARITY_CRITERIA: SimilarityCriteriaFilters = {
+  structureType: true,
+  layerCount: true,
+  materials: true,
+  microns: true,
+  wrapping: true,
+  finalUse: true,
+  volume: false,
+  packingMachine: false,
+};
+
+const SIMILARITY_MINIMUM_SCORE = 60;
+const MICRON_TOLERANCE_PERCENT = 5;
+const VOLUME_TOLERANCE_PERCENT = 10;
+
+const SIMILARITY_WEIGHTS = {
+  materials: 30,
+  structureType: 15,
+  layerCount: 10,
+  microns: 15,
+  wrapping: 10,
+  finalUse: 10,
+  volume: 5,
+  packingMachine: 5,
+} as const;
+
+const SCOPE_SORT_BONUS: Record<MatchScope, number> = {
+  SAME_CLIENT_SAME_PORTFOLIO: 5,
+  SAME_CLIENT_OTHER_PORTFOLIO: 2,
+  OTHER_CLIENT: 0,
+};
+
+const isScopeEnabled = (
+  scope: MatchScope,
+  filters: SimilarityScopeFilters,
+): boolean => {
+  switch (scope) {
+    case "SAME_CLIENT_SAME_PORTFOLIO":
+      return filters.sameClientSamePortfolio;
+    case "SAME_CLIENT_OTHER_PORTFOLIO":
+      return filters.sameClientOtherPortfolio;
+    case "OTHER_CLIENT":
+      return filters.otherClients;
+    default:
+      return false;
+  }
+};
+
+const compareSimilarityMatches = (
+  a: SimilarityMatch,
+  b: SimilarityMatch,
+): number => {
+  const rankA = a.score + SCOPE_SORT_BONUS[a.scope];
+  const rankB = b.score + SCOPE_SORT_BONUS[b.scope];
+
+  if (rankA !== rankB) return rankB - rankA;
+  return b.score - a.score;
+};
 
 const ClientSearchField = ClientSearch as unknown as ComponentType<any>;
 
@@ -1125,286 +1232,266 @@ const getMatchScope = (
   return "OTHER_CLIENT";
 };
 
-const doesProjectPassMandatoryFilter = (
-  candidate: {
-    clientCode?: string;
-    clientName?: string;
-    portfolioCode?: string;
-    envoltura?: string;
-    usoFinal?: string;
-    maquinaCliente?: string;
-    afMarketId?: string;
-    motivo?: string;
-    causal?: string | string[];
-  },
-  existing: ProjectRecord,
-  allowOtherClients: boolean = false,
-): boolean => {
-  const existingClientCode = normalizeClientCode(
-    existing.clientCode ?? existing.clienteCodigo ?? existing.clientId,
-  );
-  const existingClientName = normalizeText(
-    existing.clientName ?? existing.cliente ?? existing.nombreCliente,
-  );
-
-  const sameClient =
-    (candidate.clientCode &&
-      normalizeClientCode(candidate.clientCode) === existingClientCode) ||
-    (candidate.clientName &&
-      normalizeText(candidate.clientName) === existingClientName);
-
-  if (!sameClient && !allowOtherClients) return false;
-
-  const existingPortfolioCode = normalizeText(
-    existing.portfolioCode ??
-      existing.portafolioCodigo ??
-      existing.portfolioId ??
-      existing.portafolioId ??
-      existing.codigoPortafolio ??
-      "",
-  );
-
-  const samePortfolio =
-    candidate.portfolioCode &&
-    normalizeText(candidate.portfolioCode) === existingPortfolioCode;
-
-  if (!samePortfolio && !allowOtherClients) return false;
-
-  // Envoltura - flexible: allow if candidate empty (sparse data)
-  const envCand = normalizeText(candidate.envoltura);
-  const envExist = normalizeText(
-    existing.envoltura ?? existing.wrappingName ?? existing.env,
-  );
-
-  if (envCand && envExist && envCand !== envExist) return false;
-
-  // UsoFinal or AfMarket - flexible matching
-  const usoFinalCand = normalizeText(candidate.usoFinal);
-  const usoFinalExist = normalizeText(
-    existing.usoFinal ?? existing.useFinalName ?? existing.uf,
-  );
-
-  const afMarketCand = normalizeText(candidate.afMarketId || "");
-  const afMarketExist = normalizeText(
-    existing.afMarketId ?? existing.afMarketID ?? "",
-  );
-
-  const sameUsoFinalOrMarket =
-    (usoFinalCand && usoFinalExist && usoFinalCand === usoFinalExist) ||
-    (afMarketCand && afMarketExist && afMarketCand === afMarketExist) ||
-    (!usoFinalExist && !afMarketExist);
-
-  if (!sameUsoFinalOrMarket) return false;
-
-  // Maquina - flexible: allow if candidate empty or existing empty
-  const maquinaCand = normalizeText(candidate.maquinaCliente);
-  const maquinaExist = normalizeText(
-    existing.maquinaCliente ?? existing.packingMachineName ?? existing.maq,
-  );
-
-  const sameMaquina =
-    maquinaCand && maquinaExist ? maquinaCand === maquinaExist : true;
-
-  if (!sameMaquina) return false;
-
-  // Motivo - normalized comparison
-  const motivoCand = normalizeMotivoValue(String(candidate.motivo || ""));
-  const motivoExist = normalizeMotivoValue(
-    String(
-      existing.motivo ??
-        existing.clasificacion ??
-        existing.classification ??
-        existing.requestReason ??
-        existing.tipoSolicitud ??
-        "",
-    ),
-  );
-
-  if (motivoCand && motivoExist && motivoCand !== motivoExist) return false;
-
-  // Causal - normalized comparison
-  const casualCandRaw = Array.isArray(candidate.causal) ? candidate.causal.join(" | ") : (candidate.causal || "");
-  const casualCand = normalizeCausalValue(String(casualCandRaw));
-  const casualExist = normalizeCausalValue(
-    String(
-      existing.causal ??
-        existing.motivoNuevaValidacion ??
-        existing.tipoProyecto ??
-        existing.validationReason ??
-        existing.causalValidacion ??
-        "",
-    ),
-  );
-
-  if (casualCand && casualExist && casualCand !== casualExist) return false;
-
-  return true;
+const inferStructureTypeByLayerCount = (layerCount: number): string => {
+  switch (layerCount) {
+    case 1:
+      return "Monocapa";
+    case 2:
+      return "Bilaminado";
+    case 3:
+      return "Trilaminado";
+    case 4:
+      return "Tetralaminado";
+    default:
+      return "";
+  }
 };
 
 const calculatePreliminarySimilarity = (
-  candidate: {
-    layer1?: string;
-    layer2?: string;
-    layer3?: string;
-    layer4?: string;
-    layer1Micron?: string;
-    layer2Micron?: string;
-    layer3Micron?: string;
-    layer4Micron?: string;
-    volumen?: string;
-    unidad?: string;
-  },
+  candidate: SimilarityCandidateData,
   existing: ProjectRecord,
+  criteria: SimilarityCriteriaFilters,
 ): number => {
-  let score = 0;
-
   const candidateLayers = [
     candidate.layer1,
     candidate.layer2,
     candidate.layer3,
     candidate.layer4,
-  ].filter(Boolean);
-
-  const candidateMicrons = [
-    candidate.layer1Micron,
-    candidate.layer2Micron,
-    candidate.layer3Micron,
-    candidate.layer4Micron,
   ];
 
-  const existingLayers = [
-    getExistingLayerMaterial(existing, 0),
-    getExistingLayerMaterial(existing, 1),
-    getExistingLayerMaterial(existing, 2),
-    getExistingLayerMaterial(existing, 3),
-  ].filter(Boolean);
-
-  // Check if candidate has any micron data
-  const candidateHasMicron = candidateMicrons.some(Boolean);
-  const existingHasMicron = [0, 1, 2, 3].some(
-    (index) => getExistingLayerMicron(existing, index) !== null,
+  const existingLayers = [0, 1, 2, 3].map((index) =>
+    getExistingLayerMaterial(existing, index),
   );
 
-  // Determine weighting based on data presence
-  let materialWeight: number;
-  let capasWeight: number;
-  let volumenWeight: number;
-  let micronWeight: number;
+  const candidateLayerCount = candidateLayers.filter(Boolean).length;
+  const existingLayerCount = existingLayers.filter(Boolean).length;
 
-  if (candidateHasMicron && existingHasMicron) {
-    // Both have micron: 45% materials, 20% capas, 15% volumen, 20% micron
-    materialWeight = 45;
-    capasWeight = 20;
-    volumenWeight = 15;
-    micronWeight = 20;
-  } else {
-    // At least one missing micron: 65% materials, 20% capas, 15% volumen, 0% micron
-    materialWeight = 65;
-    capasWeight = 20;
-    volumenWeight = 15;
-    micronWeight = 0;
+  if (candidateLayerCount === 0 || existingLayerCount === 0) return 0;
+
+  let weightedMatchedScore = 0;
+  let comparableWeight = 0;
+  let comparableCriteria = 0;
+
+  const addCriterion = (
+    weight: number,
+    similarityRatio: number | null,
+  ) => {
+    if (similarityRatio === null) return;
+
+    comparableWeight += weight;
+    comparableCriteria += 1;
+    weightedMatchedScore += weight * Math.max(0, Math.min(1, similarityRatio));
+  };
+
+  if (criteria.structureType) {
+    const candidateStructure = normalizeText(
+      candidate.estructuraCalculada ||
+        inferStructureTypeByLayerCount(candidateLayerCount),
+    );
+    const existingStructure = normalizeText(
+      existing.estructuraCalculada ??
+        existing.structureType ??
+        inferStructureTypeByLayerCount(existingLayerCount),
+    );
+
+    addCriterion(
+      SIMILARITY_WEIGHTS.structureType,
+      candidateStructure && existingStructure
+        ? Number(candidateStructure === existingStructure)
+        : null,
+    );
   }
 
-  // 1. Materiales por capa - normalized comparison
-  if (candidateLayers.length > 0 && existingLayers.length > 0) {
+  if (criteria.layerCount) {
+    const ratio =
+      Math.min(candidateLayerCount, existingLayerCount) /
+      Math.max(candidateLayerCount, existingLayerCount);
+    addCriterion(SIMILARITY_WEIGHTS.layerCount, ratio);
+  }
+
+  if (criteria.materials) {
+    const maxLayers = Math.max(candidateLayerCount, existingLayerCount);
     let materialMatches = 0;
-    const maxLayers = Math.max(candidateLayers.length, existingLayers.length);
 
-    candidateLayers.forEach((candMaterial, index) => {
-      if (existingLayers[index]) {
-        const candNorm = normalizeMaterialValue(candMaterial);
-        const existNorm = normalizeMaterialValue(existingLayers[index]);
-        if (candNorm && existNorm && candNorm === existNorm) {
-          materialMatches += 1;
-        }
+    for (let index = 0; index < maxLayers; index += 1) {
+      const candidateMaterial = normalizeText(
+        normalizeMaterialValue(candidateLayers[index]),
+      );
+      const existingMaterial = normalizeText(
+        normalizeMaterialValue(existingLayers[index]),
+      );
+
+      if (
+        candidateMaterial &&
+        existingMaterial &&
+        candidateMaterial === existingMaterial
+      ) {
+        materialMatches += 1;
       }
-    });
-
-    const materialScore = Math.round((materialMatches / maxLayers) * materialWeight);
-    score += materialScore;
-  }
-
-  // 2. Cantidad de capas
-  if (candidateLayers.length === existingLayers.length && candidateLayers.length > 0) {
-    score += capasWeight;
-  } else if (candidateLayers.length > 0 && existingLayers.length > 0) {
-    const capasRatio = Math.min(candidateLayers.length, existingLayers.length) /
-                       Math.max(candidateLayers.length, existingLayers.length);
-    score += Math.round(capasRatio * capasWeight);
-  }
-
-  // 3. Volumen referencial + unidad
-  const volumenCand = parseVolumeNumber(candidate.volumen);
-  const unidadCand = normalizeUnitValue(String(candidate.unidad || ""));
-
-  const volumenExistRaw = existing.volumenReferencial ??
-                          existing.volumenCantidadReferencial ??
-                          existing.volumen;
-  const volumenExist = parseVolumeNumber(String(volumenExistRaw || ""));
-  const unidadExist = normalizeUnitValue(String(existing.unidad ?? existing.unidadVolumen ?? ""));
-
-  if (
-    volumenCand !== null &&
-    volumenExist !== null &&
-    unidadCand &&
-    unidadExist &&
-    unidadCand === unidadExist
-  ) {
-    const tolerance = volumenExist * 0.05;
-    if (Math.abs(volumenCand - volumenExist) <= tolerance) {
-      score += volumenWeight;
-    } else {
-      const similarity = Math.max(0, 1 - Math.abs(volumenCand - volumenExist) / volumenExist);
-      score += Math.round(similarity * volumenWeight * 0.5);
     }
+
+    addCriterion(
+      SIMILARITY_WEIGHTS.materials,
+      maxLayers > 0 ? materialMatches / maxLayers : null,
+    );
   }
 
-  // 4. Micraje (only if both have micron data) - numeric comparison with 5% tolerance
-  if (micronWeight > 0 && candidateHasMicron && existingHasMicron) {
-    let micronMatches = 0;
-    let matchCount = 0;
+  if (criteria.microns) {
+    const candidateMicrons = [
+      candidate.layer1Micron,
+      candidate.layer2Micron,
+      candidate.layer3Micron,
+      candidate.layer4Micron,
+    ];
 
-    candidateLayers.forEach((candMaterial, index) => {
-      const candMicron = parseMicronNumber(candidateMicrons[index]);
-      const existingMaterial = existingLayers[index];
+    let comparableMicrons = 0;
+    let micronMatches = 0;
+
+    for (let index = 0; index < 4; index += 1) {
+      const candidateMaterial = normalizeText(
+        normalizeMaterialValue(candidateLayers[index]),
+      );
+      const existingMaterial = normalizeText(
+        normalizeMaterialValue(existingLayers[index]),
+      );
+      const candidateMicron = parseMicronNumber(candidateMicrons[index]);
       const existingMicron = getExistingLayerMicron(existing, index);
 
-      if (candMaterial && existingMaterial) {
-        const candNorm = normalizeMaterialValue(candMaterial);
-        const existNorm = normalizeMaterialValue(existingMaterial);
-        if (candNorm && existNorm && candNorm === existNorm) {
-          matchCount += 1;
-
-          if (candMicron !== null && existingMicron !== null) {
-            const tolerance = existingMicron * 0.05;
-            if (Math.abs(candMicron - existingMicron) <= tolerance) {
-              micronMatches += 1;
-            }
-          }
-        }
+      if (
+        !candidateMaterial ||
+        !existingMaterial ||
+        candidateMaterial !== existingMaterial ||
+        candidateMicron === null ||
+        existingMicron === null
+      ) {
+        continue;
       }
-    });
 
-    if (matchCount > 0) {
-      const micronScore = Math.round((micronMatches / matchCount) * micronWeight);
-      score += micronScore;
+      comparableMicrons += 1;
+      const tolerance =
+        existingMicron * (MICRON_TOLERANCE_PERCENT / 100);
+
+      if (Math.abs(candidateMicron - existingMicron) <= tolerance) {
+        micronMatches += 1;
+      }
     }
+
+    addCriterion(
+      SIMILARITY_WEIGHTS.microns,
+      comparableMicrons > 0 ? micronMatches / comparableMicrons : null,
+    );
   }
+
+  if (criteria.wrapping) {
+    const candidateWrapping = normalizeText(candidate.envoltura);
+    const existingWrapping = normalizeText(
+      existing.envoltura ?? existing.wrappingName ?? existing.env,
+    );
+
+    addCriterion(
+      SIMILARITY_WEIGHTS.wrapping,
+      candidateWrapping && existingWrapping
+        ? Number(candidateWrapping === existingWrapping)
+        : null,
+    );
+  }
+
+  if (criteria.finalUse) {
+    const candidateAfMarket = normalizeText(candidate.afMarketId);
+    const existingAfMarket = normalizeText(
+      existing.afMarketId ?? existing.afMarketID,
+    );
+    const candidateFinalUse = normalizeText(candidate.usoFinal);
+    const existingFinalUse = normalizeText(
+      existing.usoFinal ?? existing.useFinalName ?? existing.uf,
+    );
+
+    let finalUseRatio: number | null = null;
+
+    if (candidateAfMarket && existingAfMarket) {
+      finalUseRatio = Number(candidateAfMarket === existingAfMarket);
+    } else if (candidateFinalUse && existingFinalUse) {
+      finalUseRatio = Number(candidateFinalUse === existingFinalUse);
+    }
+
+    addCriterion(SIMILARITY_WEIGHTS.finalUse, finalUseRatio);
+  }
+
+  if (criteria.volume) {
+    const candidateVolume = parseVolumeNumber(candidate.volumen);
+    const existingVolume = parseVolumeNumber(
+      String(
+        existing.volumenReferencial ??
+          existing.volumenCantidadReferencial ??
+          existing.volumen ??
+          "",
+      ),
+    );
+    const candidateUnit = normalizeUnitValue(String(candidate.unidad || ""));
+    const existingUnit = normalizeUnitValue(
+      String(existing.unidad ?? existing.unidadVolumen ?? ""),
+    );
+
+    let volumeRatio: number | null = null;
+
+    if (
+      candidateVolume !== null &&
+      existingVolume !== null &&
+      candidateUnit &&
+      existingUnit &&
+      candidateUnit === existingUnit
+    ) {
+      const differenceRatio =
+        existingVolume === 0
+          ? Number(candidateVolume === existingVolume)
+          : Math.abs(candidateVolume - existingVolume) / existingVolume;
+      const toleranceRatio = VOLUME_TOLERANCE_PERCENT / 100;
+
+      volumeRatio =
+        differenceRatio <= toleranceRatio
+          ? 1
+          : Math.max(0, 1 - differenceRatio);
+    }
+
+    addCriterion(SIMILARITY_WEIGHTS.volume, volumeRatio);
+  }
+
+  if (criteria.packingMachine) {
+    const candidateMachine = normalizeText(candidate.maquinaCliente);
+    const existingMachine = normalizeText(
+      existing.maquinaCliente ?? existing.packingMachineName ?? existing.maq,
+    );
+
+    addCriterion(
+      SIMILARITY_WEIGHTS.packingMachine,
+      candidateMachine && existingMachine
+        ? Number(candidateMachine === existingMachine)
+        : null,
+    );
+  }
+
+  if (comparableCriteria < 3 || comparableWeight === 0) return 0;
+
+  const normalizedScore =
+    (weightedMatchedScore / comparableWeight) * 100;
 
   if (DEBUG_PROJECT_SIMILARITY) {
     console.log("[SIMILARITY]", {
       candidateLayers,
       existingLayers,
-      score,
+      comparableCriteria,
+      comparableWeight,
+      weightedMatchedScore,
+      normalizedScore,
     });
   }
 
-  return Math.min(100, score);
+  return Math.max(0, Math.min(100, Math.round(normalizedScore)));
 };
 
 const getRecomendacion = (score: number, scope: MatchScope): string => {
   if (score >= 90 && scope === "SAME_CLIENT_SAME_PORTFOLIO") {
-    return "Reutilizar proyecto existente. Creación bloqueada por duplicidad.";
+    return "Reutilizar producto existente. Creación bloqueada por duplicidad.";
   }
 
   if (score >= 90) {
@@ -1412,18 +1499,18 @@ const getRecomendacion = (score: number, scope: MatchScope): string => {
   }
 
   if (score >= 70) {
-    return "Revisar antes de crear. Existe un proyecto similar que puede servir de referencia.";
+    return "Revisar antes de crear. Existe un producto similar que puede servir de referencia.";
   }
 
-  return "Puedes crear un nuevo proyecto. No se encontraron coincidencias relevantes.";
+  return "Puedes crear un nuevo producto. No se encontraron coincidencias relevantes.";
 };
 
 const getScopeLabel = (scope: MatchScope): string => {
   switch (scope) {
     case "SAME_CLIENT_SAME_PORTFOLIO":
-      return "Mismo cliente · Mismo portafolio";
+      return "Portafolio actual";
     case "SAME_CLIENT_OTHER_PORTFOLIO":
-      return "Mismo cliente · Otro portafolio";
+      return "Otro portafolio del cliente";
     case "OTHER_CLIENT":
       return "Otro cliente";
     default:
@@ -1445,6 +1532,71 @@ const getProjectName = (project: ProjectRecord) =>
 
 const getProjectStatus = (project: ProjectRecord) =>
   getRecordValue(project, ["status", "estado"]);
+
+const getProjectSkuCode = (project: ProjectRecord): string =>
+  getRecordValue(project, ["skuCode", "sku", "codigoSku"]) || "";
+
+const getProjectClassification = (project: ProjectRecord): string =>
+  getRecordValue(project, ["clasificacion", "classification", "TbModProdClas"]) || "";
+
+const getProjectModifications = (project: ProjectRecord): string[] => {
+  const modsRaw = getRecordValue(project, ["modificacion", "modifications", "causal"]);
+  if (!modsRaw) return [];
+  if (typeof modsRaw === "string") return [modsRaw];
+  if (Array.isArray(modsRaw)) return modsRaw;
+  return [];
+};
+
+const getProductDisplayName = (project: ProjectRecord): string =>
+  getRecordValue(project, [
+    "productName",
+    "nombreProducto",
+    "projectName",
+    "name",
+  ]) || getProjectName(project) || "Producto sin nombre";
+
+const getProductMaterialSummary = (project: ProjectRecord): string =>
+  [0, 1, 2, 3]
+    .map((index) => {
+      const materialCode = getExistingLayerMaterial(project, index);
+      if (!materialCode) return "";
+
+      const materialName = getMaterialLabel(materialCode);
+      const micron = getExistingLayerMicron(project, index);
+
+      return micron !== null
+        ? `${materialName} ${micron} µm`
+        : materialName;
+    })
+    .filter(Boolean)
+    .join(" / ");
+
+const getSimilarityContextLabel = (match: SimilarityMatch): string => {
+  if (match.scope === "SAME_CLIENT_SAME_PORTFOLIO") {
+    return "Portafolio actual";
+  }
+
+  const portfolioName = getRecordValue(match.project, [
+    "portfolioName",
+    "portafolioNombre",
+    "portfolioCode",
+    "portafolioCodigo",
+  ]);
+
+  if (match.scope === "SAME_CLIENT_OTHER_PORTFOLIO") {
+    return portfolioName
+      ? `Otro portafolio · ${portfolioName}`
+      : "Otro portafolio del cliente";
+  }
+
+  const clientName = getRecordValue(match.project, [
+    "clientName",
+    "cliente",
+    "nombreCliente",
+  ]);
+
+  return clientName ? `Otro cliente · ${clientName}` : "Otro cliente";
+};
 
 const DEBUG_PORTFOLIO_FILTER = false;
 
@@ -1782,16 +1934,25 @@ const [layer4Micron, setLayer4Micron] = useState("");
   const [similarityMatches, setSimilarityMatches] = useState<SimilarityMatch[]>(
     [],
   );
+  const [isSimilarityFiltersOpen, setIsSimilarityFiltersOpen] =
+    useState(false);
+  const [similarityScopeFilters, setSimilarityScopeFilters] =
+    useState<SimilarityScopeFilters>(DEFAULT_SIMILARITY_SCOPE_FILTERS);
   const [selectedReference, setSelectedReference] = useState<{
     projectId?: string;
     projectCode?: string;
     projectName?: string;
     score?: number;
+    scope?: MatchScope;
+    status?: string;
     datosSugeridosMomento2?: AnyRecord;
+    clasificacion?: string;
+    modificaciones?: string[];
   } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [creationSteps, setCreationSteps] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [showValidationSummary, setShowValidationSummary] = useState(false);
 
   const [stepNotice, setStepNotice] = useState<{
     key: string;
@@ -1806,6 +1967,26 @@ const [layer4Micron, setLayer4Micron] = useState("");
   const [structureRequestNotice, setStructureRequestNotice] = useState("");
 
   const stepNoticeTimeoutRef = useRef<number | null>(null);
+  const similarityFiltersRef = useRef<HTMLDivElement | null>(null);
+
+  const updateSimilarityScopeFilter = (
+    key: keyof SimilarityScopeFilters,
+    checked: boolean,
+  ) => {
+    setSimilarityScopeFilters((current) => {
+      const next = { ...current, [key]: checked };
+      const hasActiveScope = Object.values(next).some(Boolean);
+
+      return hasActiveScope
+        ? next
+        : { ...next, sameClientSamePortfolio: true };
+    });
+  };
+
+
+  const resetSimilarityFilters = () => {
+    setSimilarityScopeFilters({ ...DEFAULT_SIMILARITY_SCOPE_FILTERS });
+  };
 
   const showStepNotice = (key: string, message: string) => {
     setStepNotice({ key, message });
@@ -2135,6 +2316,27 @@ const filteredPortfoliosForClient = useMemo(() => {
     "wrappingName",
   ]);
 
+  // Calcular tipos de estructura válidos basándose en la envoltura
+  const validStructureTypes = useMemo(() => {
+    if (!envoltura) {
+      return undefined; // Si no hay envoltura, mostrar todos los tipos
+    }
+
+    const wrappingCode = extractWrappingTypeCode(envoltura);
+    if (!wrappingCode) {
+      return undefined; // Si no se puede extraer el código, mostrar todos los tipos
+    }
+
+    const allTypes = [
+      "Monocapa" as const,
+      "Bilaminado" as const,
+      "Trilaminado" as const,
+      "Tetralaminado" as const,
+    ];
+
+    return getValidStructureTypesForWrapping(wrappingCode, allTypes);
+  }, [envoltura]);
+
   const usoFinal = getRecordValue(selectedPortfolio, [
     "uf",
     "usoFinal",
@@ -2261,6 +2463,9 @@ const nombreTecnicoCalculado = useMemo(() => {
     const seen = new Set<string>();
 
     return merged.filter((project) => {
+      // Include all products with SKU code (approved, preliminary, etc.)
+      if (!getProjectSkuCode(project)) return false;
+
       const key =
         getProjectCode(project) ||
         `${getProjectName(project)}-${getRecordValue(project, ["portfolioCode", "portafolioCodigo"])}`;
@@ -2327,7 +2532,10 @@ const nombreTecnicoCalculado = useMemo(() => {
     setComentarios("");
 
     setSimilarityMatches([]);
+    setSimilarityScopeFilters({ ...DEFAULT_SIMILARITY_SCOPE_FILTERS });
+    setIsSimilarityFiltersOpen(false);
     setErrors({});
+    setShowValidationSummary(false);
     setStepNotice(null);
     setSelectedReference(null);
     setPreviewProject(null);
@@ -2341,6 +2549,24 @@ const nombreTecnicoCalculado = useMemo(() => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isSimilarityFiltersOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      if (
+        similarityFiltersRef.current &&
+        !similarityFiltersRef.current.contains(target)
+      ) {
+        setIsSimilarityFiltersOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [isSimilarityFiltersOpen]);
 
   useEffect(() => {
     if (!shouldShowSimilaritySearch) {
@@ -2390,7 +2616,7 @@ const nombreTecnicoCalculado = useMemo(() => {
       return;
     }
 
-    const candidateData = {
+    const candidateData: SimilarityCandidateData = {
       clientCode: inheritedClientCode || resolvedSelectedClient.code,
       clientName: inheritedClientName || resolvedSelectedClient.name,
       portfolioCode: inheritedPortfolioCode,
@@ -2399,9 +2625,6 @@ const nombreTecnicoCalculado = useMemo(() => {
       maquinaCliente,
       afMarketId: inheritedAfMarketId,
       estructuraCalculada,
-      nombreTecnicoCalculado,
-      motivo,
-      causal,
       layer1,
       layer2,
       layer3,
@@ -2410,54 +2633,47 @@ const nombreTecnicoCalculado = useMemo(() => {
       layer2Micron,
       layer3Micron,
       layer4Micron,
-      descripcion,
       volumen,
       unidad,
     };
 
-    const allowOtherClients = true;
-
-    if (DEBUG_PROJECT_SIMILARITY) {
-      const all = projectsForSimilarity;
-      const filtered = all.filter((project) =>
-        doesProjectPassMandatoryFilter(candidateData, project, allowOtherClients),
-      );
-
-      console.log("[ODISEO] Similarity candidateData", candidateData);
-      console.log("[ODISEO] Total projects for similarity", all.length);
-      console.log("[ODISEO] Projects passing mandatory filter", filtered.length);
-      console.table(
-        filtered.map((project) => ({
-          code: getProjectCode(project),
-          name: getProjectName(project),
-          motivo: project.motivo,
-          clasificacion: project.clasificacion,
-          causal: project.causal,
-          tipoProyecto: project.tipoProyecto,
-          portfolioCode: project.portfolioCode,
-          layer1: project.layer1Material,
-          layer2: project.layer2Material,
-          layer3: project.layer3Material,
-          layer4: project.layer4Material,
-          score: calculatePreliminarySimilarity(candidateData, project),
-        })),
-      );
-    }
     const results = projectsForSimilarity
-      .filter((project) => doesProjectPassMandatoryFilter(candidateData, project, allowOtherClients))
-      .map((project) => ({
-        project,
-        score: calculatePreliminarySimilarity(candidateData, project),
-        scope: getMatchScope(
+      .map((project) => {
+        const scope = getMatchScope(
           candidateData.clientCode,
           candidateData.clientName,
           candidateData.portfolioCode,
           project,
-        ),
-      }))
-      .filter((match) => match.score >= 50)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 2);
+        );
+
+        return {
+          project,
+          scope,
+          score: calculatePreliminarySimilarity(
+            candidateData,
+            project,
+            DEFAULT_SIMILARITY_CRITERIA,
+          ),
+        };
+      })
+      .filter((match) =>
+        isScopeEnabled(match.scope, similarityScopeFilters),
+      )
+      .filter((match) => match.score >= SIMILARITY_MINIMUM_SCORE)
+      .sort(compareSimilarityMatches)
+      .slice(0, 10);
+
+    if (DEBUG_PROJECT_SIMILARITY) {
+      console.log("[ODISEO] Similarity candidateData", candidateData);
+      console.table(
+        results.map((match) => ({
+          code: getProjectCode(match.project),
+          name: getProjectName(match.project),
+          scope: match.scope,
+          score: match.score,
+        })),
+      );
+    }
 
     setSimilarityMatches(results);
   }, [
@@ -2473,8 +2689,6 @@ const nombreTecnicoCalculado = useMemo(() => {
     envoltura,
     usoFinal,
     maquinaCliente,
-    motivo,
-    causal,
     volumen,
     unidad,
     layer1,
@@ -2485,9 +2699,8 @@ const nombreTecnicoCalculado = useMemo(() => {
     layer2Micron,
     layer3Micron,
     layer4Micron,
-    descripcion,
-    nombreTecnicoCalculado,
     estructuraCalculada,
+    similarityScopeFilters,
   ]);
 
   // Hydrate fields when a product base is selected
@@ -2523,45 +2736,56 @@ const nombreTecnicoCalculado = useMemo(() => {
     }
   }, [selectedBaseProduct, motivo, causal]);
 
-
-  const projectsPassingMandatoryFilter = useMemo(() => {
-    if (!shouldShowSimilaritySearch || !hasMinDataForSearch) return 0;
-
-    const candidateData = {
-      clientCode: inheritedClientCode || resolvedSelectedClient.code,
-      clientName: inheritedClientName || resolvedSelectedClient.name,
-      portfolioCode: inheritedPortfolioCode,
-      envoltura,
-      usoFinal,
-      maquinaCliente,
-      afMarketId: inheritedAfMarketId,
-      motivo,
-      causal,
-    };
-
-    const allowOtherClients = true;
-    return projectsForSimilarity.filter((project) =>
-      doesProjectPassMandatoryFilter(candidateData, project, allowOtherClients),
-    ).length;
-  }, [
-    shouldShowSimilaritySearch,
-    hasMinDataForSearch,
-    projectsForSimilarity,
-    inheritedClientCode,
-    inheritedClientName,
-    inheritedPortfolioCode,
-    inheritedAfMarketId,
-    resolvedSelectedClient.code,
-    resolvedSelectedClient.name,
-    envoltura,
-    usoFinal,
-    maquinaCliente,
-    motivo,
-    causal,
-  ]);
-
   const topMatch = similarityMatches[0];
-  const topScore = topMatch?.score ?? 0;
+
+  const selectedReferenceMatch = selectedReference
+    ? similarityMatches.find(
+        (match) =>
+          getProjectCode(match.project) === selectedReference.projectCode,
+      )
+    : undefined;
+
+  const displayedMatch = selectedReferenceMatch || topMatch;
+
+  const isDisplayedReferenceSelected = Boolean(
+    selectedReference &&
+      displayedMatch &&
+      getProjectCode(displayedMatch.project) === selectedReference.projectCode,
+  );
+
+  useEffect(() => {
+    if (!selectedReference) return;
+
+    const stillAvailable = similarityMatches.some(
+      (match) =>
+        getProjectCode(match.project) === selectedReference.projectCode,
+    );
+
+    if (!stillAvailable) {
+      setSelectedReference(null);
+    }
+  }, [similarityMatches, selectedReference]);
+
+  useEffect(() => {
+    if (!selectedReference) return;
+
+    if (selectedReference.clasificacion) {
+      setMotivo(selectedReference.clasificacion);
+    }
+
+    if (selectedReference.modificaciones && selectedReference.modificaciones.length > 0) {
+      setCausal(selectedReference.modificaciones);
+    }
+  }, [selectedReference]);
+
+  useEffect(() => {
+    if (
+      showValidationSummary &&
+      Object.keys(errors).length === 0
+    ) {
+      setShowValidationSummary(false);
+    }
+  }, [errors, showValidationSummary]);
 
   const validateForm = useMemo(() => {
     const newErrors: Record<string, string> = {};
@@ -2908,8 +3132,14 @@ const setLayerMicronValue = (index: number, value: string) => {
 // Layer management functions removed - using ProductStructureConfigurator component
 
   const validate = () => {
-    setErrors(validateForm);
-    return Object.keys(validateForm).length === 0;
+    const nextErrors = validateForm;
+    const isValid =
+      Object.keys(nextErrors).length === 0;
+
+    setErrors(nextErrors);
+    setShowValidationSummary(!isValid);
+
+    return isValid;
   };
 
   const isProjectValidReference = (project: ProjectRecord): boolean => {
@@ -2981,22 +3211,42 @@ const setLayerMicronValue = (index: number, value: string) => {
       projectCode: getProjectCode(project),
       projectName: getProjectName(project),
       score: match.score,
+      scope: match.scope,
+      status: getProjectStatus(project),
       datosSugeridosMomento2: buildMoment2ReferenceData(project),
+      clasificacion: getProjectClassification(project),
+      modificaciones: getProjectModifications(project),
     });
 
+    setIsSimilarityFiltersOpen(false);
     setErrors({});
   };
 
-  const applyReferenceProjectFromProject = (project: ProjectRecord, score: number = 0) => {
+  const applyReferenceProjectFromProject = (
+    project: ProjectRecord,
+    score: number = 0,
+  ) => {
+    const scope = getMatchScope(
+      inheritedClientCode || resolvedSelectedClient.code,
+      inheritedClientName || resolvedSelectedClient.name,
+      inheritedPortfolioCode,
+      project,
+    );
+
     setSelectedReference({
       projectId: getRecordValue(project, ["id", "projectId", "code", "projectCode"]),
       projectCode: getProjectCode(project),
       projectName: getProjectName(project),
-      score: score,
+      score,
+      scope,
+      status: getProjectStatus(project),
       datosSugeridosMomento2: buildMoment2ReferenceData(project),
+      clasificacion: getProjectClassification(project),
+      modificaciones: getProjectModifications(project),
     });
 
     setPreviewProject(null);
+    setIsSimilarityFiltersOpen(false);
     setErrors({});
   };
 
@@ -3265,6 +3515,8 @@ const setLayerMicronValue = (index: number, value: string) => {
           proyectoReferenciaCodigo: selectedReference?.projectCode,
           proyectoReferenciaNombre: selectedReference?.projectName,
           porcentajeSimilitudPreliminar: selectedReference?.score,
+          alcanceReferenciaSimilitud: selectedReference?.scope,
+          estadoProductoReferencia: selectedReference?.status,
           referenciaParaMomento2: Boolean(selectedReference),
           datosSugeridosMomento2: selectedReference?.datosSugeridosMomento2,
         },
@@ -3273,6 +3525,17 @@ const setLayerMicronValue = (index: number, value: string) => {
 
       await new Promise((resolve) => setTimeout(resolve, 300));
       addStep("✓ Guardando datos en el almacenamiento...");
+
+      // Asegurar que el proyecto se guarde en el storage
+      try {
+        const storageApi = getStorageApi(projectStorage);
+        if (typeof storageApi.saveProjectRecord === "function") {
+          (storageApi.saveProjectRecord as (record: ProjectRecord) => void)(createdProject as ProjectRecord);
+        }
+      } catch (saveError) {
+        console.error("[ODISEO] Error saving project to storage:", saveError);
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       const createdProjectCode =
@@ -3326,7 +3589,16 @@ const setLayerMicronValue = (index: number, value: string) => {
                     type="checkbox"
                     id="declaresApproved"
                     checked={declaresApproved}
-                    onChange={(e) => setDeclaresApproved(e.target.checked)}
+                    onChange={(event) => {
+                      setDeclaresApproved(
+                        event.target.checked,
+                      );
+
+                      setErrors((previous) => ({
+                        ...previous,
+                        declaresApproved: "",
+                      }));
+                    }}
                     className="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary cursor-pointer mt-0.5"
                   />
                   <div className="flex flex-col gap-1 flex-1">
@@ -4009,6 +4281,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                   showCoverageWarning={false}
                   className="w-full"
                   validationErrors={structureValidation.errors}
+                  availableStructureTypes={validStructureTypes}
                   headerButton={
                     productStructure.structureType ? (
                       <Button
@@ -4157,186 +4430,185 @@ const setLayerMicronValue = (index: number, value: string) => {
                 )}
               </div>
 
-              {shouldShowSimilaritySearch && requiredBaseFieldsFilled && !hasMaterialsForSimilarity && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                  <div className="mb-3 flex items-start gap-2">
-                    <Info size={16} className="mt-0.5 flex-shrink-0 text-slate-500" />
-                    <h4 className="text-sm font-bold text-slate-700">Búsqueda de similitud</h4>
-                  </div>
-                  <p className="text-xs text-slate-600">
-                    Completa los materiales por capa para buscar proyectos similares. El micraje es opcional pero mejora la precisión de la búsqueda.
-                  </p>
-                </div>
-              )}
-
-              {shouldShowSimilaritySearch && requiredBaseFieldsFilled && hasMaterialsForSimilarity && !topMatch && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                  <div className="mb-3 flex items-start gap-2">
-                    <Info size={16} className="mt-0.5 flex-shrink-0 text-slate-500" />
-                    <h4 className="text-sm font-bold text-slate-700">
-                      Búsqueda de similitud
-                    </h4>
-                  </div>
-
-                  <p className="text-xs text-slate-600">
-                    No se encontraron referencias preliminares relevantes para el mismo cliente,
-                    portafolio, envoltura, uso final, máquina, motivo y causal.
-                  </p>
-
-                  <p className="mt-2 text-xs text-slate-500">
-                    Proyectos evaluados: {projectsForSimilarity.length}.{" "}
-                    Candidatos del mismo contexto: {projectsPassingMandatoryFilter}.
-                  </p>
-                </div>
-              )}
-
-              {shouldShowSimilaritySearch && hasMinDataForSearch && topMatch && topScore >= 50 && (
+              {shouldShowSimilaritySearch && (
                 <div
-                  className={[
-                    "rounded-xl border p-4",
-                    topScore >= 85
-                      ? "border-blue-200 bg-blue-50"
-                      : "border-slate-200 bg-slate-50",
-                  ].join(" ")}
+                  ref={similarityFiltersRef}
+                  className="relative rounded-xl border border-slate-200 bg-white p-4"
                 >
-                  <div className="mb-3 flex items-start gap-2">
-                    <Info
-                      size={16}
-                      className={[
-                        "mt-0.5 flex-shrink-0",
-                        topScore >= 85 ? "text-blue-600" : "text-slate-600",
-                      ].join(" ")}
-                    />
-
-                    <h4 className="text-sm font-bold">
-                      {topScore >= 85 ? "Coincidencia preliminar alta" : "Referencia preliminar disponible"}
-                    </h4>
-                  </div>
-
-                  {topMatch && topScore >= 50 ? (
-                    <div className="space-y-3">
-                      <p className="text-xs text-slate-600">
-                        {topScore >= 85
-                          ? "Se encontró un proyecto similar dentro del mismo cliente, portafolio, envoltura, uso final, máquina, motivo y causal."
-                          : "Este proyecto puede servir como referencia para completar información del Momento 2."}
-                      </p>
-
-                      <p className="text-xs font-semibold text-slate-700">
-                        {getProjectCode(topMatch.project)} ·{" "}
-                        {getProjectName(topMatch.project)}
-                      </p>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-slate-500">
-                            Similitud preliminar
-                          </span>
-                          <div className="font-bold text-slate-900">
-                            {Math.round(topMatch.score)}%
-                          </div>
-                        </div>
-
-                        <div>
-                          <span className="text-slate-500">Estado</span>
-                          <div className="font-bold text-slate-900">
-                            {getProjectStatus(topMatch.project) || "—"}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setPreviewProject(topMatch.project)}
-                        >
-                          Ver producto
-                        </Button>
-                        <Button
-                          variant="primary"
-                          onClick={() => applyReferenceProject(topMatch)}
-                        >
-                          Usar como referencia
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-600">
-                      {projectsPassingMandatoryFilter === 0
-                        ? "No se encontraron proyectos similares bajo el mismo cliente, portafolio, envoltura, uso final y máquina. Puedes crear un nuevo proyecto."
-                        : "No se encontraron coincidencias técnicas relevantes para este contexto."}
-                    </p>
-                  )}
-
-                  {similarityMatches.length > 1 && (
-                    <div className="mt-4 space-y-2 border-t border-slate-200 pt-4">
-                      <p className="text-xs font-bold text-slate-600">
-                        Otras coincidencias:
-                      </p>
-
-                      {similarityMatches.slice(1).map((match) => (
-                        <div
-                          key={getProjectCode(match.project)}
-                          className="rounded border border-slate-100 bg-white p-2 text-xs"
-                        >
-                          <div className="flex justify-between">
-                            <span className="font-semibold">
-                              {getProjectCode(match.project)}
-                            </span>
-                            <span className="font-bold">
-                              {Math.round(match.score)}%
-                            </span>
-                          </div>
-                          <div className="mt-1 text-slate-600">
-                            {getProjectName(match.project)}
-                          </div>
-                          <div className="mt-1 text-slate-500">
-                            {getScopeLabel(match.scope)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {shouldShowSimilaritySearch && selectedReference && (
-                <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-                  <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h4 className="text-sm font-bold text-green-700">
-                        Referencia seleccionada para Momento 2
+                      <h4 className="text-sm font-bold text-slate-800">
+                        Productos similares
                       </h4>
-                      <p className="mt-1 text-xs text-green-600">
-                        Los datos técnicos de este proyecto se usarán para precargar el Momento 2
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 rounded border border-green-100 bg-white p-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-xs font-semibold text-slate-900">
-                          {selectedReference.projectCode}
-                        </p>
-                        <p className="mt-0.5 text-xs text-slate-600">
-                          {selectedReference.projectName}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-bold text-green-700">
-                          {Math.round(selectedReference.score)}% similitud
-                        </p>
-                      </div>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => setSelectedReference(null)}
-                      className="mt-2 w-full rounded border border-green-300 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700 transition hover:bg-green-100"
+                      onClick={() =>
+                        setIsSimilarityFiltersOpen((current) => !current)
+                      }
+                      aria-expanded={isSimilarityFiltersOpen}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
                     >
-                      Quitar referencia
+                      <SlidersHorizontal size={14} />
+                      Filtros
                     </button>
                   </div>
+
+                  {isSimilarityFiltersOpen && (
+                    <div className="absolute right-4 top-14 z-[10060] w-80 max-w-[calc(100vw-3rem)] rounded-xl border border-slate-200 bg-white p-4 shadow-xl ring-1 ring-slate-900/5">
+                      <div>
+                        <p className="text-xs font-bold text-slate-700">
+                          Dónde buscar
+                        </p>
+
+                        <div className="mt-2 space-y-2">
+                          {[
+                            {
+                              key: "sameClientSamePortfolio" as const,
+                              label: "Portafolio actual",
+                            },
+                            {
+                              key: "sameClientOtherPortfolio" as const,
+                              label: "Otros portafolios del mismo cliente",
+                            },
+                            {
+                              key: "otherClients" as const,
+                              label: "Portafolios de otros clientes",
+                            },
+                          ].map((option) => (
+                            <label
+                              key={option.key}
+                              className="flex cursor-pointer items-start gap-2 text-xs text-slate-700"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={similarityScopeFilters[option.key]}
+                                onChange={(event) =>
+                                  updateSimilarityScopeFilter(
+                                    option.key,
+                                    event.target.checked,
+                                  )
+                                }
+                                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary"
+                              />
+                              <span>{option.label}</span>
+                            </label>
+                          ))}
+                        </div>
+
+                        {similarityScopeFilters.otherClients && (
+                          <p className="mt-3 rounded-lg bg-amber-50 px-2.5 py-2 text-[11px] text-amber-700">
+                            Las coincidencias de otros clientes se muestran solo como referencia técnica.
+                          </p>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={resetSimilarityFilters}
+                          className="mt-3 w-full border-t border-slate-100 pt-3 text-left text-xs font-semibold text-brand-primary hover:underline"
+                        >
+                          Restablecer
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {!requiredBaseFieldsFilled || !hasMaterialsForSimilarity ? (
+                    <p className="mt-3 text-xs text-slate-500">
+                      Complete la estructura y los materiales para buscar productos similares.
+                    </p>
+                  ) : !displayedMatch ? (
+                    <p className="mt-3 text-xs text-slate-500">
+                      No se encontraron productos similares con los criterios seleccionados.
+                    </p>
+                  ) : (
+                    <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+                      {isDisplayedReferenceSelected && (
+                        <p className="mb-2 text-xs font-bold text-green-700">
+                          ✓ Referencia seleccionada
+                        </p>
+                      )}
+
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-900">
+                            {getProductDisplayName(displayedMatch.project)}
+                          </p>
+                          <p className="mt-0.5 text-[11px] font-mono text-slate-600">
+                            {getProjectSkuCode(displayedMatch.project)}
+                          </p>
+                        </div>
+
+                        <span className="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">
+                          {Math.round(displayedMatch.score)}% similar
+                        </span>
+                      </div>
+
+                      <p className="mt-3 line-clamp-2 text-xs text-slate-700">
+                        {getProductMaterialSummary(displayedMatch.project) ||
+                          "Materiales no registrados"}
+                      </p>
+
+                      <div className="mt-3">
+                        <span
+                          className={[
+                            "inline-flex max-w-full rounded-full px-2 py-1 text-[11px] font-semibold",
+                            displayedMatch.scope === "OTHER_CLIENT"
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-slate-100 text-slate-600",
+                          ].join(" ")}
+                          title={getScopeLabel(displayedMatch.scope)}
+                        >
+                          <span className="truncate">
+                            {getSimilarityContextLabel(displayedMatch)}
+                          </span>
+                        </span>
+                      </div>
+
+                      {displayedMatch.scope === "OTHER_CLIENT" &&
+                        !isDisplayedReferenceSelected && (
+                          <p className="mt-2 text-[11px] text-amber-700">
+                            Valida su aplicabilidad antes de usar esta estructura.
+                          </p>
+                        )}
+
+                      {isDisplayedReferenceSelected && (
+                        <p className="mt-2 text-[11px] text-slate-500">
+                          La estructura se utilizará como referencia para el Momento 2.
+                        </p>
+                      )}
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            setPreviewProject(displayedMatch.project)
+                          }
+                        >
+                          Ver producto
+                        </Button>
+
+                        {isDisplayedReferenceSelected ? (
+                          <Button
+                            variant="outline"
+                            onClick={() => setSelectedReference(null)}
+                          >
+                            Quitar referencia
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="primary"
+                            onClick={() =>
+                              applyReferenceProject(displayedMatch)
+                            }
+                          >
+                            Usar referencia
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -4344,18 +4616,109 @@ const setLayerMicronValue = (index: number, value: string) => {
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
-          <Button variant="outline" onClick={onClose} disabled={isCreating}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowValidationSummary(false);
+              setErrors({});
+              onClose();
+            }}
+            disabled={isCreating}
+          >
             Cancelar
           </Button>
 
-          <Button
-            variant="primary"
-            onClick={handleCreateClick}
-            disabled={isCreating}
-          >
-            {isCreating ? "Registrando solicitud..." : "Registrar solicitud"}
-          </Button>
+          <div className="relative">
+            {showValidationSummary &&
+              !isCreating &&
+              Object.keys(errors).length > 0 && (
+                <div
+                  role="dialog"
+                  aria-live="polite"
+                  aria-label="Campos requeridos incompletos"
+                  className="
+                    absolute bottom-full right-0 z-[10100]
+                    mb-3 w-[390px] max-w-[calc(100vw-3rem)]
+                    rounded-xl border border-red-200
+                    bg-white p-4 shadow-2xl
+                  "
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-red-700">
+                        Campos requeridos incompletos
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Completa los siguientes campos
+                        para registrar la solicitud.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowValidationSummary(false)
+                      }
+                      className="
+                        rounded-full p-1 text-slate-400
+                        hover:bg-slate-100
+                        hover:text-slate-600
+                      "
+                      aria-label="Cerrar advertencia"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  <div className="mt-3 max-h-64 space-y-1.5 overflow-y-auto">
+                    {Object.entries(errors).map(
+                      ([field, message]) => (
+                        <div
+                          key={field}
+                          className="flex items-start gap-2 text-xs text-red-700"
+                        >
+                          <span className="mt-0.5 flex-shrink-0">
+                            •
+                          </span>
+
+                          <span>{message}</span>
+                        </div>
+                      ),
+                    )}
+                  </div>
+
+                  <div className="mt-3 border-t border-slate-100 pt-2">
+                    <p className="text-right text-xs font-semibold text-red-600">
+                      {Object.keys(errors).length === 1
+                        ? "1 campo requerido"
+                        : `${Object.keys(errors).length} campos requeridos`}
+                    </p>
+                  </div>
+
+                  <div
+                    className="
+                      absolute -bottom-2 right-8
+                      h-4 w-4 rotate-45
+                      border-b border-r border-red-200
+                      bg-white
+                    "
+                  />
+                </div>
+              )}
+
+            <Button
+              variant="primary"
+              onClick={handleCreateClick}
+              disabled={isCreating}
+            >
+              {isCreating
+                ? "Registrando solicitud..."
+                : "Registrar solicitud"}
+            </Button>
+          </div>
         </div>
+
 
         {isCreating && creationSteps.length > 0 && (
           <div className="border-t border-slate-200 bg-slate-50 px-6 py-4">
@@ -4391,7 +4754,7 @@ const setLayerMicronValue = (index: number, value: string) => {
           <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
             <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4">
               <h3 className="text-lg font-bold text-slate-900">
-                Ficha de proyecto de referencia
+                Producto de referencia
               </h3>
               <button
                 type="button"
@@ -4439,40 +4802,47 @@ const setLayerMicronValue = (index: number, value: string) => {
                   </h4>
                   <div className="space-y-2">
                     <PreviewRow
-                      label="Nombre técnico"
-                      value={getProjectName(previewProject) || "—"}
+                      label="Nombre de producto"
+                      value={
+                        [
+                          getProjectName(previewProject),
+                          getRecordValue(previewProject, [
+                            "volumen",
+                            "volumenReferencial",
+                            "volumenCantidadReferencial",
+                            "volumenProducto",
+                          ]),
+                          getRecordValue(previewProject, [
+                            "unidad",
+                            "unidadVolumen",
+                            "unidadMedida",
+                          ]),
+                        ]
+                          .filter(Boolean)
+                          .join(" ") || "—"
+                      }
                     />
                     <PreviewRow
                       label="Clasificación / Motivo"
                       value={
+                        getProjectClassification(previewProject) ||
                         getRecordValue(previewProject, [
                           "motivo",
                           "clasificacion",
-                        ]) || "—"
+                        ]) ||
+                        "—"
                       }
                     />
                     <PreviewRow
                       label="Tipo / Causal"
                       value={
+                        getProjectModifications(previewProject).join(", ") ||
                         getRecordValue(previewProject, [
                           "causal",
                           "tipoProyecto",
                           "motivoNuevaValidacion",
-                        ]) || "—"
-                      }
-                    />
-                    <PreviewRow
-                      label="Volumen referencial"
-                      value={
-                        (getRecordValue(previewProject, [
-                          "volumenReferencial",
-                          "volumenCantidadReferencial",
                         ]) ||
-                          "") &&
-                        `${getRecordValue(previewProject, [
-                          "volumenReferencial",
-                          "volumenCantidadReferencial",
-                        ])} ${getRecordValue(previewProject, ["unidad", "unidadVolumen"]) || ""}`
+                        "—"
                       }
                     />
                     <PreviewRow
@@ -4481,6 +4851,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                         getRecordValue(previewProject, [
                           "descripcionNecesidad",
                           "descripcion",
+                          "descripcionProducto",
                         ]) || "—"
                       }
                     />
@@ -4493,35 +4864,26 @@ const setLayerMicronValue = (index: number, value: string) => {
                   </h4>
                   <div className="space-y-2">
                     <PreviewRow
-                      label="Estructura calculada"
-                      value={String(previewProject.estructuraCalculada || "") || "—"}
+                      label="Estructura"
+                      value={
+                        getRecordValue(previewProject, [
+                          "estructuraCalculada",
+                          "structureType",
+                        ]) || "—"
+                      }
                     />
                     <PreviewRow
                       label="Materiales"
-                      value={String(previewProject.estructuraMaterialesReferencial || "") || "—"}
+                      value={
+                        getProductMaterialSummary(previewProject) ||
+                        getRecordValue(previewProject, [
+                          "estructuraMaterialesReferencial",
+                          "materialSummary",
+                        ]) ||
+                        "—"
+                      }
                     />
                   </div>
-
-                  {[0, 1, 2, 3].map((index) => {
-                    const material = getExistingLayerMaterial(previewProject, index);
-                    if (!material) return null;
-
-                    const micron = getExistingLayerMicron(previewProject, index);
-                    return (
-                      <div key={`layer-${index}`} className="mt-3 border-t border-slate-200 pt-3">
-                        <PreviewRow
-                          label={`Capa ${index + 1}`}
-                          value={material || "—"}
-                        />
-                        {micron !== null && (
-                          <PreviewRow
-                            label={`Micraje ${index + 1}`}
-                            value={`${micron} µ`}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
                 </div>
 
                 {[

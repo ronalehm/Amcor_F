@@ -2,7 +2,6 @@ import { Fragment, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertTriangle,
-  CheckCircle2,
   Layers3,
   Search,
   X,
@@ -39,8 +38,16 @@ const getMaterialName = (materialCode: string): string => {
   return resolveMaterialLayer(materialCode)?.TbMatCapNom ?? materialCode;
 };
 
-const getStatusLabel = (status: StructureCombinationStatus): string =>
-  status === "VALIDADA" ? "Validada" : "Pendiente de negocio";
+const getMaterialAbbreviation = (materialCode: string): string => {
+  if (!materialCode) return "";
+  return resolveMaterialLayer(materialCode)?.TbMatCapGmp ?? materialCode;
+};
+
+const getStructureAbbreviation = (materialCodes: string[]): string => {
+  return materialCodes
+    .map((code) => getMaterialAbbreviation(code))
+    .join(" / ");
+};
 
 export default function ValidStructureCombinationsModal({
   isOpen,
@@ -108,7 +115,13 @@ export default function ValidStructureCombinationsModal({
     (combination) => combination.status === "VALIDADA",
   ).length;
 
-  const pendingCount = allCombinations.length - validatedCount;
+  const pendingCount = allCombinations.filter(
+    (combination) => combination.status === "PENDIENTE_NEGOCIO",
+  ).length;
+
+  const invalidCount = allCombinations.filter(
+    (combination) => combination.status === "NO_VALIDADA",
+  ).length;
 
   const hasCompleteCurrentSequence =
     expectedLayerCount > 0 &&
@@ -150,19 +163,19 @@ export default function ValidStructureCombinationsModal({
           </button>
         </div>
 
-        <div className="space-y-4 border-b border-slate-200 bg-slate-50/70 px-6 py-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-3">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Selección actual
-              </span>
-              <p className="mt-1 text-sm font-bold text-slate-900">
-                {currentMaterialCodes.some(Boolean)
-                  ? currentSequenceLabel
-                  : "Sin materiales seleccionados"}
-              </p>
-            </div>
+        <div className="space-y-3 border-b border-slate-200 bg-slate-50/70 px-6 py-4">
+          <div className="rounded-lg border border-slate-200 bg-white p-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Selección actual
+            </span>
+            <p className="mt-1 text-sm font-bold text-slate-900">
+              {currentMaterialCodes.some(Boolean)
+                ? currentSequenceLabel
+                : "Sin materiales seleccionados"}
+            </p>
+          </div>
 
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="rounded-xl border border-green-200 bg-green-50 p-3">
               <span className="text-xs font-semibold uppercase tracking-wide text-green-700">
                 Validadas
@@ -174,54 +187,22 @@ export default function ValidStructureCombinationsModal({
 
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
               <span className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-                Pendientes de negocio
+                En validación
               </span>
               <p className="mt-1 text-xl font-bold text-amber-800">
                 {pendingCount}
               </p>
             </div>
-          </div>
 
-          {hasCompleteCurrentSequence && exactMatch && (
-            <div
-              className={[
-                "flex items-start gap-2 rounded-lg border px-3 py-2.5",
-                exactMatch.status === "VALIDADA"
-                  ? "border-green-200 bg-green-50"
-                  : "border-amber-200 bg-amber-50",
-              ].join(" ")}
-            >
-              {exactMatch.status === "VALIDADA" ? (
-                <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
-              ) : (
-                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
-              )}
-              <div>
-                <p
-                  className={[
-                    "text-xs font-bold",
-                    exactMatch.status === "VALIDADA"
-                      ? "text-green-800"
-                      : "text-amber-800",
-                  ].join(" ")}
-                >
-                  Coincidencia exacta: {exactMatch.id}
-                </p>
-                <p
-                  className={[
-                    "mt-0.5 text-xs",
-                    exactMatch.status === "VALIDADA"
-                      ? "text-green-700"
-                      : "text-amber-700",
-                  ].join(" ")}
-                >
-                  {exactMatch.status === "VALIDADA"
-                    ? "La secuencia tiene homologación única por capa."
-                    : exactMatch.pendingReason}
-                </p>
-              </div>
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+              <span className="text-xs font-semibold uppercase tracking-wide text-red-700">
+                No válidas
+              </span>
+              <p className="mt-1 text-xl font-bold text-red-800">
+                {invalidCount}
+              </p>
             </div>
-          )}
+          </div>
 
           {showRequestNew && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
@@ -261,7 +242,11 @@ export default function ValidStructureCombinationsModal({
                 ["VALIDADA", `Validadas (${validatedCount})`],
                 [
                   "PENDIENTE_NEGOCIO",
-                  `Pendientes (${pendingCount})`,
+                  `En validación (${pendingCount})`,
+                ],
+                [
+                  "NO_VALIDADA",
+                  `No válidas (${invalidCount})`,
                 ],
               ] as Array<[StatusFilter, string]>).map(([value, label]) => (
                 <button
@@ -306,26 +291,19 @@ export default function ValidStructureCombinationsModal({
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                        Similitud
+                      <th className="min-w-40 px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-600">
+                        Código
                       </th>
-                      <th className="min-w-80 px-3 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                        Secuencia
+                      <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-600">
+                        Materiales
                       </th>
-                      {Array.from({ length: expectedLayerCount }).map(
-                        (_, index) => (
-                          <th
-                            key={`header-layer-${index + 1}`}
-                            className="min-w-40 px-3 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500"
-                          >
-                            Capa {index + 1}
-                          </th>
-                        ),
-                      )}
-                      <th className="min-w-44 px-3 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                      <th className="min-w-32 px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-slate-600">
+                        Estructura
+                      </th>
+                      <th className="min-w-28 px-4 py-2.5 text-center text-xs font-bold uppercase tracking-wide text-slate-600">
                         Estado
                       </th>
-                      <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                      <th className="min-w-20 px-4 py-2.5 text-right text-xs font-bold uppercase tracking-wide text-slate-600">
                         Acción
                       </th>
                     </tr>
@@ -340,73 +318,59 @@ export default function ValidStructureCombinationsModal({
                       return (
                         <Fragment key={combination.id}>
                           <tr
-                            className={[
-                              "align-top transition",
-                              match.isExact
-                                ? "bg-green-50/60"
-                                : match.isCompatible
-                                  ? "bg-blue-50/30"
-                                  : "hover:bg-slate-50",
-                            ].join(" ")}
+                            className="align-middle transition hover:bg-slate-50"
                           >
-                            <td className="px-3 py-3">
-                              <div className="font-bold text-slate-900">
-                                {match.similarity}%
-                              </div>
-                              <div className="mt-1 text-[11px] text-slate-500">
-                                {match.isExact
-                                  ? "Exacta"
-                                  : match.isCompatible
-                                    ? "Compatible"
-                                    : "Similar"}
-                              </div>
-                            </td>
-
-                            <td className="px-3 py-3">
-                              <p className="font-bold text-slate-900">
-                                {combination.sequenceLabel}
-                              </p>
-                              <p className="mt-1 text-xs text-slate-500">
-                                {combination.id} · {combination.matrixCode}
-                              </p>
-                            </td>
-
-                            {Array.from({ length: expectedLayerCount }).map(
-                              (_, layerIndex) => (
-                                <td
-                                  key={`${combination.id}-layer-${layerIndex}`}
-                                  className="px-3 py-3 text-xs text-slate-700"
-                                >
-                                  <div className="font-semibold">
-                                    {combination.layerLabels[layerIndex] ?? "—"}
-                                  </div>
-                                  <div className="mt-1 text-slate-500">
-                                    {combination.materialNames[layerIndex] ?? "—"}
-                                  </div>
-                                </td>
-                              ),
-                            )}
-
-                            <td className="px-3 py-3">
-                              <span
-                                className={[
-                                  "inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold",
-                                  combination.status === "VALIDADA"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-amber-100 text-amber-800",
-                                ].join(" ")}
-                              >
-                                {getStatusLabel(combination.status)}
+                            <td className="px-4 py-2.5">
+                              <span className="font-mono text-sm font-bold text-brand-primary">
+                                {combination.materialCodes.join("|")}
                               </span>
                             </td>
 
-                            <td className="px-3 py-3 text-right">
+                            <td className="px-4 py-2.5 text-sm text-slate-900">
+                              {combination.materialNames.join(expectedLayerCount > 1 ? " / " : "")}
+                            </td>
+
+                            <td className="px-4 py-2.5 text-sm">
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 font-mono font-bold text-slate-800">
+                                {getStructureAbbreviation(combination.materialCodes)}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-2.5 text-center">
+                              {combination.status === "VALIDADA" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-bold text-green-800">
+                                  <svg
+                                    className="h-3 w-3"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  Validada
+                                </span>
+                              ) : combination.status === "NO_VALIDADA" ? (
+                                <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-bold text-red-800">
+                                  No válida
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-bold text-amber-800">
+                                  En validación
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="px-4 py-2.5 text-right">
                               {combination.canApply ? (
                                 <Button
                                   variant="primary"
                                   onClick={() => onApply(combination)}
+                                  size="sm"
                                 >
-                                  Usar combinación
+                                  Usar
                                 </Button>
                               ) : (
                                 <Button
@@ -416,8 +380,9 @@ export default function ValidStructureCombinationsModal({
                                       isExpanded ? null : combination.id,
                                     )
                                   }
+                                  size="sm"
                                 >
-                                  {isExpanded ? "Ocultar" : "Ver pendiente"}
+                                  {isExpanded ? "Ocultar" : "Ver"}
                                 </Button>
                               )}
                             </td>
@@ -426,7 +391,7 @@ export default function ValidStructureCombinationsModal({
                           {isExpanded && (
                             <tr className="bg-amber-50/70">
                               <td
-                                colSpan={expectedLayerCount + 4}
+                                colSpan={5}
                                 className="px-4 py-3"
                               >
                                 <div className="flex items-start gap-2">
