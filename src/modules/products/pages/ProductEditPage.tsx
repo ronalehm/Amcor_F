@@ -92,6 +92,7 @@ export type ProjectEditFormData = {
   projectType: string;
   motivoModificacion: string;
   salesforceAction: string;
+  rfqCode: string;
 
   designPlanType: string;
   designPlanComments: string;
@@ -2045,6 +2046,7 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     classification: form.classification,
     projectType: form.projectType,
     salesforceAction: form.salesforceAction,
+    rfqCode: form.rfqCode,
     blueprintFormat: form.blueprintFormat,
     estimatedVolume: form.estimatedVolume,
     unitOfMeasure: form.unitOfMeasure,
@@ -2398,6 +2400,7 @@ export default function ProductEditPage() {
     projectType: "",
     motivoModificacion: "",
     salesforceAction: "",
+    rfqCode: "",
     designPlanType: "",
     designPlanComments: "",
     blueprintFormat: "",
@@ -2752,6 +2755,7 @@ if (!project) {
       projectType: initialProjectType || project.projectType || "",
       motivoModificacion: (project as any).motivoModificacion || "",
       salesforceAction: normalizeSalesforceAction(project.salesforceAction || ""),
+      rfqCode: (project as any).rfqCode || "",
       blueprintFormat: project.blueprintFormat || "",
       tipoPresentacionBolsa: (project as any).tipoPresentacionBolsa || "",
       tipoSelloBolsa: (project as any).tipoSelloBolsa || "",
@@ -4194,6 +4198,7 @@ if (!project) {
       motivoNuevaValidacion: form.projectType,
       motivoModificacion: form.motivoModificacion,
       salesforceAction: originalProject?.salesforceAction || "",
+      rfqCode: form.rfqCode,
 
       blueprintFormat: form.blueprintFormat,
       estimatedVolume: form.estimatedVolume,
@@ -4498,6 +4503,7 @@ if (!project) {
       motivoNuevaValidacion: form.projectType,
       motivoModificacion: form.motivoModificacion,
       salesforceAction: originalProject?.salesforceAction || "",
+      rfqCode: form.rfqCode,
 
       blueprintFormat: form.blueprintFormat,
       estimatedVolume: form.estimatedVolume,
@@ -4870,198 +4876,195 @@ if (!project) {
             {/* PASO 0: Información de Producto */}
             {activeStep === 0 && (
               <div className="space-y-5">
-                <FormCard title="Información inicial del producto" icon="📋" color="#00395A" required>
-                  {/* ========== CLASIFICACIÓN Y MOTIVO ========== */}
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {/* COLUMNA IZQUIERDA: Clasificación (desplegable) */}
-                    <FormSelect
-                      label="Clasificación *"
-                      value={form.classification}
-                      onChange={(value) => {
-                        updateField("classification", value);
-                        updateField("projectType", "");
-                        markFieldAsTouched("classification");
-                      }}
-                      onBlur={() => markFieldAsTouched("classification")}
-                      error={getError("classification")}
-                      options={classificationOpt}
-                      placeholder="-- Seleccione --"
-                    />
+                <FormCard title="INFORMACIÓN PRODUCTO" icon="📋" color="#00395A" required>
+                  {/* ========== CLASIFICACIÓN Y MODIFICACIÓN ========== */}
+                  <div className="rounded-xl border-2 border-slate-200 bg-slate-50 p-5 space-y-4">
+                    <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                      Clasificación y Modificación
+                    </h3>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {/* COLUMNA IZQUIERDA: Clasificación (desplegable) */}
+                      <FormSelect
+                        label="Clasificación *"
+                        value={form.classification}
+                        onChange={(value) => {
+                          updateField("classification", value);
+                          updateField("projectType", "");
+                          markFieldAsTouched("classification");
+                        }}
+                        onBlur={() => markFieldAsTouched("classification")}
+                        error={getError("classification")}
+                        options={classificationOpt}
+                        placeholder="-- Seleccione --"
+                      />
 
-                    {/* COLUMNA DERECHA: MODIFICACIÓN (MOT) - Checkboxes dinámicos */}
-                    {form.classification && (
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-3">
-                          MODIFICACIÓN *
-                        </label>
-                        <div className="space-y-2 max-h-64 overflow-y-auto border border-slate-200 rounded-lg p-3 bg-slate-50">
-                          {getCausalOptions(form.classification).map((motOption) => (
-                            <label key={motOption.value} className="flex items-center gap-3 cursor-pointer hover:bg-white p-2 rounded transition">
-                              <input
-                                type="checkbox"
-                                checked={form.projectType === motOption.value}
-                                onChange={() => {
-                                  const isCurrentlySelected = form.projectType === motOption.value;
-                                  const nextMot = isCurrentlySelected ? "" : motOption.value;
-                                  updateField("projectType", nextMot);
-                                  markFieldAsTouched("projectType");
-                                  // Los errores de validación se limpian automáticamente en el useMemo
-                                }}
-                                className="w-5 h-5"
-                              />
-                              <span className="text-sm text-slate-700">{motOption.label}</span>
-                            </label>
-                          ))}
+                      {/* COLUMNA DERECHA: MODIFICACIÓN (MOT) - Checkboxes dinámicos */}
+                      {form.classification && (
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-3">
+                            Modificación *
+                          </label>
+                          <div className="space-y-2 border border-slate-200 rounded-lg p-3 bg-white">
+                            {getCausalOptions(form.classification).map((motOption) => (
+                              <label key={motOption.value} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded transition">
+                                <input
+                                  type="checkbox"
+                                  checked={form.projectType === motOption.value}
+                                  onChange={() => {
+                                    const isCurrentlySelected = form.projectType === motOption.value;
+                                    const nextMot = isCurrentlySelected ? "" : motOption.value;
+                                    updateField("projectType", nextMot);
+                                    markFieldAsTouched("projectType");
+                                    // Los errores de validación se limpian automáticamente en el useMemo
+                                  }}
+                                  className="w-5 h-5"
+                                />
+                                <span className="text-sm text-slate-700">{motOption.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                          {getError("projectType") && (
+                            <p className="text-xs text-red-600 mt-2">{getError("projectType")}</p>
+                          )}
                         </div>
-                        {getError("projectType") && (
-                          <p className="text-xs text-red-600 mt-2">{getError("projectType")}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ========== PRODUCTO BASE (Condicional para Modificado) ========== */}
-                  {isProductoModificado(form.classification) && isModifiedProject && originalProject?.approvedProductSnapshot && (
-                    <div className="rounded-xl border-2 border-orange-200 bg-orange-50 p-5 space-y-3 mt-4">
-                      <h3 className="flex items-center gap-2 text-sm font-bold text-orange-900">
-                        <span>⚠️</span>
-                        Producto base aprobado
-                      </h3>
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <PreviewRow
-                          label="SKU"
-                          value={originalProject.approvedProductSnapshot.sku}
-                        />
-                        <PreviewRow
-                          label="Versión"
-                          value={originalProject.approvedProductSnapshot.version}
-                        />
-                        <PreviewRow
-                          label="Producto"
-                          value={originalProject.approvedProductSnapshot.productName}
-                        />
-                        <PreviewRow
-                          label="Cliente"
-                          value={originalProject.approvedProductSnapshot.clientName}
-                        />
-                        <PreviewRow
-                          label="Envoltura"
-                          value={originalProject.approvedProductSnapshot.envoltura}
-                        />
-                        <PreviewRow
-                          label="Formato"
-                          value={originalProject.approvedProductSnapshot.formatoPlano}
-                        />
-                      </div>
+                      )}
                     </div>
-                  )}
-
-                  {/* ========== NOMBRE, VOLUMEN Y UNIDAD (3 COLUMNAS) ========== */}
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3 mt-4">
-                    <FormInput
-                      label="Nombre del Producto *"
-                      value={form.projectName}
-                      onChange={(value) => updateField("projectName", value)}
-                      onBlur={() => markFieldAsTouched("projectName")}
-                      error={getError("projectName")}
-                      placeholder="Ej. Mayonesa Light 100ml"
-                    />
-
-                    <FormInput
-                      label="Volumen Referencial *"
-                      value={form.estimatedVolume}
-                      onChange={(value) => updateField("estimatedVolume", value)}
-                      onBlur={() => markFieldAsTouched("estimatedVolume")}
-                      error={getError("estimatedVolume")}
-                      placeholder="Ej. 500"
-                    />
-
-                    <FormSelect
-                      label="Unidad *"
-                      value={form.unitOfMeasure}
-                      onChange={(value) => updateField("unitOfMeasure", value)}
-                      onBlur={() => markFieldAsTouched("unitOfMeasure")}
-                      error={getError("unitOfMeasure")}
-                      options={UNIT_OPTIONS}
-                      placeholder="-- Seleccione --"
-                    />
                   </div>
 
-                  {/* ========== ACCIÓN SALESFORCE ========== */}
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 mt-4">
-                    <FormInput
-                      label="Acción Salesforce"
-                      value={form.salesforceAction}
-                      onChange={(value) => updateField("salesforceAction", normalizeSalesforceAction(value))}
-                      onBlur={() => markFieldAsTouched("salesforceAction")}
-                      error={getError("salesforceAction")}
-                      placeholder="Ej. A-123456"
-                    />
+                  {/* ========== PRODUCTO (Nombre, Volumen, Unidad y Descripción) ========== */}
+                  <div className="rounded-xl border-2 border-slate-200 bg-slate-50 p-5 space-y-3 mt-4">
+                    <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                      Información del Producto
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <FormInput
+                        label="Nombre del Producto *"
+                        value={form.projectName}
+                        onChange={(value) => updateField("projectName", value)}
+                        onBlur={() => markFieldAsTouched("projectName")}
+                        error={getError("projectName")}
+                        placeholder="Ej. Mayonesa Light 100ml"
+                        disabled={isProductoModificado(form.classification)}
+                      />
+
+                      <FormInput
+                        label="Volumen Referencial *"
+                        value={form.estimatedVolume}
+                        onChange={(value) => updateField("estimatedVolume", value)}
+                        onBlur={() => markFieldAsTouched("estimatedVolume")}
+                        error={getError("estimatedVolume")}
+                        placeholder="Ej. 500"
+                        disabled={isProductoModificado(form.classification)}
+                      />
+
+                      <FormSelect
+                        label="Unidad *"
+                        value={form.unitOfMeasure}
+                        onChange={(value) => updateField("unitOfMeasure", value)}
+                        onBlur={() => markFieldAsTouched("unitOfMeasure")}
+                        error={getError("unitOfMeasure")}
+                        options={UNIT_OPTIONS}
+                        placeholder="-- Seleccione --"
+                        disabled={isProductoModificado(form.classification)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-2">
+                        Descripción breve de la necesidad *
+                      </label>
+                      <textarea
+                        value={form.projectDescription}
+                        onChange={(e) => updateField("projectDescription", e.target.value)}
+                        onBlur={() => markFieldAsTouched("projectDescription")}
+                        placeholder="Describe la necesidad técnica o comercial..."
+                        disabled={isProductoModificado(form.classification)}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 ${
+                          isProductoModificado(form.classification)
+                            ? "bg-slate-100 border-slate-300 text-slate-500 cursor-not-allowed"
+                            : `focus:border-brand-primary focus:ring-1 focus:ring-brand-primary ${
+                                getError("projectDescription")
+                                  ? "border-red-300 bg-red-50 text-slate-800"
+                                  : "border-slate-300 bg-white text-slate-800"
+                              }`
+                        }`}
+                        rows={2}
+                      />
+                      {getError("projectDescription") && (
+                        <span className="block text-xs text-red-600 mt-1">
+                          {getError("projectDescription")}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {/* ========== APLICACIÓN TÉCNICA Y CÓDIGO DE EMPAQUE ========== */}
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 mt-4">
-                    <FormSelect
-                      label="Aplicación Técnica *"
-                      value={form.technicalApplication || ""}
-                      onChange={(value) => updateField("technicalApplication", value)}
-                      onBlur={() => markFieldAsTouched("technicalApplication")}
-                      error={getError("technicalApplication")}
-                      placeholder="-- Seleccione --"
-                      options={TECHNICAL_APPLICATION_CATALOG.map((item) => ({
-                        value: item.code,
-                        label: item.name,
-                      }))}
-                    />
-
-                    <FormInput
-                      label="Código de Empaque del Cliente (Opcional)"
-                      value={form.customerPackingCode || ""}
-                      onChange={(value) => updateField("customerPackingCode", value)}
-                      onBlur={() => markFieldAsTouched("customerPackingCode")}
-                      error={getError("customerPackingCode")}
-                      placeholder="Ej. SKU-CLIENT-001"
-                    />
+                  {/* ========== SALESFORCE SECTION ========== */}
+                  <div className="rounded-xl border-2 border-slate-200 bg-slate-50 p-5 space-y-3 mt-4">
+                    <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                      Información Salesforce
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <FormInput
+                        label="Acción Salesforce"
+                        value={form.salesforceAction}
+                        onChange={(value) => updateField("salesforceAction", normalizeSalesforceAction(value))}
+                        onBlur={() => markFieldAsTouched("salesforceAction")}
+                        error={getError("salesforceAction")}
+                        placeholder="Ej. A-123456"
+                      />
+                      <FormInput
+                        label="Código RFQ (Opcional)"
+                        value={form.rfqCode}
+                        onChange={(value) => updateField("rfqCode", value)}
+                        onBlur={() => markFieldAsTouched("rfqCode")}
+                        error={getError("rfqCode")}
+                        placeholder="Ej. RFQ-2024-001"
+                      />
+                    </div>
                   </div>
 
-                  {/* ========== DESCRIPCIÓN BREVE ========== */}
-                  <div className="space-y-1 mt-4">
-                    <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
-                      Descripción breve de la necesidad *
-                    </label>
-                    <textarea
-                      value={form.projectDescription}
-                      onChange={(e) => updateField("projectDescription", e.target.value)}
-                      onBlur={() => markFieldAsTouched("projectDescription")}
-                      placeholder="Describe la necesidad técnica o comercial..."
-                      className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary ${
-                        getError("projectDescription")
-                          ? "border-red-300 bg-red-50 text-slate-800"
-                          : "border-slate-300 bg-white text-slate-800"
-                      }`}
-                      rows={2}
-                    />
-                    {getError("projectDescription") && (
-                      <span className="block text-xs text-red-600">
-                        {getError("projectDescription")}
-                      </span>
-                    )}
-                  </div>
+                  {/* ========== ESPECIFICACIONES TÉCNICAS ========== */}
+                  <div className="rounded-xl border-2 border-slate-200 bg-slate-50 p-5 space-y-3 mt-4">
+                    <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                      Especificaciones Técnicas
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <FormSelect
+                        label="Aplicación Técnica *"
+                        value={form.technicalApplication || ""}
+                        onChange={(value) => updateField("technicalApplication", value)}
+                        onBlur={() => markFieldAsTouched("technicalApplication")}
+                        error={getError("technicalApplication")}
+                        placeholder="-- Seleccione --"
+                        options={TECHNICAL_APPLICATION_CATALOG.map((item) => ({
+                          value: item.code,
+                          label: item.name,
+                        }))}
+                      />
 
+                      <FormInput
+                        label="Código de Empaque del Cliente (Opcional)"
+                        value={form.customerPackingCode || ""}
+                        onChange={(value) => updateField("customerPackingCode", value)}
+                        onBlur={() => markFieldAsTouched("customerPackingCode")}
+                        error={getError("customerPackingCode")}
+                        placeholder="Ej. SKU-CLIENT-001"
+                      />
+                    </div>
 
-                  {/* ========== COMENTARIOS ========== */}
-                  <div className="space-y-1 border-t border-slate-200 pt-4 mt-4">
-                    <label className="block text-xs font-bold uppercase tracking-wide text-slate-600">
-                      Comentarios
-                    </label>
-                    <textarea
-                      value={form.additionalComment}
-                      onChange={(e) => updateField("additionalComment", e.target.value)}
-                      onBlur={() => markFieldAsTouched("additionalComment")}
-                      placeholder="Comentarios técnicos iniciales..."
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary bg-white text-slate-800"
-                      rows={2}
-                    />
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-2">
+                        Comentarios
+                      </label>
+                      <textarea
+                        value={form.additionalComment}
+                        onChange={(e) => updateField("additionalComment", e.target.value)}
+                        onBlur={() => markFieldAsTouched("additionalComment")}
+                        placeholder="Comentarios técnicos iniciales..."
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary bg-white text-slate-800"
+                        rows={2}
+                      />
+                    </div>
                   </div>
                 </FormCard>
 

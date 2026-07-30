@@ -41,9 +41,10 @@ export function generateSKUForNewRequest(
 ): SKUGenerationResult {
   const errors: string[] = [];
   const isProductoModificado = normalizeClassification(classification) === 'Producto Modificado';
+  const isNuevoDesdeBase = classification === 'NuevoDesdeBase';
 
-  // ============ Caso 1: Producto Nuevo ============
-  if (!isProductoModificado) {
+  // ============ Caso 1: Producto Nuevo (Nueva Estructura) ============
+  if (!isProductoModificado && !isNuevoDesdeBase) {
     // Extraer secuencias existentes
     const existingSequences = allExistingProjects
       .map(p => p.skuSequence)
@@ -78,7 +79,49 @@ export function generateSKUForNewRequest(
     };
   }
 
-  // ============ Caso 2: Producto Modificado ============
+  // ============ Caso 2: Producto Nuevo desde Base B ============
+  if (isNuevoDesdeBase) {
+    if (!baseProductSku) {
+      errors.push('Producto Nuevo desde Base requiere un SKU base válido');
+      return {
+        skuCode: '',
+        skuSequence: 0,
+        skuLifecycleCode: 'E',
+        skuVersion: 0,
+        reason: 'Error: Falta SKU base para Producto Nuevo desde Base',
+        errors,
+      };
+    }
+
+    // Parsear SKU base
+    const parsedBase = parseSKU(baseProductSku);
+    if (!parsedBase.valid) {
+      errors.push(`SKU base inválido: ${parsedBase.error}`);
+      return {
+        skuCode: '',
+        skuSequence: 0,
+        skuLifecycleCode: 'E',
+        skuVersion: 0,
+        reason: `Error: SKU base "${baseProductSku}" es inválido`,
+        errors,
+      };
+    }
+
+    // Mantener correlativo del base, cambiar a ciclo E, versión 00
+    const baseCorrelativo = parsedBase.correlativo;
+    const newSkuCode = formatSKU(baseCorrelativo, 'E', 0);
+
+    return {
+      skuCode: newSkuCode,
+      skuSequence: baseCorrelativo,
+      skuLifecycleCode: 'E',
+      skuVersion: 0,
+      reason: `Producto Nuevo desde Base: Correlativo ${String(baseCorrelativo).padStart(5, '0')} (heredado), preliminar (E), versión 00 (base: ${baseProductSku})`,
+      errors: [],
+    };
+  }
+
+  // ============ Caso 3: Producto Modificado desde A ============
   if (!baseProductSku) {
     errors.push('Producto Modificado requiere un SKU base válido');
     return {

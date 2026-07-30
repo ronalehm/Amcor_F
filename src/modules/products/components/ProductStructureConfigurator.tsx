@@ -365,48 +365,69 @@ export default function ProductStructureConfigurator({
                       micronControl.mode ===
                         "VALOR" && (
                         <>
-                          <FormSelect
-                            label="Micraje *"
-                            value={
-                              layer.micronRuleCode
-                            }
-                            onChange={(
-                              micronRuleCode,
-                            ) => {
-                              const rule =
-                                getMicronRecordByCode(
-                                  micronRuleCode,
-                                );
+                          {inherited &&
+                          layerDisabled ? (
+                            // Mostrar como texto cuando está heredado y bloqueado
+                            <>
+                              <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                Micraje *
+                              </label>
+                              <div className="rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-sm text-slate-600">
+                                {layer.micronValue ? (
+                                  <>
+                                    {layer.micronValue}{" "}
+                                    µm
+                                  </>
+                                ) : (
+                                  "—"
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            // Dropdown editable cuando no está heredado
+                            <FormSelect
+                              label="Micraje *"
+                              value={
+                                layer.micronRuleCode
+                              }
+                              onChange={(
+                                micronRuleCode,
+                              ) => {
+                                const rule =
+                                  getMicronRecordByCode(
+                                    micronRuleCode,
+                                  );
 
-                              updateLayer(
-                                layerIndex,
-                                {
-                                  micronRuleCode,
-                                  micronValue:
-                                    rule?.TbMatMicVal ===
-                                      null ||
-                                    rule?.TbMatMicVal ===
-                                      undefined
-                                      ? ""
-                                      : String(
-                                          rule.TbMatMicVal,
-                                        ),
-                                },
-                              );
-                            }}
-                            options={orderedMicronOptions.map(
-                              (option) => ({
-                                value:
-                                  option.code,
-                                label:
-                                  option.label,
-                              }),
-                            )}
-                            placeholder="Seleccionar"
-                            disabled={
-                              layerDisabled
-                            }
-                          />
+                                updateLayer(
+                                  layerIndex,
+                                  {
+                                    micronRuleCode,
+                                    micronValue:
+                                      rule?.TbMatMicVal ===
+                                        null ||
+                                      rule?.TbMatMicVal ===
+                                        undefined
+                                        ? ""
+                                        : String(
+                                            rule.TbMatMicVal,
+                                          ),
+                                  },
+                                );
+                              }}
+                              options={orderedMicronOptions.map(
+                                (option) => ({
+                                  value:
+                                    option.code,
+                                  label:
+                                    option.label,
+                                }),
+                              )}
+                              placeholder="Seleccionar"
+                              disabled={
+                                layerDisabled
+                              }
+                            />
+                          )}
                           {getMicronError(layerIndex) && (
                             <p className="mt-1 text-xs font-semibold text-red-600">
                               {getMicronError(layerIndex)}

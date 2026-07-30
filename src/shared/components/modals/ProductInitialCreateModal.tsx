@@ -78,6 +78,60 @@ type PortfolioRecord = AnyRecord;
 type ProjectRecord = AnyRecord;
 type ClientRecord = AnyRecord;
 
+// ProductRequestCase: casuística única que determina el flujo
+type ProductRequestCase =
+  | "NEW_WITH_NEW_STRUCTURE"
+  | "NEW_FROM_BASE"
+  | "MODIFIED_FROM_APPROVED"
+  | null;
+
+// SelectedProductReference: solo para Momento 2, no cambia clasificación
+type SelectedProductReference = {
+  projectId?: string;
+  projectCode?: string;
+  skuCode?: string;
+  projectName?: string;
+  score?: number;
+  scope?: MatchScope;
+  status?: string;
+  datosSugeridosMomento2?: AnyRecord;
+};
+
+// Parser de SKU único: formato SKU-XXXXX-L-VV
+// L = ciclo de vida (E, B, A, I)
+// VV = versión (00-99)
+// Nota: SkuLifecycleCode ya está importado desde projectWorkflow
+type ParsedSkuCode = {
+  productIdentityCode: string; // XXXXX (5 dígitos)
+  lifecycleCode: SkuLifecycleCode; // E, B, A, I
+  versionCode: string; // VV (2 dígitos)
+  sequence: number; // número XXXXX como entero
+  version: number; // número VV como entero
+};
+
+// Patrón de SKU: SKU-00025-E-01 (solo E, B, A, I - no P)
+const SKU_PATTERN = /^SKU-(\d{5})-([EBAI])-(\d{2})$/i;
+
+// Parser único de código SKU - formato validado
+const parseSkuCode = (value: string): ParsedSkuCode => {
+  const normalized = value.trim().toUpperCase();
+  const match = SKU_PATTERN.exec(normalized);
+
+  if (!match) {
+    throw new Error(
+      `Código SKU inválido: ${value}. Formato esperado: SKU-XXXXX-L-VV (L: E|B|A|I, VV: 00-99)`,
+    );
+  }
+
+  return {
+    productIdentityCode: match[1],
+    lifecycleCode: match[2] as SkuLifecycleCode,
+    versionCode: match[3],
+    sequence: Number(match[1]),
+    version: Number(match[3]),
+  };
+};
+
 interface ProjectInitialCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -218,22 +272,79 @@ const isProductoModificado = (classification: string): boolean => {
   return normalized === "Producto Modificado";
 };
 
-// Normalize motivo/tipoSolicitud to match productCreationRules expectations
-const normalizeTipoSolicitud = (motivo: string): TipoSolicitud => {
-  const lower = motivo.toLowerCase().trim();
+// Normalize classification to match productCreationRules expectations
+const normalizeClassification = (classification: string): TipoSolicitud => {
+  const lower = classification.toLowerCase().trim();
   if (lower === "producto nuevo") return "Producto nuevo";
   if (lower === "producto modificado") return "Producto modificado";
   if (lower === "extensión de línea") return "Extensión de línea";
   if (lower === "ico / bcp") return "ICO / BCP";
-  return motivo as TipoSolicitud;
+  return classification as TipoSolicitud;
 };
 
-// Generar opciones de Modificación desde TABMODPRODODISEO
-const getCausalOptions = (classification: string) => {
+// Obtener opciones de Modificación desde TABMODPRODODISEO
+const getModificationOptions = (classification: string) => {
   const normalized = normalizeProductClassificationToCatalog(classification);
   if (!normalized) return [];
   return getActiveModificationOptionsByClassification(normalized);
 };
+
+// Helper: verificar si una modificación específica está presente
+const hasModification = (
+  modifications: string[],
+  expected: string,
+): boolean =>
+  modifications.some(
+    (value) =>
+      normalizeText(value) === normalizeText(expected),
+  );
+
+// Helper: determinar la casuística única basada en classification y modifications
+const resolveProductRequestCase = (
+  classification: string,
+  modifications: string[],
+): ProductRequestCase => {
+  if (!classification || modifications.length === 0) {
+    return null;
+  }
+
+  if (
+    isProductoNuevo(classification) &&
+    hasModification(modifications, "Nueva estructura")
+  ) {
+    return "NEW_WITH_NEW_STRUCTURE";
+  }
+
+  if (isProductoNuevo(classification)) {
+    return "NEW_FROM_BASE";
+  }
+
+  if (isProductoModificado(classification)) {
+    return "MODIFIED_FROM_APPROVED";
+  }
+
+  return null;
+};
+
+// Helpers de acceso estable para identificadores
+const getStableProjectId = (
+  project: ProjectRecord,
+): string =>
+  getRecordValue(project, [
+    "id",
+    "projectId",
+    "projectCode",
+    "projectRequestCode",
+  ]);
+
+const getStableProjectCode = (
+  project: ProjectRecord,
+): string =>
+  getRecordValue(project, [
+    "projectCode",
+    "projectRequestCode",
+    "id",
+  ]);
 
 // Material options removed - using ProductStructureConfigurator for layer management
 
@@ -1555,6 +1666,58 @@ const getProductDisplayName = (project: ProjectRecord): string =>
     "name",
   ]) || getProjectName(project) || "Producto sin nombre";
 
+// Limpiar nombre: remover "Aprobada" y segmentos de volumen/unidad
+const getCleanProductName = (displayName: string): string => {
+  if (!displayName) return "";
+
+  // Remover "Aprobada" / "aprobada" (incluyendo guiones adyacentes)
+  let cleaned = displayName
+    .replace(/\s*[-–]\s*[Aa]probada\s*/g, " ")
+    .replace(/[Aa]probada\s*[-–]\s*/g, " ");
+
+  // Remover patrones de volumen/unidad/empaque al final
+  // Casos: "- Tubo 150ml", "Tubo 150ml", "- 5kg", "Sachet 20ml", etc
+  const packagingTypes = "Sachet|Balde|Bolsa|Caja|Pack|Pallet|Tubo|Botella|Lata|Barril|Bidón|Jeringa";
+
+  // Patrón 1: Empaque + volumen (con o sin guion)
+  cleaned = cleaned.replace(
+    new RegExp(`\\s*[-–]?\\s*(${packagingTypes})\\s+[\\d]+\\s*[a-zA-Z]{1,3}\\s*$`, "i"),
+    ""
+  );
+
+  // Patrón 2: Solo números + unidad (ej: "500g", "20ml")
+  cleaned = cleaned.replace(/\s*[-–]?\s*[\d]+\s*[a-zA-Z]{1,3}\s*$/i, "");
+
+  return cleaned.replace(/\s+/g, " ").trim();
+};
+
+// Extraer volumen y unidad del nombre del producto
+const extractVolumeAndUnit = (displayName: string): { volume: string; unit: string } => {
+  if (!displayName) return { volume: "", unit: "" };
+
+  // Patrón: empaque + número + unidad o solo número + unidad
+  // Ejemplos: "Balde 5kg", "500ml", "Tubo 150ml"
+  const packagingTypes = "Sachet|Balde|Bolsa|Caja|Pack|Pallet|Tubo|Botella|Lata|Barril|Bidón|Jeringa";
+
+  // Buscar: Empaque + número + unidad
+  const match1 = new RegExp(`(${packagingTypes})\\s+([\\d]+)\\s*([a-zA-Z]{1,3})`, "i").exec(displayName);
+  if (match1) {
+    const unitText = match1[3].toLowerCase();
+    const unitCode = normalizeUnitMeasureCode(unitText);
+    return { volume: match1[2], unit: unitCode };
+  }
+
+  // Buscar: solo número + unidad
+  const match2 = /[-–]?\s*([\d]+)\s*([a-zA-Z]{1,3})\s*$/.exec(displayName);
+  if (match2) {
+    const unitText = match2[2].toLowerCase();
+    const unitCode = normalizeUnitMeasureCode(unitText);
+    return { volume: match2[1], unit: unitCode };
+  }
+
+  return { volume: "", unit: "" };
+};
+
 const getProductMaterialSummary = (project: ProjectRecord): string =>
   [0, 1, 2, 3]
     .map((index) => {
@@ -1654,7 +1817,7 @@ const resolveSkuLifecycleCodeFromProduct = (
 
   if (statusCandidate.includes("base")) return "B";
   if (statusCandidate.includes("aprobado")) return "A";
-  if (statusCandidate.includes("portafolio")) return "P";
+  if (statusCandidate.includes("portafolio")) return "E"; // Preliminar, no "P"
   if (statusCandidate.includes("muestra")) return "E";
 
   return undefined;
@@ -1690,23 +1853,23 @@ const getNextAvailableSku = (): string => {
 
 // ============= Helpers de decisión SKU =============
 
-const isNuevaEstructura = (causalValues: string[]): boolean => {
-  return causalValues.some(
+const isNuevaEstructura = (modificationValues: string[]): boolean => {
+  return modificationValues.some(
     (value) => normalizeText(value) === normalizeText("Nueva estructura"),
   );
 };
 
 const shouldRequireCurrentSku = (
   classification: string,
-  causalValues: string[],
+  modificationValues: string[],
 ): boolean => {
-  if (!classification || causalValues.length === 0) return false;
+  if (!classification || modificationValues.length === 0) return false;
 
   // Producto Modificado siempre requiere SKU actual.
   if (isProductoModificado(classification)) return true;
 
   // Producto Nuevo + Nueva estructura no requiere SKU base obligatorio.
-  if (isProductoNuevo(classification) && isNuevaEstructura(causalValues)) {
+  if (isProductoNuevo(classification) && isNuevaEstructura(modificationValues)) {
     return false;
   }
 
@@ -1747,95 +1910,125 @@ const getSkuSourceRecords = (): Array<Record<string, unknown>> => {
 
 const canRunSimilaritySearch = (
   classification: string,
-  causalValues: string[],
+  modificationValues: string[],
 ): boolean => {
-  return isProductoNuevo(classification) && isNuevaEstructura(causalValues);
+  return isProductoNuevo(classification) && isNuevaEstructura(modificationValues);
 };
 
-// Factory function para crear la función hydrateFromBaseProduct
-// con acceso a los setters del componente
-const createHydrateFunction = (setters: any) => {
-  return (baseProduct: AnyRecord | null, motivo: string) => {
-    if (!baseProduct) return;
+// Función mejorada para hidratar desde producto origen
+// Comportamiento diferente según casuística (requestCase)
+const hydrateFromOriginProduct = (
+  originProduct: AnyRecord,
+  currentRequestCase: ProductRequestCase,
+  setters: any,
+) => {
+  if (!originProduct || !currentRequestCase) return;
+  // Para Nueva estructura, no heredar nada
+  if (currentRequestCase === "NEW_WITH_NEW_STRUCTURE") return;
 
-    // Actualizar código actual con versión normalizada
-    const code = String(baseProduct.code || "");
-    const version = String(baseProduct.version || "00");
-    const normalizedVersion = normalizeVersion(version);
+  const originSkuCode = getProjectSkuCode(originProduct);
+  const originName = getCleanProductName(getProductDisplayName(originProduct));
 
-    setters.setProductoBaseCodigo(code);
-    setters.setProductoBaseVersion(normalizedVersion);
+  // Guardar identificador estable y SKU
+  setters.setProductoBaseId(getStableProjectId(originProduct));
+  setters.setProductoBaseCodigo(originSkuCode);
+  setters.setProductoBaseVersion(String(originProduct.version || "00"));
+  setters.setSelectedBaseProduct(originProduct);
 
-    // Generar nuevo SKU con letra E
-    if (isProductoNuevo(motivo)) {
-      // Para Nueva estructura, obtener el próximo SKU disponible de la BD
-      const nextSku = getNextAvailableSku();
-      const newCode = `${nextSku}-E-00`;
-      setters.setNewSkuCode(newCode);
-    } else if (isProductoModificado(motivo)) {
-      // Para Producto modificado, usar el mismo prefijo del producto base pero incrementar la versión
-      const baseParts = code.split("-");
-      if (baseParts.length >= 2) {
-        const nextVersion = incrementVersion(version);
-        const newCode = `${baseParts[0]}-${baseParts[1]}-E-${nextVersion}`;
-        setters.setNewSkuCode(newCode);
-      }
-    }
+  // Heredar estructura (igual para ambas casuísticas con origen)
+  const inheritedMaterialCodes = [
+    originProduct.layer1Material,
+    originProduct.layer2Material,
+    originProduct.layer3Material,
+    originProduct.layer4Material,
+  ].filter(Boolean);
 
-    // SIEMPRE actualizar todos los campos heredados cuando cambia el producto base
-    setters.setUnidad(String(baseProduct.capacityUnit || ""));
-    setters.setVolumen(String(baseProduct.capacityValue || ""));
-    setters.setDescripcion(String(baseProduct.description || ""));
+  const inheritedMicrons = [
+    String(originProduct.layer1Micron || ""),
+    String(originProduct.layer2Micron || ""),
+    String(originProduct.layer3Micron || ""),
+    String(originProduct.layer4Micron || ""),
+  ];
 
-    // Heredar materiales por capa
-    setters.setLayer1(String(baseProduct.layer1Material || ""));
-    setters.setLayer1Micron(String(baseProduct.layer1Micron || ""));
-    setters.setLayer2(String(baseProduct.layer2Material || ""));
-    setters.setLayer2Micron(String(baseProduct.layer2Micron || ""));
-    setters.setLayer3(String(baseProduct.layer3Material || ""));
-    setters.setLayer3Micron(String(baseProduct.layer3Micron || ""));
-    setters.setLayer4(String(baseProduct.layer4Material || ""));
-    setters.setLayer4Micron(String(baseProduct.layer4Micron || ""));
+  const inheritedStructureType =
+    inheritedMaterialCodes.length === 1
+      ? "Monocapa"
+      : inheritedMaterialCodes.length === 2
+        ? "Bilaminado"
+        : inheritedMaterialCodes.length === 3
+          ? "Trilaminado"
+          : inheritedMaterialCodes.length === 4
+            ? "Tetralaminado"
+            : "";
 
-    // Construir productStructure heredada
-    const inheritedMaterialCodes = [
-      normalizeMaterialValue(baseProduct.layer1Material),
-      normalizeMaterialValue(baseProduct.layer2Material),
-      normalizeMaterialValue(baseProduct.layer3Material),
-      normalizeMaterialValue(baseProduct.layer4Material),
-    ].filter(Boolean);
+  // Heredar materiales con sus nombres originales (no normalizados a código)
+  const normalizedLayers = inheritedMaterialCodes.map((materialCode, index) => ({
+    materialCode: String(materialCode || ""), // Usar nombre original, no código
+    micronRuleCode: "",
+    micronValue: inheritedMicrons[index] || "",
+  }));
 
-    const inheritedMicrons = [
-      String(baseProduct.layer1Micron || ""),
-      String(baseProduct.layer2Micron || ""),
-      String(baseProduct.layer3Micron || ""),
-      String(baseProduct.layer4Micron || ""),
-    ];
+  setters.setProductStructure({
+    structureType: inheritedStructureType,
+    layers: normalizedLayers,
+  });
 
-    const inheritedStructureType =
-      inheritedMaterialCodes.length === 1
-        ? "Monocapa"
-        : inheritedMaterialCodes.length === 2
-          ? "Bilaminado"
-          : inheritedMaterialCodes.length === 3
-            ? "Trilaminado"
-            : inheritedMaterialCodes.length === 4
-              ? "Tetralaminado"
-              : "";
+  // Actualizar estados individuales de capas para la UI
+  setters.setLayer1(String(originProduct.layer1Material || ""));
+  setters.setLayer2(String(originProduct.layer2Material || ""));
+  setters.setLayer3(String(originProduct.layer3Material || ""));
+  setters.setLayer4(String(originProduct.layer4Material || ""));
 
-    setters.setProductStructure({
-      structureType: inheritedStructureType,
-      layers: inheritedMaterialCodes.map((materialCode, index) => ({
-        materialCode,
-        micronRuleCode: "",
-        micronValue: inheritedMicrons[index] || "",
-      })),
-    });
+  setters.setLayer1Micron(String(originProduct.layer1Micron || ""));
+  setters.setLayer2Micron(String(originProduct.layer2Micron || ""));
+  setters.setLayer3Micron(String(originProduct.layer3Micron || ""));
+  setters.setLayer4Micron(String(originProduct.layer4Micron || ""));
 
-    setters.setIsInheritedFromBase(true);
-    setters.setSimilarityMatches([]);
-    setters.setSelectedReference(null);
-  };
+  // Heredar volumen y unidad - con fallback desde capacidad del producto y nombre
+  const displayName = getProductDisplayName(originProduct);
+  const extracted = extractVolumeAndUnit(displayName);
+
+  const volumeValue =
+    originProduct.volumenCantidadReferencial ||
+    originProduct.estimatedVolume ||
+    originProduct.capacityValue ||
+    extracted.volume;
+
+  const unitValue =
+    originProduct.unidad ||
+    originProduct.unitOfMeasure ||
+    originProduct.capacityUnit ||
+    extracted.unit;
+
+  setters.setVolumen(String(volumeValue || ""));
+  setters.setUnidad(String(unitValue || ""));
+
+  // Comportamiento específico por casuística
+  if (currentRequestCase === "NEW_FROM_BASE") {
+    // Producto Nuevo desde Base: nombre heredado pero EDITABLE
+    setters.setProjectName(originName);
+    setters.setDescripcion(
+      String(
+        originProduct.descripcionNecesidad ||
+          originProduct.projectDescription ||
+          "",
+      ),
+    );
+  } else if (currentRequestCase === "MODIFIED_FROM_APPROVED") {
+    // Producto Modificado: nombre heredado y BLOQUEADO, descripción heredada
+    setters.setProjectName(originName);
+    setters.setDescripcion(
+      String(
+        originProduct.descripcionNecesidad ||
+          originProduct.projectDescription ||
+          "",
+      ),
+    );
+  }
+
+  setters.setIsInheritedFromBase(true);
+  setters.setSimilarityMatches([]);
+  setters.setSelectedReference(null);
 };
 
 // Factory function para crear la función clearBaseProductFields
@@ -1900,8 +2093,8 @@ export default function ProjectInitialCreateModal({
   const [portfolioSearchTerm, setPortfolioSearchTerm] = useState("");
   const [isPortfolioDropdownOpen, setIsPortfolioDropdownOpen] = useState(false);
 
-  const [motivo, setMotivo] = useState("");
-  const [causal, setCausal] = useState<string[]>([]);
+  const [classification, setClassification] = useState("");
+  const [modifications, setModifications] = useState<string[]>([]);
   const [projectName, setProjectName] = useState("");
   const [volumen, setVolumen] = useState("");
   const [unidad, setUnidad] = useState("");
@@ -1938,17 +2131,8 @@ const [layer4Micron, setLayer4Micron] = useState("");
     useState(false);
   const [similarityScopeFilters, setSimilarityScopeFilters] =
     useState<SimilarityScopeFilters>(DEFAULT_SIMILARITY_SCOPE_FILTERS);
-  const [selectedReference, setSelectedReference] = useState<{
-    projectId?: string;
-    projectCode?: string;
-    projectName?: string;
-    score?: number;
-    scope?: MatchScope;
-    status?: string;
-    datosSugeridosMomento2?: AnyRecord;
-    clasificacion?: string;
-    modificaciones?: string[];
-  } | null>(null);
+  const [selectedReference, setSelectedReference] =
+    useState<SelectedProductReference | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [creationSteps, setCreationSteps] = useState<string[]>([]);
   const [isCreating, setIsCreating] = useState(false);
@@ -1983,9 +2167,43 @@ const [layer4Micron, setLayer4Micron] = useState("");
     });
   };
 
-
   const resetSimilarityFilters = () => {
     setSimilarityScopeFilters({ ...DEFAULT_SIMILARITY_SCOPE_FILTERS });
+  };
+
+  // ============= Reseteos Controlados =============
+
+  const resetProductStructure = () => {
+    setProductStructure({
+      structureType: "",
+      layers: [],
+    });
+
+    setLayer1("");
+    setLayer2("");
+    setLayer3("");
+    setLayer4("");
+
+    setLayer1Micron("");
+    setLayer2Micron("");
+    setLayer3Micron("");
+    setLayer4Micron("");
+
+    setIsStructureCombinationsOpen(false);
+    setIsNewStructureRequestOpen(false);
+    setStructureRequestNotice("");
+
+    setSimilarityMatches([]);
+    setSelectedReference(null);
+  };
+
+  const resetOriginProduct = () => {
+    setProductoBaseId("");
+    setProductoBaseNombre("");
+    setProductoBaseCodigo("");
+    setProductoBaseVersion("");
+    setSelectedBaseProduct(null);
+    setIsInheritedFromBase(false);
   };
 
   const showStepNotice = (key: string, message: string) => {
@@ -2000,6 +2218,44 @@ const [layer4Micron, setLayer4Micron] = useState("");
       stepNoticeTimeoutRef.current = null;
     }, 5000);
   };
+
+  // ============= Casuística Única =============
+
+  const requestCase = useMemo(
+    () =>
+      resolveProductRequestCase(
+        classification,
+        modifications,
+      ),
+    [classification, modifications],
+  );
+
+  const isNewWithNewStructure =
+    requestCase === "NEW_WITH_NEW_STRUCTURE";
+
+  const isNewFromBase =
+    requestCase === "NEW_FROM_BASE";
+
+  const isModifiedFromApproved =
+    requestCase === "MODIFIED_FROM_APPROVED";
+
+  // Determinar si las modificaciones afectan estructura
+  const modificationsAffectStructure = modifications.some((value) =>
+    [
+      "Nueva estructura",
+      "Cambia estructura",
+      "Cambia materia prima",
+      "Nuevos insumos",
+    ].some(
+      (expected) =>
+        normalizeText(value) === normalizeText(expected),
+    ),
+  );
+
+  // Validación de estructura obligatoria según casuística
+  const requiresValidatedStructure =
+    isNewWithNewStructure ||
+    modificationsAffectStructure;
 
   // ============= Product Structure Handler =============
 
@@ -2054,12 +2310,12 @@ const [layer4Micron, setLayer4Micron] = useState("");
   };
 
   const buildPreviewSkuCode = (): string => {
-    if (!motivo || causal.length === 0) return "";
+    if (!classification || modifications.length === 0) return "";
 
     const sourceRecords = getSkuSourceRecords();
 
     // Producto Nuevo: siempre nuevo correlativo, versión 00.
-    if (shouldGenerateNewSkuSequence(motivo)) {
+    if (shouldGenerateNewSkuSequence(classification)) {
       const skuResult = generateSKUForNewRequest(
         "Nuevo",
         sourceRecords,
@@ -2072,7 +2328,7 @@ const [layer4Micron, setLayer4Micron] = useState("");
     }
 
     // Producto Modificado: mismo correlativo del SKU actual + versión +1.
-    if (shouldGenerateVersionFromCurrentSku(motivo)) {
+    if (shouldGenerateVersionFromCurrentSku(classification)) {
       const currentSkuCode = getSelectedCurrentSkuCode();
 
       if (!currentSkuCode) return "";
@@ -2091,11 +2347,16 @@ const [layer4Micron, setLayer4Micron] = useState("");
     return "";
   };
 
-  const mustUseCurrentSku = shouldRequireCurrentSku(motivo, causal);
+  // Requisitos de producto origen basados en casuística
+  const mustUseCurrentSku = isNewFromBase || isModifiedFromApproved;
 
-  const canModifyLayerStructure = isProductoNuevo(motivo) && isNuevaEstructura(causal);
+  // Modificación de estructura permitida solo en casuísticas específicas
+  const canModifyLayerStructure =
+    isNewWithNewStructure ||
+    hasModification(modifications, "Cambia estructura");
 
-  const shouldShowSimilaritySearch = canRunSimilaritySearch(motivo, causal);
+  // Búsqueda de similitud solo para Producto Nuevo + Nueva estructura
+  const shouldShowSimilaritySearch = isNewWithNewStructure;
 
   const isPortfolioLocked = Boolean(propPortfolio || initialPortfolioCode);
 
@@ -2180,13 +2441,28 @@ const [layer4Micron, setLayer4Micron] = useState("");
     )
     .join(" → ");
 
+  // Estados de validación de estructura (3 niveles)
+  const isStructureIncomplete = Boolean(
+    productStructure.structureType &&
+    !isStructureSequenceComplete,
+  );
+
+  const isStructureValidated = Boolean(
+    isStructureSequenceComplete &&
+    exactStructureCombination?.status === "VALIDADA",
+  );
+
+  const isStructureNotValidated = Boolean(
+    isStructureSequenceComplete &&
+    !exactStructureCombination,
+  );
 
   // Field completion flags - portfolioBelongsToClient will be calculated below after portfoliosForClient is available
   // For now, we use a simple check
   const isClientStepComplete = Boolean(isPortfolioLocked || selectedClientId);
 
-  const isMotivoStepComplete = Boolean(motivo);
-  const isCausalStepComplete = causal.length > 0;
+  const isClassificationStepComplete = Boolean(classification);
+  const isModificationsStepComplete = modifications.length > 0;
 
   const isProductoBaseStepComplete = Boolean(
     !mustUseCurrentSku ||
@@ -2198,7 +2474,6 @@ const [layer4Micron, setLayer4Micron] = useState("");
     !mustUseCurrentSku || productoBaseVersion.trim()
   );
 
-  const isProjectNameStepComplete = Boolean(projectName.trim());
   const isVolumenStepComplete = Boolean(volumen.trim());
   const isUnidadStepComplete = Boolean(unidad);
   const isDescripcionStepComplete = Boolean(descripcion.trim());
@@ -2208,20 +2483,32 @@ const [layer4Micron, setLayer4Micron] = useState("");
 
   // Computed editability flags
   const canEditPortfolio = canEditForm && isClientStepComplete && !isPortfolioLocked;
-  // canEditMotivo will be set after isPortfolioStepComplete is computed
-  const canEditCausal = canEditForm && isMotivoStepComplete;
-  const canEditProductoBase = canEditForm && isCausalStepComplete && mustUseCurrentSku;
+  // canEditClassification will be set after isPortfolioStepComplete is computed
+  const canEditModifications = canEditForm && isClassificationStepComplete;
+  const canEditProductoBase = canEditForm && isModificationsStepComplete && mustUseCurrentSku;
   const canEditProductoBaseVersion =
     canEditProductoBase && isProductoBaseStepComplete;
-  const canEditProjectName =
-    canEditForm && isCausalStepComplete &&
+  // Nombre solo editable en casuísticas de Producto Nuevo
+  // En Producto Modificado está bloqueado (heredado del origen)
+  // Para Producto Modificado: todo bloqueado excepto SKU Actual
+  const isProductoModificadoMode = isModifiedFromApproved;
+
+  // Flujo básico: habilitar nombre/volumen/unidad simultáneamente cuando requisitos se cumplen
+  const basicFlowReady =
+    canEditForm &&
+    isModificationsStepComplete &&
     (!mustUseCurrentSku ||
       (isProductoBaseStepComplete && isProductoBaseVersionStepComplete));
-  const canEditVolumen = canEditProjectName && isProjectNameStepComplete;
-  const canEditUnidad = canEditVolumen && isVolumenStepComplete;
-  const canEditDescripcion = canEditUnidad && isUnidadStepComplete;
-  const canEditMateriales = canEditDescripcion && isDescripcionStepComplete;
-  const canEditComentarios = canEditDescripcion && isDescripcionStepComplete;
+
+  // Campos editables: después de seleccionar SKU Actual O si marcó checkbox
+  const canEditBasicFields =
+    (canEditForm || Boolean(selectedBaseProduct)) && !isModifiedFromApproved;
+  const canEditProjectName = canEditBasicFields;
+  const canEditVolumen = canEditBasicFields;
+  const canEditUnidad = canEditBasicFields;
+  const canEditDescripcion = canEditBasicFields;
+  const canEditMateriales = basicFlowReady && !isModifiedFromApproved && isDescripcionStepComplete;
+  const canEditComentarios = basicFlowReady && !isModifiedFromApproved && isDescripcionStepComplete;
 
   const portfoliosForClient = useMemo(() => {
     if (isPortfolioLocked) return [];
@@ -2383,12 +2670,12 @@ const filteredPortfoliosForClient = useMemo(() => {
     );
   }, [isPortfolioLocked, selectedPortfolio, portfoliosForClient]);
 
-  // Fixed isPortfolioStepComplete - allows Motivo to enable for locked portfolios
+  // Fixed isPortfolioStepComplete - allows Classification to enable for locked portfolios
   const isPortfolioStepComplete = Boolean(
     selectedPortfolio && portfolioBelongsToClient
   );
 
-  const canEditMotivo = canEditForm && isPortfolioStepComplete;
+  const canEditClassification = canEditForm && isPortfolioStepComplete;
 
 const estructuraCalculada = useMemo(() => {
   return productStructure.structureType || "";
@@ -2404,9 +2691,9 @@ const nombreTecnicoCalculado = useMemo(() => {
     .filter(Boolean)
     .join(" - ");
 
+  // Nombre del producto: sin volumen ni unidad (van en campos separados)
   return [
     projectName.trim(),
-    volumen.trim() && unidad ? `${volumen.trim()} ${unidad}` : "",
     envoltura,
     capasStr,
   ]
@@ -2434,23 +2721,28 @@ const nombreTecnicoCalculado = useMemo(() => {
       (isPortfolioLocked || selectedClientId) &&
       selectedPortfolio &&
       portfolioBelongsToClient &&
-      motivo &&
-      causal.length > 0 &&
+      classification &&
+      modifications.length > 0 &&
       projectName.trim() &&
       volumen.trim() &&
       unidad &&
       descripcion.trim() &&
-      (!isProductoModificado(motivo) ||
+      (!isProductoModificado(classification) ||
         ((productoBaseCodigo.trim() || productoBaseNombre.trim()) &&
           productoBaseVersion.trim()))
   );
 
-  const hasMaterialsForSimilarity = [layer1, layer2, layer3, layer4].some(Boolean);
+  // Estructura validada para similitud: completa y homologada
+  const hasValidatedStructureForSimilarity = Boolean(
+    isStructureSequenceComplete &&
+    structureValidation.canSave &&
+    exactStructureCombination?.status === "VALIDADA",
+  );
 
   const hasMinDataForSimilarity =
     shouldShowSimilaritySearch &&
     requiredBaseFieldsFilled &&
-    hasMaterialsForSimilarity;
+    hasValidatedStructureForSimilarity;
 
   const hasMinDataForSearch = hasMinDataForSimilarity;
 
@@ -2501,8 +2793,8 @@ const nombreTecnicoCalculado = useMemo(() => {
     setPortfolioSearchTerm("");
     setIsPortfolioDropdownOpen(false);
 
-    setMotivo("");
-    setCausal([]);
+    setClassification("");
+    setModifications([]);
     setProjectName("");
     setVolumen("");
     setUnidad("");
@@ -2574,7 +2866,7 @@ const nombreTecnicoCalculado = useMemo(() => {
       setSelectedReference(null);
       setPreviewProject(null);
     }
-  }, [shouldShowSimilaritySearch]);
+  }, [shouldShowSimilaritySearch, classification, modifications]);
 
   useEffect(() => {
     if (!layer1) {
@@ -2602,8 +2894,8 @@ const nombreTecnicoCalculado = useMemo(() => {
     const previewSkuCode = buildPreviewSkuCode();
     setNewSkuCode(previewSkuCode);
   }, [
-    motivo,
-    causal,
+    classification,
+    modifications,
     selectedBaseProduct,
     productoBaseCodigo,
     productoBaseVersion,
@@ -2703,45 +2995,66 @@ const nombreTecnicoCalculado = useMemo(() => {
     similarityScopeFilters,
   ]);
 
-  // Hydrate fields when a product base is selected
+  // Hidratar campos desde producto origen - solo para NEW_FROM_BASE y MODIFIED_FROM_APPROVED
+  // Para NEW_WITH_NEW_STRUCTURE no se hereda nada
+  // Limpiar estructura cuando cambia a Nueva Estructura
   useEffect(() => {
-    if (selectedBaseProduct) {
-      const setters = {
-        setProductoBaseCodigo,
-        setProductoBaseVersion,
-        setNewSkuCode,
-        setUnidad,
-        setVolumen,
-        setDescripcion,
-        setLayer1,
-        setLayer1Micron,
-        setLayer2,
-        setLayer2Micron,
-        setLayer3,
-        setLayer3Micron,
-        setLayer4,
-        setLayer4Micron,
-        setProductStructure,
-        setIsInheritedFromBase,
-        setSimilarityMatches,
-        setSelectedReference,
-      };
-
-      const hydrateFunction = createHydrateFunction(setters);
-      hydrateFunction(selectedBaseProduct, motivo);
-      setErrors((prev) => ({
-        ...prev,
-        productoBase: "",
-      }));
+    if (requestCase === "NEW_WITH_NEW_STRUCTURE") {
+      // Para Nueva Estructura, siempre limpiar la estructura heredada
+      setProductStructure({ structureType: "", layers: [] });
+      setLayer1("");
+      setLayer2("");
+      setLayer3("");
+      setLayer4("");
+      setLayer1Micron("");
+      setLayer2Micron("");
+      setLayer3Micron("");
+      setLayer4Micron("");
     }
-  }, [selectedBaseProduct, motivo, causal]);
+  }, [requestCase]);
+
+  // Hidratar desde producto base para NEW_FROM_BASE y MODIFIED_FROM_APPROVED
+  useEffect(() => {
+    if (!selectedBaseProduct || !requestCase) return;
+    if (requestCase === "NEW_WITH_NEW_STRUCTURE") return; // No heredar para nueva estructura
+
+    const setters = {
+      setProductoBaseId,
+      setProductoBaseCodigo,
+      setProductoBaseVersion,
+      setSelectedBaseProduct,
+      setProjectName,
+      setVolumen,
+      setUnidad,
+      setDescripcion,
+      setProductStructure,
+      setLayer1,
+      setLayer2,
+      setLayer3,
+      setLayer4,
+      setLayer1Micron,
+      setLayer2Micron,
+      setLayer3Micron,
+      setLayer4Micron,
+      setIsInheritedFromBase,
+      setSimilarityMatches,
+      setSelectedReference,
+    };
+
+    hydrateFromOriginProduct(selectedBaseProduct, requestCase, setters);
+
+    setErrors((prev) => ({
+      ...prev,
+      originProduct: "",
+    }));
+  }, [selectedBaseProduct, requestCase]);
 
   const topMatch = similarityMatches[0];
 
   const selectedReferenceMatch = selectedReference
     ? similarityMatches.find(
         (match) =>
-          getProjectCode(match.project) === selectedReference.projectCode,
+          getStableProjectCode(match.project) === selectedReference.projectCode,
       )
     : undefined;
 
@@ -2750,7 +3063,7 @@ const nombreTecnicoCalculado = useMemo(() => {
   const isDisplayedReferenceSelected = Boolean(
     selectedReference &&
       displayedMatch &&
-      getProjectCode(displayedMatch.project) === selectedReference.projectCode,
+      getStableProjectCode(displayedMatch.project) === selectedReference.projectCode,
   );
 
   useEffect(() => {
@@ -2758,25 +3071,13 @@ const nombreTecnicoCalculado = useMemo(() => {
 
     const stillAvailable = similarityMatches.some(
       (match) =>
-        getProjectCode(match.project) === selectedReference.projectCode,
+        getStableProjectCode(match.project) === selectedReference.projectCode,
     );
 
     if (!stillAvailable) {
       setSelectedReference(null);
     }
   }, [similarityMatches, selectedReference]);
-
-  useEffect(() => {
-    if (!selectedReference) return;
-
-    if (selectedReference.clasificacion) {
-      setMotivo(selectedReference.clasificacion);
-    }
-
-    if (selectedReference.modificaciones && selectedReference.modificaciones.length > 0) {
-      setCausal(selectedReference.modificaciones);
-    }
-  }, [selectedReference]);
 
   useEffect(() => {
     if (
@@ -2803,12 +3104,12 @@ const nombreTecnicoCalculado = useMemo(() => {
         "El portafolio seleccionado no pertenece al cliente seleccionado.";
     }
 
-    if (!motivo) {
-      newErrors.motivo = "Selecciona el motivo.";
+    if (!classification) {
+      newErrors.classification = "Selecciona la clasificación.";
     }
 
-    if (causal.length === 0) {
-      newErrors.causal = "Selecciona al menos un motivo.";
+    if (modifications.length === 0) {
+      newErrors.modifications = "Selecciona al menos una modificación.";
     }
 
     if (!projectName.trim()) {
@@ -2832,7 +3133,7 @@ const nombreTecnicoCalculado = useMemo(() => {
     }
 
     // Validate SKU base requirement based on new logic
-    if (motivo && causal.length > 0 && mustUseCurrentSku) {
+    if (classification && modifications.length > 0 && mustUseCurrentSku) {
       const hasOriginProductSelected = Boolean(
         selectedBaseProduct ||
           productoBaseCodigo.trim() ||
@@ -2840,13 +3141,13 @@ const nombreTecnicoCalculado = useMemo(() => {
       );
 
       if (!hasOriginProductSelected) {
-        newErrors.productoBase = isProductoNuevo(motivo)
+        newErrors.productoBase = isProductoNuevo(classification)
           ? "Selecciona un SKU base o referencia técnica para esta solicitud."
           : "Selecciona un SKU actual para generar la nueva versión.";
       }
 
       if (!productoBaseVersion.trim()) {
-        newErrors.productoBaseVersion = isProductoNuevo(motivo)
+        newErrors.productoBaseVersion = isProductoNuevo(classification)
           ? "El SKU base debe tener versión."
           : "El SKU actual debe tener versión.";
       }
@@ -2856,10 +3157,22 @@ const nombreTecnicoCalculado = useMemo(() => {
       newErrors.declaresApproved = "Debe confirmar que el producto se encuentra aprobado.";
     }
 
-    if (!structureValidation.canSave) {
-      newErrors.productStructure =
-        getFirstStructureError(structureValidation) ||
-        "Completa y valida la estructura del producto.";
+    // Validación de estructura solo si es requerida
+    if (requiresValidatedStructure) {
+      if (!productStructure.structureType) {
+        newErrors.productStructure =
+          "Selecciona el tipo de estructura.";
+      } else if (!structureValidation.canSave) {
+        newErrors.productStructure =
+          getFirstStructureError(structureValidation) ||
+          "Completa la estructura del producto.";
+      } else if (!isStructureSequenceComplete) {
+        newErrors.productStructure =
+          "Completa los materiales de todas las capas.";
+      } else if (!exactStructureCombination) {
+        newErrors.productStructure =
+          "La estructura seleccionada no corresponde a una combinación homologada.";
+      }
     }
 
     return newErrors;
@@ -2868,8 +3181,8 @@ const nombreTecnicoCalculado = useMemo(() => {
     isPortfolioLocked,
     selectedPortfolio,
     portfolioBelongsToClient,
-    motivo,
-    causal,
+    classification,
+    modifications,
     projectName,
     volumen,
     unidad,
@@ -2967,8 +3280,8 @@ const nombreTecnicoCalculado = useMemo(() => {
     setPortfolioCode("");
     setPortfolioSearchTerm("");
     setIsPortfolioDropdownOpen(false);
-    setMotivo("");
-    setCausal([]);
+    setClassification("");
+    setModifications([]);
     setProductoBaseId("");
     setProductoBaseNombre("");
     setProductoBaseCodigo("");
@@ -2998,15 +3311,14 @@ const nombreTecnicoCalculado = useMemo(() => {
       ...prev,
       clientId: "",
       portfolioCode: "",
-      motivo: "",
-      causal: "",
-      productoBase: "",
-      productoBaseVersion: "",
+      classification: "",
+      modifications: "",
+      originProduct: "",
       projectName: "",
       volumen: "",
       unidad: "",
       descripcion: "",
-      layer1: "",
+      productStructure: "",
       comentarios: "",
     }));
 
@@ -3037,8 +3349,8 @@ const nombreTecnicoCalculado = useMemo(() => {
     setPortfolioCode(code);
     setPortfolioSearchTerm(`${code} - ${name}`);
     setIsPortfolioDropdownOpen(false);
-    setMotivo("");
-    setCausal([]);
+    setClassification("");
+    setModifications([]);
     setProductoBaseId("");
     setProductoBaseNombre("");
     setProductoBaseCodigo("");
@@ -3062,8 +3374,8 @@ const nombreTecnicoCalculado = useMemo(() => {
     setErrors((prev) => ({
       ...prev,
       portfolioCode: "",
-      motivo: "",
-      causal: "",
+      classification: "",
+      modifications: "",
       productoBase: "",
       productoBaseVersion: "",
       projectName: "",
@@ -3074,15 +3386,15 @@ const nombreTecnicoCalculado = useMemo(() => {
       comentarios: "",
     }));
 
-    showStepNotice("portfolio", "Portafolio seleccionado. Motivo se habilitó.");
+    showStepNotice("portfolio", "Portafolio seleccionado. Clasificación se habilitó.");
   };
 
   const clearPortfolio = () => {
     setPortfolioCode("");
     setPortfolioSearchTerm("");
     setIsPortfolioDropdownOpen(false);
-    setMotivo("");
-    setCausal([]);
+    setClassification("");
+    setModifications([]);
     setProductoBaseId("");
     setProductoBaseNombre("");
     setProductoBaseCodigo("");
@@ -3207,19 +3519,31 @@ const setLayerMicronValue = (index: number, value: string) => {
     const project = match.project;
 
     setSelectedReference({
-      projectId: getRecordValue(project, ["id", "projectId", "code", "projectCode"]),
-      projectCode: getProjectCode(project),
-      projectName: getProjectName(project),
+      projectId: getStableProjectId(project),
+      projectCode: getStableProjectCode(project),
+      skuCode: getProjectSkuCode(project),
+      projectName: getProductDisplayName(project),
       score: match.score,
       scope: match.scope,
       status: getProjectStatus(project),
       datosSugeridosMomento2: buildMoment2ReferenceData(project),
-      clasificacion: getProjectClassification(project),
-      modificaciones: getProjectModifications(project),
     });
 
     setIsSimilarityFiltersOpen(false);
-    setErrors({});
+    setErrors((previous) => ({
+      ...previous,
+      referenceProduct: "",
+    }));
+
+    // Scroll hacia arriba para mostrar la referencia aplicada
+    setTimeout(() => {
+      const scrollContainer = document.querySelector(
+        '[data-scroll-container="moment2-reference"]'
+      );
+      if (scrollContainer) {
+        scrollContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
   };
 
   const applyReferenceProjectFromProject = (
@@ -3234,20 +3558,22 @@ const setLayerMicronValue = (index: number, value: string) => {
     );
 
     setSelectedReference({
-      projectId: getRecordValue(project, ["id", "projectId", "code", "projectCode"]),
-      projectCode: getProjectCode(project),
-      projectName: getProjectName(project),
+      projectId: getStableProjectId(project),
+      projectCode: getStableProjectCode(project),
+      skuCode: getProjectSkuCode(project),
+      projectName: getProductDisplayName(project),
       score,
       scope,
       status: getProjectStatus(project),
       datosSugeridosMomento2: buildMoment2ReferenceData(project),
-      clasificacion: getProjectClassification(project),
-      modificaciones: getProjectModifications(project),
     });
 
     setPreviewProject(null);
     setIsSimilarityFiltersOpen(false);
-    setErrors({});
+    setErrors((previous) => ({
+      ...previous,
+      referenceProduct: "",
+    }));
   };
 
   const handleCreate = async () => {
@@ -3279,8 +3605,8 @@ const setLayerMicronValue = (index: number, value: string) => {
 
       addStep("✓ Registrando proyecto en el sistema...");
 
-      // CORRECCIÓN CRÍTICA 1: Classification debe depender de motivo, no ser fijo "Nuevo"
-      const normalizedClassification = isProductoModificado(motivo)
+      // Classification es la fuente principal
+      const normalizedClassification = isProductoModificado(classification)
         ? "Modificado"
         : "Nuevo";
 
@@ -3303,17 +3629,30 @@ const setLayerMicronValue = (index: number, value: string) => {
 
       let skuResult;
 
-      if (shouldGenerateNewSkuSequence(motivo)) {
-        // Producto Nuevo: siempre nuevo correlativo.
+      if (requestCase === "NEW_WITH_NEW_STRUCTURE") {
+        // Casuística 1: Producto Nuevo + Nueva Estructura = nuevo correlativo E-00
         skuResult = generateSKUForNewRequest(
           "Nuevo",
           sourceRecords,
           undefined,
         );
-      } else if (shouldGenerateVersionFromCurrentSku(motivo)) {
-        // Producto Modificado: versión N+1 del SKU actual.
+      } else if (requestCase === "NEW_FROM_BASE") {
+        // Casuística 2: Producto Nuevo desde Base B = mantener correlativo, cambiar a E-00
         if (!currentSkuCode) {
-          addStep("✗ Error generando SKU: falta SKU actual para generar nueva versión.");
+          addStep("✗ Error generando SKU: falta SKU base para Producto Nuevo desde Base.");
+          setIsCreating(false);
+          return;
+        }
+
+        skuResult = generateSKUForNewRequest(
+          "NuevoDesdeBase",
+          sourceRecords,
+          currentSkuCode,
+        );
+      } else if (requestCase === "MODIFIED_FROM_APPROVED") {
+        // Casuística 3: Producto Modificado desde A = mantener correlativo, incrementar versión
+        if (!currentSkuCode) {
+          addStep("✗ Error generando SKU: falta SKU actual para Producto Modificado.");
           setIsCreating(false);
           return;
         }
@@ -3324,7 +3663,7 @@ const setLayerMicronValue = (index: number, value: string) => {
           currentSkuCode,
         );
       } else {
-        addStep("✗ Error generando SKU: clasificación no reconocida.");
+        addStep("✗ Error generando SKU: casuística no reconocida.");
         setIsCreating(false);
         return;
       }
@@ -3339,10 +3678,15 @@ const setLayerMicronValue = (index: number, value: string) => {
       const edagCode = generateNewEDAG(60000 + sourceRecords.length);
       const emCode = generateNewEM(50000 + sourceRecords.length);
 
-      // Extraer partes del SKU para guardar como componentes
-      const skuParts = generatedSkuCode.split('-');
-      const extractedSkuSequence = parseInt(skuParts[1], 10) || skuResult.skuSequence;
-      const extractedSkuVersion = parseInt(skuParts[3], 10) || skuResult.skuVersion;
+      // Parser único del SKU - versión 00 se preserva correctamente
+      let parsedSku: ParsedSkuCode;
+      try {
+        parsedSku = parseSkuCode(generatedSkuCode);
+      } catch (error) {
+        addStep(`✗ Error parseando SKU: ${error}`);
+        setIsCreating(false);
+        return;
+      }
 
       const createdProject = createProjectFromPortfolioSafe({
         portfolio: selectedPortfolio!,
@@ -3357,10 +3701,13 @@ const setLayerMicronValue = (index: number, value: string) => {
           codigoProducto: generatedSkuCode,
           codigoProductoOdiseo: generatedSkuCode,
 
-          skuSequence: extractedSkuSequence,
-          skuLifecycleCode: 'E',
+          // Componentes del SKU parseados (versión 00 se preserva correctamente)
+          productIdentityCode: parsedSku.productIdentityCode,
+          skuSequence: parsedSku.sequence,
+          skuLifecycleCode: parsedSku.lifecycleCode,
           skuLifecycleName: 'Preliminar',
-          skuVersion: extractedSkuVersion,
+          skuVersion: parsedSku.version,
+          skuVersionCode: parsedSku.versionCode,
 
           productLifecycleCode: 'E',
           productLifecycleName: 'Preliminar',
@@ -3373,19 +3720,24 @@ const setLayerMicronValue = (index: number, value: string) => {
           emSequence: 50000 + sourceRecords.length,
           emVersion: 0,
 
-          // CORRECCIÓN: Classification depende de motivo
+          // Principal: classification y modifications
           classification: normalizedClassification,
           clasificacion: normalizedClassification,
 
-          // CORRECCIÓN: Usar causal[0] (selección única), no .join()
-          projectType: causal[0] || "",
-          tipoProyecto: causal[0] || "",
-          motivoNuevaValidacion: causal[0] || "",
-          causal: causal[0] || "",
-          motivo,
+          modifications: [...modifications],
+          modificaciones: [...modifications],
+          causales: [...modifications],
+
+          // Legacy aliases para compatibilidad
+          projectType: modifications[0] || "",
+          tipoProyecto: modifications[0] || "",
+          motivoNuevaValidacion: modifications[0] || "",
+          causal: modifications[0] || "",
+          motivo: classification,
 
           licitacion: "No",
           status: "Registrado",
+          siProductCode: "",
           estadoValidacion: "Pendiente de solicitud",
 
           projectName: projectName.trim(),
@@ -3796,10 +4148,10 @@ const setLayerMicronValue = (index: number, value: string) => {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <FormSelect
                   label="Clasificación *"
-                  value={motivo}
+                  value={classification}
                   onChange={(value) => {
-                    setMotivo(value);
-                    setCausal([]);
+                    setClassification(value);
+                    setModifications([]);
                     setProjectName("");
                     setVolumen("");
                     setUnidad("");
@@ -3842,8 +4194,8 @@ const setLayerMicronValue = (index: number, value: string) => {
                     setSelectedReference(null);
                     setErrors((prev) => ({
                       ...prev,
-                      motivo: "",
-                      causal: "",
+                      classification: "",
+                      modifications: "",
                       productoBase: "",
                       productoBaseVersion: "",
                       projectName: "",
@@ -3855,48 +4207,48 @@ const setLayerMicronValue = (index: number, value: string) => {
                     }));
 
                     if (value) {
-                      showStepNotice("motivo", "Clasificación seleccionada. Se habilitó seleccionar el siguiente paso.");
+                      showStepNotice("classification", "Clasificación seleccionada. Se habilitó seleccionar el siguiente paso.");
                     }
                   }}
                   options={getClassificationOptions()}
-                  error={errors.motivo}
+                  error={errors.classification}
                   placeholder="-- Seleccione --"
-                  disabled={!canEditMotivo}
+                  disabled={!canEditClassification}
                 />
 
                 <div className="space-y-2">
                   <label className="block">
                     <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-                      Modificación *
+                      Modificación(es) *
                     </span>
                   </label>
                   <div className="space-y-2">
-                    {getCausalOptions(motivo).map((option) => (
+                    {getModificationOptions(classification).map((option) => (
                       <div key={option.value} className="flex items-center">
                         <input
                           type="checkbox"
-                          id={`causal-${option.value}`}
-                          checked={causal.includes(option.value)}
+                          id={`modification-${option.value}`}
+                          checked={modifications.includes(option.value)}
                           onChange={(e) => {
-                            let newCausal: string[];
+                            let newModifications: string[];
 
                             if (option.value === "Nueva estructura") {
                               if (e.target.checked) {
-                                newCausal = ["Nueva estructura"];
+                                newModifications = ["Nueva estructura"];
                               } else {
-                                newCausal = [];
+                                newModifications = [];
                               }
                             } else {
-                              if (causal.includes("Nueva estructura")) {
-                                newCausal = e.target.checked ? [option.value] : [];
+                              if (modifications.includes("Nueva estructura")) {
+                                newModifications = e.target.checked ? [option.value] : [];
                               } else {
-                                newCausal = e.target.checked
-                                  ? [...causal, option.value]
-                                  : causal.filter((c) => c !== option.value);
+                                newModifications = e.target.checked
+                                  ? [...modifications, option.value]
+                                  : modifications.filter((m) => m !== option.value);
                               }
                             }
 
-                            setCausal(newCausal);
+                            setModifications(newModifications);
                             setProductoBaseId("");
                             setProductoBaseNombre("");
                             setProductoBaseCodigo("");
@@ -3921,7 +4273,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                             setSelectedReference(null);
                             setErrors((prev) => ({
                               ...prev,
-                              causal: "",
+                              modifications: "",
                               projectName: "",
                               volumen: "",
                               unidad: "",
@@ -3932,37 +4284,37 @@ const setLayerMicronValue = (index: number, value: string) => {
                               productoBaseVersion: "",
                             }));
 
-                            if (newCausal.length > 0) {
-                              if (isProductoModificado(motivo)) {
+                            if (newModifications.length > 0) {
+                              if (isProductoModificado(classification)) {
                                 showStepNotice(
-                                  "causal",
-                                  "Motivo(s) seleccionado(s). Producto base se habilitó.",
+                                  "modifications",
+                                  "Modificación(es) seleccionada(s). Producto base se habilitó.",
                                 );
                               } else {
                                 showStepNotice(
-                                  "causal",
-                                  "Motivo(s) seleccionado(s). Nombre del Proyecto se habilitó.",
+                                  "modifications",
+                                  "Modificación(es) seleccionada(s). Nombre del Proyecto se habilitó.",
                                 );
                               }
                             }
                           }}
                           disabled={
-                            !canEditCausal ||
-                            (causal.includes("Nueva estructura") && option.value !== "Nueva estructura") ||
-                            (causal.length > 0 && !causal.includes("Nueva estructura") && option.value === "Nueva estructura")
+                            !canEditModifications ||
+                            (modifications.includes("Nueva estructura") && option.value !== "Nueva estructura") ||
+                            (modifications.length > 0 && !modifications.includes("Nueva estructura") && option.value === "Nueva estructura")
                           }
                           className={`h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary ${
-                            (causal.includes("Nueva estructura") && option.value !== "Nueva estructura") ||
-                            (causal.length > 0 && !causal.includes("Nueva estructura") && option.value === "Nueva estructura")
+                            (modifications.includes("Nueva estructura") && option.value !== "Nueva estructura") ||
+                            (modifications.length > 0 && !modifications.includes("Nueva estructura") && option.value === "Nueva estructura")
                               ? "cursor-not-allowed opacity-50"
                               : "cursor-pointer"
                           }`}
                         />
                         <label
-                          htmlFor={`causal-${option.value}`}
+                          htmlFor={`modification-${option.value}`}
                           className={`ml-3 text-sm ${
-                            (causal.includes("Nueva estructura") && option.value !== "Nueva estructura") ||
-                            (causal.length > 0 && !causal.includes("Nueva estructura") && option.value === "Nueva estructura")
+                            (modifications.includes("Nueva estructura") && option.value !== "Nueva estructura") ||
+                            (modifications.length > 0 && !modifications.includes("Nueva estructura") && option.value === "Nueva estructura")
                               ? "text-slate-400 cursor-not-allowed"
                               : "text-slate-700 cursor-pointer"
                           }`}
@@ -3972,25 +4324,25 @@ const setLayerMicronValue = (index: number, value: string) => {
                       </div>
                     ))}
                   </div>
-                  {errors.causal && (
-                    <span className="block text-xs text-red-600">{errors.causal}</span>
+                  {errors.modifications && (
+                    <span className="block text-xs text-red-600">{errors.modifications}</span>
                   )}
                 </div>
               </div>
 
-              {causal.length > 0 && mustUseCurrentSku && (
+              {modifications.length > 0 && mustUseCurrentSku && (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="space-y-1">
                     <label className="block text-sm font-semibold text-slate-700">
-                      {isProductoNuevo(motivo)
+                      {isProductoNuevo(classification)
                         ? "SKU Base / Referencia técnica"
                         : "SKU Actual"}
                       {" "}
                       {mustUseCurrentSku ? "*" : ""}
                     </label>
-                    {motivo && causal.length > 0 && (
+                    {classification && modifications.length > 0 && (
                       <p className="text-xs text-slate-500 italic">
-                        {getOriginProductHelpText(normalizeTipoSolicitud(motivo), causal[0])}
+                        {getOriginProductHelpText(normalizeClassification(classification), modifications[0])}
                       </p>
                     )}
                     <ApprovedProductSearch
@@ -4010,7 +4362,7 @@ const setLayerMicronValue = (index: number, value: string) => {
 
                         setProductoBaseId(String(product.id || productCode));
                         setProductoBaseNombre(String(product.name || product.productName || productCode));
-                        setProductoBaseCodigo(productCode.replace(/-\d{2}$/, ""));
+                        setProductoBaseCodigo(productCode);
                         setProductoBaseVersion(productVersion);
                         setSelectedBaseProduct(product as AnyRecord);
 
@@ -4026,9 +4378,9 @@ const setLayerMicronValue = (index: number, value: string) => {
                         );
                       }}
                       portfolioCode={inheritedPortfolioCode || portfolioCode}
-                      productType={motivo && causal.length > 0
+                      productType={classification && modifications.length > 0
                         ? (() => {
-                            const allowedCodes = getAllowedOriginLifecycle(normalizeTipoSolicitud(motivo), causal[0]);
+                            const allowedCodes = getAllowedOriginLifecycle(normalizeClassification(classification), modifications[0]);
                             if (allowedCodes.includes("A") && allowedCodes.includes("B")) {
                               return undefined; // Show all
                             } else if (allowedCodes.includes("A")) {
@@ -4050,7 +4402,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                   </div>
 
                   <FormInput
-                    label={isProductoNuevo(motivo) ? "Código SKU Base *" : "Código SKU Actual *"}
+                    label={isProductoNuevo(classification) ? "Código SKU Base *" : "Código SKU Actual *"}
                     value={formatSkuWithVersion(productoBaseCodigo, productoBaseVersion)}
                     onChange={(value) => {
                       const wasEmpty = !productoBaseVersion.trim();
@@ -4088,22 +4440,22 @@ const setLayerMicronValue = (index: number, value: string) => {
                         );
                       }
                     }}
-                    placeholder={isProductoNuevo(motivo) ? "Ej. SKU-00001-A-00" : "Ej. SKU-00001-A-01"}
+                    placeholder={isProductoNuevo(classification) ? "Ej. SKU-00001-A-00" : "Ej. SKU-00001-A-01"}
                     error={errors.productoBaseVersion}
                     disabled={true}
                   />
                 </div>
               )}
 
-              {causal.length > 0 && newSkuCode && (
+              {modifications.length > 0 && newSkuCode && (
                 <div className="space-y-1">
                   <label className="block text-sm font-semibold text-slate-700">
-                    {isProductoModificado(motivo) ? "Nuevo Código SKU (N+1)" : "Código SKU Generado"}
+                    {isProductoModificado(classification) ? "Nuevo Código SKU (N+1)" : "Código SKU Generado"}
                   </label>
                   <div className="flex items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2">
                     <span className="text-sm font-mono text-slate-900">{newSkuCode}</span>
                   </div>
-                  {isProductoNuevo(motivo) && mustUseCurrentSku && (
+                  {isProductoNuevo(classification) && mustUseCurrentSku && (
                     <p className="text-xs text-slate-500">
                       El SKU base se usa como referencia técnica. El producto nuevo mantiene nuevo correlativo.
                     </p>
@@ -4154,7 +4506,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                     label="Volumen referencial *"
                     value={volumen}
                     onChange={(value) => {
-                      if (isInheritedFromBase && !(isProductoNuevo(motivo) && causal.includes("Nueva estructura"))) return;
+                      if (isInheritedFromBase && !(isProductoNuevo(classification) && modifications.includes("Nueva estructura"))) return;
                       const wasEmpty = !volumen.trim();
                       setVolumen(value);
                       setErrors((prev) => ({
@@ -4171,7 +4523,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                     }}
                     placeholder="Ej. 500"
                     error={errors.volumen}
-                    disabled={!canEditVolumen || (isInheritedFromBase && !(isProductoNuevo(motivo) && causal.includes("Nueva estructura")))}
+                    disabled={!canEditVolumen || (isInheritedFromBase && !(isProductoNuevo(classification) && modifications.includes("Nueva estructura")))}
                   />
                   {stepNotice?.key === "volumen" && (
                     <p className="text-xs font-medium text-green-600">
@@ -4189,7 +4541,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                     label="Unidad *"
                     value={unidad}
                     onChange={(value) => {
-                      if (isInheritedFromBase && !(isProductoNuevo(motivo) && causal.includes("Nueva estructura"))) return;
+                      if (isInheritedFromBase && !(isProductoNuevo(classification) && modifications.includes("Nueva estructura"))) return;
                       setUnidad(value);
                       setErrors((prev) => ({
                         ...prev,
@@ -4206,7 +4558,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                     options={UNIT_OPTIONS}
                     placeholder="-- Seleccione --"
                     error={errors.unidad}
-                    disabled={!canEditUnidad || (isInheritedFromBase && !(isProductoNuevo(motivo) && causal.includes("Nueva estructura")))}
+                    disabled={!canEditUnidad || (isInheritedFromBase && !(isProductoNuevo(classification) && modifications.includes("Nueva estructura")))}
                   />
                   {stepNotice?.key === "unidad" && (
                     <p className="text-xs font-medium text-green-600">
@@ -4224,7 +4576,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                 <textarea
                   value={descripcion}
                   onChange={(event) => {
-                    if (isInheritedFromBase && !(isProductoNuevo(motivo) && causal.includes("Nueva estructura"))) return;
+                    if (isInheritedFromBase && isModifiedFromApproved) return;
                     const wasEmpty = !descripcion.trim();
                     setDescripcion(event.target.value);
                     setErrors((prev) => ({
@@ -4240,7 +4592,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                     }
                   }}
                   placeholder="Describe la necesidad técnica o comercial..."
-                  disabled={!canEditDescripcion || (isInheritedFromBase && !(isProductoNuevo(motivo) && causal.includes("Nueva estructura")))}
+                  disabled={!canEditDescripcion || (isInheritedFromBase && isModifiedFromApproved)}
                   className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary ${
                     canEditDescripcion
                       ? "border-slate-300 bg-white text-slate-800"
@@ -4305,26 +4657,43 @@ const setLayerMicronValue = (index: number, value: string) => {
 
                 {productStructure.structureType && (
                   <div className="space-y-2">
-                    {exactStructureCombination?.status === "VALIDADA" ? (
+                    {isStructureIncomplete ? (
+                      // Estado 1: Incompleta
+                      <div className="rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3">
+                        <p className="text-sm font-semibold text-yellow-700">
+                          ⚠ Estructura incompleta
+                        </p>
+                        <p className="mt-1 text-xs text-yellow-600">
+                          Completa los materiales de todas las capas requeridas.
+                        </p>
+                      </div>
+                    ) : isStructureValidated ? (
+                      // Estado 2: Validada (homologada)
                       <div className="rounded-lg border border-green-300 bg-green-50 px-4 py-3">
-                        <p className="text-sm font-bold text-green-700">
-                          ✓ Estructura válida
+                        <p className="text-sm font-semibold text-green-700">
+                          ✓ Estructura válida (homologada)
                         </p>
                       </div>
                     ) : (
+                      // Estado 3: No validada (completa pero no homologada)
                       <>
-                        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3">
-                          <p className="text-sm font-bold text-red-700">
-                            ✗ Estructura NO válida
+                        <div className="rounded-lg border border-orange-300 bg-orange-50 px-4 py-3">
+                          <p className="text-sm font-semibold text-orange-700">
+                            ⚠ Estructura no homologada
+                          </p>
+                          <p className="mt-1 text-xs text-orange-600">
+                            La estructura está completa pero no se encuentra en las combinaciones homologadas. Solicita una nueva estructura para validarla.
                           </p>
                         </div>
-                        <Button
-                          variant="outline"
-                          onClick={handleRequestNewStructure}
-                          className="w-full"
-                        >
-                          Solicitar nueva estructura
-                        </Button>
+                        {requiresValidatedStructure && !isModifiedFromApproved && !isInheritedFromBase && (
+                          <Button
+                            variant="outline"
+                            onClick={handleRequestNewStructure}
+                            className="w-full"
+                          >
+                            Solicitar nueva estructura
+                          </Button>
+                        )}
                       </>
                     )}
                   </div>
@@ -4423,7 +4792,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h4 className="text-sm font-bold text-slate-800">
-                        Productos similares
+                        Productos similares (referencia Momento 2)
                       </h4>
                     </div>
 
@@ -4499,7 +4868,7 @@ const setLayerMicronValue = (index: number, value: string) => {
                     </div>
                   )}
 
-                  {!requiredBaseFieldsFilled || !hasMaterialsForSimilarity ? (
+                  {!requiredBaseFieldsFilled || !hasValidatedStructureForSimilarity ? (
                     <p className="mt-3 text-xs text-slate-500">
                       Complete la estructura y los materiales para buscar productos similares.
                     </p>
