@@ -768,6 +768,8 @@ export default function ProductListPage() {
               <tr className="bg-brand-primary text-white">
                 <SortableHeader label="Código SKU" sortKey="code" />
                 <SortableHeader label="Producto" sortKey="projectName" />
+                <SortableHeader label="Clasificación" sortKey="classification" />
+                <SortableHeader label="Fecha Creación" sortKey="createdAt" />
                 <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
                   Planta de Origen
                 </th>
@@ -812,10 +814,16 @@ export default function ProductListPage() {
                         </span>
                       )}
                     </div>
+                  </td>
 
-                    <div className="mt-0.5 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-sm">
+                    <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
                       {item.classification || "Sin clasificación"}
-                    </div>
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3 text-sm font-medium text-slate-700">
+                    {item.createdAtLabel}
                   </td>
 
                   <td className="px-4 py-3 text-sm font-medium text-slate-700">
@@ -912,7 +920,7 @@ export default function ProductListPage() {
 
               {filteredProjects.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-6 py-14 text-center">
+                  <td colSpan={12} className="px-6 py-14 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <BriefcaseBusiness size={26} className="text-slate-400" />
