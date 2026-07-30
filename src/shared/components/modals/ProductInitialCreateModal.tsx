@@ -4698,8 +4698,8 @@ const setLayerMicronValue = (index: number, value: string) => {
               disabled={isCreating}
             >
               {isCreating
-                ? "Registrando solicitud..."
-                : "Registrar solicitud"}
+                ? "Guardando..."
+                : "Guardar"}
             </Button>
           </div>
         </div>
