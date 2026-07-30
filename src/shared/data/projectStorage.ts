@@ -1431,7 +1431,7 @@ export function createProjectFromPortfolio(params: {
     // SKU codes (from ProductInitialCreateModal)
     skuCode: (params.initialData as any).skuCode || "",
     currentSkuCode: (params.initialData as any).currentSkuCode || (params.initialData as any).skuCode || "",
-    siProductCode: (params.initialData as any).productCode || (params.initialData as any).skuCode || "",
+    siProductCode: "", // Always empty for new products - only set when integrated with SI
     skuSequence: (params.initialData as any).skuSequence || undefined,
     skuLifecycleCode: (params.initialData as any).skuLifecycleCode || (params.initialData as any).skuLifecycleCode || "E",
     skuLifecycleLabel: (params.initialData as any).skuLifecycleLabel || "Muestra",
