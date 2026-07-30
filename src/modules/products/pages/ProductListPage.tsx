@@ -6,7 +6,10 @@ import {
   ArrowUp,
   ArrowUpDown,
   BriefcaseBusiness,
+  Copy,
+  Eye,
   Layers3,
+  Pencil,
   RotateCcw,
   Search,
 } from "lucide-react";
@@ -164,6 +167,23 @@ const getCurrentActionLabel = (product: any): string => {
   if (normalizedStatus === "Completado") return "Producto completado";
 
   return "—";
+};
+
+const getDaysSinceCreation = (...values: any[]): number | null => {
+  const value = getText(...values);
+  if (!value) return null;
+
+  const createdDate = new Date(value);
+  if (Number.isNaN(createdDate.getTime())) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  createdDate.setHours(0, 0, 0, 0);
+
+  const diffTime = today.getTime() - createdDate.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  return diffDays >= 0 ? diffDays : null;
 };
 
 const getSortValue = (project: any, key: SortKey): string | number => {
@@ -467,6 +487,12 @@ export default function ProductListPage() {
             (project as any).username,
             (project as any).usuario
           ) || "—",
+        daysSinceCreation: getDaysSinceCreation(
+          project.createdAt,
+          (project as any).createdDate,
+          (project as any).fechaCreacion,
+          (project as any).fecha_creacion
+        ),
       };
     });
   }, [projects, portfolios]);
@@ -764,25 +790,24 @@ export default function ProductListPage() {
       <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1280px] border-collapse text-sm">
-            <thead>
-              <tr className="bg-brand-primary text-white">
+            <thead className="sticky top-0 z-10 bg-brand-primary text-white">
+              <tr>
                 <SortableHeader label="Código SKU" sortKey="code" />
                 <SortableHeader label="Producto" sortKey="projectName" />
                 <SortableHeader label="Clasificación" sortKey="classification" />
-                <SortableHeader label="Fecha Creación" sortKey="createdAt" />
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
-                  Planta de Origen
+                <SortableHeader label="Cliente" sortKey="clientName" />
+                <th className="px-4 py-2 text-left text-xs font-bold uppercase tracking-wide">
+                  Planta de origen
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                <th className="px-4 py-2 text-left text-xs font-bold uppercase tracking-wide">
                   Envoltura
                 </th>
-                <SortableHeader label="Cliente" sortKey="clientName" />
-                <SortableHeader label="Responsable" sortKey="responsible" />
                 <SortableHeader label="Estado ODISEO" sortKey="status" />
-                <SortableHeader label="Ciclo de vida" sortKey="skuLifecycle" />
-                <SortableHeader label="Fecha Actualización" sortKey="updatedAt" />
+                <SortableHeader label="Responsable" sortKey="responsible" />
+                <SortableHeader label="Fecha de creación" sortKey="createdAt" />
+                <SortableHeader label="Días desde creación" sortKey="createdAt" />
 
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide">
+                <th className="px-4 py-2 text-right text-xs font-bold uppercase tracking-wide">
                   Acciones
                 </th>
               </tr>
@@ -794,21 +819,21 @@ export default function ProductListPage() {
                 return (
                 <tr
                   key={item.code || item.id}
-                  className={`border-b border-slate-100 transition-colors ${
-                    isNew ? "bg-blue-50/70" : index % 2 === 0 ? "bg-white" : "bg-slate-50/70"
-                  } hover:bg-brand-secondary-soft`}
+                  className={`border-b border-slate-200/50 transition-colors ${
+                    isNew ? "bg-blue-50/70" : index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                  } hover:bg-slate-100/40`}
                 >
-                  <td className="whitespace-nowrap px-4 py-3 text-sm font-extrabold text-brand-primary font-mono">
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-semibold text-brand-primary font-mono">
                     {item.currentSkuCode || item.skuCode || item.code || item.id || "—"}
                   </td>
 
-                  <td className="px-4 py-3 text-sm">
+                  <td className="px-4 py-2 text-sm min-w-[320px] font-semibold text-slate-900">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-800">
+                      <span className="truncate" title={item.productDisplayNameLabel || item.projectNameLabel || "Producto sin nombre"}>
                         {item.productDisplayNameLabel || item.projectNameLabel || "Producto sin nombre"}
                       </span>
                       {isNew && (
-                        <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-blue-700 shadow-sm">
+                        <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-blue-700 shadow-sm flex-shrink-0">
                           <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                           Nuevo
                         </span>
@@ -816,102 +841,92 @@ export default function ProductListPage() {
                     </div>
                   </td>
 
-                  <td className="px-4 py-3 text-sm">
-                    <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
+                  <td className="px-4 py-2 text-sm">
+                    <span className="inline-flex items-center rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
                       {item.classification || "Sin clasificación"}
                     </span>
                   </td>
 
-                  <td className="px-4 py-3 text-sm font-medium text-slate-700">
-                    {item.createdAtLabel}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm font-medium text-slate-700">
-                    {item.plantOriginName || "—"}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm font-medium text-slate-700">
-                    {item.wrappingName || "—"}
-                  </td>
-
-                  <td className="px-4 py-3 text-sm font-medium text-slate-700">
+                  <td className="px-4 py-2 text-sm font-medium text-slate-900">
                     {item.clientNameLabel || "—"}
                   </td>
 
-                  <td className="px-4 py-3 text-sm">
-                    <span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
+                  <td className="px-4 py-2 text-sm text-slate-600">
+                    {item.plantOriginName || "—"}
+                  </td>
+
+                  <td className="px-4 py-2 text-sm text-slate-600">
+                    {item.wrappingName || "—"}
+                  </td>
+
+                  <td className="px-4 py-2 text-sm">
+                    <ProductOdiseoStatusBadge status={item.odiseoStatus} />
+                  </td>
+
+                  <td className="px-4 py-2 text-sm">
+                    <span className="inline-flex items-center rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
                       {item.responsibleArea || "Sin área"}
                     </span>
                   </td>
 
-                  <td className="px-4 py-3 text-sm">
-                    <ProductOdiseoStatusBadge status={item.odiseoStatus} />
+                  <td className="px-4 py-2 text-sm text-slate-700">
+                    {item.createdAtLabel}
                   </td>
 
-                  <td className="px-4 py-3 text-sm">
-                    {item.skuLifecycleCode ? (
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${
-                        item.skuLifecycleCode === "A"
-                          ? "border border-green-200 bg-green-50 text-green-700"
-                          : item.skuLifecycleCode === "E"
-                          ? "border border-amber-200 bg-amber-50 text-amber-700"
-                          : "border border-purple-200 bg-purple-50 text-purple-700"
-                      }`}>
-                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-current/20 text-xs">
-                          {item.skuLifecycleCode}
-                        </span>
-                        {item.skuLifecycleLabel || "—"}
+                  <td className="px-4 py-2 text-sm text-slate-700">
+                    {item.daysSinceCreation !== null ? (
+                      <span>
+                        {item.daysSinceCreation === 0
+                          ? "Hoy"
+                          : item.daysSinceCreation === 1
+                          ? "1 día"
+                          : `${item.daysSinceCreation} días`}
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-400">Sin ciclo</span>
+                      "—"
                     )}
                   </td>
 
-                  <td className="px-4 py-3 text-sm text-slate-600">
-                    <div className="font-semibold text-slate-700">
-                      {item.updatedAtLabel}
-                    </div>
-
-                    <div className="mt-0.5 text-xs text-slate-500">
-                      {item.updatedByLabel}
-                    </div>
-                  </td>
-
-                  <td className="px-4 py-3 text-right text-sm">
+                  <td className="px-4 py-2 text-right text-sm sticky right-0 bg-inherit">
                     <div className="flex items-center justify-end gap-2">
-                      <ActionButton
-                        label="Ver"
-                        variant="outline"
-                        size="sm"
+                      <button
+                        type="button"
+                        title="Ver producto"
                         onClick={() => {
                           const productCode = getProductNavigationCode(item);
                           if (!productCode) return;
                           navigate(`/products/${encodeURIComponent(productCode)}`);
                         }}
-                      />
+                        className="rounded-lg bg-brand-primary p-2 text-white transition-colors hover:bg-brand-primary/90"
+                      >
+                        <Eye size={16} />
+                      </button>
 
-                      <ActionButton
-                        label="Editar"
-                        variant="outline"
-                        size="sm"
+                      <button
+                        type="button"
+                        title="Editar producto"
                         onClick={() => {
                           const productCode = getProductNavigationCode(item);
                           if (!productCode) return;
                           navigate(`/products/${encodeURIComponent(productCode)}/edit`);
                         }}
-                      />
+                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                      >
+                        <Pencil size={16} />
+                      </button>
 
-                      <ActionButton
-                        label="Copia"
-                        variant="outline"
-                        size="sm"
+                      <button
+                        type="button"
+                        title="Copiar producto"
                         onClick={() => {
                           const productCode = getProductNavigationCode(item);
                           if (!productCode) return;
                           handleDuplicate(productCode);
                         }}
-                        className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                      />
+                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                      >
+                        <Copy size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -920,7 +935,7 @@ export default function ProductListPage() {
 
               {filteredProjects.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-6 py-14 text-center">
+                  <td colSpan={11} className="px-6 py-14 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-3 rounded-full bg-slate-100 p-3">
                         <BriefcaseBusiness size={26} className="text-slate-400" />
