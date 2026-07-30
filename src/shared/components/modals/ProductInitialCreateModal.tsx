@@ -4358,21 +4358,6 @@ const setLayerMicronValue = (index: number, value: string) => {
                   </span>
                 )}
               </div>
-
-              {nombreTecnicoCalculado && (
-                <div className="rounded-xl border border-green-100 bg-green-50/50 p-4">
-                  <h4 className="mb-3 border-b border-green-100 pb-2 text-sm font-bold text-green-700">
-                    Resultado
-                  </h4>
-
-                  <div className="space-y-2">
-                    <PreviewRow
-                      label="Nombre de producto (Calculado)"
-                      value={nombreTecnicoCalculado}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="space-y-5">
