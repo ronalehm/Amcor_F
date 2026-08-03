@@ -17,6 +17,7 @@
     "baseUrl": "./src",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "types": ["node", "jest"],
     "paths": {
       "@domain/*": ["domain/*"],
       "@application/*": ["application/*"],
