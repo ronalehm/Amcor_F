@@ -53,6 +53,14 @@ type FormData = {
   capacityValue: string;
   capacityUnit: string;
   assignedProjectCode: string;
+  structureType: string;
+  layer1Material: string;
+  layer1Micron: string;
+  layer2Material: string;
+  layer2Micron: string;
+  layer3Material: string;
+  layer3Micron: string;
+  structureComments: string;
 };
 
 type SelectOption = {
@@ -386,6 +394,14 @@ export default function ProductPreliminaryCreateModal({
     capacityValue: "",
     capacityUnit: defaultUnit,
     assignedProjectCode: "",
+    structureType: "",
+    layer1Material: "",
+    layer1Micron: "",
+    layer2Material: "",
+    layer2Micron: "",
+    layer3Material: "",
+    layer3Micron: "",
+    structureComments: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -403,6 +419,14 @@ export default function ProductPreliminaryCreateModal({
         capacityValue: "",
         capacityUnit: defaultUnit,
         assignedProjectCode: "",
+        structureType: "",
+        layer1Material: "",
+        layer1Micron: "",
+        layer2Material: "",
+        layer2Micron: "",
+        layer3Material: "",
+        layer3Micron: "",
+        structureComments: "",
       });
       setErrors({});
       setShowProductSuggestions(false);
@@ -891,6 +915,159 @@ export default function ProductPreliminaryCreateModal({
                       )}
                     </div>
                   </div>
+
+                  {form.requestReason === "Producto modificado" && form.causal === "Cambia estructura" && (
+                    <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                      <FormSelect
+                        label="Tipo de estructura *"
+                        value={form.structureType}
+                        onChange={(value) => {
+                          setForm((prev) => ({
+                            ...prev,
+                            structureType: value,
+                          }));
+                          setErrors((prev) => ({
+                            ...prev,
+                            structureType: "",
+                          }));
+                        }}
+                        options={[
+                          { value: "", label: "Seleccionar..." },
+                          { value: "Monocapa", label: "Monocapa" },
+                          { value: "Bicapa", label: "Bicapa" },
+                          { value: "Trilaminado", label: "Trilaminado" },
+                        ]}
+                        error={errors.structureType}
+                      />
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <FormInput
+                          label="CAPA 1 *"
+                          value={form.layer1Material}
+                          onChange={(value) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              layer1Material: value,
+                            }));
+                            setErrors((prev) => ({
+                              ...prev,
+                              layer1Material: "",
+                            }));
+                          }}
+                          placeholder="Ej: BOPP"
+                          error={errors.layer1Material}
+                        />
+                        <FormInput
+                          label="Micraje *"
+                          value={form.layer1Micron}
+                          onChange={(value) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              layer1Micron: value,
+                            }));
+                            setErrors((prev) => ({
+                              ...prev,
+                              layer1Micron: "",
+                            }));
+                          }}
+                          placeholder="Ej: 12"
+                          error={errors.layer1Micron}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <FormInput
+                          label="CAPA 2 *"
+                          value={form.layer2Material}
+                          onChange={(value) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              layer2Material: value,
+                            }));
+                            setErrors((prev) => ({
+                              ...prev,
+                              layer2Material: "",
+                            }));
+                          }}
+                          placeholder="Ej: BOPP"
+                          error={errors.layer2Material}
+                        />
+                        <FormInput
+                          label="Micraje *"
+                          value={form.layer2Micron}
+                          onChange={(value) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              layer2Micron: value,
+                            }));
+                            setErrors((prev) => ({
+                              ...prev,
+                              layer2Micron: "",
+                            }));
+                          }}
+                          placeholder="Ej: 22"
+                          error={errors.layer2Micron}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <FormInput
+                          label="CAPA 3 *"
+                          value={form.layer3Material}
+                          onChange={(value) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              layer3Material: value,
+                            }));
+                            setErrors((prev) => ({
+                              ...prev,
+                              layer3Material: "",
+                            }));
+                          }}
+                          placeholder="Ej: BOPP"
+                          error={errors.layer3Material}
+                        />
+                        <FormInput
+                          label="Micraje *"
+                          value={form.layer3Micron}
+                          onChange={(value) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              layer3Micron: value,
+                            }));
+                            setErrors((prev) => ({
+                              ...prev,
+                              layer3Micron: "",
+                            }));
+                          }}
+                          placeholder="Ej: 12"
+                          error={errors.layer3Micron}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
+                          Comentarios
+                        </label>
+                        <textarea
+                          value={form.structureComments}
+                          onChange={(event) => {
+                            setForm((prev) => ({
+                              ...prev,
+                              structureComments: event.target.value,
+                            }));
+                            setErrors((prev) => ({
+                              ...prev,
+                              structureComments: "",
+                            }));
+                          }}
+                          placeholder="Comentarios técnicos..."
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 transition focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <FormSelect
                     label="¿Diseño Especial? *"

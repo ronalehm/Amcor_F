@@ -1,0 +1,20 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Placeholder models - will be expanded in subsequent tickets
+// Ticket 1 focus: Setup infrastructure only
+
+model Health {
+  id        String   @id @default(cuid())
+  status    String   @default("ok")
+  createdAt DateTime @default(now())
+}

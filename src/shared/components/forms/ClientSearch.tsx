@@ -22,7 +22,10 @@ export default function ClientSearch({
   label,
 }: ClientSearchProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const clients = useMemo(() => getAllClients(), []);
+  const clients = useMemo(() => {
+    const allClients = getAllClients();
+    return allClients.filter((c) => c.activeLogical === "1").sort((a, b) => a.businessName.localeCompare(b.businessName));
+  }, []);
 
   const filteredClients = useMemo(() => {
     const search = value.trim().toLowerCase();
