@@ -5990,159 +5990,7 @@ if (!project) {
                   })()}
                 </FormCard>
 
-                {/* BLOQUE ESPECIFICACIONES DE ESTRUCTURA PARA POUCH/BOLSA */}
-                {!isLaminaWrapping(inheritedWrapping) && (
-                  <FormCard title="Especificaciones de Estructura" icon="🔩" color="#f39c12">
-                    <div className="space-y-5">
-                      {/* Campos iniciales */}
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <FormSelect
-                          label="¿Tiene estructura de referencia?"
-                          value={form.hasReferenceStructure}
-                          onChange={(value) => updateField("hasReferenceStructure", value)}
-                          placeholder="-- Seleccione --"
-                          options={YES_NO_OPTIONS}
-                          disabled={!canEditStructure}
-                        />
-                        <FormSelect
-                          label="¿Solicitud de muestra? *"
-                          value={form.sampleRequest}
-                          onChange={(value) => {
-                            updateField("sampleRequest", value);
-                            markFieldAsTouched("sampleRequest");
-                          }}
-                          onBlur={() => markFieldAsTouched("sampleRequest")}
-                          error={getError("sampleRequest")}
-                          placeholder="-- Seleccione --"
-                          options={YES_NO_OPTIONS}
-                        />
-                        {form.hasReferenceStructure === "Sí" && (
-                          <>
-                            <FormInput
-                              label="Código E/M Referencia"
-                              value={form.referenceEmCode}
-                              onChange={(value) => updateField("referenceEmCode", value)}
-                              placeholder="Ej. EM-000001"
-                            />
-                            <FormInput
-                              label="Versión E/M"
-                              value={form.referenceEmVersion}
-                              onChange={(value) => updateField("referenceEmVersion", value)}
-                              placeholder="Ej. 01"
-                            />
-                          </>
-                        )}
-                        {form.hasReferenceStructure !== "Sí" && (
-                          <FormSelect
-                            label="Tipo de Estructura *"
-                            value={form.structureType}
-                            onChange={(value) => {
-                              updateField("structureType", value);
-                              markFieldAsTouched("structureType");
-                            }}
-                            onBlur={() => markFieldAsTouched("structureType")}
-                            error={getError("structureType")}
-                            placeholder="-- Seleccione --"
-                            options={STRUCTURE_TYPE_OPTIONS}
-                            disabled={!canEditStructure}
-                          />
-                        )}
-                      </div>
-
-                      {/* Validación de capas */}
-                      {form.hasReferenceStructure !== "Sí" && (() => {
-                        const expectedLayerCount = getLayerCountByStructureType(form.structureType);
-                        const layers = [
-                          form.layer1Material,
-                          form.layer2Material,
-                          form.layer3Material,
-                          form.layer4Material,
-                        ];
-                        const actualLayerCount = layers.slice(0, expectedLayerCount).filter(Boolean).length;
-
-                        if (actualLayerCount < expectedLayerCount) {
-                          return (
-                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                              <p className="text-sm text-amber-800">
-                                <span className="font-semibold">⚠️ Estructura incompleta:</span> La estructura{" "}
-                                <strong>{form.structureType}</strong> requiere <strong>{expectedLayerCount}</strong> material(es), pero solo tiene{" "}
-                                <strong>{actualLayerCount}</strong>. Completa la información del Momento 1.
-                              </p>
-                            </div>
-                          );
-                        }
-
-                        return null;
-                      })()}
-                    </div>
-                  </FormCard>
-                )}
-
-                {/* BLOQUE 1B: TABLA DE MATERIALES PARA POUCH/BOLSA */}
-                {isPouchWrapping(inheritedWrapping) && (
-                  <FormCard title="Estructura de Materiales" icon="🏗️" color="#10b981">
-                    <div className="space-y-4">
-                      <LaminaStructureTable
-                        structureType={form.structureType}
-                        layer1Material={form.layer1Material}
-                        layer1Micron={form.layer1Micron}
-                        layer1Grammage={form.layer1Grammage}
-                        layer2Material={form.layer2Material}
-                        layer2Micron={form.layer2Micron}
-                        layer2Grammage={form.layer2Grammage}
-                        layer3Material={form.layer3Material}
-                        layer3Micron={form.layer3Micron}
-                        layer3Grammage={form.layer3Grammage}
-                        layer4Material={form.layer4Material}
-                        layer4Micron={form.layer4Micron}
-                        layer4Grammage={form.layer4Grammage}
-                        printClass={form.printClass}
-                        hasMatteFinishVarnish={false}
-                        hasInkProtectionVarnish={false}
-                        grammage=""
-                        grammageTolerance={form.grammageTolerance}
-                      />
-                      <FormTextarea
-                        label="Comentarios Estructura"
-                        value={form.specialStructureSpecs}
-                        onChange={(value) => updateField("specialStructureSpecs", value)}
-                        placeholder="Restricciones, barreras, sellabilidad, resistencia..."
-                      />
-                    </div>
-                  </FormCard>
-                )}
-
-                {/* BLOQUE 1C: TABLA DE MATERIALES PARA BOLSA */}
-                {isBolsaWrapping(inheritedWrapping) && (
-                  <FormCard title="Estructura de Materiales" icon="🏗️" color="#10b981">
-                    <div className="space-y-4">
-                      <PouchBolsaStructureTable
-                        layer1Material={form.layer1Material}
-                        layer1Micron={form.layer1Micron}
-                        layer1Grammage={form.layer1Grammage}
-                        layer2Material={form.layer2Material}
-                        layer2Micron={form.layer2Micron}
-                        layer2Grammage={form.layer2Grammage}
-                        layer3Material={form.layer3Material}
-                        layer3Micron={form.layer3Micron}
-                        layer3Grammage={form.layer3Grammage}
-                        layer4Material={form.layer4Material}
-                        layer4Micron={form.layer4Micron}
-                        layer4Grammage={form.layer4Grammage}
-                        visibleLayerCount={visibleLayerCount}
-                        printClass={form.printClass}
-                      />
-                      <FormTextarea
-                        label="Comentarios Estructura"
-                        value={form.specialStructureSpecs}
-                        onChange={(value) => updateField("specialStructureSpecs", value)}
-                        placeholder="Restricciones, barreras, sellabilidad, resistencia..."
-                      />
-                    </div>
-                  </FormCard>
-                )}
-
-                {/* BLOQUE 2: FOTOREGISTRO SIMPLIFICADO */}
+                {/* BLOQUE 1: FOTOREGISTRO SIMPLIFICADO */}
                 {canEditDesign && isLaminaWrapping(inheritedWrapping) && (
                   <FormCard title="Datos del Fotoregistro" icon="📸" color="#3498db">
                     {(() => {
@@ -6689,6 +6537,8 @@ if (!project) {
             {/* PASO 2: ESTRUCTURA */}
             {activeStep === 2 && (
               <div className="space-y-5">
+                {/* LÁMINA ONLY */}
+                {isLaminaWrapping(inheritedWrapping) && (
                 <CollapsibleSection
                   title="Especificaciones de estructura"
                   icon="🔩"
@@ -6750,7 +6600,7 @@ if (!project) {
                     )}
                   </div>
 
-                  {form.hasReferenceStructure !== "Sí" && isLaminaWrapping(inheritedWrapping) && (
+                  {form.hasReferenceStructure !== "Sí" && (
                     <div className="mt-5 space-y-5">
                       {/* Barniz Controls */}
                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -6853,6 +6703,155 @@ if (!project) {
                   )}
 
                 </CollapsibleSection>
+                )}
+
+                {/* POUCH/BOLSA ONLY */}
+                {!isLaminaWrapping(inheritedWrapping) && (
+                  <div className="space-y-5">
+                    <CollapsibleSection
+                      title="Especificaciones de estructura"
+                      icon="🔩"
+                      color="#f39c12"
+                      isOpen={openStructureSections.specs}
+                      onToggle={() => toggleStructureSection("specs")}
+                    >
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <FormSelect
+                          label="¿Tiene estructura de referencia?"
+                          value={form.hasReferenceStructure}
+                          onChange={(value) => updateField("hasReferenceStructure", value)}
+                          placeholder="-- Seleccione --"
+                          options={YES_NO_OPTIONS}
+                          disabled={!canEditStructure}
+                        />
+                        <FormSelect
+                          label="¿Solicitud de muestra? *"
+                          value={form.sampleRequest}
+                          onChange={(value) => {
+                            updateField("sampleRequest", value);
+                            markFieldAsTouched("sampleRequest");
+                          }}
+                          onBlur={() => markFieldAsTouched("sampleRequest")}
+                          error={getError("sampleRequest")}
+                          placeholder="-- Seleccione --"
+                          options={YES_NO_OPTIONS}
+                        />
+                        {form.hasReferenceStructure === "Sí" && (
+                          <>
+                            <FormInput
+                              label="Código E/M Referencia"
+                              value={form.referenceEmCode}
+                              onChange={(value) => updateField("referenceEmCode", value)}
+                              placeholder="Ej. EM-000001"
+                            />
+                            <FormInput
+                              label="Versión E/M"
+                              value={form.referenceEmVersion}
+                              onChange={(value) => updateField("referenceEmVersion", value)}
+                              placeholder="Ej. 01"
+                            />
+                          </>
+                        )}
+                        {form.hasReferenceStructure !== "Sí" && (
+                          <FormSelect
+                            label="Tipo de Estructura *"
+                            value={form.structureType}
+                            onChange={(value) => {
+                              updateField("structureType", value);
+                              markFieldAsTouched("structureType");
+                            }}
+                            onBlur={() => markFieldAsTouched("structureType")}
+                            error={getError("structureType")}
+                            placeholder="-- Seleccione --"
+                            options={STRUCTURE_TYPE_OPTIONS}
+                            disabled={!canEditStructure}
+                          />
+                        )}
+                      </div>
+
+                      {/* Validación de capas */}
+                      {form.hasReferenceStructure !== "Sí" && (() => {
+                        const expectedLayerCount = getLayerCountByStructureType(form.structureType);
+                        const layers = [
+                          form.layer1Material,
+                          form.layer2Material,
+                          form.layer3Material,
+                          form.layer4Material,
+                        ];
+                        const actualLayerCount = layers.slice(0, expectedLayerCount).filter(Boolean).length;
+
+                        if (actualLayerCount < expectedLayerCount) {
+                          return (
+                            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                              <p className="text-sm text-amber-800">
+                                <span className="font-semibold">⚠️ Estructura incompleta:</span> La estructura{" "}
+                                <strong>{form.structureType}</strong> requiere <strong>{expectedLayerCount}</strong> material(es), pero solo tiene{" "}
+                                <strong>{actualLayerCount}</strong>. Completa la información del Momento 1.
+                              </p>
+                            </div>
+                          );
+                        }
+
+                        return null;
+                      })()}
+
+                      {/* Tabla de materiales POUCH */}
+                      {isPouchWrapping(inheritedWrapping) && (
+                        <>
+                          <LaminaStructureTable
+                            structureType={form.structureType}
+                            layer1Material={form.layer1Material}
+                            layer1Micron={form.layer1Micron}
+                            layer1Grammage={form.layer1Grammage}
+                            layer2Material={form.layer2Material}
+                            layer2Micron={form.layer2Micron}
+                            layer2Grammage={form.layer2Grammage}
+                            layer3Material={form.layer3Material}
+                            layer3Micron={form.layer3Micron}
+                            layer3Grammage={form.layer3Grammage}
+                            layer4Material={form.layer4Material}
+                            layer4Micron={form.layer4Micron}
+                            layer4Grammage={form.layer4Grammage}
+                            printClass={form.printClass}
+                            hasMatteFinishVarnish={false}
+                            hasInkProtectionVarnish={false}
+                            grammage=""
+                            grammageTolerance={form.grammageTolerance}
+                          />
+                        </>
+                      )}
+
+                      {/* Tabla de materiales BOLSA */}
+                      {isBolsaWrapping(inheritedWrapping) && (
+                        <>
+                          <PouchBolsaStructureTable
+                            layer1Material={form.layer1Material}
+                            layer1Micron={form.layer1Micron}
+                            layer1Grammage={form.layer1Grammage}
+                            layer2Material={form.layer2Material}
+                            layer2Micron={form.layer2Micron}
+                            layer2Grammage={form.layer2Grammage}
+                            layer3Material={form.layer3Material}
+                            layer3Micron={form.layer3Micron}
+                            layer3Grammage={form.layer3Grammage}
+                            layer4Material={form.layer4Material}
+                            layer4Micron={form.layer4Micron}
+                            layer4Grammage={form.layer4Grammage}
+                            visibleLayerCount={visibleLayerCount}
+                            printClass={form.printClass}
+                          />
+                        </>
+                      )}
+
+                      <FormTextarea
+                        label="Comentarios Estructura"
+                        value={form.specialStructureSpecs}
+                        onChange={(value) => updateField("specialStructureSpecs", value)}
+                        placeholder="Restricciones, barreras, sellabilidad, resistencia..."
+                      />
+                    </CollapsibleSection>
+                  </div>
+                )}
 
 
                 <div className="space-y-4">
@@ -6977,154 +6976,6 @@ if (!project) {
                     />
                   </div>
                 </div>
-                )}
-
-                {/* POUCH/BOLSA ESTRUCTURA SECTION */}
-                {!isLaminaWrapping(inheritedWrapping) && (
-                  <div className="space-y-5">
-                    <CollapsibleSection
-                      title="Especificaciones de estructura"
-                      icon="🔩"
-                      color="#f39c12"
-                      isOpen={openStructureSections.specs}
-                      onToggle={() => toggleStructureSection("specs")}
-                    >
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <FormSelect
-                          label="¿Tiene estructura de referencia?"
-                          value={form.hasReferenceStructure}
-                          onChange={(value) => updateField("hasReferenceStructure", value)}
-                          placeholder="-- Seleccione --"
-                          options={YES_NO_OPTIONS}
-                          disabled={!canEditStructure}
-                        />
-                        <FormSelect
-                          label="¿Solicitud de muestra? *"
-                          value={form.sampleRequest}
-                          onChange={(value) => {
-                            updateField("sampleRequest", value);
-                            markFieldAsTouched("sampleRequest");
-                          }}
-                          onBlur={() => markFieldAsTouched("sampleRequest")}
-                          error={getError("sampleRequest")}
-                          placeholder="-- Seleccione --"
-                          options={YES_NO_OPTIONS}
-                        />
-                        {form.hasReferenceStructure === "Sí" && (
-                          <>
-                            <FormInput
-                              label="Código E/M Referencia"
-                              value={form.referenceEmCode}
-                              onChange={(value) => updateField("referenceEmCode", value)}
-                              placeholder="Ej. EM-000001"
-                            />
-                            <FormInput
-                              label="Versión E/M"
-                              value={form.referenceEmVersion}
-                              onChange={(value) => updateField("referenceEmVersion", value)}
-                              placeholder="Ej. 01"
-                            />
-                          </>
-                        )}
-                        {form.hasReferenceStructure !== "Sí" && (
-                          <FormSelect
-                            label="Tipo de Estructura *"
-                            value={form.structureType}
-                            onChange={(value) => {
-                              updateField("structureType", value);
-                              markFieldAsTouched("structureType");
-                            }}
-                            onBlur={() => markFieldAsTouched("structureType")}
-                            error={getError("structureType")}
-                            placeholder="-- Seleccione --"
-                            options={STRUCTURE_TYPE_OPTIONS}
-                            disabled={!canEditStructure}
-                          />
-                        )}
-                      </div>
-
-                      {/* Validación de capas */}
-                      {form.hasReferenceStructure !== "Sí" && (() => {
-                        const expectedLayerCount = getLayerCountByStructureType(form.structureType);
-                        const layers = [
-                          form.layer1Material,
-                          form.layer2Material,
-                          form.layer3Material,
-                          form.layer4Material,
-                        ];
-                        const actualLayerCount = layers.slice(0, expectedLayerCount).filter(Boolean).length;
-
-                        if (actualLayerCount < expectedLayerCount) {
-                          return (
-                            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                              <p className="text-sm text-amber-800">
-                                <span className="font-semibold">⚠️ Estructura incompleta:</span> La estructura{" "}
-                                <strong>{form.structureType}</strong> requiere <strong>{expectedLayerCount}</strong> material(es), pero solo tiene{" "}
-                                <strong>{actualLayerCount}</strong>. Completa la información del Momento 1.
-                              </p>
-                            </div>
-                          );
-                        }
-
-                        return null;
-                      })()}
-
-                      {/* Tabla de materiales POUCH/BOLSA */}
-                      {isPouchWrapping(inheritedWrapping) && (
-                        <>
-                          <LaminaStructureTable
-                            structureType={form.structureType}
-                            layer1Material={form.layer1Material}
-                            layer1Micron={form.layer1Micron}
-                            layer1Grammage={form.layer1Grammage}
-                            layer2Material={form.layer2Material}
-                            layer2Micron={form.layer2Micron}
-                            layer2Grammage={form.layer2Grammage}
-                            layer3Material={form.layer3Material}
-                            layer3Micron={form.layer3Micron}
-                            layer3Grammage={form.layer3Grammage}
-                            layer4Material={form.layer4Material}
-                            layer4Micron={form.layer4Micron}
-                            layer4Grammage={form.layer4Grammage}
-                            printClass={form.printClass}
-                            hasMatteFinishVarnish={false}
-                            hasInkProtectionVarnish={false}
-                            grammage=""
-                            grammageTolerance={form.grammageTolerance}
-                          />
-                        </>
-                      )}
-
-                      {/* Tabla de materiales BOLSA */}
-                      {isBolsaWrapping(inheritedWrapping) && (
-                        <>
-                          <PouchBolsaStructureTable
-                            layer1Material={form.layer1Material}
-                            layer1Micron={form.layer1Micron}
-                            layer1Grammage={form.layer1Grammage}
-                            layer2Material={form.layer2Material}
-                            layer2Micron={form.layer2Micron}
-                            layer2Grammage={form.layer2Grammage}
-                            layer3Material={form.layer3Material}
-                            layer3Micron={form.layer3Micron}
-                            layer3Grammage={form.layer3Grammage}
-                            layer4Material={form.layer4Material}
-                            layer4Micron={form.layer4Micron}
-                            layer4Grammage={form.layer4Grammage}
-                            visibleLayerCount={visibleLayerCount}
-                            printClass={form.printClass}
-                          />
-                        </>
-                      )}
-
-                      <FormTextarea
-                        label="Comentarios Estructura"
-                        value={form.specialStructureSpecs}
-                        onChange={(value) => updateField("specialStructureSpecs", value)}
-                        placeholder="Restricciones, barreras, sellabilidad, resistencia..."
-                      />
-                    </CollapsibleSection>
-                  </div>
                 )}
 
               </div>
