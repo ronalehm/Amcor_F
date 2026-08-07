@@ -833,6 +833,7 @@ const FORMAT_FIELD_RULES_BY_FDP: Record<string, {
       "hasRiñonera", "hasWicket", "wicketDiameter", "wicketDistSuperior", "wicketDistDerecho",
       "hasWicketControl", "wicketControlDiameter", "wicketControlUbicacion", "wicketControlDistSuperior", "wicketControlDistDerecho",
       "hasDieCutHandle", "tipoAsa", "colorAsa", "formaAsa", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
+      "anchoSello", "selloAnchoTransversal",
       "hasRoundedCorners", "roundedCornersType", "hasNotch", "distanciaAbocaPerforacion",
       "hasPerforation", "pouchPerforationType", "perforationLocation",
       "hasAngularCut", "hasPreCut", "preCutType", "distanciaAbocaPrecorte", "otherAccessories",
