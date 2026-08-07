@@ -78,6 +78,24 @@ import ProjectPlansUploadSection from "../components/ProjectPlansUploadSection";
 import CustomerTechnicalSpecUploadSection from "../components/CustomerTechnicalSpecUploadSection";
 import DimensionalPlanPreview from "../components/DimensionalPlanPreview";
 import RewindingDirectionSelector from "../components/RewindingDirectionSelector";
+import PhotoregisterPreview from "../components/PhotoregisterPreview";
+import PhotoregisterAccordion from "../components/PhotoregisterAccordion";
+import CalculatedMeasuresAccordion from "../components/CalculatedMeasuresAccordion";
+import LaminaStructureTable from "../components/LaminaStructureTable";
+import PouchBolsaStructureTable from "../components/PouchBolsaStructureTable";
+import {
+  calculateMargins,
+  reconstructReferenceAndDistance,
+  calculateSymmetricSecond,
+  isSecondPhotoregisterAutomatic,
+  parseDecimalInput,
+  validatePhotoregisterFitsInLamina,
+  type HorizontalReference,
+  type VerticalReference,
+  type PhotoregisterDimensions,
+  type PhotoregisterReference,
+  type PhotoregisterDistance,
+} from "../../../shared/utils/photoregisterCalculations";
 
 export type ProjectEditFormData = {
   code: string;
@@ -129,8 +147,6 @@ export type ProjectEditFormData = {
   codesToPrint: string;
   rewindingDirection: string;
   rewindingDirectionRef: string;
-  hasPhotocell: string;
-  photocellLocation: string;
   fr1Width: string;
   fr1Height: string;
   fr1MarginRight: string;
@@ -200,8 +216,9 @@ export type ProjectEditFormData = {
 
   specialStructureSpecs: string;
   grammageTolerance: string;
-  grammage: string;
   sampleRequest: string;
+  hasMatteFinishVarnish: string;
+  hasInkProtectionVarnish: string;
 
   width: string;
   length: string;
@@ -253,9 +270,14 @@ export type ProjectEditFormData = {
   precorteWicketDistDerecho: string;
 
   hasDieCutHandle: string;
+  tipoAsa: string;
+  colorAsa: string;
+  formaAsa: string;
   hasReinforcement: string;
   reinforcementThickness: string;
   reinforcementWidth: string;
+  anchoSello: string;
+  selloAnchoTransversal: string;
   ladoCorteAngular: string;
   distanciaAbocaMuesca: string;
   hasRoundedCorners: string;
@@ -300,7 +322,6 @@ export type ProjectEditFormData = {
   deliveryAddress: string;
   additionalComment: string;
 
-  licitacion: string;
   designPlanFiles: string[];
 
   // SKU codes
@@ -371,6 +392,27 @@ const PRESS_APPROVER_OPTIONS = [
   },
 ];
 
+const ASA_TYPE_OPTIONS = [
+  { value: "Asida", label: "Asida" },
+  { value: "Tirador", label: "Tirador" },
+  { value: "Anilla", label: "Anilla" },
+  { value: "Asa cosida", label: "Asa cosida" },
+];
+
+const ASA_COLOR_OPTIONS = [
+  { value: "Blanco", label: "Blanco" },
+  { value: "Negro", label: "Negro" },
+  { value: "Transparente", label: "Transparente" },
+  { value: "Otra", label: "Otra" },
+];
+
+const ASA_SHAPE_OPTIONS = [
+  { value: "Circular", label: "Circular" },
+  { value: "Plana", label: "Plana" },
+  { value: "Rectangular", label: "Rectangular" },
+  { value: "Ovalada", label: "Ovalada" },
+];
+
 // MOT (Motivo de Modificación) - Configuración central que define qué campos se habilitan/bloquean
 const MOT_FIELD_RULES: Record<string, {
   mode: "new" | "modified";
@@ -403,7 +445,7 @@ const MOT_FIELD_RULES: Record<string, {
   "Nuevo diseño": {
     mode: "new",
     enabledSections: ["producto", "diseno", "estructura", "dimensiones", "embalaje"],
-    editableFieldGroups: ["design", "printing", "edag", "photoregister", "rewinding", "photocell", "designPlans"],
+    editableFieldGroups: ["design", "printing", "edag", "photoregister", "rewinding", "designPlans"],
     lockedFieldGroups: [],
     requiresBaseProductAutofill: false
   },
@@ -424,14 +466,14 @@ const MOT_FIELD_RULES: Record<string, {
   "Modifica propiedades": {
     mode: "modified",
     enabledSections: ["producto", "estructura"],
-    editableFieldGroups: ["properties", "grammage", "technicalComments", "sample"],
+    editableFieldGroups: ["properties", "technicalComments", "sample"],
     lockedFieldGroups: ["design", "dimensions"],
     requiresBaseProductAutofill: true
   },
   "Cambia estructura": {
     mode: "modified",
     enabledSections: ["producto", "estructura"],
-    editableFieldGroups: ["structure", "materials", "layers", "micron", "grammage"],
+    editableFieldGroups: ["structure", "materials", "layers", "micron"],
     lockedFieldGroups: ["design", "packaging"],
     requiresBaseProductAutofill: true
   },
@@ -445,7 +487,7 @@ const MOT_FIELD_RULES: Record<string, {
   "Cambia diseño": {
     mode: "modified",
     enabledSections: ["producto", "diseno"],
-    editableFieldGroups: ["design", "printing", "edag", "photoregister", "rewinding", "photocell", "designPlans"],
+    editableFieldGroups: ["design", "printing", "edag", "photoregister", "rewinding", "designPlans"],
     lockedFieldGroups: ["structure", "materials", "dimensions"],
     requiresBaseProductAutofill: true
   },
@@ -628,8 +670,6 @@ const FIELD_TO_EDITABLE_GROUP: Record<string, string> = {
   fr2MarginBottom: "design",
   rewindingDirection: "design",
   rewindingDirectionRef: "design",
-  hasPhotocell: "design",
-  photocellLocation: "design",
 };
 
 // Helpers para MOT
@@ -727,7 +767,6 @@ const SI_FIELDS = new Set<string>([
   "layer2Material",
   "layer3Material",
   "layer4Material",
-  "grammage",
   "grammageTolerance",
   "width",
   "length",
@@ -753,14 +792,14 @@ const FORMAT_FIELD_RULES_BY_FDP: Record<string, {
   "GENERICA": {
     visibleFields: new Set([
       "width", "length", "repetition", "perimeterMm", "dimensionCrossCheckStatus", "perimeterValidationStatus",
-      "rewindingDirection", "rewindingDirectionRef", "hasPhotocell", "photocellLocation",
+      "rewindingDirection", "rewindingDirectionRef",
       "fr1Width", "fr1Height", "fr1MarginRight", "fr1MarginBottom", "fr1MarginLeft", "fr1MarginTop",
       "fr2Width", "fr2Height", "fr2MarginRight", "fr2MarginBottom", "fr2MarginLeft", "fr2MarginTop",
       "coreMaterial", "coreDiameter", "externalDiameter", "externalVariationPlus", "externalVariationMinus", "maxRollWeight",
       "materialPackaging", "specialMaterialPackaging", "exportProductPackaging", "splices"
     ]),
     requiredFields: new Set(["width", "rewindingDirection", "coreMaterial"]),
-    siFields: new Set(["width", "length", "repetition", "rewindingDirection", "hasPhotocell", "coreMaterial", "coreDiameter", "materialPackaging", "splices"])
+    siFields: new Set(["width", "length", "repetition", "rewindingDirection", "coreMaterial", "coreDiameter", "materialPackaging", "splices"])
   },
   "TISSUE": {
     visibleFields: new Set([
@@ -793,7 +832,7 @@ const FORMAT_FIELD_RULES_BY_FDP: Record<string, {
       "hasZipper", "zipperType", "hasTinTie", "hasValve", "valveType",
       "hasRiñonera", "hasWicket", "wicketDiameter", "wicketDistSuperior", "wicketDistDerecho",
       "hasWicketControl", "wicketControlDiameter", "wicketControlUbicacion", "wicketControlDistSuperior", "wicketControlDistDerecho",
-      "hasDieCutHandle", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
+      "hasDieCutHandle", "tipoAsa", "colorAsa", "formaAsa", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
       "hasRoundedCorners", "roundedCornersType", "hasNotch", "distanciaAbocaPerforacion",
       "hasPerforation", "pouchPerforationType", "perforationLocation",
       "hasAngularCut", "hasPreCut", "preCutType", "distanciaAbocaPrecorte", "otherAccessories",
@@ -811,7 +850,8 @@ const FORMAT_FIELD_RULES_BY_FDP: Record<string, {
       "width", "length", "repetition",
       "hasWicket", "wicketDiameter", "wicketDistSuperior", "wicketDistDerecho",
       "hasWicketControl", "wicketControlDiameter", "wicketControlUbicacion", "wicketControlDistSuperior", "wicketControlDistDerecho",
-      "hasDieCutHandle", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
+      "hasDieCutHandle", "tipoAsa", "colorAsa", "formaAsa", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
+      "anchoSello", "selloAnchoTransversal",
       "hasRoundedCorners", "roundedCornersType", "hasNotch", "distanciaAbocaPerforacion",
       "hasPerforation", "bagPerforationType", "perforationLocation",
       "hasAngularCut", "hasPreCut", "preCutType", "distanciaAbocaPrecorte", "otherAccessories",
@@ -1708,7 +1748,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "portfolioCode",
     "classification",
     "projectType",
-    "licitacion",
     "customerAdditionalInfo",
     "additionalComment",
     "deliveryAddress",
@@ -1755,8 +1794,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "perimeterComment",
     "rewindingDirection",
     "rewindingDirectionRef",
-    "hasPhotocell",
-    "photocellLocation",
     "hasPhotoregister1",
     "fr1Width",
     "fr1Height",
@@ -1785,7 +1822,7 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "layer3MaterialGroup", "layer3Material", "layer3Micron", "layer3Grammage",
     "layer4MaterialGroup", "layer4Material", "layer4Micron", "layer4Grammage",
 
-    "grammage", "sampleRequest", "specialStructureSpecs",
+    "sampleRequest", "specialStructureSpecs",
 
     "width", "length", "repetition", "doyPackBase", "gussetWidth",
 
@@ -1822,9 +1859,9 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   printType: "Tipo de Impresión",
   printForm: "Forma de Impresión",
 
-  width: "Ancho",
-  length: "Largo",
-  repetition: "Repetición",
+  width: "Ancho *",
+  length: "Largo *",
+  repetition: "Repetición *",
   gussetWidth: "Ancho Fuelle",
 
   estimatedVolume: "Cantidad / Volumen estimado",
@@ -1834,7 +1871,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   externalDiameter: "Diámetro externo",
   maxRollWeight: "Peso máximo rollo",
 
-  grammage: "Gramaje general (g/m2)",
   sampleRequest: "¿Solicitud de muestra?",
   designPlanFiles: "Planos",
   hasCustomerTechnicalSpec: "¿Tiene Especificación Técnica del Cliente?",
@@ -1874,8 +1910,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
 
   rewindingDirection: "Sentido de bobinado",
   rewindingDirectionRef: "Referencia de sentido",
-  hasPhotocell: "¿Tiene fotocelda?",
-  photocellLocation: "Ubicación fotocelda",
 
   hasPhotoregister1: "¿Tiene Fotoregistro 1?",
   fr1Width: "FR1 - Ancho",
@@ -1942,7 +1976,6 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   exportProductPackaging: "Embalaje de Productos de Exportación",
   splices: "Empalmes",
 
-  licitacion: "Licitación",
 };
 const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   // Información General
@@ -1966,7 +1999,6 @@ const BASE_REQUIRED_FIELDS: Array<keyof ProjectEditFormData> = [
   "saleType",
 
   // Estructura
-  "grammage",
   "sampleRequest",
 
   // Especificaciones técnicas
@@ -2075,8 +2107,6 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     perimeterComment: form.perimeterComment?.trim() || "",
     rewindingDirection: form.rewindingDirection,
     rewindingDirectionRef: form.rewindingDirectionRef?.trim() || "",
-    hasPhotocell: form.hasPhotocell,
-    photocellLocation: form.photocellLocation,
     hasPhotoregister1: form.hasPhotoregister1,
     fr1Width: form.fr1Width,
     fr1Height: form.fr1Height,
@@ -2120,7 +2150,6 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     layer4MicronRuleCode: form.layer4MicronRuleCode,
     layer4Grammage: form.layer4Grammage,
     specialStructureSpecs: form.specialStructureSpecs?.trim() || "",
-    grammage: form.grammage,
     sampleRequest: form.sampleRequest,
     width: form.width,
     length: form.length,
@@ -2166,7 +2195,6 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     customerAdditionalInfo: form.customerAdditionalInfo?.trim() || "",
     deliveryAddress: form.deliveryAddress?.trim() || "",
     additionalComment: form.additionalComment?.trim() || "",
-    licitacion: form.licitacion,
   };
 }
 
@@ -2433,8 +2461,6 @@ export default function ProductEditPage() {
     codesToPrint: "",
     rewindingDirection: "",
     rewindingDirectionRef: "",
-    hasPhotocell: "",
-    photocellLocation: "",
     fr1Width: "",
     fr1Height: "",
     fr1MarginRight: "",
@@ -2498,8 +2524,9 @@ export default function ProductEditPage() {
     layer4Grammage: "",
     specialStructureSpecs: "",
     grammageTolerance: "",
-    grammage: "",
     sampleRequest: "",
+    hasMatteFinishVarnish: "",
+    hasInkProtectionVarnish: "",
     width: "",
     length: "",
     repetition: "",
@@ -2543,9 +2570,14 @@ export default function ProductEditPage() {
     precorteWicketUbicacion: "",
     precorteWicketDistDerecho: "",
     hasDieCutHandle: "",
+    tipoAsa: "",
+    colorAsa: "",
+    formaAsa: "",
     hasReinforcement: "",
     reinforcementThickness: "",
     reinforcementWidth: "",
+    anchoSello: "",
+    selloAnchoTransversal: "",
     ladoCorteAngular: "",
     distanciaAbocaMuesca: "",
     hasAngularCut: "",
@@ -2587,7 +2619,6 @@ export default function ProductEditPage() {
     customerAdditionalInfo: "",
     deliveryAddress: "",
     additionalComment: "",
-    licitacion: "",
     designPlanFiles: [],
     // SKU codes
     skuCode: "",
@@ -2786,8 +2817,6 @@ if (!project) {
       codesToPrint: (project as any).codesToPrint || "",
       rewindingDirection: (project as any).rewindingDirection || "",
       rewindingDirectionRef: (project as any).rewindingDirectionRef || "",
-      hasPhotocell: toYesNo((project as any).hasPhotocell),
-      photocellLocation: (project as any).photocellLocation || "",
       fr1Width: (project as any).fr1Width || "",
       fr1Height: (project as any).fr1Height || "",
       fr1MarginRight: (project as any).fr1MarginRight || "",
@@ -2883,8 +2912,9 @@ if (!project) {
       layer4Grammage: project.layer4Grammage || "",
       specialStructureSpecs: project.specialStructureSpecs || "",
       grammageTolerance: (project as any).grammageTolerance || "",
-      grammage: project.grammage || "",
       sampleRequest: toYesNo(project.sampleRequest),
+      hasMatteFinishVarnish: (project as any).hasMatteFinishVarnish ? "Sí" : "No",
+      hasInkProtectionVarnish: (project as any).hasInkProtectionVarnish ? "Sí" : "No",
       width: project.width || "",
       length: project.length || "",
       repetition: project.repetition || "",
@@ -2928,9 +2958,14 @@ if (!project) {
       precorteWicketUbicacion: (project as any).precorteWicketUbicacion || "",
       precorteWicketDistDerecho: (project as any).precorteWicketDistDerecho || "",
       hasDieCutHandle: toYesNo(project.hasDieCutHandle),
+      tipoAsa: (project as any).tipoAsa || "",
+      colorAsa: (project as any).colorAsa || "",
+      formaAsa: (project as any).formaAsa || "",
       hasReinforcement: toYesNo(project.hasReinforcement),
       reinforcementThickness: project.reinforcementThickness || "",
       reinforcementWidth: project.reinforcementWidth || "",
+      anchoSello: (project as any).anchoSello || "",
+      selloAnchoTransversal: (project as any).selloAnchoTransversal || "",
       ladoCorteAngular: (project as any).ladoCorteAngular || "",
       distanciaAbocaMuesca: (project as any).distanciaAbocaMuesca || "",
       hasRoundedCorners: toYesNo(project.hasRoundedCorners),
@@ -2973,7 +3008,6 @@ if (!project) {
       deliveryAddress: (project as any).deliveryAddress || "",
       // CORRECCIÓN: Usar resolver para comentarios (puede venir como "comentarios" desde modal)
       additionalComment: resolveInitialComment(project),
-      licitacion: toYesNo((project as any).licitacion),
       designPlanFiles: (project as any).designPlanFiles || [],
       // SKU codes
       skuCode: (project as any).skuCode || resolvedSkuCode || "",
@@ -3200,16 +3234,6 @@ if (!project) {
 
   useEffect(() => {
     setForm((prev) => {
-      if (prev.grammage === calculatedGrammageTotal) return prev;
-
-      return {
-        ...prev,
-        grammage: calculatedGrammageTotal,
-      };
-    });
-  }, [calculatedGrammageTotal]);
-  useEffect(() => {
-    setForm((prev) => {
       let changed = false;
       const next: ProjectEditFormData = { ...prev };
 
@@ -3271,19 +3295,47 @@ if (!project) {
     });
   }, [form.classification, form.projectType]);
 
-  // Actualizar tipo de estructura automáticamente según la cantidad de capas visibles
+  // structureType is now determined by user selection, not by layer count
+  // For Lamina, it's inherited from Moment 1 and user can change it via dropdown
+  // For Pouch/Bolsa, layers are still managed manually (temporary behavior)
+
+  // Clean up layers when structureType changes for Lamina
   useEffect(() => {
-    const calculatedStructureType = getStructureTypeByLayerCount(visibleLayerCount);
+    if (!isLaminaWrapping(inheritedWrapping) || !form.structureType) return;
 
-    setForm((prev) => {
-      if (prev.structureType === calculatedStructureType) return prev;
+    const expectedLayerCount = getLayerCountByStructureType(form.structureType);
 
-      return {
+    // If reducing layers, clean up the extra ones
+    if (expectedLayerCount < 4) {
+      setForm((prev) => {
+        let changed = false;
+        const next = { ...prev };
+
+        for (let i = expectedLayerCount; i < 4; i++) {
+          const materialKey = `layer${i + 1}Material` as keyof ProjectEditFormData;
+          const micronKey = `layer${i + 1}Micron` as keyof ProjectEditFormData;
+          const grammageKey = `layer${i + 1}Grammage` as keyof ProjectEditFormData;
+
+          if (prev[materialKey] || prev[micronKey] || prev[grammageKey]) {
+            (next[materialKey] as string) = "";
+            (next[micronKey] as string) = "";
+            (next[grammageKey] as string) = "";
+            changed = true;
+          }
+        }
+
+        return changed ? next : prev;
+      });
+    }
+
+    // If changing from Monocapa to anything else, remove protection varnish
+    if (form.structureType !== "Monocapa" && form.hasInkProtectionVarnish === "Sí") {
+      setForm((prev) => ({
         ...prev,
-        structureType: calculatedStructureType,
-      };
-    });
-  }, [visibleLayerCount]);
+        hasInkProtectionVarnish: "No",
+      }));
+    }
+  }, [form.structureType, inheritedWrapping]);
 
   const projectTypeOptions = useMemo(() => {
     if (isProductoNuevo(form.classification)) {
@@ -3316,7 +3368,7 @@ if (!project) {
   const enabledGroupsByMot = motRule?.editableFieldGroups || [];
 
   const canEditDesignByMot = enabledGroupsByMot.some(group =>
-    ["design", "printing", "edag", "photoregister", "rewinding", "photocell", "designPlans", "designVariant"].includes(group)
+    ["design", "printing", "edag", "photoregister", "rewinding", "designPlans", "designVariant"].includes(group)
   );
 
   const canEditDimensionsByMot = enabledGroupsByMot.includes("dimensions") || enabledGroupsByMot.includes("perimeter");
@@ -3375,23 +3427,37 @@ if (!project) {
       fields.push("projectType");
     }
 
+    // ANCHO DE LÁMINA y REPETICIÓN - SIEMPRE OBLIGATORIOS para fotoregistro
+    // Estos campos son críticos para visualizar correctamente el gráfico de fotoregistro
+    if (!fields.includes("width")) {
+      fields.push("width");
+    }
+    // Para LÁMINA, es obligatorio "repetition". Para POUCH/BOLSA, es obligatorio "length"
+    if (isLaminaWrapping(inheritedWrapping)) {
+      if (!fields.includes("repetition")) {
+        fields.push("repetition");
+      }
+    } else {
+      if (!fields.includes("length")) {
+        fields.push("length");
+      }
+    }
+
     if (shouldShowRepetitionField(inheritedWrapping, form.blueprintFormat)) {
-      fields.push("repetition");
+      if (!fields.includes("repetition")) {
+        fields.push("repetition");
+      }
     }
 
     // Dimensiones - siempre requeridas excepto en casos específicos
     const normalizedFormat = String(form.blueprintFormat || "").trim().toUpperCase();
     const isLaminaFood = isLaminaWrapping(inheritedWrapping) && normalizedFormat === "FOOD";
 
-    if (!isLaminaFood) {
-      // width solo si es POUCH/BOLSA o LÁMINA (pero no LÁMINA FOOD)
-      const shouldRequireWidth = isPouchWrapping(inheritedWrapping) || isBolsaWrapping(inheritedWrapping) ||
-        (isLaminaWrapping(inheritedWrapping) && (normalizedFormat === "TISSUE" || normalizedFormat === "GENERICA"));
-      if (shouldRequireWidth) {
-        fields.push("width");
+    if (!isLaminaFood && isPouchWrapping(inheritedWrapping) || isBolsaWrapping(inheritedWrapping)) {
+      // gussetWidth requerido para POUCH/BOLSA
+      if (!fields.includes("gussetWidth")) {
+        fields.push("gussetWidth");
       }
-      // length y gussetWidth siempre requeridos en esta sección
-      fields.push("length", "gussetWidth");
     }
 
     if (shouldApplyPouchDoyPackRestrictions) {
@@ -3744,15 +3810,6 @@ if (!project) {
       return changed ? next : prev;
     });
   }, [inheritedWrapping, form.hasPerforation]);
-
-  const handleLicitacionChange = (value: string) => {
-  const licitacion = value as "Sí" | "No";
-
-  setForm((prev) => ({
-    ...prev,
-    licitacion,
-  }));
-};
 
 
   const handlePouchFamilyChange = (value: string) => {
@@ -4143,10 +4200,6 @@ if (!project) {
 
     // Helper variables for LÁMINA format handling
     const isLaminaFormat = isLaminaWrapping(inheritedWrapping);
-    const normalizedBlueprintFormat = String(form.blueprintFormat || "")
-      .trim()
-      .toUpperCase();
-    const shouldClearWidthForFood = isLaminaFormat && normalizedBlueprintFormat === "FOOD";
 
     const hasModifications = hasUnsavedChanges(initialFormStateRef.current, form);
     const wasValidated = originalProject?.status === "Validado";
@@ -4295,16 +4348,18 @@ if (!project) {
       nombreTecnicoCalculado: nombreTecnicoCalculado,
 
       specialStructureSpecs: form.specialStructureSpecs,
-      grammage: form.grammage,
+      grammageTolerance: form.grammageTolerance,
       sampleRequest: form.sampleRequest === "Sí",
+      hasMatteFinishVarnish: form.hasMatteFinishVarnish === "Sí",
+      hasInkProtectionVarnish: form.hasInkProtectionVarnish === "Sí",
 
-      width: shouldClearWidthForFood ? "" : form.width,
+      width: form.width,
       length: form.length,
       repetition: form.repetition,
       doyPackBase: form.doyPackBase,
       gussetWidth: form.gussetWidth,
       gussetType: form.gussetType,
-      dimensions: [shouldClearWidthForFood ? "" : form.width, form.length, form.gussetWidth]
+      dimensions: [form.width, form.length, form.gussetWidth]
         .filter(Boolean)
         .join(" x "),
 
@@ -4347,7 +4402,6 @@ if (!project) {
       customerAdditionalInfo: form.customerAdditionalInfo,
       deliveryAddress: form.deliveryAddress,
       additionalComment: form.additionalComment,
-      licitacion: form.licitacion as YesNoPending,
       designPlanFiles: form.designPlanFiles,
 
       // Design field persistence - Perímetros, Fotoregistro, Sentido de Bobinado, Fotocelda
@@ -4371,8 +4425,6 @@ if (!project) {
       fr2MarginBottom: form.fr2MarginBottom,
       rewindingDirection: form.rewindingDirection,
       rewindingDirectionRef: form.rewindingDirectionRef,
-      hasPhotocell: form.hasPhotocell as BooleanLike,
-      photocellLocation: form.photocellLocation,
 
       status: needsRevalidation ? (nextStatus === "Validado" ? "Ficha Completa" : nextStatus) : nextStatus,
       stage: needsRevalidation ? (nextStage === "P3_GESTION_PRODUCTOS_PRELIMINARES" ? "P1_FICHA_PROYECTO" : nextStage) : nextStage,
@@ -4457,10 +4509,6 @@ if (!project) {
 
     // Helper variables for LÁMINA format handling
     const isLaminaFormat = isLaminaWrapping(inheritedWrapping);
-    const normalizedBlueprintFormat = String(form.blueprintFormat || "")
-      .trim()
-      .toUpperCase();
-    const shouldClearWidthForFood = isLaminaFormat && normalizedBlueprintFormat === "FOOD";
 
     updateProjectRecord(projectCode, {
       id: projectCode,
@@ -4600,16 +4648,18 @@ if (!project) {
       nombreTecnicoCalculado: nombreTecnicoCalculado,
 
       specialStructureSpecs: form.specialStructureSpecs,
-      grammage: form.grammage,
+      grammageTolerance: form.grammageTolerance,
       sampleRequest: form.sampleRequest === "Sí",
+      hasMatteFinishVarnish: form.hasMatteFinishVarnish === "Sí",
+      hasInkProtectionVarnish: form.hasInkProtectionVarnish === "Sí",
 
-      width: shouldClearWidthForFood ? "" : form.width,
+      width: form.width,
       length: form.length,
       repetition: form.repetition,
       doyPackBase: form.doyPackBase,
       gussetWidth: form.gussetWidth,
       gussetType: form.gussetType,
-      dimensions: [shouldClearWidthForFood ? "" : form.width, form.length, form.gussetWidth]
+      dimensions: [form.width, form.length, form.gussetWidth]
         .filter(Boolean)
         .join(" x "),
 
@@ -4652,7 +4702,6 @@ if (!project) {
       customerAdditionalInfo: form.customerAdditionalInfo,
       deliveryAddress: form.deliveryAddress,
       additionalComment: form.additionalComment,
-      licitacion: form.licitacion as YesNoPending,
       designPlanFiles: form.designPlanFiles,
 
       // Design field persistence - Perímetros, Fotoregistro, Sentido de Bobinado, Fotocelda
@@ -4676,8 +4725,6 @@ if (!project) {
       fr2MarginBottom: form.fr2MarginBottom,
       rewindingDirection: form.rewindingDirection,
       rewindingDirectionRef: form.rewindingDirectionRef,
-      hasPhotocell: form.hasPhotocell as BooleanLike,
-      photocellLocation: form.photocellLocation,
 
       status: shouldSubmitForValidation ? "En validación" : calculatedStatus,
       stage: shouldSubmitForValidation ? "P2_VALIDACION_VIABILIDAD_TECNICA" : "P1_PREPARACION_FICHA_PROYECTO",
@@ -5435,22 +5482,46 @@ if (!project) {
                             </div>
                           ) : isLaminaWrapping(inheritedWrapping) ? (
                             <div className="space-y-4">
-                              <FormSelect
-                                label="Tipo de Lámina *"
-                                value={form.tipoFormatoLamina}
-                                onChange={(value) => {
-                                  updateField("tipoFormatoLamina", value);
-                                  markFieldAsTouched("tipoFormatoLamina");
-                                }}
-                                onBlur={() => markFieldAsTouched("tipoFormatoLamina")}
-                                error={getError("tipoFormatoLamina")}
-                                options={[
-                                  { value: "Genérica", label: "Genérica" },
-                                  { value: "Tissue", label: "Tissue" },
-                                  { value: "Food", label: "Food" },
-                                ]}
-                                placeholder="-- Seleccione --"
-                              />
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <FormSelect
+                                  label="Tipo de Lámina *"
+                                  value={form.tipoFormatoLamina}
+                                  onChange={(value) => {
+                                    updateField("tipoFormatoLamina", value);
+                                    markFieldAsTouched("tipoFormatoLamina");
+                                  }}
+                                  onBlur={() => markFieldAsTouched("tipoFormatoLamina")}
+                                  error={getError("tipoFormatoLamina")}
+                                  options={[
+                                    { value: "Genérica", label: "Genérica" },
+                                    { value: "Tissue", label: "Tissue" },
+                                    { value: "Food", label: "Food" },
+                                  ]}
+                                  placeholder="-- Seleccione --"
+                                />
+                                <div />
+                              </div>
+
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <FormInput
+                                  label="1 Ancho de lámina *"
+                                  value={form.width}
+                                  onChange={(value) => updateField("width", value)}
+                                  onBlur={() => markFieldAsTouched("width")}
+                                  error={getError("width")}
+                                  placeholder="mm"
+                                  disabled={!canEditDimensions}
+                                />
+                                <FormInput
+                                  label="2 Repetición *"
+                                  value={form.repetition}
+                                  onChange={(value) => updateField("repetition", value)}
+                                  onBlur={() => markFieldAsTouched("repetition")}
+                                  error={getError("repetition")}
+                                  placeholder="mm"
+                                  disabled={!canEditDimensions}
+                                />
+                              </div>
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -5473,11 +5544,750 @@ if (!project) {
                             </div>
                           )}
                         </div>
-                        
+
+                        {/* Dimensiones y accesorios para POUCH y BOLSA */}
+                        {(isPouchWrapping(inheritedWrapping) || isBolsaWrapping(inheritedWrapping)) && (
+                          <div className="mt-6 space-y-6">
+                            {/* Dimensiones */}
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                              <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                Dimensiones
+                              </h4>
+                              <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
+                                {(() => {
+                                  const wrapping = inheritedWrapping?.toLowerCase() || "";
+                                  const showRepetition = shouldShowRepetitionField(inheritedWrapping, form.blueprintFormat);
+                                  const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
+
+                                  const widthRestriction = dimensionRestrictions.width;
+                                  const lengthRestriction = dimensionRestrictions.length;
+                                  const gussetRestriction = dimensionRestrictions.gussetWidth;
+
+                                  const isWidthDisabled = !widthRestriction || (widthRestriction.min === 0 && widthRestriction.max === 0);
+                                  const isLengthDisabled = !lengthRestriction || (lengthRestriction.min === 0 && lengthRestriction.max === 0);
+                                  const isGussetDisabled = !gussetRestriction || (gussetRestriction.min === 0 && gussetRestriction.max === 0);
+
+                                  return (
+                                    <>
+                                      {isPouchOrBolsa && (
+                                        <div>
+                                          <FormInput
+                                            label="Ancho *"
+                                            value={form.width}
+                                            onChange={(value) => updateField("width", value)}
+                                            onBlur={() => markFieldAsTouched("width")}
+                                            error={getError("width")}
+                                            placeholder={widthRestriction ? `${widthRestriction.min} - ${widthRestriction.max} mm` : "mm"}
+                                            disabled={isWidthDisabled || shouldFieldBeDisabled("width", form.projectType, inheritedFields)}
+                                          />
+                                          {widthRestriction && (
+                                            <p className="mt-1 text-xs text-slate-500">
+                                              {formatDimensionRange(widthRestriction)}
+                                            </p>
+                                          )}
+                                          <FieldBadges
+                                            isInherited={inheritedFields.has("width")}
+                                            isSiField={false}
+                                            isLocked={isFieldLockedByMot("width", form.projectType)}
+                                          />
+                                        </div>
+                                      )}
+                                      {isPouchOrBolsa && (
+                                        <div>
+                                          <FormInput
+                                            label="Largo *"
+                                            value={form.length}
+                                            onChange={(value) => updateField("length", value)}
+                                            onBlur={() => markFieldAsTouched("length")}
+                                            error={getError("length")}
+                                            placeholder={lengthRestriction ? `${lengthRestriction.min} - ${lengthRestriction.max} mm` : "mm"}
+                                            disabled={isLengthDisabled || shouldFieldBeDisabled("length", form.projectType, inheritedFields)}
+                                          />
+                                          {lengthRestriction && (
+                                            <p className="mt-1 text-xs text-slate-500">
+                                              {formatDimensionRange(lengthRestriction)}
+                                            </p>
+                                          )}
+                                          <FieldBadges
+                                            isInherited={inheritedFields.has("length")}
+                                            isSiField={false}
+                                            isLocked={isFieldLockedByMot("length", form.projectType)}
+                                          />
+                                        </div>
+                                      )}
+                                      {showRepetition && (
+                                        <FormInput
+                                          label="Repetición *"
+                                          value={form.repetition}
+                                          onChange={(value) => updateField("repetition", value)}
+                                          onBlur={() => markFieldAsTouched("repetition")}
+                                          error={getError("repetition")}
+                                          placeholder="mm"
+                                        />
+                                      )}
+                                      {isPouchOrBolsa && (
+                                        <div>
+                                          <FormInput
+                                            label="Ancho Fuelle *"
+                                            value={form.gussetWidth}
+                                            onChange={(value) => updateField("gussetWidth", value)}
+                                            onBlur={() => markFieldAsTouched("gussetWidth")}
+                                            error={getError("gussetWidth")}
+                                            placeholder={gussetRestriction ? `${gussetRestriction.min} - ${gussetRestriction.max} mm` : "mm"}
+                                            disabled={isGussetDisabled || shouldFieldBeDisabled("gussetWidth", form.projectType, inheritedFields)}
+                                          />
+                                          {gussetRestriction && (
+                                            <p className="mt-1 text-xs text-slate-500">
+                                              {formatDimensionRange(gussetRestriction)}
+                                            </p>
+                                          )}
+                                          <FieldBadges
+                                            isInherited={inheritedFields.has("gussetWidth")}
+                                            isSiField={false}
+                                            isLocked={isFieldLockedByMot("gussetWidth", form.projectType)}
+                                          />
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+
+                            {/* Accesorios */}
+                            <div className="space-y-5">
+                              {(() => {
+                                const selectedAccessories = [
+                                  form.hasZipper === "Sí" ? "hasZipper" : null,
+                                  form.hasTinTie === "Sí" ? "hasTinTie" : null,
+                                  form.hasValve === "Sí" ? "hasValve" : null,
+                                  form.hasDieCutHandle === "Sí" ? "hasDieCutHandle" : null,
+                                  form.hasReinforcement === "Sí" ? "hasReinforcement" : null,
+                                  form.hasAngularCut === "Sí" ? "hasAngularCut" : null,
+                                  form.hasRoundedCorners === "Sí" ? "hasRoundedCorners" : null,
+                                  form.hasNotch === "Sí" ? "hasNotch" : null,
+                                  form.hasPerforation === "Sí" ? "hasPerforation" : null,
+                                  form.hasPreCut === "Sí" ? "hasPreCut" : null,
+                                ].filter(Boolean) as string[];
+
+                                const selectedCount = selectedAccessories.length;
+                                const canSelectMore = selectedCount < 3;
+
+                                const toggleAccessory = (field: keyof ProjectEditFormData) => {
+                                  const isCurrentlySelected = form[field] === "Sí";
+                                  if (isCurrentlySelected) {
+                                    updateField(field, "No");
+                                  } else if (canSelectMore) {
+                                    updateField(field, "Sí");
+                                  }
+                                };
+
+                                const AccessoryCheckbox = ({ field, label }: { field: keyof ProjectEditFormData; label: string }) => (
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={form[field] === "Sí"}
+                                      onChange={() => toggleAccessory(field)}
+                                      disabled={form[field] !== "Sí" && !canSelectMore}
+                                      className="w-4 h-4 rounded border-slate-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    />
+                                    <span className={`text-sm ${form[field] !== "Sí" && !canSelectMore ? "text-slate-400" : "text-slate-700"}`}>
+                                      {label}
+                                    </span>
+                                  </label>
+                                );
+
+                                return (
+                                  <>
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                      <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Consumibles</p>
+                                      <div className="space-y-3">
+                                        <AccessoryCheckbox field="hasZipper" label="Zipper" />
+                                        {form.hasZipper === "Sí" && (
+                                          <FormSelect label="Tipo de Zipper" value={form.zipperType} onChange={(value) => updateField("zipperType", value)} placeholder="-- Seleccione --" options={zipperTypeOpt} />
+                                        )}
+                                        <AccessoryCheckbox field="hasTinTie" label="Tin-Tie" />
+                                        <AccessoryCheckbox field="hasValve" label="Válvula" />
+                                        {form.hasValve === "Sí" && (
+                                          <FormSelect label="Tipo de Válvula" value={form.valveType} onChange={(value) => updateField("valveType", value)} placeholder="-- Seleccione --" options={valveTypeOpt} />
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {(() => {
+                                      const wrappingForAccesorios = inheritedWrapping?.toLowerCase() || "";
+                                      const isBolsa = wrappingForAccesorios.includes("bolsa");
+                                      return isBolsa ? (
+                                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                          <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Producto</p>
+                                          <div className="space-y-3">
+                                            <AccessoryCheckbox field="hasDieCutHandle" label="Asa Troquelada" />
+                                            {form.hasDieCutHandle === "Sí" && (
+                                              <div className="grid grid-cols-3 gap-3">
+                                                <FormSelect
+                                                  label="Tipo de Asa"
+                                                  value={form.tipoAsa}
+                                                  onChange={(value) => updateField("tipoAsa", value)}
+                                                  onBlur={() => markFieldAsTouched("tipoAsa")}
+                                                  error={getError("tipoAsa")}
+                                                  placeholder="-- Seleccione --"
+                                                  options={ASA_TYPE_OPTIONS}
+                                                />
+                                                <FormSelect
+                                                  label="Color de Asa"
+                                                  value={form.colorAsa}
+                                                  onChange={(value) => updateField("colorAsa", value)}
+                                                  onBlur={() => markFieldAsTouched("colorAsa")}
+                                                  error={getError("colorAsa")}
+                                                  placeholder="-- Seleccione --"
+                                                  options={ASA_COLOR_OPTIONS}
+                                                />
+                                                <FormSelect
+                                                  label="Forma de Asa"
+                                                  value={form.formaAsa}
+                                                  onChange={(value) => updateField("formaAsa", value)}
+                                                  onBlur={() => markFieldAsTouched("formaAsa")}
+                                                  error={getError("formaAsa")}
+                                                  placeholder="-- Seleccione --"
+                                                  options={ASA_SHAPE_OPTIONS}
+                                                />
+                                              </div>
+                                            )}
+                                            <AccessoryCheckbox field="hasReinforcement" label="Refuerzo" />
+                                            {form.hasReinforcement === "Sí" && (
+                                              <div className="grid grid-cols-2 gap-3">
+                                                <FormInput label="Espesor Refuerzo (g/m2)" value={form.reinforcementThickness} onChange={(value) => updateField("reinforcementThickness", value)} placeholder="Ej. 100" />
+                                                <FormInput label="Ancho Refuerzo (mm)" value={form.reinforcementWidth} onChange={(value) => updateField("reinforcementWidth", value)} placeholder="Ej. 50" />
+                                              </div>
+                                            )}
+                                            <div className="grid grid-cols-2 gap-3">
+                                              <FormInput label="Ancho Sello (mm)" value={form.anchoSello} onChange={(value) => updateField("anchoSello", value)} onBlur={() => markFieldAsTouched("anchoSello")} error={getError("anchoSello")} placeholder="Ej. 25" />
+                                              <FormInput label="Sello Ancho Transversal (mm)" value={form.selloAnchoTransversal} onChange={(value) => updateField("selloAnchoTransversal", value)} onBlur={() => markFieldAsTouched("selloAnchoTransversal")} error={getError("selloAnchoTransversal")} placeholder="Ej. 15" />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ) : null;
+                                    })()}
+
+                                    {shouldShowInternalAccessories && (
+                                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
+                                        <div className="space-y-3">
+                                          <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
+                                          <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
+                                          {form.hasRoundedCorners === "Sí" && (
+                                            <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={roundedCornersOpt} />
+                                          )}
+                                          <AccessoryCheckbox field="hasNotch" label="Muesca" />
+                                          <AccessoryCheckbox field="hasPerforation" label="Perforación" />
+                                          {hasPerforation && (
+                                            <div className="space-y-3">
+                                              {shouldShowPouchPerforationType && (
+                                                <FormSelect
+                                                  label="Tipo Perforación Pouch"
+                                                  value={form.pouchPerforationType}
+                                                  onChange={(value) => updateField("pouchPerforationType", value)}
+                                                  onBlur={() => markFieldAsTouched("pouchPerforationType")}
+                                                  error={getError("pouchPerforationType")}
+                                                  placeholder="-- Seleccione --"
+                                                  options={pouchPerforationOpt}
+                                                />
+                                              )}
+                                              {shouldShowBolsaPerforationType && (
+                                                <FormSelect
+                                                  label="Tipo Perforación Bolsa"
+                                                  value={form.bagPerforationType}
+                                                  onChange={(value) => updateField("bagPerforationType", value)}
+                                                  onBlur={() => markFieldAsTouched("bagPerforationType")}
+                                                  error={getError("bagPerforationType")}
+                                                  placeholder="-- Seleccione --"
+                                                  options={bagPerforationOpt}
+                                                />
+                                              )}
+                                              <FormSelect
+                                                label="Ubicación Perforaciones"
+                                                value={form.perforationLocation}
+                                                onChange={(value) => updateField("perforationLocation", value)}
+                                                onBlur={() => markFieldAsTouched("perforationLocation")}
+                                                error={getError("perforationLocation")}
+                                                placeholder="-- Seleccione --"
+                                                options={PERFORATION_LOCATION_OPTIONS}
+                                              />
+                                              <FormInput
+                                                label="Distancia Aboca Perforación (mm)"
+                                                value={form.distanciaAbocaPerforacion}
+                                                onChange={(value) => updateField("distanciaAbocaPerforacion", value)}
+                                                onBlur={() => markFieldAsTouched("distanciaAbocaPerforacion")}
+                                                error={getError("distanciaAbocaPerforacion")}
+                                                placeholder="Ej. 10"
+                                              />
+                                              <FormInput
+                                                label="Distancia Margen Superior Perforación (mm)"
+                                                value={form.distMargenSuperiorPerforacion}
+                                                onChange={(value) => updateField("distMargenSuperiorPerforacion", value)}
+                                                onBlur={() => markFieldAsTouched("distMargenSuperiorPerforacion")}
+                                                error={getError("distMargenSuperiorPerforacion")}
+                                                placeholder="Ej. 5"
+                                              />
+                                              <FormInput
+                                                label="Distancia Fuelle Perforación (mm)"
+                                                value={form.distFuellePerforacion}
+                                                onChange={(value) => updateField("distFuellePerforacion", value)}
+                                                onBlur={() => markFieldAsTouched("distFuellePerforacion")}
+                                                error={getError("distFuellePerforacion")}
+                                                placeholder="Ej. 8"
+                                              />
+                                              <div className="grid grid-cols-2 gap-3">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={form.perforacionParaAire === "Sí"}
+                                                    onChange={(e) => updateField("perforacionParaAire", e.target.checked ? "Sí" : "No")}
+                                                    className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                                  />
+                                                  <span className="text-sm text-slate-700">Perforación para Aire</span>
+                                                </label>
+                                              </div>
+                                            </div>
+                                          )}
+                                          <AccessoryCheckbox field="hasPreCut" label="Pre-Corte" />
+                                          {form.hasPreCut === "Sí" && (
+                                            <div className="space-y-3">
+                                              <FormSelect label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} placeholder="-- Seleccione --" options={precutTypeOpt} />
+                                              <div className="grid grid-cols-2 gap-3">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={form.precutFuelleAbreFacil === "Sí"}
+                                                    onChange={(e) => updateField("precutFuelleAbreFacil", e.target.checked ? "Sí" : "No")}
+                                                    className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                                  />
+                                                  <span className="text-sm text-slate-700">Pre-corte Fuelle Abre Fácil</span>
+                                                </label>
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={form.precutFuelleA10mm === "Sí"}
+                                                    onChange={(e) => updateField("precutFuelleA10mm", e.target.checked ? "Sí" : "No")}
+                                                    className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                                  />
+                                                  <span className="text-sm text-slate-700">Pre-corte Fuelle a 10mm</span>
+                                                </label>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                      <p className="mb-3 text-xs font-bold uppercase text-slate-600">Wicket</p>
+                                      <div className="space-y-3">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={form.hasWicket === "Sí"}
+                                            onChange={(e) => updateField("hasWicket", e.target.checked ? "Sí" : "No")}
+                                            className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                          />
+                                          <span className="text-sm text-slate-700">¿Tiene Wicket?</span>
+                                        </label>
+                                        {form.hasWicket === "Sí" && (
+                                          <div className="grid grid-cols-3 gap-3">
+                                            <FormInput
+                                              label="Diámetro Wicket (mm)"
+                                              value={form.wicketDiameter}
+                                              onChange={(value) => updateField("wicketDiameter", value)}
+                                              onBlur={() => markFieldAsTouched("wicketDiameter")}
+                                              error={getError("wicketDiameter")}
+                                              placeholder="Ej. 20"
+                                            />
+                                            <FormInput
+                                              label="Dist. Superior Wicket (mm)"
+                                              value={form.wicketDistSuperior}
+                                              onChange={(value) => updateField("wicketDistSuperior", value)}
+                                              onBlur={() => markFieldAsTouched("wicketDistSuperior")}
+                                              error={getError("wicketDistSuperior")}
+                                              placeholder="Ej. 10"
+                                            />
+                                            <FormInput
+                                              label="Dist. Derecho Wicket (mm)"
+                                              value={form.wicketDistDerecho}
+                                              onChange={(value) => updateField("wicketDistDerecho", value)}
+                                              onBlur={() => markFieldAsTouched("wicketDistDerecho")}
+                                              error={getError("wicketDistDerecho")}
+                                              placeholder="Ej. 15"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                      <p className="mb-3 text-xs font-bold uppercase text-slate-600">Wicket Control</p>
+                                      <div className="space-y-3">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={form.hasWicketControl === "Sí"}
+                                            onChange={(e) => updateField("hasWicketControl", e.target.checked ? "Sí" : "No")}
+                                            className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                          />
+                                          <span className="text-sm text-slate-700">¿Tiene Wicket Control?</span>
+                                        </label>
+                                        {form.hasWicketControl === "Sí" && (
+                                          <div className="grid grid-cols-4 gap-3">
+                                            <FormInput
+                                              label="Diámetro Control (mm)"
+                                              value={form.wicketControlDiameter}
+                                              onChange={(value) => updateField("wicketControlDiameter", value)}
+                                              onBlur={() => markFieldAsTouched("wicketControlDiameter")}
+                                              error={getError("wicketControlDiameter")}
+                                              placeholder="Ej. 15"
+                                            />
+                                            <FormSelect
+                                              label="Ubicación Control"
+                                              value={form.wicketControlUbicacion}
+                                              onChange={(value) => updateField("wicketControlUbicacion", value)}
+                                              onBlur={() => markFieldAsTouched("wicketControlUbicacion")}
+                                              error={getError("wicketControlUbicacion")}
+                                              placeholder="-- Seleccione --"
+                                              options={[
+                                                { value: "Arriba", label: "Arriba" },
+                                                { value: "Abajo", label: "Abajo" },
+                                                { value: "Izquierda", label: "Izquierda" },
+                                                { value: "Derecha", label: "Derecha" },
+                                              ]}
+                                            />
+                                            <FormInput
+                                              label="Dist. Superior Control (mm)"
+                                              value={form.wicketControlDistSuperior}
+                                              onChange={(value) => updateField("wicketControlDistSuperior", value)}
+                                              onBlur={() => markFieldAsTouched("wicketControlDistSuperior")}
+                                              error={getError("wicketControlDistSuperior")}
+                                              placeholder="Ej. 8"
+                                            />
+                                            <FormInput
+                                              label="Dist. Derecho Control (mm)"
+                                              value={form.wicketControlDistDerecho}
+                                              onChange={(value) => updateField("wicketControlDistDerecho", value)}
+                                              onBlur={() => markFieldAsTouched("wicketControlDistDerecho")}
+                                              error={getError("wicketControlDistDerecho")}
+                                              placeholder="Ej. 12"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <FormSelect
+                                      label="Otros accesorios"
+                                      value={form.otherAccessories}
+                                      onChange={(value) => updateField("otherAccessories", value)}
+                                      placeholder="-- Seleccione --"
+                                      options={OTHER_ACCESSORIES_OPTIONS}
+                                    />
+
+                                    <div className="text-xs text-slate-500 text-center">
+                                      Accesorios seleccionados: {selectedCount}/3 {!canSelectMore && "(máximo alcanzado)"}
+                                    </div>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
                 </FormCard>
+
+                {/* BLOQUE 2: FOTOREGISTRO SIMPLIFICADO */}
+                {canEditDesign && isLaminaWrapping(inheritedWrapping) && (
+                  <FormCard title="Datos del Fotoregistro" icon="📸" color="#3498db">
+                    {(() => {
+                      // State derivado para Fotoregistro
+                      const hasFotoregistro = form.hasPhotoregister1 === "Sí" ? "Sí" : form.hasPhotoregister1 === "No" ? "No" : "";
+                      const countFotoregistros = form.hasPhotoregister2 === "Sí" ? 2 : form.hasPhotoregister1 === "Sí" ? 1 : 0;
+
+                      // Dimensiones de referencia
+                      const laminaWidth = parseDecimalInput(form.width) || 0;
+                      const laminaRepetition = parseDecimalInput(form.repetition) || 0;
+                      const hasLaminaDimensions = laminaWidth > 0 && laminaRepetition > 0;
+
+                      // Dimensiones y márgenes existentes
+                      const fr1Width = parseDecimalInput(form.fr1Width) || 0;
+                      const fr1Height = parseDecimalInput(form.fr1Height) || 0;
+                      const fr1Margins = {
+                        left: parseDecimalInput(form.fr1MarginLeft) || 0,
+                        right: parseDecimalInput(form.fr1MarginRight) || 0,
+                        top: parseDecimalInput(form.fr1MarginTop) || 0,
+                        bottom: parseDecimalInput(form.fr1MarginBottom) || 0,
+                      };
+
+                      // Reconstruir referencias desde márgenes
+                      const fr1Reference = hasLaminaDimensions && fr1Width > 0 && fr1Height > 0
+                        ? reconstructReferenceAndDistance(laminaWidth, laminaRepetition, { width: fr1Width, height: fr1Height }, fr1Margins).reference
+                        : { horizontal: "right" as HorizontalReference, vertical: "bottom" as VerticalReference };
+
+                      const fr1Distance = hasLaminaDimensions && fr1Width > 0 && fr1Height > 0
+                        ? reconstructReferenceAndDistance(laminaWidth, laminaRepetition, { width: fr1Width, height: fr1Height }, fr1Margins).distance
+                        : { horizontal: 0, vertical: 0 };
+
+                      // FR2
+                      const fr2Width = parseDecimalInput(form.fr2Width) || 0;
+                      const fr2Height = parseDecimalInput(form.fr2Height) || 0;
+                      const fr2Margins = {
+                        left: parseDecimalInput(form.fr2MarginLeft) || 0,
+                        right: parseDecimalInput(form.fr2MarginRight) || 0,
+                        top: parseDecimalInput(form.fr2MarginTop) || 0,
+                        bottom: parseDecimalInput(form.fr2MarginBottom) || 0,
+                      };
+
+                      const fr2IsAutomatic = countFotoregistros === 2 && hasLaminaDimensions && fr1Width > 0 && fr1Height > 0
+                        ? isSecondPhotoregisterAutomatic(laminaWidth, laminaRepetition, { width: fr1Width, height: fr1Height }, fr1Margins, { width: fr2Width, height: fr2Height }, fr2Margins)
+                        : true;
+
+                      const fr2Reference = countFotoregistros === 2 && hasLaminaDimensions && fr1Width > 0 && fr1Height > 0
+                        ? reconstructReferenceAndDistance(laminaWidth, laminaRepetition, { width: fr2Width, height: fr2Height }, fr2Margins).reference
+                        : { horizontal: "left" as HorizontalReference, vertical: "bottom" as VerticalReference };
+
+                      const fr2Distance = countFotoregistros === 2 && hasLaminaDimensions && fr1Width > 0 && fr1Height > 0
+                        ? reconstructReferenceAndDistance(laminaWidth, laminaRepetition, { width: fr2Width, height: fr2Height }, fr2Margins).distance
+                        : { horizontal: 0, vertical: 0 };
+
+                      // Manejadores de cambio
+                      const handleHasFotoregistroChange = (value: "Sí" | "No") => {
+                        if (value === "No") {
+                          updateField("hasPhotoregister1", "No");
+                          updateField("hasPhotoregister2", "No");
+                          updateField("fr1Width", "");
+                          updateField("fr1Height", "");
+                          updateField("fr1MarginLeft", "");
+                          updateField("fr1MarginRight", "");
+                          updateField("fr1MarginTop", "");
+                          updateField("fr1MarginBottom", "");
+                          updateField("fr2Width", "");
+                          updateField("fr2Height", "");
+                          updateField("fr2MarginLeft", "");
+                          updateField("fr2MarginRight", "");
+                          updateField("fr2MarginTop", "");
+                          updateField("fr2MarginBottom", "");
+                        } else {
+                          updateField("hasPhotoregister1", "Sí");
+                          updateField("hasPhotoregister2", "No");
+                        }
+                        markFieldAsTouched("hasPhotoregister1");
+                      };
+
+                      const handleCountChange = (count: 1 | 2) => {
+                        if (count === 1) {
+                          updateField("hasPhotoregister2", "No");
+                          updateField("fr2Width", "");
+                          updateField("fr2Height", "");
+                          updateField("fr2MarginLeft", "");
+                          updateField("fr2MarginRight", "");
+                          updateField("fr2MarginTop", "");
+                          updateField("fr2MarginBottom", "");
+                        } else {
+                          // Generar FR2 automático
+                          if (hasLaminaDimensions && fr1Width > 0 && fr1Height > 0) {
+                            updateField("hasPhotoregister2", "Sí");
+                            const fr2Auto = calculateSymmetricSecond(laminaWidth, laminaRepetition, { width: fr1Width, height: fr1Height }, fr1Reference, fr1Distance);
+                            updateField("fr2Width", String(fr1Width));
+                            updateField("fr2Height", String(fr1Height));
+                            updateField("fr2MarginLeft", String(fr2Auto.margins.left));
+                            updateField("fr2MarginRight", String(fr2Auto.margins.right));
+                            updateField("fr2MarginTop", String(fr2Auto.margins.top));
+                            updateField("fr2MarginBottom", String(fr2Auto.margins.bottom));
+                          }
+                        }
+                        markFieldAsTouched("hasPhotoregister2");
+                      };
+
+                      const handleFR1DimensionChange = (newWidth: number, newHeight: number) => {
+                        updateField("fr1Width", String(newWidth));
+                        updateField("fr1Height", String(newHeight));
+
+                        // Si FR2 es automático, actualizar también
+                        if (countFotoregistros === 2 && fr2IsAutomatic && hasLaminaDimensions) {
+                          const fr2Auto = calculateSymmetricSecond(laminaWidth, laminaRepetition, { width: newWidth, height: newHeight }, fr1Reference, fr1Distance);
+                          updateField("fr2Width", String(newWidth));
+                          updateField("fr2Height", String(newHeight));
+                          updateField("fr2MarginLeft", String(fr2Auto.margins.left));
+                          updateField("fr2MarginRight", String(fr2Auto.margins.right));
+                          updateField("fr2MarginTop", String(fr2Auto.margins.top));
+                          updateField("fr2MarginBottom", String(fr2Auto.margins.bottom));
+                        }
+                      };
+
+                      const handleFR1ReferenceChange = (newRef: PhotoregisterReference) => {
+                        // Calcular nuevos márgenes
+                        const newMargins = calculateMargins(laminaWidth, laminaRepetition, { width: fr1Width, height: fr1Height }, newRef, fr1Distance);
+                        updateField("fr1MarginLeft", String(newMargins.left));
+                        updateField("fr1MarginRight", String(newMargins.right));
+                        updateField("fr1MarginTop", String(newMargins.top));
+                        updateField("fr1MarginBottom", String(newMargins.bottom));
+
+                        // Si FR2 es automático, actualizar también
+                        if (countFotoregistros === 2 && fr2IsAutomatic && hasLaminaDimensions) {
+                          const fr2Auto = calculateSymmetricSecond(laminaWidth, laminaRepetition, { width: fr1Width, height: fr1Height }, newRef, fr1Distance);
+                          updateField("fr2MarginLeft", String(fr2Auto.margins.left));
+                          updateField("fr2MarginRight", String(fr2Auto.margins.right));
+                          updateField("fr2MarginTop", String(fr2Auto.margins.top));
+                          updateField("fr2MarginBottom", String(fr2Auto.margins.bottom));
+                        }
+                      };
+
+                      const handleFR1DistanceChange = (newDist: PhotoregisterDistance) => {
+                        const newMargins = calculateMargins(laminaWidth, laminaRepetition, { width: fr1Width, height: fr1Height }, fr1Reference, newDist);
+                        updateField("fr1MarginLeft", String(newMargins.left));
+                        updateField("fr1MarginRight", String(newMargins.right));
+                        updateField("fr1MarginTop", String(newMargins.top));
+                        updateField("fr1MarginBottom", String(newMargins.bottom));
+
+                        if (countFotoregistros === 2 && fr2IsAutomatic && hasLaminaDimensions) {
+                          const fr2Auto = calculateSymmetricSecond(laminaWidth, laminaRepetition, { width: fr1Width, height: fr1Height }, fr1Reference, newDist);
+                          updateField("fr2MarginLeft", String(fr2Auto.margins.left));
+                          updateField("fr2MarginRight", String(fr2Auto.margins.right));
+                          updateField("fr2MarginTop", String(fr2Auto.margins.top));
+                          updateField("fr2MarginBottom", String(fr2Auto.margins.bottom));
+                        }
+                      };
+
+                      // FR2 Handlers
+                      const handleFR2DimensionChange = (newWidth: number, newHeight: number) => {
+                        updateField("fr2Width", String(newWidth));
+                        updateField("fr2Height", String(newHeight));
+                      };
+
+                      const handleFR2ReferenceChange = (newRef: PhotoregisterReference) => {
+                        const newMargins = calculateMargins(laminaWidth, laminaRepetition, { width: fr2Width, height: fr2Height }, newRef, fr2Distance);
+                        updateField("fr2MarginLeft", String(newMargins.left));
+                        updateField("fr2MarginRight", String(newMargins.right));
+                        updateField("fr2MarginTop", String(newMargins.top));
+                        updateField("fr2MarginBottom", String(newMargins.bottom));
+                      };
+
+                      const handleFR2DistanceChange = (newDist: PhotoregisterDistance) => {
+                        const newMargins = calculateMargins(laminaWidth, laminaRepetition, { width: fr2Width, height: fr2Height }, fr2Reference, newDist);
+                        updateField("fr2MarginLeft", String(newMargins.left));
+                        updateField("fr2MarginRight", String(newMargins.right));
+                        updateField("fr2MarginTop", String(newMargins.top));
+                        updateField("fr2MarginBottom", String(newMargins.bottom));
+                      };
+
+                      // Generar resumen para FR1
+                      const fr1Summary = fr1Width > 0 && fr1Height > 0
+                        ? `${fr1Width} × ${fr1Height} mm · ${fr1Reference.horizontal === "left" ? "Izquierda" : "Derecha"} ${fr1Distance.horizontal} mm · ${fr1Reference.vertical === "top" ? "Arriba" : "Abajo"} ${fr1Distance.vertical} mm`
+                        : "";
+
+                      // Generar resumen para FR2
+                      const fr2Summary = fr2Width > 0 && fr2Height > 0
+                        ? `${fr2Width} × ${fr2Height} mm · ${fr2Reference.horizontal === "left" ? "Izquierda" : "Derecha"} ${fr2Distance.horizontal} mm · ${fr2Reference.vertical === "top" ? "Arriba" : "Abajo"} ${fr2Distance.vertical} mm`
+                        : "";
+
+                      return (
+                        <div className="space-y-6">
+                          {/* PREGUNTAS INICIALES */}
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            {/* PREGUNTA 1: ¿Lleva fotoregistro? */}
+                            <FormSelect
+                              label="¿La lámina lleva fotoregistro? *"
+                              value={hasFotoregistro}
+                              onChange={(value) => handleHasFotoregistroChange(value as "Sí" | "No")}
+                              options={[
+                                { value: "No", label: "No" },
+                                { value: "Sí", label: "Sí" },
+                              ]}
+                              placeholder="-- Seleccione --"
+                            />
+
+                            {/* PREGUNTA 2: ¿Cuántos fotoregistros? (solo si Sí) */}
+                            {hasFotoregistro === "Sí" && (
+                              <FormSelect
+                                label="¿Cuántos fotoregistros lleva? *"
+                                value={String(countFotoregistros)}
+                                onChange={(value) => handleCountChange(Number(value) as 1 | 2)}
+                                options={[
+                                  { value: "1", label: "1 fotoregistro" },
+                                  { value: "2", label: "2 fotoregistros" },
+                                ]}
+                                placeholder="-- Seleccione --"
+                              />
+                            )}
+                          </div>
+
+                          {/* ACORDEONES DE FOTOREGISTRO */}
+                          {hasFotoregistro === "Sí" && hasLaminaDimensions && (
+                            <div className="space-y-3">
+                              {/* FOTOREGISTRO 1 */}
+                              <PhotoregisterAccordion
+                                title="Fotoregistro 1"
+                                number={1}
+                                isAutomatic={false}
+                                isCustom={false}
+                                isIncomplete={fr1Width === 0 || fr1Height === 0}
+                                width={fr1Width}
+                                height={fr1Height}
+                                reference={fr1Reference}
+                                distance={fr1Distance}
+                                margins={fr1Margins}
+                                onWidthChange={(val) => handleFR1DimensionChange(val, fr1Height)}
+                                onHeightChange={(val) => handleFR1DimensionChange(fr1Width, val)}
+                                onReferenceChange={handleFR1ReferenceChange}
+                                onDistanceChange={handleFR1DistanceChange}
+                                disabled={!canEditDesign}
+                                summary={fr1Summary}
+                                canEditDimensions={true}
+                              />
+
+                              {/* FOTOREGISTRO 2 */}
+                              {countFotoregistros === 2 && (
+                                <PhotoregisterAccordion
+                                  title="Fotoregistro 2"
+                                  number={2}
+                                  isAutomatic={fr2IsAutomatic}
+                                  isCustom={!fr2IsAutomatic}
+                                  isIncomplete={fr2Width === 0 || fr2Height === 0}
+                                  width={fr2Width}
+                                  height={fr2Height}
+                                  reference={fr2Reference}
+                                  distance={fr2Distance}
+                                  margins={fr2Margins}
+                                  onWidthChange={(val) => handleFR2DimensionChange(val, fr2Height)}
+                                  onHeightChange={(val) => handleFR2DimensionChange(fr2Width, val)}
+                                  onReferenceChange={handleFR2ReferenceChange}
+                                  onDistanceChange={handleFR2DistanceChange}
+                                  disabled={!canEditDesign}
+                                  summary={fr2Summary}
+                                  canEditDimensions={true}
+                                />
+                              )}
+                            </div>
+                          )}
+
+                          {/* VISTA PREVIA */}
+                          {hasFotoregistro === "Sí" && hasLaminaDimensions && (
+                            <PhotoregisterPreview
+                              laminaWidth={laminaWidth}
+                              repetition={laminaRepetition}
+                              fr1Dimensions={fr1Width > 0 && fr1Height > 0 ? { width: fr1Width, height: fr1Height } : undefined}
+                              fr1Reference={fr1Width > 0 && fr1Height > 0 ? fr1Reference : undefined}
+                              fr1Distance={fr1Width > 0 && fr1Height > 0 ? fr1Distance : undefined}
+                              fr2Dimensions={countFotoregistros === 2 && fr2Width > 0 && fr2Height > 0 ? { width: fr2Width, height: fr2Height } : undefined}
+                              fr2Reference={countFotoregistros === 2 && fr2Width > 0 && fr2Height > 0 ? fr2Reference : undefined}
+                              fr2Distance={countFotoregistros === 2 && fr2Width > 0 && fr2Height > 0 ? fr2Distance : undefined}
+                              showFr2={countFotoregistros === 2}
+                              incomplete={false}
+                            />
+                          )}
+
+                        </div>
+                      );
+                    })()}
+                  </FormCard>
+                )}
 
                 <FormCard title="Información técnica de diseño" icon="🎨" color="#00395A">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -5708,173 +6518,6 @@ if (!project) {
                   </FormCard>
                 )}
 
-                {/* BLOQUE 2: FOTOREGISTRO */}
-                {canEditDesign && (
-                  <FormCard title="Datos del Fotoregistro" icon="📸" color="#3498db">
-                    <div className="space-y-6">
-                      {/* Fotoregistro 1 */}
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="mb-4 flex items-center gap-2">
-                          <h5 className="text-sm font-bold text-slate-900">Fotoregistro 1</h5>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                          <FormSelect
-                            label="¿Tiene Fotoregistro 1?"
-                            value={form.hasPhotoregister1}
-                            onChange={(value) => {
-                              updateField("hasPhotoregister1", value);
-                              if (value === "No") {
-                                updateField("fr1Width", "");
-                                updateField("fr1Height", "");
-                                updateField("fr1MarginLeft", "");
-                                updateField("fr1MarginRight", "");
-                                updateField("fr1MarginTop", "");
-                                updateField("fr1MarginBottom", "");
-                              }
-                            }}
-                            placeholder="-- Seleccione --"
-                            options={YES_NO_OPTIONS}
-                            disabled={!canEditDesign}
-                          />
-                        </div>
-
-                        {form.hasPhotoregister1 === "Sí" && (
-                          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                            <FormInput
-                              label="Ancho (mm)"
-                              type="number"
-                              value={form.fr1Width}
-                              onChange={(value) => updateField("fr1Width", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                            <FormInput
-                              label="Alto (mm)"
-                              type="number"
-                              value={form.fr1Height}
-                              onChange={(value) => updateField("fr1Height", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                            <FormInput
-                              label="Margen Izquierdo (mm)"
-                              type="number"
-                              value={form.fr1MarginLeft}
-                              onChange={(value) => updateField("fr1MarginLeft", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                            <FormInput
-                              label="Margen Derecho (mm)"
-                              type="number"
-                              value={form.fr1MarginRight}
-                              onChange={(value) => updateField("fr1MarginRight", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                            <FormInput
-                              label="Margen Superior (mm)"
-                              type="number"
-                              value={form.fr1MarginTop}
-                              onChange={(value) => updateField("fr1MarginTop", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                            <FormInput
-                              label="Margen Inferior (mm)"
-                              type="number"
-                              value={form.fr1MarginBottom}
-                              onChange={(value) => updateField("fr1MarginBottom", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Fotoregistro 2 */}
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="mb-4 flex items-center gap-2">
-                          <h5 className="text-sm font-bold text-slate-900">Fotoregistro 2</h5>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                          <FormSelect
-                            label="¿Tiene Fotoregistro 2?"
-                            value={form.hasPhotoregister2}
-                            onChange={(value) => {
-                              updateField("hasPhotoregister2", value);
-                              if (value === "No") {
-                                updateField("fr2Width", "");
-                                updateField("fr2Height", "");
-                                updateField("fr2MarginLeft", "");
-                                updateField("fr2MarginRight", "");
-                                updateField("fr2MarginTop", "");
-                                updateField("fr2MarginBottom", "");
-                              }
-                            }}
-                            placeholder="-- Seleccione --"
-                            options={YES_NO_OPTIONS}
-                            disabled={!canEditDesign}
-                          />
-                        </div>
-
-                        {form.hasPhotoregister2 === "Sí" && (
-                          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                            <FormInput
-                              label="Ancho (mm)"
-                              type="number"
-                              value={form.fr2Width}
-                              onChange={(value) => updateField("fr2Width", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                            <FormInput
-                              label="Alto (mm)"
-                              type="number"
-                              value={form.fr2Height}
-                              onChange={(value) => updateField("fr2Height", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                            <FormInput
-                              label="Margen Izquierdo (mm)"
-                              type="number"
-                              value={form.fr2MarginLeft}
-                              onChange={(value) => updateField("fr2MarginLeft", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                            <FormInput
-                              label="Margen Derecho (mm)"
-                              type="number"
-                              value={form.fr2MarginRight}
-                              onChange={(value) => updateField("fr2MarginRight", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                            <FormInput
-                              label="Margen Superior (mm)"
-                              type="number"
-                              value={form.fr2MarginTop}
-                              onChange={(value) => updateField("fr2MarginTop", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                            <FormInput
-                              label="Margen Inferior (mm)"
-                              type="number"
-                              value={form.fr2MarginBottom}
-                              onChange={(value) => updateField("fr2MarginBottom", value)}
-                              placeholder="0"
-                              disabled={!canEditDesign}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </FormCard>
-                )}
-
                 {/* BLOQUE 3: SENTIDO DE BOBINADO */}
                 {canEditDesign && (
                   <FormCard title="Sentido de Embobinado" icon="🔄" color="#27ae60">
@@ -5900,44 +6543,6 @@ if (!project) {
                   </FormCard>
                 )}
 
-                {/* BLOQUE OPCIONAL: FOTOCELDA */}
-                {canEditDesign && (
-                  <FormCard title="Fotocelda" icon="📹" color="#9b59b6">
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <FormSelect
-                          label="¿Tiene fotocelda?"
-                          value={form.hasPhotocell}
-                          onChange={(value) => {
-                            updateField("hasPhotocell", value);
-                            if (value === "No") {
-                              updateField("photocellLocation", "");
-                            }
-                          }}
-                          placeholder="-- Seleccione --"
-                          options={YES_NO_OPTIONS}
-                          disabled={!canEditDesign}
-                        />
-                        {form.hasPhotocell === "Sí" && (
-                          <FormSelect
-                            label="Ubicación fotocelda"
-                            value={form.photocellLocation}
-                            onChange={(value) => updateField("photocellLocation", value)}
-                            placeholder="-- Seleccione --"
-                            options={[
-                              { value: "Superior", label: "Superior" },
-                              { value: "Inferior", label: "Inferior" },
-                              { value: "Izquierda", label: "Izquierda" },
-                              { value: "Derecha", label: "Derecha" },
-                              { value: "Centro", label: "Centro" },
-                            ]}
-                            disabled={!canEditDesign}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </FormCard>
-                )}
               </div>
             )}
 
@@ -5960,6 +6565,18 @@ if (!project) {
                       options={YES_NO_OPTIONS}
                       disabled={!canEditStructure}
                     />
+                    <FormSelect
+                      label="¿Solicitud de muestra? *"
+                      value={form.sampleRequest}
+                      onChange={(value) => {
+                        updateField("sampleRequest", value);
+                        markFieldAsTouched("sampleRequest");
+                      }}
+                      onBlur={() => markFieldAsTouched("sampleRequest")}
+                      error={getError("sampleRequest")}
+                      placeholder="-- Seleccione --"
+                      options={YES_NO_OPTIONS}
+                    />
                     {form.hasReferenceStructure === "Sí" && (
                       <>
                         <FormInput
@@ -5977,14 +6594,125 @@ if (!project) {
                       </>
                     )}
                     {form.hasReferenceStructure !== "Sí" && (
-                      <PreviewRow
-                        label="Tipo de Estructura (Calculado)"
-                        value={form.structureType || "—"}
+                      <FormSelect
+                        label="Tipo de Estructura *"
+                        value={form.structureType}
+                        onChange={(value) => {
+                          updateField("structureType", value);
+                          markFieldAsTouched("structureType");
+                        }}
+                        onBlur={() => markFieldAsTouched("structureType")}
+                        error={getError("structureType")}
+                        placeholder="-- Seleccione --"
+                        options={STRUCTURE_TYPE_OPTIONS}
+                        disabled={!canEditStructure}
                       />
                     )}
                   </div>
 
-                  {form.hasReferenceStructure !== "Sí" && (
+                  {form.hasReferenceStructure !== "Sí" && isLaminaWrapping(inheritedWrapping) && (
+                    <div className="mt-5 space-y-5">
+                      {/* Barniz Controls */}
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
+                            Barniz
+                          </h4>
+
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={form.hasMatteFinishVarnish === "Sí"}
+                              onChange={(e) => {
+                                updateField("hasMatteFinishVarnish", e.target.checked ? "Sí" : "No");
+                                markFieldAsTouched("hasMatteFinishVarnish");
+                              }}
+                              className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                            />
+                            <span className="text-sm text-slate-700">Acabado mate</span>
+                          </label>
+
+                          {form.structureType === "Monocapa" && (
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={form.hasInkProtectionVarnish === "Sí"}
+                                onChange={(e) => {
+                                  updateField("hasInkProtectionVarnish", e.target.checked ? "Sí" : "No");
+                                  markFieldAsTouched("hasInkProtectionVarnish");
+                                }}
+                                className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                              />
+                              <span className="text-sm text-slate-700">Protección</span>
+                            </label>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Validation Message */}
+                      {(() => {
+                        const expectedLayerCount = getLayerCountByStructureType(form.structureType);
+                        const layers = [
+                          form.layer1Material,
+                          form.layer2Material,
+                          form.layer3Material,
+                          form.layer4Material,
+                        ];
+                        const actualLayerCount = layers.slice(0, expectedLayerCount).filter(Boolean).length;
+
+                        if (actualLayerCount < expectedLayerCount) {
+                          return (
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                              <p className="text-sm text-amber-800">
+                                <span className="font-semibold">⚠️ Estructura incompleta:</span> La estructura{" "}
+                                <strong>{form.structureType}</strong> requiere <strong>{expectedLayerCount}</strong> material(es), pero solo tiene{" "}
+                                <strong>{actualLayerCount}</strong>. Completa la información del Momento 1.
+                              </p>
+                            </div>
+                          );
+                        }
+
+                        return null;
+                      })()}
+
+                      {/* Structure Table */}
+                      {(() => {
+                        console.log("ProductEditPage printClass:", form.printClass);
+                        return null;
+                      })()}
+                      <LaminaStructureTable
+                        structureType={form.structureType}
+                        layer1Material={form.layer1Material}
+                        layer1Micron={form.layer1Micron}
+                        layer1Grammage={form.layer1Grammage}
+                        layer2Material={form.layer2Material}
+                        layer2Micron={form.layer2Micron}
+                        layer2Grammage={form.layer2Grammage}
+                        layer3Material={form.layer3Material}
+                        layer3Micron={form.layer3Micron}
+                        layer3Grammage={form.layer3Grammage}
+                        layer4Material={form.layer4Material}
+                        layer4Micron={form.layer4Micron}
+                        layer4Grammage={form.layer4Grammage}
+                        printClass={form.printClass}
+                        hasMatteFinishVarnish={form.hasMatteFinishVarnish === "Sí"}
+                        hasInkProtectionVarnish={form.hasInkProtectionVarnish === "Sí"}
+                        grammage=""
+                        grammageTolerance={form.grammageTolerance}
+                      />
+
+                      <div className="mt-4">
+                        <FormTextarea
+                          label="Comentarios"
+                          value={form.specialStructureSpecs}
+                          onChange={(value) => updateField("specialStructureSpecs", value)}
+                          placeholder="Restricciones, barreras, sellabilidad, resistencia, OTR/WVTR..."
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {form.hasReferenceStructure !== "Sí" && !isLaminaWrapping(inheritedWrapping) && (
                     <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                         <div>
@@ -6023,7 +6751,7 @@ if (!project) {
                           Capas seleccionadas: <span className="text-brand-primary">{visibleLayerCount} de 4</span>
                         </div>
                         <div className="text-xs font-semibold text-slate-600">
-                          Tipo de estructura calculado: <span className="text-brand-primary">{form.structureType || "—"}</span>
+                          Tipo de estructura: <span className="text-brand-primary">{form.structureType || "—"}</span>
                         </div>
                       </div>
 
@@ -6133,365 +6861,26 @@ if (!project) {
                         })()}
                       </div>
 
-                      {(() => {
-                        const completedLayers: string[] = [];
-                        const missingLayers: string[] = [];
-
-                        for (let i = 1; i <= visibleLayerCount; i++) {
-                          const material = form[`layer${i}Material` as keyof ProjectEditFormData] as string;
-                          const micron = form[`layer${i}Micron` as keyof ProjectEditFormData] as string;
-                          const grammage = form[`layer${i}Grammage` as keyof ProjectEditFormData] as string;
-
-                          const isLayerComplete = material && micron && grammage;
-
-                          if (isLayerComplete) {
-                            const materialDisplay = getMaterialTypeForSummary(material);
-                            completedLayers.push(`${materialDisplay}, ${micron}`);
-                          } else {
-                            missingLayers.push(`Capa ${i}`);
-                          }
-                        }
-
-                        return (
-                          <div className="mt-4 rounded-lg bg-white border border-slate-200 p-3">
-                            <p className="text-xs font-semibold text-slate-600 mb-2">
-                              Materia Prima General:
-                            </p>
-
-                            {completedLayers.length > 0 ? (
-                              <p className="text-sm text-slate-700 font-medium break-words">
-                                {completedLayers.join(" | ")}
-                              </p>
-                            ) : (
-                              <p className="text-sm text-slate-500">
-                                Aún no hay capas completas.
-                              </p>
-                            )}
-
-                            {missingLayers.length > 0 && (
-                              <p className="mt-2 text-xs font-medium text-red-600">
-                                Falta completar: {missingLayers.join(", ")}.
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })()}
+                      <PouchBolsaStructureTable
+                        layer1Material={form.layer1Material}
+                        layer1Micron={form.layer1Micron}
+                        layer1Grammage={form.layer1Grammage}
+                        layer2Material={form.layer2Material}
+                        layer2Micron={form.layer2Micron}
+                        layer2Grammage={form.layer2Grammage}
+                        layer3Material={form.layer3Material}
+                        layer3Micron={form.layer3Micron}
+                        layer3Grammage={form.layer3Grammage}
+                        layer4Material={form.layer4Material}
+                        layer4Micron={form.layer4Micron}
+                        layer4Grammage={form.layer4Grammage}
+                        visibleLayerCount={visibleLayerCount}
+                        printClass={form.printClass}
+                      />
                     </div>
                   )}
-                  <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <FormInput
-                        label="Gramaje general (g/m2) *"
-                        value={form.grammage}
-                        onChange={() => { }}
-                        onBlur={() => markFieldAsTouched("grammage")}
-                        error={getError("grammage")}
-                        placeholder="Calculado automáticamente"
-                        disabled={true}
-                      />
-
-                      <FormSelect
-                        label="¿Solicitud de muestra? *"
-                        value={form.sampleRequest}
-                        onChange={(value) => {
-                          updateField("sampleRequest", value);
-                          markFieldAsTouched("sampleRequest");
-                        }}
-                        onBlur={() => markFieldAsTouched("sampleRequest")}
-                        error={getError("sampleRequest")}
-                        placeholder="-- Seleccione --"
-                        options={YES_NO_OPTIONS}
-                      />
-
-                      <p className="md:col-span-3 text-xs text-slate-500">
-                        Cálculo del gramaje general: suma de gramajes de capas (
-                        {formatGrammageValue(layerGrammageTotal)} g/m2) + Tintas y Adhesivos{" "}
-                        {form.structureType
-                          ? `(${form.structureType}: ${formatGrammageValue(fixedInkAdhesiveGrammage)} g/m2)`
-                          : "(según tipo de estructura)"}
-                        {" "} = {form.grammage || "0"} g/m2.
-                      </p>
-
-                      <div className="md:col-span-3">
-                        <FormTextarea
-                          label="Comentarios"
-                          value={form.specialStructureSpecs}
-                          onChange={(value) => updateField("specialStructureSpecs", value)}
-                          placeholder="Restricciones, barreras, sellabilidad, resistencia, OTR/WVTR..."
-                        />
-                      </div>
-                    </div>
-                  </div>
                 </CollapsibleSection>
 
-                <CollapsibleSection
-                  title="Dimensiones y accesorios"
-                  icon="⌗"
-                  color="#16a085"
-                  isOpen={openStructureSections.dimensions}
-                  onToggle={() => toggleStructureSection("dimensions")}
-                >
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-5">
-                    {(() => {
-                      const wrapping = inheritedWrapping?.toLowerCase() || "";
-                      const showRepetition = shouldShowRepetitionField(inheritedWrapping, form.blueprintFormat);
-                      const isPouchOrBolsa = wrapping.includes("pouch") || wrapping.includes("bolsa");
-                      const isLamina = isLaminaWrapping(inheritedWrapping);
-
-                      // For LÁMINA, determine if width should be shown based on blueprint format
-                      const normalizedBlueprintFormat = String(form.blueprintFormat || "")
-                        .trim()
-                        .toUpperCase();
-                      const isLaminaFood = isLamina && normalizedBlueprintFormat === "FOOD";
-                      let shouldShowWidth = isPouchOrBolsa;
-                      if (isLamina) {
-                        // Show width for TISSUE and GENERICA, hide for FOOD
-                        shouldShowWidth = normalizedBlueprintFormat === "TISSUE" || normalizedBlueprintFormat === "GENERICA";
-                      }
-
-                      const widthRestriction = dimensionRestrictions.width;
-                      const lengthRestriction = dimensionRestrictions.length;
-                      const gussetRestriction = dimensionRestrictions.gussetWidth;
-
-                      const isWidthDisabled = !widthRestriction || (widthRestriction.min === 0 && widthRestriction.max === 0);
-                      const isLengthDisabled = !lengthRestriction || (lengthRestriction.min === 0 && lengthRestriction.max === 0);
-                      const isGussetDisabled = !gussetRestriction || (gussetRestriction.min === 0 && gussetRestriction.max === 0);
-
-                      return (
-                        <>
-                          {shouldShowWidth && (
-                            <div>
-                              <FormInput
-                                label="Ancho *"
-                                value={form.width}
-                                onChange={(value) => updateField("width", value)}
-                                onBlur={() => markFieldAsTouched("width")}
-                                error={getError("width")}
-                                placeholder={widthRestriction ? `${widthRestriction.min} - ${widthRestriction.max} mm` : "mm"}
-                                disabled={!canEditDimensions || isWidthDisabled || shouldFieldBeDisabled("width", form.projectType, inheritedFields)}
-                              />
-                              {widthRestriction && (
-                                <p className="mt-1 text-xs text-slate-500">
-                                  {formatDimensionRange(widthRestriction)}
-                                </p>
-                              )}
-                              <FieldBadges
-                                isInherited={inheritedFields.has("width")}
-                                isSiField={isSiField("width", form.blueprintFormat)}
-                                isLocked={isFieldLockedByMot("width", form.projectType)}
-                              />
-                            </div>
-                          )}
-                          {!isLaminaFood && (
-                            <div>
-                              <FormInput
-                                label={isLamina ? "Repetición / Largo *" : "Largo *"}
-                                value={form.length}
-                                onChange={(value) => updateField("length", value)}
-                                onBlur={() => markFieldAsTouched("length")}
-                                error={getError("length")}
-                                placeholder={lengthRestriction ? `${lengthRestriction.min} - ${lengthRestriction.max} mm` : "mm"}
-                                disabled={!canEditDimensions || isLengthDisabled || shouldFieldBeDisabled("length", form.projectType, inheritedFields)}
-                              />
-                              {lengthRestriction && (
-                                <p className="mt-1 text-xs text-slate-500">
-                                  {formatDimensionRange(lengthRestriction)}
-                                </p>
-                              )}
-                              <FieldBadges
-                                isInherited={inheritedFields.has("length")}
-                                isSiField={isSiField("length", form.blueprintFormat)}
-                                isLocked={isFieldLockedByMot("length", form.projectType)}
-                              />
-                            </div>
-                          )}
-                          {showRepetition && (
-                            <FormInput
-                              label="Repetición *"
-                              value={form.repetition}
-                              onChange={(value) => updateField("repetition", value)}
-                              onBlur={() => markFieldAsTouched("repetition")}
-                              error={getError("repetition")}
-                              placeholder="mm"
-                            />
-                          )}
-                          {!isLaminaFood && (
-                            <div>
-                              <FormInput
-                                label="Ancho Fuelle *"
-                                value={form.gussetWidth}
-                                onChange={(value) => updateField("gussetWidth", value)}
-                                onBlur={() => markFieldAsTouched("gussetWidth")}
-                                error={getError("gussetWidth")}
-                                placeholder={gussetRestriction ? `${gussetRestriction.min} - ${gussetRestriction.max} mm` : "mm"}
-                                disabled={!canEditDimensions || isGussetDisabled || shouldFieldBeDisabled("gussetWidth", form.projectType, inheritedFields)}
-                              />
-                              {gussetRestriction && (
-                                <p className="mt-1 text-xs text-slate-500">
-                                  {formatDimensionRange(gussetRestriction)}
-                                </p>
-                              )}
-                              <FieldBadges
-                                isInherited={inheritedFields.has("gussetWidth")}
-                                isSiField={isSiField("gussetWidth", form.blueprintFormat)}
-                                isLocked={isFieldLockedByMot("gussetWidth", form.projectType)}
-                              />
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-
-                  <div className="mt-4 space-y-5">
-                    {(() => {
-                      const selectedAccessories = [
-                        form.hasZipper === "Sí" ? "hasZipper" : null,
-                        form.hasTinTie === "Sí" ? "hasTinTie" : null,
-                        form.hasValve === "Sí" ? "hasValve" : null,
-                        form.hasDieCutHandle === "Sí" ? "hasDieCutHandle" : null,
-                        form.hasReinforcement === "Sí" ? "hasReinforcement" : null,
-                        form.hasAngularCut === "Sí" ? "hasAngularCut" : null,
-                        form.hasRoundedCorners === "Sí" ? "hasRoundedCorners" : null,
-                        form.hasNotch === "Sí" ? "hasNotch" : null,
-                        form.hasPerforation === "Sí" ? "hasPerforation" : null,
-                        form.hasPreCut === "Sí" ? "hasPreCut" : null,
-                      ].filter(Boolean) as string[];
-
-                      const selectedCount = selectedAccessories.length;
-                      const canSelectMore = selectedCount < 3;
-
-                      const toggleAccessory = (field: keyof ProjectEditFormData) => {
-                        const isCurrentlySelected = form[field] === "Sí";
-                        if (isCurrentlySelected) {
-                          updateField(field, "No");
-                        } else if (canSelectMore) {
-                          updateField(field, "Sí");
-                        }
-                      };
-
-                      const AccessoryCheckbox = ({ field, label }: { field: keyof ProjectEditFormData; label: string }) => (
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={form[field] === "Sí"}
-                            onChange={() => toggleAccessory(field)}
-                            disabled={form[field] !== "Sí" && !canSelectMore}
-                            className="w-4 h-4 rounded border-slate-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                          />
-                          <span className={`text-sm ${form[field] !== "Sí" && !canSelectMore ? "text-slate-400" : "text-slate-700"}`}>
-                            {label}
-                          </span>
-                        </label>
-                      );
-
-                      return (
-                        <>
-                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                            <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Consumibles</p>
-                            <div className="space-y-3">
-                              <AccessoryCheckbox field="hasZipper" label="Zipper" />
-                              {form.hasZipper === "Sí" && (
-                                <FormSelect label="Tipo de Zipper" value={form.zipperType} onChange={(value) => updateField("zipperType", value)} placeholder="-- Seleccione --" options={zipperTypeOpt} />
-                              )}
-                              <AccessoryCheckbox field="hasTinTie" label="Tin-Tie" />
-                              <AccessoryCheckbox field="hasValve" label="Válvula" />
-                              {form.hasValve === "Sí" && (
-                                <FormSelect label="Tipo de Válvula" value={form.valveType} onChange={(value) => updateField("valveType", value)} placeholder="-- Seleccione --" options={valveTypeOpt} />
-                              )}
-                            </div>
-                          </div>
-
-                          {(() => {
-                            const wrappingForAccesorios = inheritedWrapping?.toLowerCase() || "";
-                            const isBolsa = wrappingForAccesorios.includes("bolsa");
-                            return isBolsa ? (
-                              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                                <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Producto</p>
-                                <div className="space-y-3">
-                                  <AccessoryCheckbox field="hasDieCutHandle" label="Asa Troquelada" />
-                                  <AccessoryCheckbox field="hasReinforcement" label="Refuerzo" />
-                                  {form.hasReinforcement === "Sí" && (
-                                    <div className="grid grid-cols-2 gap-3">
-                                      <FormInput label="Espesor Refuerzo (g/m2)" value={form.reinforcementThickness} onChange={(value) => updateField("reinforcementThickness", value)} placeholder="Ej. 100" />
-                                      <FormInput label="Ancho Refuerzo (mm)" value={form.reinforcementWidth} onChange={(value) => updateField("reinforcementWidth", value)} placeholder="Ej. 50" />
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ) : null;
-                          })()}
-
-                          {shouldShowInternalAccessories && (
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                              <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
-                              <div className="space-y-3">
-                                <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
-                                <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
-                                {form.hasRoundedCorners === "Sí" && (
-                                  <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={roundedCornersOpt} />
-                                )}
-                                <AccessoryCheckbox field="hasNotch" label="Muesca" />
-                                <AccessoryCheckbox field="hasPerforation" label="Perforación" />
-                                {hasPerforation && (
-                                  <div className="space-y-3">
-                                    {shouldShowPouchPerforationType && (
-                                      <FormSelect
-                                        label="Tipo Perforación Pouch"
-                                        value={form.pouchPerforationType}
-                                        onChange={(value) => updateField("pouchPerforationType", value)}
-                                        onBlur={() => markFieldAsTouched("pouchPerforationType")}
-                                        error={getError("pouchPerforationType")}
-                                        placeholder="-- Seleccione --"
-                                        options={pouchPerforationOpt}
-                                      />
-                                    )}
-                                    {shouldShowBolsaPerforationType && (
-                                      <FormSelect
-                                        label="Tipo Perforación Bolsa"
-                                        value={form.bagPerforationType}
-                                        onChange={(value) => updateField("bagPerforationType", value)}
-                                        onBlur={() => markFieldAsTouched("bagPerforationType")}
-                                        error={getError("bagPerforationType")}
-                                        placeholder="-- Seleccione --"
-                                        options={bagPerforationOpt}
-                                      />
-                                    )}
-                                    <FormSelect
-                                      label="Ubicación Perforaciones"
-                                      value={form.perforationLocation}
-                                      onChange={(value) => updateField("perforationLocation", value)}
-                                      onBlur={() => markFieldAsTouched("perforationLocation")}
-                                      error={getError("perforationLocation")}
-                                      placeholder="-- Seleccione --"
-                                      options={PERFORATION_LOCATION_OPTIONS}
-                                    />
-                                  </div>
-                                )}
-                                <AccessoryCheckbox field="hasPreCut" label="Pre-Corte" />
-                                {form.hasPreCut === "Sí" && (
-                                  <FormSelect label="Tipo de Pre-Corte" value={form.preCutType} onChange={(value) => updateField("preCutType", value)} placeholder="-- Seleccione --" options={precutTypeOpt} />
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          <FormSelect
-                            label="Otros accesorios"
-                            value={form.otherAccessories}
-                            onChange={(value) => updateField("otherAccessories", value)}
-                            placeholder="-- Seleccione --"
-                            options={OTHER_ACCESSORIES_OPTIONS}
-                          />
-
-                          <div className="text-xs text-slate-500 text-center">
-                            Accesorios seleccionados: {selectedCount}/3 {!canSelectMore && "(máximo alcanzado)"}
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                </CollapsibleSection>
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
