@@ -71,14 +71,8 @@ export default function FormActionButtons({
         <button
           type={onSubmit ? "button" : "submit"}
           onClick={onSubmit}
-          disabled={submitting}
-          className={`rounded-lg px-5 py-2 text-sm font-semibold text-white transition-colors ${
-            submitting
-              ? "cursor-not-allowed bg-slate-400"
-              : buttonLooksIncomplete
-                ? "cursor-pointer bg-slate-400 hover:bg-slate-500"
-                : "cursor-pointer bg-[#00395A] hover:bg-[#002b43]"
-          }`}
+          disabled={false}
+          className="rounded-lg bg-[#00395A] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#002b43] cursor-pointer"
         >
           {submitting ? "Guardando..." : submitLabel}
         </button>

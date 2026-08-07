@@ -4137,9 +4137,7 @@ if (!project) {
 
   const isProjectCompleteForValidation = completionPercentage === 100;
 
-  const primaryButtonLabel = isProjectCompleteForValidation
-    ? "Solicitar aprobación"
-    : "Actualizar producto";
+  const primaryButtonLabel = "Solicitar Producto";
 
   const missingFieldCount = useMemo(() => {
     return Object.values(missingFieldsByStep).flat().length;
