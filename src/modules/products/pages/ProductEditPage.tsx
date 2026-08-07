@@ -6003,6 +6003,36 @@ if (!project) {
                   })()}
                 </FormCard>
 
+                {/* BLOQUE 1B: TABLA DE MATERIALES PARA POUCH/BOLSA */}
+                {!isLaminaWrapping(inheritedWrapping) && (
+                  <FormCard title="Estructura de Materiales" icon="🏗️" color="#10b981">
+                    <div className="space-y-4">
+                      <PouchBolsaStructureTable
+                        layer1Material={form.layer1Material}
+                        layer1Micron={form.layer1Micron}
+                        layer1Grammage={form.layer1Grammage}
+                        layer2Material={form.layer2Material}
+                        layer2Micron={form.layer2Micron}
+                        layer2Grammage={form.layer2Grammage}
+                        layer3Material={form.layer3Material}
+                        layer3Micron={form.layer3Micron}
+                        layer3Grammage={form.layer3Grammage}
+                        layer4Material={form.layer4Material}
+                        layer4Micron={form.layer4Micron}
+                        layer4Grammage={form.layer4Grammage}
+                        visibleLayerCount={visibleLayerCount}
+                        printClass={form.printClass}
+                      />
+                      <FormTextarea
+                        label="Comentarios Estructura"
+                        value={form.specialStructureSpecs}
+                        onChange={(value) => updateField("specialStructureSpecs", value)}
+                        placeholder="Restricciones, barreras, sellabilidad, resistencia..."
+                      />
+                    </div>
+                  </FormCard>
+                )}
+
                 {/* BLOQUE 2: FOTOREGISTRO SIMPLIFICADO */}
                 {canEditDesign && isLaminaWrapping(inheritedWrapping) && (
                   <FormCard title="Datos del Fotoregistro" icon="📸" color="#3498db">
