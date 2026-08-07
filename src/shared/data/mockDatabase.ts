@@ -49,6 +49,17 @@ export type CatalogPackingMachine = {
   wrappingId: number;
 };
 
+export type ShrinkFactorCatalogEntry = {
+  id: number;
+  substrateCode: string;
+  substrateLabel: string;
+  thicknessMinMicrons?: number;
+  thicknessMaxMicrons?: number;
+  shrinkFactor: number;
+  status: 'ACTIVO' | 'INACTIVO' | 'OBSOLETO';
+  effectiveFrom: string;
+};
+
 export type CatalogEDAG = {
   id: number;
   code: string;
@@ -4122,6 +4133,110 @@ export const EDAG_CATALOG: CatalogEDAG[] = [
   },
 ];
 
+// Catálogo de Factores de Encogimiento (FE)
+// Fuente: Especificación de perímetros por sustrato y espesor
+export const SHRINK_FACTOR_CATALOG: ShrinkFactorCatalogEntry[] = [
+  // PAPEL
+  {
+    id: 1,
+    substrateCode: 'PAPEL',
+    substrateLabel: 'Papel',
+    thicknessMinMicrons: undefined,
+    thicknessMaxMicrons: undefined,
+    shrinkFactor: 1.000,
+    status: 'ACTIVO',
+    effectiveFrom: '2025-01-01',
+  },
+  // PET (Poliéster)
+  {
+    id: 2,
+    substrateCode: 'PET',
+    substrateLabel: 'Poliéster',
+    thicknessMinMicrons: undefined,
+    thicknessMaxMicrons: undefined,
+    shrinkFactor: 1.0015,
+    status: 'ACTIVO',
+    effectiveFrom: '2025-01-01',
+  },
+  // PABO (Poliamida biorientada)
+  {
+    id: 3,
+    substrateCode: 'PABO',
+    substrateLabel: 'Poliamida biorientada',
+    thicknessMinMicrons: undefined,
+    thicknessMaxMicrons: undefined,
+    shrinkFactor: 1.0015,
+    status: 'ACTIVO',
+    effectiveFrom: '2025-01-01',
+  },
+  // BOPP (Polipropileno biorientado)
+  {
+    id: 4,
+    substrateCode: 'BOPP',
+    substrateLabel: 'Polipropileno biorientado',
+    thicknessMinMicrons: undefined,
+    thicknessMaxMicrons: undefined,
+    shrinkFactor: 1.004,
+    status: 'ACTIVO',
+    effectiveFrom: '2025-01-01',
+  },
+  // PP Cast / PP BF (Polipropileno Cast / Blow Film)
+  {
+    id: 5,
+    substrateCode: 'PP_CAST',
+    substrateLabel: 'Polipropileno Cast / Blow Film',
+    thicknessMinMicrons: undefined,
+    thicknessMaxMicrons: undefined,
+    shrinkFactor: 1.007,
+    status: 'ACTIVO',
+    effectiveFrom: '2025-01-01',
+  },
+  // PEBD / PEAD / Barval / Barlon - 18 a 30 µm
+  {
+    id: 6,
+    substrateCode: 'PEBD_PEAD_BARVAL_BARLON',
+    substrateLabel: 'Polietileno de baja/alta densidad / Barval / Barlon (18-30 µm)',
+    thicknessMinMicrons: 18,
+    thicknessMaxMicrons: 30,
+    shrinkFactor: 1.017,
+    status: 'ACTIVO',
+    effectiveFrom: '2025-01-01',
+  },
+  // PEBD / PEAD / Barval / Barlon - 31 a 60 µm
+  {
+    id: 7,
+    substrateCode: 'PEBD_PEAD_BARVAL_BARLON',
+    substrateLabel: 'Polietileno de baja/alta densidad / Barval / Barlon (31-60 µm)',
+    thicknessMinMicrons: 31,
+    thicknessMaxMicrons: 60,
+    shrinkFactor: 1.015,
+    status: 'ACTIVO',
+    effectiveFrom: '2025-01-01',
+  },
+  // PEBD / PEAD / Barval / Barlon - 61 a 80 µm
+  {
+    id: 8,
+    substrateCode: 'PEBD_PEAD_BARVAL_BARLON',
+    substrateLabel: 'Polietileno de baja/alta densidad / Barval / Barlon (61-80 µm)',
+    thicknessMinMicrons: 61,
+    thicknessMaxMicrons: 80,
+    shrinkFactor: 1.010,
+    status: 'ACTIVO',
+    effectiveFrom: '2025-01-01',
+  },
+  // PEBD / PEAD / Barval / Barlon - 81 a 135 µm
+  {
+    id: 9,
+    substrateCode: 'PEBD_PEAD_BARVAL_BARLON',
+    substrateLabel: 'Polietileno de baja/alta densidad / Barval / Barlon (81-135 µm)',
+    thicknessMinMicrons: 81,
+    thicknessMaxMicrons: 135,
+    shrinkFactor: 1.005,
+    status: 'ACTIVO',
+    effectiveFrom: '2025-01-01',
+  },
+];
+
 export function getStatusById(id: number) {
   return STATUS_CATALOG.find((item) => item.id === id);
 }
@@ -4160,4 +4275,32 @@ export function getEdagByCodeAndVersion(code: string, version: string): CatalogE
   return EDAG_CATALOG.find(
     (edag) => edag.code === code && edag.version === version
   );
+}
+
+/**
+ * Obtiene el Factor de Encogimiento (FE) para un sustrato y espesor específico
+ * @param substrateCode - Código del sustrato (BOPP, PET, PAPEL, etc.)
+ * @param thicknessMicrons - Espesor en micrones (opcional)
+ * @returns Factor de encogimiento o null si no existe
+ */
+export function getShrinkFactorForSubstrate(
+  substrateCode: string,
+  thicknessMicrons?: number
+): number | null {
+  const entry = SHRINK_FACTOR_CATALOG.find((sf) => {
+    if (sf.substrateCode !== substrateCode) return false;
+    if (sf.status !== 'ACTIVO') return false;
+
+    // Si no se especifica espesor, buscar entrada sin restricción de espesor
+    if (thicknessMicrons === undefined) {
+      return sf.thicknessMinMicrons === undefined && sf.thicknessMaxMicrons === undefined;
+    }
+
+    // Si se especifica espesor, validar que esté dentro del rango
+    const hasMinThickness = sf.thicknessMinMicrons === undefined || sf.thicknessMinMicrons <= thicknessMicrons;
+    const hasMaxThickness = sf.thicknessMaxMicrons === undefined || sf.thicknessMaxMicrons >= thicknessMicrons;
+    return hasMinThickness && hasMaxThickness;
+  });
+
+  return entry ? entry.shrinkFactor : null;
 }

@@ -190,44 +190,6 @@ export default function ProductStep1Design({
             />
           </div>
 
-          {/* Fotocélula */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                ¿Lleva Fotocélula?
-              </label>
-              <SegmentedControl
-                options={[
-                  { value: "Sí", label: "Sí" },
-                  { value: "No", label: "No" },
-                ]}
-                value={form.hasPhotocell || ""}
-                onChange={(value) => {
-                  updateField("hasPhotocell", value);
-                  markFieldAsTouched("hasPhotocell");
-                }}
-              />
-            </div>
-            {form.hasPhotocell === "Sí" && (
-              <FormSelect
-                label="Ubicación Fotocélula"
-                value={form.photocellLocation}
-                onChange={(value) => {
-                  updateField("photocellLocation", value);
-                  markFieldAsTouched("photocellLocation");
-                }}
-                onBlur={() => markFieldAsTouched("photocellLocation")}
-                options={[
-                  { value: "Superior", label: "Superior" },
-                  { value: "Inferior", label: "Inferior" },
-                  { value: "Lateral izquierdo", label: "Lateral izquierdo" },
-                  { value: "Lateral derecho", label: "Lateral derecho" },
-                ]}
-                placeholder="-- Seleccione Ubicación --"
-              />
-            )}
-          </div>
-
           {/* Fotoregistro 1 */}
           <div className="border-t pt-4 mt-4">
             <h4 className="font-semibold text-slate-700 mb-3">Fotoregistro 1</h4>

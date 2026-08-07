@@ -59,9 +59,8 @@ export default function ProductStep2Structure({
             />
           </div>
 
-          {/* Gramaje, Tolerancia */}
+          {/* Tolerancia Gramaje */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <PreviewRow label="Gramaje Calculado" value={form.grammage} />
             <FormInput
               label="Tolerancia Gramaje"
               value={form.grammageTolerance}

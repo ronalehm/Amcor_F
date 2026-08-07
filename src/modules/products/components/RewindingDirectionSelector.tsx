@@ -14,14 +14,14 @@ type RewindingDirectionOption = {
 };
 
 const REWINDING_DIRECTION_OPTIONS: RewindingDirectionOption[] = [
-  { value: "Sentido 1", label: "Sentido 1", image: "/assets/Bobinado/sentido-1.png" },
-  { value: "Sentido 2", label: "Sentido 2", image: "/assets/Bobinado/sentido-2.png" },
-  { value: "Sentido 3", label: "Sentido 3", image: "/assets/Bobinado/sentido-3.png" },
-  { value: "Sentido 4", label: "Sentido 4", image: "/assets/Bobinado/sentido-4.png" },
-  { value: "Sentido 5", label: "Sentido 5", image: "/assets/Bobinado/sentido-5.png" },
-  { value: "Sentido 6", label: "Sentido 6", image: "/assets/Bobinado/sentido-6.png" },
-  { value: "Sentido 7", label: "Sentido 7", image: "/assets/Bobinado/sentido-7.png" },
-  { value: "Sentido 8", label: "Sentido 8", image: "/assets/Bobinado/sentido-8.png" },
+  { value: "Sentido 1", label: "Sentido 1", image: "/assets/bobinado/sentido-1.png" },
+  { value: "Sentido 2", label: "Sentido 2", image: "/assets/bobinado/sentido-2.png" },
+  { value: "Sentido 3", label: "Sentido 3", image: "/assets/bobinado/sentido-3.png" },
+  { value: "Sentido 4", label: "Sentido 4", image: "/assets/bobinado/sentido-4.png" },
+  { value: "Sentido 5", label: "Sentido 5", image: "/assets/bobinado/sentido-5.png" },
+  { value: "Sentido 6", label: "Sentido 6", image: "/assets/bobinado/sentido-6.png" },
+  { value: "Sentido 7", label: "Sentido 7", image: "/assets/bobinado/sentido-7.png" },
+  { value: "Sentido 8", label: "Sentido 8", image: "/assets/bobinado/sentido-8.png" },
 ];
 
 function RewindingImage({

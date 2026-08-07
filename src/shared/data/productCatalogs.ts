@@ -138,7 +138,15 @@ export const PRODUCT_CATALOGS = {
   formaDeImpresion: {
     label: "Forma de Impresión",
     code: "FDI",
-    values: ["Superficie", "Dorso"],
+    values: [
+      "Dorso, s/lam.",
+      "Dorso, c/lam. Su. Tr.",
+      "Dorso, c/lam. Su. Bl.",
+      "Dorso, c/lam. Su. Me.",
+      "Dorso, c/lam. Su. Tr. Im.",
+      "Dorso, c/lam. Su. Va.",
+      "Por Superficie",
+    ],
   },
   tipoDeEstructura: {
     label: "Tipo de Estructura",

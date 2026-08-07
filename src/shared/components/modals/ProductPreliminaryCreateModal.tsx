@@ -637,6 +637,9 @@ export default function ProductPreliminaryCreateModal({
       capacityUnit: form.capacityUnit,
       assignedProjectCode: form.assignedProjectCode.trim(),
 
+      // Structure type from Moment 1 (inherited to Moment 2)
+      structureType: form.structureType || undefined,
+
       resultOdiseo,
       validationRoute,
     });
