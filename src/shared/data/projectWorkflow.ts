@@ -481,11 +481,11 @@ export function resolveTechnicalSubAreaBySubclassification(
 }
 
 export function resolveTechnicalSubAreaByProjectType(
-  projectType?: string
+  projectType?: string | string[]
 ): TechnicalSubArea | null {
   if (!projectType) return null;
 
-  const type = projectType.trim();
+  const typesToCheck = Array.isArray(projectType) ? projectType : [projectType];
 
   const rdDesarrolloTypes = [
     "Producto nuevo",
@@ -506,11 +506,13 @@ export function resolveTechnicalSubAreaByProjectType(
     "ICO (Intercompany), BCP (Business Continous Production)",
   ];
 
-  if (rdDesarrolloTypes.includes(type)) {
+  // Si ALGUNO de los tipos está en RD Desarrollo, devolver eso
+  if (typesToCheck.some(type => rdDesarrolloTypes.includes(type.trim()))) {
     return "R&D Desarrollo";
   }
 
-  if (rdTecnicaTypes.includes(type)) {
+  // Si ALGUNO de los tipos está en RD Técnica, devolver eso
+  if (typesToCheck.some(type => rdTecnicaTypes.includes(type.trim()))) {
     return "R&D Área Técnica";
   }
 

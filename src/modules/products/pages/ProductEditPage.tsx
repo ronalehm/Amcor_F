@@ -109,7 +109,7 @@ export type ProjectEditFormData = {
   projectDescription: string;
   classification: string;
   subClassification: string;
-  projectType: string;
+  projectType: string[];
   motivoModificacion: string;
   salesforceAction: string;
   rfqCode: string;
@@ -688,22 +688,26 @@ function getMotRule(mot: string) {
   return MOT_FIELD_RULES[mot] || null;
 }
 
-function isFieldEditableByMot(fieldName: string, mot: string | null): boolean {
-  if (!mot) return true;
-  const rule = getMotRule(mot);
-  if (!rule) return true;
+function isFieldEditableByMot(fieldName: string, motArray: string[] | null): boolean {
+  if (!motArray || motArray.length === 0) return true;
   const group = FIELD_TO_EDITABLE_GROUP[fieldName];
   if (!group) return true;
-  return rule.editableFieldGroups.includes(group);
+  // Si ALGUNO de los MOT permite editar este campo, es editable
+  return motArray.some((mot) => {
+    const rule = getMotRule(mot);
+    return rule && rule.editableFieldGroups.includes(group);
+  });
 }
 
-function isFieldLockedByMot(fieldName: string, mot: string | null): boolean {
-  if (!mot) return false;
-  const rule = getMotRule(mot);
-  if (!rule) return false;
+function isFieldLockedByMot(fieldName: string, motArray: string[] | null): boolean {
+  if (!motArray || motArray.length === 0) return false;
   const group = FIELD_TO_EDITABLE_GROUP[fieldName];
   if (!group) return false;
-  return rule.lockedFieldGroups.includes(group);
+  // Si TODOS los MOT bloquean este campo, está bloqueado
+  return motArray.every((mot) => {
+    const rule = getMotRule(mot);
+    return rule && rule.lockedFieldGroups.includes(group);
+  });
 }
 
 function getEnabledSectionsByMot(mot: string | null): string[] {
@@ -733,7 +737,7 @@ function shouldFieldBeVisibleByFormat(fieldName: string, blueprintFormat: string
 // Nueva función: Determinar si un campo debe estar deshabilitado
 function shouldFieldBeDisabledByMot(
   fieldName: string,
-  mot: string | null,
+  motArray: string[] | null,
   inheritedFields?: Set<string>
 ): boolean {
   // 1. Si es heredado, deshabilitar
@@ -742,7 +746,7 @@ function shouldFieldBeDisabledByMot(
   }
 
   // 2. Si está bloqueado por MOT, deshabilitar
-  if (isFieldLockedByMot(fieldName, mot)) {
+  if (isFieldLockedByMot(fieldName, motArray)) {
     return true;
   }
 
@@ -750,21 +754,25 @@ function shouldFieldBeDisabledByMot(
 }
 
 // Nueva función: Determinar si un campo es requerido por MOT
-function isFieldRequiredByMot(fieldName: string, mot: string | null): boolean {
-  if (!mot) return false;
-  const rule = getMotRule(mot);
-  if (!rule) return false;
+function isFieldRequiredByMot(fieldName: string, motArray: string[] | null): boolean {
+  if (!motArray || motArray.length === 0) return false;
   const fieldGroup = FIELD_TO_EDITABLE_GROUP[fieldName];
   if (!fieldGroup) return false;
-  return rule.editableFieldGroups.includes(fieldGroup);
+  // Si ALGUNO de los MOT requiere este campo, es requerido
+  return motArray.some((mot) => {
+    const rule = getMotRule(mot);
+    return rule && rule.editableFieldGroups.includes(fieldGroup);
+  });
 }
 
 // Nueva función: Determinar si una sección debe ser visible por MOT
-function shouldSectionBeVisibleByMot(section: string, mot: string | null): boolean {
-  if (!mot) return true; // Sin MOT, mostrar todas las secciones
-  const rule = getMotRule(mot);
-  if (!rule) return true;
-  return rule.enabledSections.includes(section);
+function shouldSectionBeVisibleByMot(section: string, motArray: string[] | null): boolean {
+  if (!motArray || motArray.length === 0) return true; // Sin MOT, mostrar todas las secciones
+  // Si ALGUNO de los MOT habilita esta sección, mostrarla
+  return motArray.some((mot) => {
+    const rule = getMotRule(mot);
+    return rule && rule.enabledSections.includes(section);
+  });
 }
 
 // Fields that are sent to Sistema Integral
@@ -943,16 +951,20 @@ function getRequiredFieldsByFormat(blueprintFormat: string | null | undefined, m
 // Determine if a field should be visible/enabled based on MOT and FDP
 function shouldFieldBeVisible(
   fieldName: string,
-  mot: string | null,
+  motArray: string[] | null,
   blueprintFormat: string | null | undefined
 ): boolean {
-  // Check MOT visibility first
-  const motRule = getMotRule(mot);
-  if (motRule) {
-    // If MOT is set, only show fields in its editable groups or non-locked groups
+  // Check MOT visibility first (if ANY MOT locks this field, hide it)
+  if (motArray && motArray.length > 0) {
     const fieldGroup = FIELD_TO_EDITABLE_GROUP[fieldName];
-    if (fieldGroup && motRule.lockedFieldGroups.includes(fieldGroup)) {
-      return false; // Field is locked by MOT
+    if (fieldGroup) {
+      const allMotsLock = motArray.every((mot) => {
+        const motRule = getMotRule(mot);
+        return motRule && motRule.lockedFieldGroups.includes(fieldGroup);
+      });
+      if (allMotsLock) {
+        return false; // Field is locked by all MOTs
+      }
     }
   }
 
@@ -969,7 +981,7 @@ function shouldFieldBeVisible(
 // Determine if a field should be disabled (locked) based on MOT
 function shouldFieldBeDisabled(
   fieldName: string,
-  mot: string | null,
+  motArray: string[] | null,
   inheritedFields: Set<string>
 ): boolean {
   // Inherited fields from modified product are effectively disabled/read-only
@@ -977,12 +989,18 @@ function shouldFieldBeDisabled(
     return true;
   }
 
-  // Check if field is locked by MOT
-  const motRule = getMotRule(mot);
-  if (motRule) {
+  // Check if field is locked by MOT (all MOTs must lock it to be disabled)
+  if (motArray && motArray.length > 0) {
     const fieldGroup = FIELD_TO_EDITABLE_GROUP[fieldName];
-    if (fieldGroup && motRule.lockedFieldGroups.includes(fieldGroup)) {
-      return true;
+    if (fieldGroup) {
+      // Disabled only if ALL MOTs lock this field
+      const allMotsLock = motArray.every((mot) => {
+        const rule = getMotRule(mot);
+        return rule && rule.lockedFieldGroups.includes(fieldGroup);
+      });
+      if (allMotsLock) {
+        return true;
+      }
     }
   }
 
@@ -1300,15 +1318,15 @@ const isProductoModificado = (classification: string): boolean => {
   return normalized === "Producto Modificado";
 };
 
-const isDisenoNuevo = (classification: string, projectType: string): boolean =>
-  isProductoNuevo(classification) && projectType === "Nuevo diseño";
+const isDisenoNuevo = (classification: string, projectType: string[]): boolean =>
+  isProductoNuevo(classification) && projectType.includes("Nuevo diseño");
 
-const isCambioDiseno = (classification: string, projectType: string): boolean =>
-  isProductoModificado(classification) && projectType === "Cambia diseño";
+const isCambioDiseno = (classification: string, projectType: string[]): boolean =>
+  isProductoModificado(classification) && projectType.includes("Cambia diseño");
 
 const goesToGraphicArts = (
   classification: string,
-  projectType: string,
+  projectType: string[],
 ): boolean => {
   return (
     isDisenoNuevo(classification, projectType) ||
@@ -1318,31 +1336,35 @@ const goesToGraphicArts = (
 
 const goesToRDDesarrollo = (
   classification: string,
-  projectType: string,
+  projectType: string[],
 ): boolean => {
   return (
     isProductoNuevo(classification) &&
-    [
-      "Nueva estructura",
-      "Nuevos insumos",
-      "Nuevo formato de envasado",
-    ].includes(projectType)
+    projectType.some((val) =>
+      [
+        "Nueva estructura",
+        "Nuevos insumos",
+        "Nuevo formato de envasado",
+      ].includes(val)
+    )
   );
 };
 
 const goesToRDAreaTecnica = (
   classification: string,
-  projectType: string,
+  projectType: string[],
 ): boolean => {
   return (
     isProductoModificado(classification) &&
-    [
-      "Nuevo equipamiento / proceso / temperatura",
-      "Modifica dimensiones",
-      "Modifica propiedades",
-      "Cambia estructura",
-      "Cambia materia prima",
-    ].includes(projectType)
+    projectType.some((val) =>
+      [
+        "Nuevo equipamiento / proceso / temperatura",
+        "Modifica dimensiones",
+        "Modifica propiedades",
+        "Cambia estructura",
+        "Cambia materia prima",
+      ].includes(val)
+    )
   );
 };
 
@@ -2247,7 +2269,7 @@ interface FormInputWithBadgesProps {
   placeholder?: string;
   error?: string;
   disabled?: boolean;
-  mot?: string | null;
+  mot?: string[] | null;
   blueprintFormat?: string | null;
   inheritedFields?: Set<string>;
   visibilityOverride?: boolean;
@@ -2424,7 +2446,7 @@ export default function ProductEditPage() {
     projectDescription: "",
     classification: "",
     subClassification: "",
-    projectType: "",
+    projectType: [],
     motivoModificacion: "",
     salesforceAction: "",
     rfqCode: "",
@@ -2790,14 +2812,18 @@ if (!project) {
     const initialVolume = resolveInitialVolume(project);
     const initialUnit = resolveInitialUnit(project);
 
+    const initialProjectTypeArray = initialProjectType
+      ? (Array.isArray(initialProjectType) ? initialProjectType : [initialProjectType])
+      : [];
+
     const shouldGoGraphicArts = goesToGraphicArts(
       initialClassification,
-      initialProjectType,
+      initialProjectTypeArray,
     );
 
     const shouldBeNewDesign = isDisenoNuevo(
       initialClassification,
-      initialProjectType,
+      initialProjectTypeArray,
     );
 
     // Resolve SKU code from multiple possible fields
@@ -2813,7 +2839,15 @@ if (!project) {
       projectDescription: initialDescription || project.projectDescription || "",
       classification: initialClassification || project.classification || "",
       subClassification: (project as any).subClassification || "",
-      projectType: initialProjectType || project.projectType || "",
+      projectType: initialProjectType
+        ? Array.isArray(initialProjectType)
+          ? initialProjectType
+          : [initialProjectType]
+        : Array.isArray((project as any).projectType)
+          ? (project as any).projectType
+          : (project as any).projectType
+            ? [(project as any).projectType]
+            : [],
       motivoModificacion: (project as any).motivoModificacion || "",
       salesforceAction: normalizeSalesforceAction(project.salesforceAction || ""),
       rfqCode: (project as any).rfqCode || "",
@@ -3402,21 +3436,28 @@ if (!project) {
     originalProject?.modificationReason ||
     "";
 
-  // NUEVA LÓGICA: Basada en MOT_FIELD_RULES
-  const motRule = getMotRule(form.projectType);
-  const enabledGroupsByMot = motRule?.editableFieldGroups || [];
+  // NUEVA LÓGICA: Basada en MOT_FIELD_RULES (combina múltiples MOT)
+  const enabledGroupsByMot = new Set<string>();
+  if (form.projectType.length > 0) {
+    form.projectType.forEach((mot) => {
+      const rule = getMotRule(mot);
+      if (rule) {
+        rule.editableFieldGroups.forEach(group => enabledGroupsByMot.add(group));
+      }
+    });
+  }
 
-  const canEditDesignByMot = enabledGroupsByMot.some(group =>
+  const canEditDesignByMot = Array.from(enabledGroupsByMot).some(group =>
     ["design", "printing", "edag", "photoregister", "rewinding", "designPlans", "designVariant"].includes(group)
   );
 
-  const canEditDimensionsByMot = enabledGroupsByMot.includes("dimensions") || enabledGroupsByMot.includes("perimeter");
+  const canEditDimensionsByMot = enabledGroupsByMot.has("dimensions") || enabledGroupsByMot.has("perimeter");
 
-  const canEditStructureByMot = enabledGroupsByMot.some(group =>
+  const canEditStructureByMot = Array.from(enabledGroupsByMot).some(group =>
     ["structure", "materials", "layers", "micron", "grammage"].includes(group)
   );
 
-  const canEditPackagingByMot = enabledGroupsByMot.includes("packaging") || enabledGroupsByMot.includes("accessories");
+  const canEditPackagingByMot = enabledGroupsByMot.has("packaging") || enabledGroupsByMot.has("accessories");
 
   // Si es Producto Nuevo, habilitar todo. Si es Modificado, usar lógica MOT
   const isNuevoClassification = isProductoNuevo(form.classification);
@@ -4993,13 +5034,14 @@ if (!project) {
                               <label key={motOption.value} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded transition">
                                 <input
                                   type="checkbox"
-                                  checked={form.projectType === motOption.value}
+                                  checked={form.projectType.includes(motOption.value)}
                                   onChange={() => {
-                                    const isCurrentlySelected = form.projectType === motOption.value;
-                                    const nextMot = isCurrentlySelected ? "" : motOption.value;
-                                    updateField("projectType", nextMot);
+                                    const isCurrentlySelected = form.projectType.includes(motOption.value);
+                                    const nextProjectType = isCurrentlySelected
+                                      ? form.projectType.filter((val) => val !== motOption.value)
+                                      : [...form.projectType, motOption.value];
+                                    updateField("projectType", nextProjectType);
                                     markFieldAsTouched("projectType");
-                                    // Los errores de validación se limpian automáticamente en el useMemo
                                   }}
                                   className="w-5 h-5"
                                 />
@@ -5062,15 +5104,11 @@ if (!project) {
                         onChange={(e) => updateField("projectDescription", e.target.value)}
                         onBlur={() => markFieldAsTouched("projectDescription")}
                         placeholder="Describe la necesidad técnica o comercial..."
-                        disabled={isProductoModificado(form.classification)}
-                        className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 ${
-                          isProductoModificado(form.classification)
-                            ? "bg-slate-100 border-slate-300 text-slate-500 cursor-not-allowed"
-                            : `focus:border-brand-primary focus:ring-1 focus:ring-brand-primary ${
-                                getError("projectDescription")
-                                  ? "border-red-300 bg-red-50 text-slate-800"
-                                  : "border-slate-300 bg-white text-slate-800"
-                              }`
+                        disabled={false}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary ${
+                          getError("projectDescription")
+                            ? "border-red-300 bg-red-50 text-slate-800"
+                            : "border-slate-300 bg-white text-slate-800"
                         }`}
                         rows={2}
                       />
@@ -6135,6 +6173,42 @@ if (!project) {
                                   placeholder="mm"
                                   disabled={!canEditDimensions}
                                 />
+                              </div>
+
+                              {/* Co-printing para LÁMINA */}
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-6 pt-6 border-t border-slate-200">
+                                <FormSelect
+                                  label="¿Co-printing?"
+                                  value={form.coPrinting}
+                                  onChange={(value) => {
+                                    updateField("coPrinting", value);
+                                    if (value === "No") {
+                                      updateField("codesToPrint", "");
+                                    }
+                                    markFieldAsTouched("coPrinting");
+                                  }}
+                                  onBlur={() => markFieldAsTouched("coPrinting")}
+                                  error={getError("coPrinting")}
+                                  options={[
+                                    { value: "Sí", label: "Sí" },
+                                    { value: "No", label: "No" },
+                                  ]}
+                                  placeholder="-- Seleccione --"
+                                />
+
+                                {form.coPrinting === "Sí" && (
+                                  <FormInput
+                                    label="Códigos a imprimir *"
+                                    value={form.codesToPrint}
+                                    onChange={(value) => {
+                                      const cleanValue = value.replace(/[^\d-]/g, "");
+                                      updateField("codesToPrint", cleanValue);
+                                    }}
+                                    onBlur={() => markFieldAsTouched("codesToPrint")}
+                                    error={getError("codesToPrint")}
+                                    placeholder="Ej. 53233-01"
+                                  />
+                                )}
                               </div>
                             </div>
                           ) : (
@@ -7868,8 +7942,8 @@ if (!project) {
                 />
 
                 <PreviewRow
-                  label="Motivo"
-                  value={form.projectType || "—"}
+                  label="Modificación"
+                  value={form.projectType.length > 0 ? form.projectType.join(", ") : "—"}
                 />
 
                 <PreviewRow
@@ -7881,6 +7955,13 @@ if (!project) {
                   label="Estructura calculada"
                   value={estructuraCalculada || "—"}
                 />
+
+                {odiseoStatus && (
+                  <PreviewRow
+                    label="Estado ODISEO"
+                    value={odiseoStatus}
+                  />
+                )}
 
                 {form.printClass && (
                   <PreviewRow
