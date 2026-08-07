@@ -1,6 +1,11 @@
 import { useMemo } from "react";
 import type { ProjectEditFormData } from "../pages/ProductEditPage";
-import { resolveMaterialLayer, getMicronRecordsByMaterial } from "../../../shared/data/productMaterialCatalog";
+import {
+  buildStructureCompositionRows,
+  calculateStructureGrammageWithVarnish,
+  calculateTolerance,
+  type StructureRow as CompositionRow,
+} from "../../../shared/utils/structureCompositionRules";
 
 interface LaminaStructureTableProps {
   structureType: string;
@@ -23,160 +28,7 @@ interface LaminaStructureTableProps {
   grammageTolerance: string;
 }
 
-type StructureRow = {
-  id: string;
-  item: number | string;
-  type: "varnish" | "material" | "ink";
-  description: string;
-  micron: string;
-  grammage: number;
-};
-
-function getLayerCountByStructureType(structureType: string): number {
-  switch (structureType) {
-    case "Monocapa":
-      return 1;
-    case "Bilaminado":
-      return 2;
-    case "Trilaminado":
-      return 3;
-    case "Tetralaminado":
-      return 4;
-    default:
-      return 0;
-  }
-}
-
-function getGrammageFromCatalog(material: string, micron: string): number {
-  if (!material || !micron) return 0;
-
-  const micronRecords = getMicronRecordsByMaterial(material);
-  const micronValue = parseFloat(micron);
-
-  const matchingRecord = micronRecords.find(record => {
-    const recordMicron = parseFloat(String(record.TbMatMicVal || 0));
-    return recordMicron === micronValue;
-  });
-
-  if (matchingRecord && matchingRecord.TbMatMicGram) {
-    return parseFloat(String(matchingRecord.TbMatMicGram));
-  }
-
-  return 0;
-}
-
-function buildLaminaStructureRows({
-  structureType,
-  layer1Material,
-  layer1Micron,
-  layer1Grammage,
-  layer2Material,
-  layer2Micron,
-  layer2Grammage,
-  layer3Material,
-  layer3Micron,
-  layer3Grammage,
-  layer4Material,
-  layer4Micron,
-  layer4Grammage,
-  printClass,
-  hasMatteFinishVarnish,
-  hasInkProtectionVarnish,
-}: {
-  structureType: string;
-  layer1Material: string;
-  layer1Micron: string;
-  layer1Grammage: string;
-  layer2Material: string;
-  layer2Micron: string;
-  layer2Grammage: string;
-  layer3Material: string;
-  layer3Micron: string;
-  layer3Grammage: string;
-  layer4Material: string;
-  layer4Micron: string;
-  layer4Grammage: string;
-  printClass: string;
-  hasMatteFinishVarnish: boolean;
-  hasInkProtectionVarnish: boolean;
-}): StructureRow[] {
-  const rows: StructureRow[] = [];
-  let itemNumber = 0;
-
-  // Barniz de protección (solo para Monocapa)
-  if (structureType === "Monocapa" && hasInkProtectionVarnish) {
-    rows.push({
-      id: "varnish-protection",
-      item: "0",
-      type: "varnish",
-      description: "Barniz protección tinta",
-      micron: "—",
-      grammage: 0.5,
-    });
-    itemNumber++;
-  }
-
-  // Capas de material según structureType
-  const layerCount = getLayerCountByStructureType(structureType);
-  const materials = [
-    { material: layer1Material, micron: layer1Micron, grammage: layer1Grammage },
-    { material: layer2Material, micron: layer2Micron, grammage: layer2Grammage },
-    { material: layer3Material, micron: layer3Micron, grammage: layer3Grammage },
-    { material: layer4Material, micron: layer4Micron, grammage: layer4Grammage },
-  ];
-
-  for (let i = 0; i < layerCount; i++) {
-    const { material, micron, grammage } = materials[i];
-    if (material) {
-      const resolvedMaterial = resolveMaterialLayer(material);
-      const materialName = resolvedMaterial?.TbMatCapNom || material;
-
-      let grammageNum = parseFloat(grammage) || 0;
-      if (grammageNum === 0 && material && micron) {
-        grammageNum = getGrammageFromCatalog(material, micron);
-      }
-
-      rows.push({
-        id: `material-${i + 1}`,
-        item: itemNumber + 1,
-        type: "material",
-        description: materialName,
-        micron: micron ? `${micron} µm` : "—",
-        grammage: grammageNum,
-      });
-      itemNumber++;
-    }
-  }
-
-  // Barniz acabado mate
-  if (hasMatteFinishVarnish) {
-    rows.push({
-      id: "varnish-matte",
-      item: itemNumber + 1,
-      type: "varnish",
-      description: "Barniz acabado mate",
-      micron: "—",
-      grammage: 0.5, // Por ahora fijo, debería venir del catálogo
-    });
-    itemNumber++;
-  }
-
-  // Tinta (automática si hay impresión)
-  const hasPrinting = printClass && printClass !== "Sin impresión" && printClass.trim() !== "";
-  if (hasPrinting) {
-    rows.push({
-      id: "ink",
-      item: itemNumber + 1,
-      type: "ink",
-      description: "Tinta",
-      micron: "—",
-      grammage: 2.5,
-    });
-    itemNumber++;
-  }
-
-  return rows;
-};
+type StructureRow = CompositionRow & { item: number | string };
 
 export default function LaminaStructureTable({
   structureType,
@@ -198,53 +50,50 @@ export default function LaminaStructureTable({
   grammage,
   grammageTolerance,
 }: LaminaStructureTableProps) {
-  const rows = useMemo(
-    () =>
-      buildLaminaStructureRows({
-        structureType,
-        layer1Material,
-        layer1Micron,
-        layer1Grammage,
-        layer2Material,
-        layer2Micron,
-        layer2Grammage,
-        layer3Material,
-        layer3Micron,
-        layer3Grammage,
-        layer4Material,
-        layer4Micron,
-        layer4Grammage,
-        printClass,
-        hasMatteFinishVarnish,
-        hasInkProtectionVarnish,
-      }),
-    [
+  const rows = useMemo(() => {
+    const compositionRows = buildStructureCompositionRows({
       structureType,
-      layer1Material,
-      layer1Micron,
-      layer1Grammage,
-      layer2Material,
-      layer2Micron,
-      layer2Grammage,
-      layer3Material,
-      layer3Micron,
-      layer3Grammage,
-      layer4Material,
-      layer4Micron,
-      layer4Grammage,
+      layers: [
+        { material: layer1Material, micron: layer1Micron, grammage: layer1Grammage },
+        { material: layer2Material, micron: layer2Micron, grammage: layer2Grammage },
+        { material: layer3Material, micron: layer3Micron, grammage: layer3Grammage },
+        { material: layer4Material, micron: layer4Micron, grammage: layer4Grammage },
+      ],
       printClass,
       hasMatteFinishVarnish,
       hasInkProtectionVarnish,
-    ]
-  );
+    });
+
+    return compositionRows.map((row, idx) => ({
+      ...row,
+      item: row.layerNumber,
+    })) as StructureRow[];
+  }, [
+    structureType,
+    layer1Material,
+    layer1Micron,
+    layer1Grammage,
+    layer2Material,
+    layer2Micron,
+    layer2Grammage,
+    layer3Material,
+    layer3Micron,
+    layer3Grammage,
+    layer4Material,
+    layer4Micron,
+    layer4Grammage,
+    printClass,
+    hasMatteFinishVarnish,
+    hasInkProtectionVarnish,
+  ]);
 
   const totalGrammage = useMemo(
-    () => rows.reduce((sum, row) => sum + row.grammage, 0),
+    () => calculateStructureGrammageWithVarnish(rows),
     [rows]
   );
 
   const tolerance = useMemo(
-    () => totalGrammage * 0.1,
+    () => calculateTolerance(totalGrammage),
     [totalGrammage]
   );
 

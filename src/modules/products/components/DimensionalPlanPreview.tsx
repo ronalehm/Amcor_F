@@ -3,9 +3,9 @@ type DimensionalPlanPreviewProps = {
   blueprintFormat: string;
   width: string;
   repeat: string;
-  perimeterMm: string;
-  dimensionCrossCheckStatus: string;
-  perimeterValidationStatus: string;
+  perimeterMm?: string;
+  dimensionCrossCheckStatus?: string;
+  perimeterValidationStatus?: string;
 };
 
 const getWrappingTypeColor = (wrappingType: string): string => {
@@ -134,24 +134,9 @@ export default function DimensionalPlanPreview({
   blueprintFormat,
   width,
   repeat,
-  perimeterMm,
-  dimensionCrossCheckStatus,
-  perimeterValidationStatus,
 }: DimensionalPlanPreviewProps) {
   const wrapColor = getWrappingTypeColor(wrappingType);
   const wrapLabel = getWrappingTypeLabel(wrappingType);
-
-  const getCrossCheckColor = (status: string): string => {
-    if (status === "OK") return "#10b981";
-    if (status === "NO_OK") return "#ef4444";
-    return "#9ca3af";
-  };
-
-  const getPerimeterColor = (status: string): string => {
-    if (status === "Validado") return "#10b981";
-    if (status === "No validado") return "#f59e0b";
-    return "#9ca3af";
-  };
 
   return (
     <div className="space-y-6 rounded-xl border border-slate-200 bg-white p-6">
@@ -190,43 +175,6 @@ export default function DimensionalPlanPreview({
         <div className="rounded-lg bg-blue-50 px-3 py-2 border border-blue-200">
           <p className="text-xs font-semibold text-blue-600">REPETICIÓN</p>
           <p className="text-sm font-bold text-slate-900">{repeat || "—"} mm</p>
-        </div>
-      </div>
-
-      {/* Validations & Perimeter */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-          <span className="text-xs font-semibold text-slate-600">VALIDACIÓN DE DIMENSIONES (CROSS CHECK)</span>
-          <div
-            className={`flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-white ${
-              dimensionCrossCheckStatus === "OK" ? "bg-green-500" : "bg-slate-400"
-            }`}
-          >
-            {dimensionCrossCheckStatus === "OK" ? "✓" : "—"}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-          <span className="text-xs font-semibold text-slate-600">VALIDACIÓN DE PERÍMETROS</span>
-          <div
-            className={`rounded px-2 py-1 text-xs font-bold text-white ${
-              perimeterValidationStatus === "Validado"
-                ? "bg-green-500"
-                : perimeterValidationStatus === "No validado"
-                  ? "bg-amber-500"
-                  : "bg-slate-400"
-            }`}
-          >
-            {perimeterValidationStatus || "Sin validar"}
-          </div>
-        </div>
-
-        <div className="rounded-lg border-l-4 border-slate-300 bg-slate-50 px-3 py-2" style={{ borderLeftColor: wrapColor }}>
-          <div className="flex items-baseline justify-between">
-            <span className="text-xs font-semibold text-slate-600">PERÍMETRO CALCULADO</span>
-            <span className="text-lg font-bold text-slate-900">{perimeterMm || "—"}</span>
-          </div>
-          <p className="text-xs text-slate-500">mm</p>
         </div>
       </div>
     </div>

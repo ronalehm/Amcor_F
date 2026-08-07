@@ -83,6 +83,8 @@ import PhotoregisterAccordion from "../components/PhotoregisterAccordion";
 import CalculatedMeasuresAccordion from "../components/CalculatedMeasuresAccordion";
 import LaminaStructureTable from "../components/LaminaStructureTable";
 import PouchBolsaStructureTable from "../components/PouchBolsaStructureTable";
+import ProductPreliminaryCreateModal from "../../../shared/components/modals/ProductPreliminaryCreateModal";
+import type { ProductPreliminaryRecord } from "../../../shared/data/productPreliminaryTypes";
 import {
   calculateMargins,
   reconstructReferenceAndDistance,
@@ -231,6 +233,8 @@ export type ProjectEditFormData = {
   selloAnchoLateral: string;
   gussetWidth: string;
   gussetType: string;
+  alturaEnLaBolsa: string;
+  anchoEnLaBolsa: string;
 
   hasMicroperforado: string;
   ladoMicroperforado: string;
@@ -278,6 +282,13 @@ export type ProjectEditFormData = {
   reinforcementWidth: string;
   anchoSello: string;
   selloAnchoTransversal: string;
+  anchoSelloLateral: string;
+  anchoSelloAleta: string;
+  anchoFuelleCerrado: string;
+  microperforadoAleta: string;
+  ladoAleta: string;
+  separacionPuasAleta: string;
+  distanciaLadoAleta: string;
   ladoCorteAngular: string;
   distanciaAbocaMuesca: string;
   hasRoundedCorners: string;
@@ -2526,6 +2537,8 @@ export default function ProductEditPage() {
     selloAnchoLateral: "",
     gussetWidth: "",
     gussetType: "",
+    alturaEnLaBolsa: "",
+    anchoEnLaBolsa: "",
     hasMicroperforado: "",
     ladoMicroperforado: "",
     separacionPuas: "",
@@ -2566,6 +2579,13 @@ export default function ProductEditPage() {
     reinforcementWidth: "",
     anchoSello: "",
     selloAnchoTransversal: "",
+    anchoSelloLateral: "",
+    anchoSelloAleta: "",
+    anchoFuelleCerrado: "",
+    microperforadoAleta: "",
+    ladoAleta: "",
+    separacionPuasAleta: "",
+    distanciaLadoAleta: "",
     ladoCorteAngular: "",
     distanciaAbocaMuesca: "",
     hasAngularCut: "",
@@ -2630,6 +2650,7 @@ export default function ProductEditPage() {
   const [showValidationSuccessModal, setShowValidationSuccessModal] = useState(false);
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
   const [showInheritedDataModal, setShowInheritedDataModal] = useState(false);
+  const [showStructureEditModal, setShowStructureEditModal] = useState(false);
   const [openStructureSections, setOpenStructureSections] = useState({
     specs: true,
     dimensions: true,
@@ -2646,6 +2667,27 @@ export default function ProductEditPage() {
       ...prev,
       [section]: !prev[section],
     }));
+  };
+
+  const handleStructureDataReturned = (product: ProductPreliminaryRecord) => {
+    if (product.structureType) {
+      updateField("structureType", product.structureType);
+    }
+    if (product.layers && product.layers.length > 0) {
+      product.layers.forEach((layer, index) => {
+        const layerNum = index + 1;
+        if (layer.material) {
+          updateField(`layer${layerNum}Material` as keyof ProjectEditFormData, layer.material);
+        }
+        if (layer.micron) {
+          updateField(`layer${layerNum}Micron` as keyof ProjectEditFormData, layer.micron);
+        }
+        if (layer.grammage) {
+          updateField(`layer${layerNum}Grammage` as keyof ProjectEditFormData, layer.grammage);
+        }
+      });
+    }
+    setShowStructureEditModal(false);
   };
 
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
@@ -2914,6 +2956,8 @@ if (!project) {
       selloAnchoLateral: (project as any).selloAnchoLateral || "",
       gussetWidth: project.gussetWidth || "",
       gussetType: project.gussetType || "",
+      alturaEnLaBolsa: (project as any).alturaEnLaBolsa || "",
+      anchoEnLaBolsa: (project as any).anchoEnLaBolsa || "",
       hasMicroperforado: toYesNo((project as any).hasMicroperforado),
       ladoMicroperforado: (project as any).ladoMicroperforado || "",
       separacionPuas: (project as any).separacionPuas || "",
@@ -2954,6 +2998,13 @@ if (!project) {
       reinforcementWidth: project.reinforcementWidth || "",
       anchoSello: (project as any).anchoSello || "",
       selloAnchoTransversal: (project as any).selloAnchoTransversal || "",
+      anchoSelloLateral: (project as any).anchoSelloLateral || "",
+      anchoSelloAleta: (project as any).anchoSelloAleta || "",
+      anchoFuelleCerrado: (project as any).anchoFuelleCerrado || "",
+      microperforadoAleta: (project as any).microperforadoAleta || "",
+      ladoAleta: (project as any).ladoAleta || "",
+      separacionPuasAleta: (project as any).separacionPuasAleta || "",
+      distanciaLadoAleta: (project as any).distanciaLadoAleta || "",
       ladoCorteAngular: (project as any).ladoCorteAngular || "",
       distanciaAbocaMuesca: (project as any).distanciaAbocaMuesca || "",
       hasRoundedCorners: toYesNo(project.hasRoundedCorners),
@@ -5152,46 +5203,55 @@ if (!project) {
                           />
 
                           {form.hasEdagReference === "Sí" && (
-                            <>
-                              <FormInput
-                                label="Código EDAG"
-                                value={form.edagCode}
-                                onChange={(value) => updateField("edagCode", value)}
-                                placeholder="Ej. EDAG-000001"
-                                disabled={form.printClass === "Sin impresión"}
-                              />
-
-                              <div className="flex gap-2 items-end">
-                                <div className="flex-1">
-                                  <FormInput
-                                    label="Versión EDAG"
-                                    value={form.edagVersion}
-                                    onChange={(value) => updateField("edagVersion", value)}
-                                    placeholder="Ej. 01"
-                                    disabled={form.printClass === "Sin impresión"}
-                                  />
-                                </div>
-                                <button
-                                  type="button"
-                                  className="h-10 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-                                  onClick={() => {
-                                    const edagData = getEdagByCodeAndVersion(form.edagCode, form.edagVersion);
-                                    if (edagData) {
-                                      if (edagData.printClass) updateField("printClass", edagData.printClass);
-                                      if (edagData.printType) updateField("printType", edagData.printType);
-                                      if (edagData.printForm) updateField("printForm", edagData.printForm);
-                                      if (edagData.blueprintFormat) updateField("blueprintFormat", edagData.blueprintFormat);
-                                      if (edagData.colorObjective) updateField("colorObjective", edagData.colorObjective);
+                            <div className="flex gap-2 items-end md:col-span-2">
+                              <div className="flex-1">
+                                <FormInput
+                                  label="EDAG Referencia"
+                                  value={
+                                    form.edagCode && form.edagVersion
+                                      ? `${form.edagCode}-${form.edagVersion}`
+                                      : ""
+                                  }
+                                  onChange={(value) => {
+                                    const cleanValue = value.replace(/[^\d-]/g, "");
+                                    if (cleanValue.includes("-")) {
+                                      const [code, version] = cleanValue.split("-");
+                                      updateField("edagCode", code || "");
+                                      updateField("edagVersion", version || "");
+                                    } else if (cleanValue.length <= 5) {
+                                      updateField("edagCode", cleanValue);
+                                      updateField("edagVersion", "");
                                     } else {
-                                      alert(`No se encontró EDAG ${form.edagCode} versión ${form.edagVersion}`);
+                                      const code = cleanValue.slice(0, 5);
+                                      const version = cleanValue.slice(5, 7);
+                                      updateField("edagCode", code);
+                                      updateField("edagVersion", version);
                                     }
                                   }}
-                                  disabled={!form.edagCode || !form.edagVersion}
-                                >
-                                  Consultar SI
-                                </button>
+                                  placeholder="Ej. 00001-01"
+                                  disabled={form.printClass === "Sin impresión"}
+                                />
                               </div>
-                            </>
+                              <button
+                                type="button"
+                                className="h-10 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={() => {
+                                  const edagData = getEdagByCodeAndVersion(form.edagCode, form.edagVersion);
+                                  if (edagData) {
+                                    if (edagData.printClass) updateField("printClass", edagData.printClass);
+                                    if (edagData.printType) updateField("printType", edagData.printType);
+                                    if (edagData.printForm) updateField("printForm", edagData.printForm);
+                                    if (edagData.blueprintFormat) updateField("blueprintFormat", edagData.blueprintFormat);
+                                    if (edagData.colorObjective) updateField("colorObjective", edagData.colorObjective);
+                                  } else {
+                                    alert(`No se encontró EDAG ${form.edagCode} versión ${form.edagVersion}`);
+                                  }
+                                }}
+                                disabled={!form.edagCode || !form.edagVersion}
+                              >
+                                Consultar SI
+                              </button>
+                            </div>
                           )}
                         </div>
 
@@ -5330,18 +5390,119 @@ if (!project) {
                               )}
 
                               {form.tipoFamiliaPouch === "Pouch Plano" && (
-                                <FormSelect
-                                  label="Cantidad de Sellos *"
-                                  value={form.cantidadSellosPouchPlano}
-                                  onChange={handlePouchPlanoSealCountChange}
-                                  onBlur={() => markFieldAsTouched("cantidadSellosPouchPlano")}
-                                  error={getError("cantidadSellosPouchPlano")}
-                                  options={[
-                                    { value: "Dos sellos", label: "Dos sellos" },
-                                    { value: "Tres sellos", label: "Tres sellos" },
-                                  ]}
-                                  placeholder="-- Seleccione --"
-                                />
+                                <>
+                                  <FormSelect
+                                    label="Cantidad de Sellos *"
+                                    value={form.cantidadSellosPouchPlano}
+                                    onChange={handlePouchPlanoSealCountChange}
+                                    onBlur={() => markFieldAsTouched("cantidadSellosPouchPlano")}
+                                    error={getError("cantidadSellosPouchPlano")}
+                                    options={[
+                                      { value: "Dos sellos", label: "Dos sellos" },
+                                      { value: "Tres sellos", label: "Tres sellos" },
+                                    ]}
+                                    placeholder="-- Seleccione --"
+                                  />
+
+                                  {(form.cantidadSellosPouchPlano === "Dos sellos" || form.cantidadSellosPouchPlano === "Tres sellos") && (
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-4">
+                                      <h5 className="text-sm font-semibold text-slate-700">Accesorios Pouch Plano</h5>
+
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={form.hasZipper === "Sí"}
+                                          onChange={(e) => {
+                                            updateField("hasZipper", e.target.checked ? "Sí" : "No");
+                                            if (!e.target.checked) {
+                                              updateField("distanciaAbocaZipper", "");
+                                            }
+                                          }}
+                                          className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                        />
+                                        <span className="text-sm text-slate-700">Zipper</span>
+                                      </label>
+
+                                      {form.hasZipper === "Sí" && (
+                                        <FormInput
+                                          label="Distancia boca a zipper (mm)"
+                                          value={form.distanciaAbocaZipper}
+                                          onChange={(value) => updateField("distanciaAbocaZipper", value)}
+                                          placeholder="Ej. 10"
+                                        />
+                                      )}
+
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={form.hasNotch === "Sí"}
+                                          onChange={(e) => {
+                                            updateField("hasNotch", e.target.checked ? "Sí" : "No");
+                                            if (!e.target.checked) {
+                                              updateField("distanciaAbocaMuesca", "");
+                                            }
+                                          }}
+                                          className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                        />
+                                        <span className="text-sm text-slate-700">Muesca</span>
+                                      </label>
+
+                                      {form.hasNotch === "Sí" && (
+                                        <FormInput
+                                          label="Distancia boca a muesca (mm)"
+                                          value={form.distanciaAbocaMuesca}
+                                          onChange={(value) => updateField("distanciaAbocaMuesca", value)}
+                                          placeholder="Ej. 15"
+                                        />
+                                      )}
+
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          checked={form.hasPerforation === "Sí"}
+                                          onChange={(e) => {
+                                            updateField("hasPerforation", e.target.checked ? "Sí" : "No");
+                                            if (!e.target.checked) {
+                                              updateField("distanciaAbocaPerforacion", "");
+                                              updateField("pouchPerforationType", "");
+                                            }
+                                          }}
+                                          className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                        />
+                                        <span className="text-sm text-slate-700">Perforación</span>
+                                      </label>
+
+                                      {form.hasPerforation === "Sí" && (
+                                        <div className="space-y-3">
+                                          <FormInput
+                                            label="Distancia boca a perforación (mm)"
+                                            value={form.distanciaAbocaPerforacion}
+                                            onChange={(value) => updateField("distanciaAbocaPerforacion", value)}
+                                            placeholder="Ej. 20"
+                                          />
+                                          <FormSelect
+                                            label="Tipo de Perforación"
+                                            value={form.pouchPerforationType}
+                                            onChange={(value) => updateField("pouchPerforationType", value)}
+                                            placeholder="-- Seleccione --"
+                                            options={[
+                                              { value: "OJAL 50x15 mm", label: "OJAL 50x15 mm" },
+                                              { value: "OJAL 70x20 mm", label: "OJAL 70x20 mm" },
+                                              { value: "OJAL 78x20 mm", label: "OJAL 78x20 mm" },
+                                              { value: "EUROPUNCH 32 x 10 mm", label: "EUROPUNCH 32 x 10 mm" },
+                                              { value: "EUROPUNCH 38 x 10 mm", label: "EUROPUNCH 38 x 10 mm" },
+                                              { value: "CIRCULAR D 4 mm", label: "CIRCULAR D 4 mm" },
+                                              { value: "CIRCULAR D 6 mm", label: "CIRCULAR D 6 mm" },
+                                              { value: "CIRCULAR D 8 mm", label: "CIRCULAR D 8 mm" },
+                                              { value: "CIRCULAR D 10 mm", label: "CIRCULAR D 10 mm" },
+                                              { value: "Esquinas Redondas", label: "Esquinas Redondas" },
+                                            ]}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </>
                               )}
 
                               {form.tipoFamiliaPouch === "Pouch con Sello Central" && (
@@ -5364,26 +5525,493 @@ if (!project) {
                                     error={getError("materialSelloCentralPouch")}
                                     options={[
                                       { value: "PE-PE/PE", label: "PE-PE/PE" },
+                                      { value: "Aleta", label: "Aleta" },
                                       { value: "Otro material", label: "Otro material" },
                                     ]}
                                     placeholder="-- Seleccione --"
                                   />
+
+                                  {form.materialSelloCentralPouch === "Aleta" && form.tieneFuelleSelloCentralPouch === "Sí" && (
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2 space-y-4">
+                                      <h5 className="text-sm font-semibold text-slate-700">Especificaciones de Sello Central Aleta con Fuelle</h5>
+                                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <FormInput
+                                          label="Ancho del pouch (mm)"
+                                          value={form.width}
+                                          onChange={(value) => updateField("width", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormInput
+                                          label="Largo del pouch (mm)"
+                                          value={form.length}
+                                          onChange={(value) => updateField("length", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormInput
+                                          label="Ancho de fuelle cerrado (mm)"
+                                          value={form.anchoFuelleCerrado}
+                                          onChange={(value) => {
+                                            const numValue = parseInt(value) || 0;
+                                            if (numValue >= 0 && numValue <= 200) {
+                                              updateField("anchoFuelleCerrado", value);
+                                            }
+                                          }}
+                                          placeholder="0-200 mm"
+                                        />
+                                        <FormSelect
+                                          label="Ancho del sello aleta"
+                                          value={form.anchoSelloAleta}
+                                          onChange={(value) => updateField("anchoSelloAleta", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "10", label: "10" },
+                                            { value: "12", label: "12" },
+                                            { value: "15", label: "15" },
+                                          ]}
+                                        />
+                                        <div className="rounded bg-slate-100 p-3 md:col-span-2">
+                                          <label className="text-xs font-semibold text-slate-600">Ancho Total (calculado)</label>
+                                          <div className="text-sm font-bold text-slate-900 mt-1">
+                                            {form.anchoSelloAleta ? String(parseInt(form.anchoSelloAleta) || 0) : "—"}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="border-t border-slate-200 pt-4 space-y-3">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={form.hasValve === "Sí"}
+                                            onChange={(e) => {
+                                              updateField("hasValve", e.target.checked ? "Sí" : "No");
+                                              if (!e.target.checked) {
+                                                updateField("distanciaAbocaValvula", "");
+                                              }
+                                            }}
+                                            className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                          />
+                                          <span className="text-sm text-slate-700">Válvula</span>
+                                        </label>
+
+                                        {form.hasValve === "Sí" && (
+                                          <FormInput
+                                            label="Distancia de la boca del pouch al inicio de válvula (mm)"
+                                            value={form.distanciaAbocaValvula}
+                                            onChange={(value) => updateField("distanciaAbocaValvula", value)}
+                                            placeholder="mm"
+                                          />
+                                        )}
+                                      </div>
+
+                                      <div className="border-t border-slate-200 pt-4">
+                                        <label className="flex items-center gap-2 cursor-pointer mb-3">
+                                          <input
+                                            type="checkbox"
+                                            checked={form.hasPerforation === "Sí"}
+                                            onChange={(e) => {
+                                              updateField("hasPerforation", e.target.checked ? "Sí" : "No");
+                                              if (!e.target.checked) {
+                                                updateField("pouchPerforationType", "");
+                                                updateField("distanciaAbocaPerforacion", "");
+                                              }
+                                            }}
+                                            className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                          />
+                                          <span className="text-sm text-slate-700">Perforación</span>
+                                        </label>
+
+                                        {form.hasPerforation === "Sí" && (
+                                          <div className="space-y-3">
+                                            <FormSelect
+                                              label="Tipo de perforación"
+                                              value={form.pouchPerforationType}
+                                              onChange={(value) => updateField("pouchPerforationType", value)}
+                                              placeholder="-- Seleccione --"
+                                              options={[
+                                                { value: "CIRCULAR D 4mm", label: "CIRCULAR D 4mm" },
+                                                { value: "CIRCULAR D 6mm", label: "CIRCULAR D 6mm" },
+                                                { value: "CIRCULAR D 8mm", label: "CIRCULAR D 8mm" },
+                                                { value: "CIRCULAR D 10mm", label: "CIRCULAR D 10mm" },
+                                              ]}
+                                            />
+                                            <FormInput
+                                              label="Distancia de la boca del pouch a la perforación (mm)"
+                                              value={form.distanciaAbocaPerforacion}
+                                              onChange={(value) => updateField("distanciaAbocaPerforacion", value)}
+                                              placeholder="mm"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {form.materialSelloCentralPouch === "PE-PE/PE" && form.tieneFuelleSelloCentralPouch === "Sí" && (
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2 space-y-4">
+                                      <h5 className="text-sm font-semibold text-slate-700">Especificaciones de Sello Central PE-PE/PE con Fuelle</h5>
+                                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <FormInput
+                                          label="Ancho del pouch (mm)"
+                                          value={form.width}
+                                          onChange={(value) => updateField("width", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormInput
+                                          label="Largo del pouch (mm)"
+                                          value={form.length}
+                                          onChange={(value) => updateField("length", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormInput
+                                          label="Ancho del fuelle cerrado (mm)"
+                                          value={form.anchoFuelleCerrado}
+                                          onChange={(value) => updateField("anchoFuelleCerrado", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormSelect
+                                          label="Ancho de sello aleta"
+                                          value={form.anchoSelloAleta}
+                                          onChange={(value) => updateField("anchoSelloAleta", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "10", label: "10" },
+                                            { value: "12", label: "12" },
+                                            { value: "15", label: "15" },
+                                          ]}
+                                        />
+                                        <FormInput
+                                          label="Ancho del sello transversal (mm)"
+                                          value={form.selloAnchoTransversal}
+                                          onChange={(value) => updateField("selloAnchoTransversal", value)}
+                                          placeholder="mm"
+                                        />
+                                        <div className="rounded bg-slate-100 p-3">
+                                          <label className="text-xs font-semibold text-slate-600">Ancho Total (calculado)</label>
+                                          <div className="text-sm font-bold text-slate-900 mt-1">
+                                            {form.anchoSelloAleta && form.selloAnchoTransversal
+                                              ? String((parseInt(form.anchoSelloAleta) || 0) + (parseInt(form.selloAnchoTransversal) || 0))
+                                              : "—"}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="border-t border-slate-200 pt-4 space-y-3">
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                          <FormSelect
+                                            label="Microperforado"
+                                            value={form.microperforadoAleta}
+                                            onChange={(value) => updateField("microperforadoAleta", value)}
+                                            placeholder="-- Seleccione --"
+                                            options={YES_NO_OPTIONS}
+                                          />
+                                          <FormSelect
+                                            label="Lado"
+                                            value={form.ladoAleta}
+                                            onChange={(value) => updateField("ladoAleta", value)}
+                                            placeholder="-- Seleccione --"
+                                            options={[
+                                              { value: "Derecho del pouch", label: "Derecho del pouch" },
+                                              { value: "Izquierdo del pouch", label: "Izquierdo del pouch" },
+                                            ]}
+                                          />
+                                          <FormSelect
+                                            label="Separación de puas"
+                                            value={form.separacionPuasAleta}
+                                            onChange={(value) => updateField("separacionPuasAleta", value)}
+                                            placeholder="-- Seleccione --"
+                                            options={[
+                                              { value: "Avena 20-20 mm", label: "Avena 20-20 mm" },
+                                              { value: "Fideos/Detergente 30-30 mm", label: "Fideos/Detergente 30-30 mm" },
+                                              { value: "Detergente 40-40 mm", label: "Detergente 40-40 mm" },
+                                            ]}
+                                          />
+                                          <FormInput
+                                            label="Distancia al lado del pouch (mm)"
+                                            value={form.distanciaLadoAleta}
+                                            onChange={(value) => updateField("distanciaLadoAleta", value)}
+                                            placeholder="mm"
+                                          />
+                                        </div>
+
+                                        <div className="border-t border-slate-200 pt-3">
+                                          <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                              type="checkbox"
+                                              checked={form.hasValve === "Sí"}
+                                              onChange={(e) => {
+                                                updateField("hasValve", e.target.checked ? "Sí" : "No");
+                                                if (!e.target.checked) {
+                                                  updateField("distanciaAbocaValvula", "");
+                                                }
+                                              }}
+                                              className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                            />
+                                            <span className="text-sm text-slate-700">Válvula</span>
+                                          </label>
+
+                                          {form.hasValve === "Sí" && (
+                                            <FormInput
+                                              label="Distancia de la boca del pouch al inicio de válvula (mm)"
+                                              value={form.distanciaAbocaValvula}
+                                              onChange={(value) => updateField("distanciaAbocaValvula", value)}
+                                              placeholder="mm"
+                                            />
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {form.materialSelloCentralPouch === "Aleta" && form.tieneFuelleSelloCentralPouch === "No" && (
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2 space-y-4">
+                                      <h5 className="text-sm font-semibold text-slate-700">Especificaciones de Sello Central Aleta</h5>
+                                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <FormInput
+                                          label="Ancho del pouch (mm)"
+                                          value={form.width}
+                                          onChange={(value) => updateField("width", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormInput
+                                          label="Largo del pouch (mm)"
+                                          value={form.length}
+                                          onChange={(value) => updateField("length", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormSelect
+                                          label="Ancho de sello aleta"
+                                          value={form.anchoSelloAleta}
+                                          onChange={(value) => updateField("anchoSelloAleta", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "10", label: "10" },
+                                            { value: "12", label: "12" },
+                                            { value: "15", label: "15" },
+                                          ]}
+                                        />
+                                        <FormInput
+                                          label="Ancho del sello transversal (mm)"
+                                          value={form.selloAnchoTransversal}
+                                          onChange={(value) => updateField("selloAnchoTransversal", value)}
+                                          placeholder="mm"
+                                        />
+                                        <div className="rounded bg-slate-100 p-3 md:col-span-2">
+                                          <label className="text-xs font-semibold text-slate-600">Ancho Total (calculado)</label>
+                                          <div className="text-sm font-bold text-slate-900 mt-1">
+                                            {form.anchoSelloAleta && form.selloAnchoTransversal
+                                              ? String((parseInt(form.anchoSelloAleta) || 0) + (parseInt(form.selloAnchoTransversal) || 0))
+                                              : "—"}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="border-t border-slate-200 pt-4">
+                                        <label className="flex items-center gap-2 cursor-pointer mb-3">
+                                          <input
+                                            type="checkbox"
+                                            checked={form.hasPerforation === "Sí"}
+                                            onChange={(e) => {
+                                              updateField("hasPerforation", e.target.checked ? "Sí" : "No");
+                                              if (!e.target.checked) {
+                                                updateField("pouchPerforationType", "");
+                                                updateField("distanciaAbocaPerforacion", "");
+                                              }
+                                            }}
+                                            className="w-4 h-4 rounded border-slate-300 cursor-pointer"
+                                          />
+                                          <span className="text-sm text-slate-700">Perforación</span>
+                                        </label>
+
+                                        {form.hasPerforation === "Sí" && (
+                                          <div className="space-y-3">
+                                            <FormSelect
+                                              label="Tipo de perforación"
+                                              value={form.pouchPerforationType}
+                                              onChange={(value) => updateField("pouchPerforationType", value)}
+                                              placeholder="-- Seleccione --"
+                                              options={[
+                                                { value: "CIRCULAR D 4mm", label: "CIRCULAR D 4mm" },
+                                                { value: "CIRCULAR D 6mm", label: "CIRCULAR D 6mm" },
+                                                { value: "CIRCULAR D 8mm", label: "CIRCULAR D 8mm" },
+                                                { value: "CIRCULAR D 10mm", label: "CIRCULAR D 10mm" },
+                                              ]}
+                                            />
+                                            <FormInput
+                                              label="Distancia de la boca del pouch a la perforación (mm)"
+                                              value={form.distanciaAbocaPerforacion}
+                                              onChange={(value) => updateField("distanciaAbocaPerforacion", value)}
+                                              placeholder="mm"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {form.materialSelloCentralPouch === "PE-PE/PE" && form.tieneFuelleSelloCentralPouch === "No" && (
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2 space-y-4">
+                                      <h5 className="text-sm font-semibold text-slate-700">Especificaciones de Sello Central PE-PE/PE sin Fuelle</h5>
+                                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <FormInput
+                                          label="Ancho del pouch (mm)"
+                                          value={form.width}
+                                          onChange={(value) => updateField("width", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormInput
+                                          label="Largo del pouch (mm)"
+                                          value={form.length}
+                                          onChange={(value) => updateField("length", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormSelect
+                                          label="Ancho de sello aleta"
+                                          value={form.anchoSelloAleta}
+                                          onChange={(value) => updateField("anchoSelloAleta", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "10", label: "10" },
+                                            { value: "12", label: "12" },
+                                            { value: "15", label: "15" },
+                                          ]}
+                                        />
+                                        <FormInput
+                                          label="Ancho del sello transversal (mm)"
+                                          value={form.selloAnchoTransversal}
+                                          onChange={(value) => updateField("selloAnchoTransversal", value)}
+                                          placeholder="mm"
+                                        />
+                                        <div className="rounded bg-slate-100 p-3">
+                                          <label className="text-xs font-semibold text-slate-600">Ancho Total (calculado)</label>
+                                          <div className="text-sm font-bold text-slate-900 mt-1">
+                                            {form.anchoSelloAleta && form.selloAnchoTransversal
+                                              ? String((parseInt(form.anchoSelloAleta) || 0) + (parseInt(form.selloAnchoTransversal) || 0))
+                                              : "—"}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="border-t border-slate-200 pt-4 space-y-3">
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                          <FormSelect
+                                            label="Microperforado"
+                                            value={form.microperforadoAleta}
+                                            onChange={(value) => updateField("microperforadoAleta", value)}
+                                            placeholder="-- Seleccione --"
+                                            options={YES_NO_OPTIONS}
+                                          />
+                                          <FormSelect
+                                            label="Lado"
+                                            value={form.ladoAleta}
+                                            onChange={(value) => updateField("ladoAleta", value)}
+                                            placeholder="-- Seleccione --"
+                                            options={[
+                                              { value: "Derecho del pouch", label: "Derecho del pouch" },
+                                              { value: "Izquierdo del pouch", label: "Izquierdo del pouch" },
+                                            ]}
+                                          />
+                                          <FormSelect
+                                            label="Separación de puas"
+                                            value={form.separacionPuasAleta}
+                                            onChange={(value) => updateField("separacionPuasAleta", value)}
+                                            placeholder="-- Seleccione --"
+                                            options={[
+                                              { value: "Avena 20-20 mm", label: "Avena 20-20 mm" },
+                                              { value: "Fideos/Detergente 30-30 mm", label: "Fideos/Detergente 30-30 mm" },
+                                              { value: "Detergente 40-40 mm", label: "Detergente 40-40 mm" },
+                                            ]}
+                                          />
+                                          <FormInput
+                                            label="Distancia al lado del pouch (mm)"
+                                            value={form.distanciaLadoAleta}
+                                            onChange={(value) => updateField("distanciaLadoAleta", value)}
+                                            placeholder="mm"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </>
                               )}
 
                               {form.tipoFamiliaPouch === "Pouch con Sello en Fuelle" && (
-                                <FormSelect
-                                  label="Tipo de Sello en Fuelle *"
-                                  value={form.tipoSelloEnFuellePouch}
-                                  onChange={handlePouchSealInGussetTypeChange}
-                                  onBlur={() => markFieldAsTouched("tipoSelloEnFuellePouch")}
-                                  error={getError("tipoSelloEnFuellePouch")}
-                                  options={[
-                                    { value: "Tipo 4-1", label: "Tipo 4-1" },
-                                    { value: "Tipo 1-1", label: "Tipo 1-1" },
-                                  ]}
-                                  placeholder="-- Seleccione --"
-                                />
+                                <>
+                                  <FormSelect
+                                    label="Tipo de Sello en Fuelle *"
+                                    value={form.tipoSelloEnFuellePouch}
+                                    onChange={handlePouchSealInGussetTypeChange}
+                                    onBlur={() => markFieldAsTouched("tipoSelloEnFuellePouch")}
+                                    error={getError("tipoSelloEnFuellePouch")}
+                                    options={[
+                                      { value: "Tipo 4-1", label: "Tipo 4-1" },
+                                      { value: "Tipo 1-1", label: "Tipo 1-1" },
+                                    ]}
+                                    placeholder="-- Seleccione --"
+                                  />
+
+                                  {form.tipoSelloEnFuellePouch === "Tipo 4-1" && (
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2 space-y-4">
+                                      <h5 className="text-sm font-semibold text-slate-700">Especificaciones Tipo 4-1</h5>
+                                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <FormInput
+                                          label="Ancho del pouch (mm)"
+                                          value={form.width}
+                                          onChange={(value) => updateField("width", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormInput
+                                          label="Largo del pouch (mm)"
+                                          value={form.length}
+                                          onChange={(value) => updateField("length", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormInput
+                                          label="Ancho del fuelle (mm)"
+                                          value={form.gussetWidth}
+                                          onChange={(value) => updateField("gussetWidth", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormSelect
+                                          label="Ancho Sello lateral"
+                                          value={form.anchoSelloLateral}
+                                          onChange={(value) => updateField("anchoSelloLateral", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "10", label: "10" },
+                                          ]}
+                                        />
+                                        <FormSelect
+                                          label="Válvula"
+                                          value={form.hasValve}
+                                          onChange={(value) => {
+                                            updateField("hasValve", value);
+                                            if (value === "No") {
+                                              updateField("distanciaAbocaValvula", "");
+                                            }
+                                          }}
+                                          placeholder="-- Seleccione --"
+                                          options={YES_NO_OPTIONS}
+                                        />
+                                        {form.hasValve === "Sí" && (
+                                          <FormInput
+                                            label="Distancia de la boca al inicio de válvula (mm)"
+                                            value={form.distanciaAbocaValvula}
+                                            onChange={(value) => updateField("distanciaAbocaValvula", value)}
+                                            placeholder="mm"
+                                          />
+                                        )}
+                                        <div className="rounded bg-slate-100 p-3 md:col-span-2">
+                                          <label className="text-xs font-semibold text-slate-600">Ancho Total (calculado)</label>
+                                          <div className="text-sm font-bold text-slate-900 mt-1">—</div>
+                                        </div>
+                                        <div className="rounded bg-slate-100 p-3 md:col-span-2">
+                                          <label className="text-xs font-semibold text-slate-600">Perímetro (calculado)</label>
+                                          <div className="text-sm font-bold text-slate-900 mt-1">—</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                           ) : isBolsaWrapping(inheritedWrapping) ? (
@@ -5616,7 +6244,7 @@ if (!project) {
                                       {isPouchOrBolsa && (
                                         <div>
                                           <FormInput
-                                            label="Ancho Fuelle *"
+                                            label={isBolsaWrapping(inheritedWrapping) ? "Ancho fuelle cerrado *" : "Ancho Fuelle *"}
                                             value={form.gussetWidth}
                                             onChange={(value) => updateField("gussetWidth", value)}
                                             onBlur={() => markFieldAsTouched("gussetWidth")}
@@ -5642,13 +6270,301 @@ if (!project) {
                               </div>
                             </div>
 
+                            {/* Márgenes del Área Impresa - BOLSA */}
+                            {isBolsaWrapping(inheritedWrapping) && (
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                  Márgenes del Área Impresa
+                                </h4>
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                  <FormInput
+                                    label="Altura en la bolsa (mm)"
+                                    value={form.alturaEnLaBolsa}
+                                    onChange={(value) => updateField("alturaEnLaBolsa", value)}
+                                    onBlur={() => markFieldAsTouched("alturaEnLaBolsa")}
+                                    error={getError("alturaEnLaBolsa")}
+                                    placeholder="mm"
+                                  />
+                                  <FormInput
+                                    label="Ancho en la bolsa (mm)"
+                                    value={form.anchoEnLaBolsa}
+                                    onChange={(value) => updateField("anchoEnLaBolsa", value)}
+                                    onBlur={() => markFieldAsTouched("anchoEnLaBolsa")}
+                                    error={getError("anchoEnLaBolsa")}
+                                    placeholder="mm"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Información para el Fuelle - BOLSA */}
+                            {isBolsaWrapping(inheritedWrapping) && form.tieneFuelleBolsa === "Sí" && (
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                  Información para el Fuelle
+                                </h4>
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                  <FormSelect
+                                    label="Precorte (Abre fácil en fuelle)"
+                                    value={form.precutFuelleAbreFacil}
+                                    onChange={(value) => updateField("precutFuelleAbreFacil", value)}
+                                    onBlur={() => markFieldAsTouched("precutFuelleAbreFacil")}
+                                    error={getError("precutFuelleAbreFacil")}
+                                    placeholder="-- Seleccione --"
+                                    options={[
+                                      { value: "10", label: "10" },
+                                    ]}
+                                  />
+                                  <FormSelect
+                                    label="Tipo de perforación"
+                                    value={form.bagPerforationType}
+                                    onChange={(value) => updateField("bagPerforationType", value)}
+                                    onBlur={() => markFieldAsTouched("bagPerforationType")}
+                                    error={getError("bagPerforationType")}
+                                    placeholder="-- Seleccione --"
+                                    options={[
+                                      { value: "Cruz 5 mm", label: "Cruz 5 mm" },
+                                      { value: "Cruz 7 mm", label: "Cruz 7 mm" },
+                                      { value: "Media luna D 5 mm", label: "Media luna D 5 mm" },
+                                    ]}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Información para la Solapa - WICKET */}
+                            {isBolsaWrapping(inheritedWrapping) && form.tipoPresentacionBolsa === "Wicket" && (
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-6">
+                                <div>
+                                  <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                    Información para la Solapa
+                                  </h4>
+                                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <FormInput
+                                      label="Ancho de solapa (mm)"
+                                      value={form.anchoSolapa}
+                                      onChange={(value) => updateField("anchoSolapa", value)}
+                                      onBlur={() => markFieldAsTouched("anchoSolapa")}
+                                      error={getError("anchoSolapa")}
+                                      placeholder="mm"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                    Wickets
+                                  </h4>
+                                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <FormSelect
+                                      label="Wickets"
+                                      value={form.hasWicket}
+                                      onChange={(value) => {
+                                        updateField("hasWicket", value);
+                                        if (value === "No") {
+                                          updateField("wicketDiameter", "");
+                                          updateField("wicketDistSuperior", "");
+                                          updateField("wicketDistDerecho", "");
+                                        }
+                                      }}
+                                      placeholder="-- Seleccione --"
+                                      options={YES_NO_OPTIONS}
+                                    />
+                                    {form.hasWicket === "Sí" && (
+                                      <>
+                                        <FormSelect
+                                          label="Diámetro de wicket"
+                                          value={form.wicketDiameter}
+                                          onChange={(value) => updateField("wicketDiameter", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "D 12 mm", label: "D 12 mm" },
+                                            { value: "D 14 mm", label: "D 14 mm" },
+                                            { value: "D 16 mm", label: "D 16 mm" },
+                                          ]}
+                                        />
+                                        <FormInput
+                                          label="Distancia del margen superior al centro del wicket (mm)"
+                                          value={form.wicketDistSuperior}
+                                          onChange={(value) => updateField("wicketDistSuperior", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormInput
+                                          label="Distancia del margen derecho al centro del wicket (mm)"
+                                          value={form.wicketDistDerecho}
+                                          onChange={(value) => updateField("wicketDistDerecho", value)}
+                                          placeholder="mm"
+                                        />
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                    Wicket de Control
+                                  </h4>
+                                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <FormSelect
+                                      label="Wicket de control"
+                                      value={form.hasWicketControl}
+                                      onChange={(value) => {
+                                        updateField("hasWicketControl", value);
+                                        if (value === "No") {
+                                          updateField("wicketControlDiameter", "");
+                                          updateField("wicketControlUbicacion", "");
+                                          updateField("wicketControlDistSuperior", "");
+                                          updateField("wicketControlDistDerecho", "");
+                                        }
+                                      }}
+                                      placeholder="-- Seleccione --"
+                                      options={YES_NO_OPTIONS}
+                                    />
+                                    {form.hasWicketControl === "Sí" && (
+                                      <>
+                                        <FormSelect
+                                          label="Diámetro del wicket de control"
+                                          value={form.wicketControlDiameter}
+                                          onChange={(value) => updateField("wicketControlDiameter", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "D 8 mm", label: "D 8 mm" },
+                                            { value: "D 12 mm", label: "D 12 mm" },
+                                            { value: "D 14 mm", label: "D 14 mm" },
+                                            { value: "D 16 mm", label: "D 16 mm" },
+                                          ]}
+                                        />
+                                        <FormSelect
+                                          label="Ubicación"
+                                          value={form.wicketControlUbicacion}
+                                          onChange={(value) => updateField("wicketControlUbicacion", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "Superior", label: "Superior" },
+                                            { value: "Inferior", label: "Inferior" },
+                                          ]}
+                                        />
+                                        <FormInput
+                                          label="Distancia del margen superior al centro del wicket control (mm)"
+                                          value={form.wicketControlDistSuperior}
+                                          onChange={(value) => updateField("wicketControlDistSuperior", value)}
+                                          placeholder="mm"
+                                        />
+                                        <FormInput
+                                          label="Distancia del margen derecho al centro del wicket control (mm)"
+                                          value={form.wicketControlDistDerecho}
+                                          onChange={(value) => updateField("wicketControlDistDerecho", value)}
+                                          placeholder="mm"
+                                        />
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                    Precorte Wicket
+                                  </h4>
+                                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <FormSelect
+                                      label="Precorte wicket"
+                                      value={form.hasPrecorteWicket}
+                                      onChange={(value) => {
+                                        updateField("hasPrecorteWicket", value);
+                                        if (value === "No") {
+                                          updateField("precorteWicketLargo", "");
+                                          updateField("precorteWicketUbicacion", "");
+                                          updateField("precorteWicketDistDerecho", "");
+                                        }
+                                      }}
+                                      placeholder="-- Seleccione --"
+                                      options={YES_NO_OPTIONS}
+                                    />
+                                    {form.hasPrecorteWicket === "Sí" && (
+                                      <>
+                                        <FormSelect
+                                          label="Precorte wicket largo"
+                                          value={form.precorteWicketLargo}
+                                          onChange={(value) => updateField("precorteWicketLargo", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "3 mm", label: "3 mm" },
+                                            { value: "4 mm", label: "4 mm" },
+                                            { value: "5 mm", label: "5 mm" },
+                                            { value: "6 mm", label: "6 mm" },
+                                            { value: "7 mm", label: "7 mm" },
+                                          ]}
+                                        />
+                                        <FormSelect
+                                          label="Ubicación de precorte wicket"
+                                          value={form.precorteWicketUbicacion}
+                                          onChange={(value) => updateField("precorteWicketUbicacion", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "A los extremos del wicket", label: "A los extremos del wicket" },
+                                            { value: "Al centro del wicket", label: "Al centro del wicket" },
+                                            { value: "A los extremos internos del wicket", label: "A los extremos internos del wicket" },
+                                          ]}
+                                        />
+                                        <FormSelect
+                                          label="Distancia del margen derecho al precorte wicket"
+                                          value={form.precorteWicketDistDerecho}
+                                          onChange={(value) => updateField("precorteWicketDistDerecho", value)}
+                                          placeholder="-- Seleccione --"
+                                          options={[
+                                            { value: "Al borde", label: "Al borde" },
+                                            { value: "4 mm", label: "4 mm" },
+                                          ]}
+                                        />
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                    Información para el Fuelle
+                                  </h4>
+                                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <FormSelect
+                                      label="Precorte (Abre fácil en fuelle) a 10 mm del centro"
+                                      value={form.precutFuelleAbreFacil}
+                                      onChange={(value) => updateField("precutFuelleAbreFacil", value)}
+                                      placeholder="-- Seleccione --"
+                                      options={YES_NO_OPTIONS}
+                                    />
+                                    <FormSelect
+                                      label="Tipo de perforación"
+                                      value={form.bagPerforationType}
+                                      onChange={(value) => updateField("bagPerforationType", value)}
+                                      placeholder="-- Seleccione --"
+                                      options={[
+                                        { value: "OJAL 50x15 mm", label: "OJAL 50x15 mm" },
+                                        { value: "OJAL 70x20 mm", label: "OJAL 70x20 mm" },
+                                        { value: "OJAL 78x20 mm", label: "OJAL 78x20 mm" },
+                                        { value: "EUROPUNCH 32x10 mm", label: "EUROPUNCH 32x10 mm" },
+                                        { value: "EUROPUNCH 38x10 mm", label: "EUROPUNCH 38x10 mm" },
+                                        { value: "CIRCULAR D 4mm", label: "CIRCULAR D 4mm" },
+                                        { value: "CIRCULAR D 6mm", label: "CIRCULAR D 6mm" },
+                                        { value: "CIRCULAR D 8mm", label: "CIRCULAR D 8mm" },
+                                        { value: "CIRCULAR D 10mm", label: "CIRCULAR D 10mm" },
+                                      ]}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             {/* Especificaciones de Sello - Pouch Plano */}
                             {isPouchWrapping(inheritedWrapping) && form.tipoFamiliaPouch === "Pouch Plano" && form.cantidadSellosPouchPlano && (
                               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                                 <p className="mb-3 text-xs font-bold uppercase text-slate-600">Especificaciones de Sello</p>
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className={`grid grid-cols-1 gap-4 ${form.cantidadSellosPouchPlano === "Tres sellos" ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
                                   <FormInput label="Ancho Sello (mm)" value={form.anchoSello} onChange={(value) => updateField("anchoSello", value)} onBlur={() => markFieldAsTouched("anchoSello")} error={getError("anchoSello")} placeholder="Ej. 25" />
                                   <FormInput label="Sello Ancho Transversal (mm)" value={form.selloAnchoTransversal} onChange={(value) => updateField("selloAnchoTransversal", value)} onBlur={() => markFieldAsTouched("selloAnchoTransversal")} error={getError("selloAnchoTransversal")} placeholder="Ej. 15" />
+                                  {form.cantidadSellosPouchPlano === "Tres sellos" && (
+                                    <FormInput label="Ancho Sello Lateral (mm)" value={form.anchoSelloLateral} onChange={(value) => updateField("anchoSelloLateral", value)} onBlur={() => markFieldAsTouched("anchoSelloLateral")} error={getError("anchoSelloLateral")} placeholder="Ej. 20" />
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -5803,15 +6719,17 @@ if (!project) {
                                                   options={bagPerforationOpt}
                                                 />
                                               )}
-                                              <FormSelect
-                                                label="Ubicación Perforaciones"
-                                                value={form.perforationLocation}
-                                                onChange={(value) => updateField("perforationLocation", value)}
-                                                onBlur={() => markFieldAsTouched("perforationLocation")}
-                                                error={getError("perforationLocation")}
-                                                placeholder="-- Seleccione --"
-                                                options={PERFORATION_LOCATION_OPTIONS}
-                                              />
+                                              {isPouchWrapping(inheritedWrapping) && (
+                                                <FormSelect
+                                                  label="Ubicación Perforaciones"
+                                                  value={form.perforationLocation}
+                                                  onChange={(value) => updateField("perforationLocation", value)}
+                                                  onBlur={() => markFieldAsTouched("perforationLocation")}
+                                                  error={getError("perforationLocation")}
+                                                  placeholder="-- Seleccione --"
+                                                  options={PERFORATION_LOCATION_OPTIONS}
+                                                />
+                                              )}
                                               <FormInput
                                                 label="Distancia Aboca Perforación (mm)"
                                                 value={form.distanciaAbocaPerforacion}
@@ -5900,6 +6818,7 @@ if (!project) {
                     );
                   })()}
                 </FormCard>
+
 
                 {/* BLOQUE 1: FOTOREGISTRO SIMPLIFICADO */}
                 {canEditDesign && isLaminaWrapping(inheritedWrapping) && (
@@ -6362,59 +7281,66 @@ if (!project) {
                     blueprintFormat={form.blueprintFormat}
                     width={form.width}
                     repeat={form.length}
-                    perimeterMm={form.perimeterMm}
-                    dimensionCrossCheckStatus={form.dimensionCrossCheckStatus}
-                    perimeterValidationStatus={form.perimeterValidationStatus}
                   />
                 )}
 
-                {/* BLOQUE 1: PERÍMETROS */}
+                {/* BLOQUE 2: VALIDACIONES Y PERÍMETRO */}
                 {canEditDesign && (
-                  <FormCard title="Perímetros" icon="📏" color="#e74c3c">
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <FormInput
-                          label="Perímetro (mm)"
-                          type="number"
-                          value={form.perimeterMm}
-                          onChange={(value) => updateField("perimeterMm", value)}
-                          placeholder="0"
-                          disabled={!canEditDesign}
-                        />
-                        <FormSelect
-                          label="Validación de dimensiones"
-                          value={form.dimensionCrossCheckStatus}
-                          onChange={(value) => updateField("dimensionCrossCheckStatus", value)}
-                          placeholder="-- Seleccione --"
-                          options={[
-                            { value: "Validado", label: "Validado" },
-                            { value: "Pendiente", label: "Pendiente" },
-                            { value: "No aplica", label: "No aplica" },
-                          ]}
-                          disabled={!canEditDesign}
-                        />
-                        <FormSelect
-                          label="Validación de perímetros"
-                          value={form.perimeterValidationStatus}
-                          onChange={(value) => updateField("perimeterValidationStatus", value)}
-                          placeholder="-- Seleccione --"
-                          options={[
-                            { value: "Validado", label: "Validado" },
-                            { value: "Pendiente", label: "Pendiente" },
-                            { value: "No aplica", label: "No aplica" },
-                          ]}
-                          disabled={!canEditDesign}
-                        />
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700 block mb-2">Validación de Dimensiones (Cross Check)</label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 px-3 py-2 bg-slate-100 border border-slate-300 rounded text-sm text-slate-600">
+                          —
+                        </div>
+                        <button
+                          type="button"
+                          className="px-4 py-2 bg-slate-500 text-white text-sm font-medium rounded hover:bg-slate-600 transition whitespace-nowrap"
+                          onClick={() => {
+                            alert("Validación de dimensiones ejecutada");
+                          }}
+                        >
+                          Validar
+                        </button>
                       </div>
-                      <FormTextarea
-                        label="Comentario de perímetro"
-                        value={form.perimeterComment}
-                        onChange={(value) => updateField("perimeterComment", value)}
-                        placeholder="Comentarios adicionales sobre el perímetro..."
-                        disabled={!canEditDesign}
-                      />
                     </div>
-                  </FormCard>
+
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700 block mb-2">Validación de Perímetros</label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 px-3 py-2 bg-slate-100 border border-slate-300 rounded text-sm text-slate-600">
+                          —
+                        </div>
+                        <button
+                          type="button"
+                          className="px-4 py-2 bg-slate-500 text-white text-sm font-medium rounded hover:bg-slate-600 transition whitespace-nowrap"
+                          onClick={() => {
+                            alert("Validación de perímetros ejecutada");
+                          }}
+                        >
+                          Validar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-semibold text-slate-700 block mb-2">Perímetro Calculado (mm)</label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 px-3 py-2 bg-slate-100 border border-slate-300 rounded text-sm text-slate-600">
+                          —
+                        </div>
+                        <button
+                          type="button"
+                          className="px-4 py-2 bg-slate-500 text-white text-sm font-medium rounded hover:bg-slate-600 transition whitespace-nowrap"
+                          onClick={() => {
+                            alert("Perímetro obtenido");
+                          }}
+                        >
+                          Obtener
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* BLOQUE 3: SENTIDO DE BOBINADO */}
@@ -6455,15 +7381,83 @@ if (!project) {
                   isOpen={openStructureSections.specs}
                   onToggle={() => toggleStructureSection("specs")}
                 >
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormSelect
-                      label="¿Tiene estructura de referencia?"
-                      value={form.hasReferenceStructure}
-                      onChange={(value) => updateField("hasReferenceStructure", value)}
-                      placeholder="-- Seleccione --"
-                      options={YES_NO_OPTIONS}
-                      disabled={!canEditStructure}
-                    />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <FormSelect
+                        label="¿Tiene estructura de referencia?"
+                        value={form.hasReferenceStructure}
+                        onChange={(value) => updateField("hasReferenceStructure", value)}
+                        placeholder="-- Seleccione --"
+                        options={YES_NO_OPTIONS}
+                        disabled={!canEditStructure}
+                      />
+                      {form.hasReferenceStructure === "Sí" && (
+                        <div className="flex gap-2 items-end md:col-span-2">
+                          <div className="flex-1">
+                            <FormInput
+                              label="E/M Referencia"
+                              value={
+                                form.referenceEmCode && form.referenceEmVersion
+                                  ? `${form.referenceEmCode}-${form.referenceEmVersion}`
+                                  : ""
+                              }
+                              onChange={(value) => {
+                                const cleanValue = value.replace(/[^\d-]/g, "");
+                                if (cleanValue.includes("-")) {
+                                  const [code, version] = cleanValue.split("-");
+                                  updateField("referenceEmCode", code || "");
+                                  updateField("referenceEmVersion", version || "");
+                                } else if (cleanValue.length <= 5) {
+                                  updateField("referenceEmCode", cleanValue);
+                                  updateField("referenceEmVersion", "");
+                                } else {
+                                  const code = cleanValue.slice(0, 5);
+                                  const version = cleanValue.slice(5, 7);
+                                  updateField("referenceEmCode", code);
+                                  updateField("referenceEmVersion", version);
+                                }
+                              }}
+                              placeholder="Ej. 00001-01"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            className="h-10 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => {
+                              const edagData = getEdagByCodeAndVersion(form.referenceEmCode, form.referenceEmVersion);
+                              if (edagData) {
+                                alert(`E/M ${form.referenceEmCode}-${form.referenceEmVersion} encontrado en SI`);
+                              } else {
+                                alert(`No se encontró E/M ${form.referenceEmCode}-${form.referenceEmVersion} en SI`);
+                              }
+                            }}
+                            disabled={!form.referenceEmCode || !form.referenceEmVersion}
+                          >
+                            Consultar SI
+                          </button>
+                        </div>
+                      )}
+                      {form.hasReferenceStructure !== "Sí" && (
+                        <FormSelect
+                          label="Tipo de Estructura *"
+                          value={form.structureType}
+                          onChange={(value) => {
+                            const isChangingValue = form.structureType && form.structureType !== value;
+                            updateField("structureType", value);
+                            markFieldAsTouched("structureType");
+                            if (isChangingValue) {
+                              setShowStructureEditModal(true);
+                            }
+                          }}
+                          onBlur={() => markFieldAsTouched("structureType")}
+                          error={getError("structureType")}
+                          placeholder="-- Seleccione --"
+                          options={STRUCTURE_TYPE_OPTIONS}
+                          disabled={!canEditStructure}
+                        />
+                      )}
+                    </div>
+
                     <FormSelect
                       label="¿Solicitud de muestra? *"
                       value={form.sampleRequest}
@@ -6476,43 +7470,12 @@ if (!project) {
                       placeholder="-- Seleccione --"
                       options={YES_NO_OPTIONS}
                     />
-                    {form.hasReferenceStructure === "Sí" && (
-                      <>
-                        <FormInput
-                          label="Código E/M Referencia"
-                          value={form.referenceEmCode}
-                          onChange={(value) => updateField("referenceEmCode", value)}
-                          placeholder="Ej. EM-000001"
-                        />
-                        <FormInput
-                          label="Versión E/M"
-                          value={form.referenceEmVersion}
-                          onChange={(value) => updateField("referenceEmVersion", value)}
-                          placeholder="Ej. 01"
-                        />
-                      </>
-                    )}
-                    {form.hasReferenceStructure !== "Sí" && (
-                      <FormSelect
-                        label="Tipo de Estructura *"
-                        value={form.structureType}
-                        onChange={(value) => {
-                          updateField("structureType", value);
-                          markFieldAsTouched("structureType");
-                        }}
-                        onBlur={() => markFieldAsTouched("structureType")}
-                        error={getError("structureType")}
-                        placeholder="-- Seleccione --"
-                        options={STRUCTURE_TYPE_OPTIONS}
-                        disabled={!canEditStructure}
-                      />
-                    )}
                   </div>
 
                   {form.hasReferenceStructure !== "Sí" && (
                     <div className="mt-5 space-y-5">
-                      {/* Barniz Controls - LÁMINA ONLY */}
-                      {isLaminaWrapping(inheritedWrapping) && (
+                      {/* Barniz Controls - LÁMINA, BOLSA, POUCH */}
+                      {(isLaminaWrapping(inheritedWrapping) || isBolsaWrapping(inheritedWrapping) || isPouchWrapping(inheritedWrapping)) && (
                         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                           <div className="space-y-3">
                             <h4 className="text-sm font-bold uppercase tracking-wide text-slate-900">
@@ -6567,7 +7530,10 @@ if (!project) {
                               <p className="text-sm text-amber-800">
                                 <span className="font-semibold">⚠️ Estructura incompleta:</span> La estructura{" "}
                                 <strong>{form.structureType}</strong> requiere <strong>{expectedLayerCount}</strong> material(es), pero solo tiene{" "}
-                                <strong>{actualLayerCount}</strong>. Completa la información del Momento 1.
+                                <strong>{actualLayerCount}</strong>.
+                              </p>
+                              <p className="mt-2 text-sm text-amber-700">
+                                Para completar: cambia el <strong>Tipo de Estructura</strong> para abrir el modal <strong>"Momento 1"</strong> y configura correctamente los materiales y especificaciones.
                               </p>
                             </div>
                           );
@@ -6624,8 +7590,8 @@ if (!project) {
                             layer4Micron={form.layer4Micron}
                             layer4Grammage={form.layer4Grammage}
                             printClass={form.printClass}
-                            hasMatteFinishVarnish={false}
-                            hasInkProtectionVarnish={false}
+                            hasMatteFinishVarnish={form.hasMatteFinishVarnish === "Sí"}
+                            hasInkProtectionVarnish={form.hasInkProtectionVarnish === "Sí"}
                             grammage=""
                             grammageTolerance={form.grammageTolerance}
                           />
@@ -6650,6 +7616,9 @@ if (!project) {
                             layer4Grammage={form.layer4Grammage}
                             visibleLayerCount={visibleLayerCount}
                             printClass={form.printClass}
+                            structureType={form.structureType}
+                            hasMatteFinishVarnish={form.hasMatteFinishVarnish === "Sí"}
+                            hasInkProtectionVarnish={form.hasInkProtectionVarnish === "Sí"}
                           />
                         </>
                       )}
@@ -7109,6 +8078,17 @@ if (!project) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* STRUCTURE EDIT MODAL - Momento 1 */}
+      {showStructureEditModal && (
+        <ProductPreliminaryCreateModal
+          isOpen={showStructureEditModal}
+          onClose={() => setShowStructureEditModal(false)}
+          onProductCreated={handleStructureDataReturned}
+          portfolio={selectedPortfolio}
+          initialPortfolioCode={selectedPortfolio?.codigo || selectedPortfolio?.code || ""}
+        />
       )}
 
       {/* ========== CANCEL CONFIRMATION MODAL ========== */}
