@@ -6004,7 +6004,41 @@ if (!project) {
                 </FormCard>
 
                 {/* BLOQUE 1B: TABLA DE MATERIALES PARA POUCH/BOLSA */}
-                {!isLaminaWrapping(inheritedWrapping) && (
+                {isPouchWrapping(inheritedWrapping) && (
+                  <FormCard title="Estructura de Materiales" icon="🏗️" color="#10b981">
+                    <div className="space-y-4">
+                      <LaminaStructureTable
+                        structureType={form.structureType}
+                        layer1Material={form.layer1Material}
+                        layer1Micron={form.layer1Micron}
+                        layer1Grammage={form.layer1Grammage}
+                        layer2Material={form.layer2Material}
+                        layer2Micron={form.layer2Micron}
+                        layer2Grammage={form.layer2Grammage}
+                        layer3Material={form.layer3Material}
+                        layer3Micron={form.layer3Micron}
+                        layer3Grammage={form.layer3Grammage}
+                        layer4Material={form.layer4Material}
+                        layer4Micron={form.layer4Micron}
+                        layer4Grammage={form.layer4Grammage}
+                        printClass={form.printClass}
+                        hasMatteFinishVarnish={false}
+                        hasInkProtectionVarnish={false}
+                        grammage=""
+                        grammageTolerance={form.grammageTolerance}
+                      />
+                      <FormTextarea
+                        label="Comentarios Estructura"
+                        value={form.specialStructureSpecs}
+                        onChange={(value) => updateField("specialStructureSpecs", value)}
+                        placeholder="Restricciones, barreras, sellabilidad, resistencia..."
+                      />
+                    </div>
+                  </FormCard>
+                )}
+
+                {/* BLOQUE 1C: TABLA DE MATERIALES PARA BOLSA */}
+                {isBolsaWrapping(inheritedWrapping) && (
                   <FormCard title="Estructura de Materiales" icon="🏗️" color="#10b981">
                     <div className="space-y-4">
                       <PouchBolsaStructureTable
