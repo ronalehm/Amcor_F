@@ -5757,6 +5757,16 @@ if (!project) {
                                       ) : null;
                                     })()}
 
+                                    {isPouchWrapping(inheritedWrapping) && form.tipoFamiliaPouch === "Pouch Plano" && form.cantidadSellosPouchPlano && (
+                                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                        <p className="mb-3 text-xs font-bold uppercase text-slate-600">Especificaciones de Sello</p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <FormInput label="Ancho Sello (mm)" value={form.anchoSello} onChange={(value) => updateField("anchoSello", value)} onBlur={() => markFieldAsTouched("anchoSello")} error={getError("anchoSello")} placeholder="Ej. 25" />
+                                          <FormInput label="Sello Ancho Transversal (mm)" value={form.selloAnchoTransversal} onChange={(value) => updateField("selloAnchoTransversal", value)} onBlur={() => markFieldAsTouched("selloAnchoTransversal")} error={getError("selloAnchoTransversal")} placeholder="Ej. 15" />
+                                        </div>
+                                      </div>
+                                    )}
+
                                     {shouldShowInternalAccessories && (
                                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                                         <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
