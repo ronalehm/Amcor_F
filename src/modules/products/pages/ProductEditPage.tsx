@@ -6709,7 +6709,7 @@ if (!project) {
                 {!isLaminaWrapping(inheritedWrapping) && (
                   <div className="space-y-5">
                     <CollapsibleSection
-                      title="Especificaciones de estructura"
+                      title="Materiales y consumibles"
                       icon="🔩"
                       color="#f39c12"
                       isOpen={openStructureSections.specs}
