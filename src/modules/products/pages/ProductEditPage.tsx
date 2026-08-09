@@ -118,20 +118,20 @@ export type ProjectEditFormData = {
   designPlanComments: string;
 
   blueprintFormat: string;
-  tipoPresentacionBolsa: string;
+  tipoFormatoBolsa: string;
   tipoSelloBolsa: string;
   acabadoBolsa: string;
   tieneFuelleBolsa: string;
   tipoFuelleBolsa: string;
   tipoFormatoLamina: string;
-  tipoFamiliaPouch: string;
+  tipoFormatoPouch: string;
   tipoStandUpPouch: string;
   formaDoyPackPouch: string;
   tipoFuelleStandUpPouch: string;
   cantidadSellosPouchPlano: string;
   tieneFuelleSelloCentralPouch: string;
   materialSelloCentralPouch: string;
-  tipoSelloEnFuellePouch: string;
+  tipoSelloFuellePouch: string;
 
   estimatedVolume: string;
   unitOfMeasure: string;
@@ -231,7 +231,7 @@ export type ProjectEditFormData = {
   toleranciaRepDoyPack: string;
   fuelleCerrado: string;
   selloAnchoLateral: string;
-  gussetWidth: string;
+  anchoFuelle: string;
   gussetType: string;
   alturaEnLaBolsa: string;
   anchoEnLaBolsa: string;
@@ -557,19 +557,19 @@ const FIELD_TO_EDITABLE_GROUP: Record<string, string> = {
   deliveryAddress: "productBase",
   blueprintFormat: "formatDecisionTree",
   tipoFormatoLamina: "formatDecisionTree",
-  tipoPresentacionBolsa: "formatDecisionTree",
+  tipoFormatoBolsa: "formatDecisionTree",
   tipoSelloBolsa: "formatDecisionTree",
   acabadoBolsa: "formatDecisionTree",
   tieneFuelleBolsa: "formatDecisionTree",
   tipoFuelleBolsa: "formatDecisionTree",
-  tipoFamiliaPouch: "formatDecisionTree",
+  tipoFormatoPouch: "formatDecisionTree",
   tipoStandUpPouch: "formatDecisionTree",
   formaDoyPackPouch: "formatDecisionTree",
   tipoFuelleStandUpPouch: "formatDecisionTree",
   cantidadSellosPouchPlano: "formatDecisionTree",
   tieneFuelleSelloCentralPouch: "formatDecisionTree",
   materialSelloCentralPouch: "formatDecisionTree",
-  tipoSelloEnFuellePouch: "formatDecisionTree",
+  tipoSelloFuellePouch: "formatDecisionTree",
   printClass: "design",
   printType: "design",
   printForm: "design",
@@ -620,7 +620,7 @@ const FIELD_TO_EDITABLE_GROUP: Record<string, string> = {
   length: "dimensions",
   repetition: "dimensions",
   doyPackBase: "dimensions",
-  gussetWidth: "dimensions",
+  anchoFuelle: "dimensions",
   gussetType: "dimensions",
   hasZipper: "accessories",
   zipperType: "accessories",
@@ -790,7 +790,7 @@ const SI_FIELDS = new Set<string>([
   "width",
   "length",
   "repetition",
-  "gussetWidth",
+  "anchoFuelle",
   "gussetType",
   "blueprintFormat",
   "rewindingDirection",
@@ -847,7 +847,7 @@ const FORMAT_FIELD_RULES_BY_FDP: Record<string, {
   // Default POUCH format (shows all POUCH-related fields)
   "POUCH_DEFAULT": {
     visibleFields: new Set([
-      "width", "length", "repetition", "gussetWidth", "gussetType",
+      "width", "length", "repetition", "anchoFuelle", "gussetType",
       "hasZipper", "zipperType", "hasTinTie", "hasValve", "valveType",
       "hasRiñonera", "hasWicket", "wicketDiameter", "wicketDistSuperior", "wicketDistDerecho",
       "hasWicketControl", "wicketControlDiameter", "wicketControlUbicacion", "wicketControlDistSuperior", "wicketControlDistDerecho",
@@ -861,8 +861,8 @@ const FORMAT_FIELD_RULES_BY_FDP: Record<string, {
       "fr1Width", "fr1Height", "fr1MarginRight", "fr1MarginBottom", "fr1MarginLeft", "fr1MarginTop",
       "fr2Width", "fr2Height", "fr2MarginRight", "fr2MarginBottom", "fr2MarginLeft", "fr2MarginTop"
     ]),
-    requiredFields: new Set(["width", "length", "gussetWidth", "materialPackaging"]),
-    siFields: new Set(["width", "length", "repetition", "gussetWidth", "gussetType", "rewindingDirection", "hasPhotocell", "materialPackaging", "splices"])
+    requiredFields: new Set(["width", "length", "anchoFuelle", "materialPackaging"]),
+    siFields: new Set(["width", "length", "repetition", "anchoFuelle", "gussetType", "rewindingDirection", "hasPhotocell", "materialPackaging", "splices"])
   },
   // Default BOLSA format (shows all BOLSA-related fields)
   "BOLSA_DEFAULT": {
@@ -1720,7 +1720,7 @@ const POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO = "POUCH STAND UP\\DOY PACK REDONDO\\
 const POUCH_DOY_PACK_DIMENSION_RESTRICTIONS = {
   width: { min: 80, max: 230, label: "Ancho" },
   length: { min: 134, max: 340, label: "Largo" },
-  gussetWidth: { min: 0, max: 3, label: "Ancho fuelle" },
+  anchoFuelle: { min: 0, max: 3, label: "Ancho fuelle" },
 } as const;
 
 const DESIGN_PLAN_TYPE_OPTIONS = [
@@ -1778,7 +1778,7 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
   1: [
     "blueprintFormat",
     "tipoFormatoLamina",
-    "tipoPresentacionBolsa",
+    "tipoFormatoBolsa",
     "tipoSelloBolsa",
     "acabadoBolsa",
     "tieneFuelleBolsa",
@@ -1799,14 +1799,14 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "pressApprover",
     "alusaReferenceCode",
     "designWorkInstructions",
-    "tipoFamiliaPouch",
+    "tipoFormatoPouch",
     "tipoStandUpPouch",
     "formaDoyPackPouch",
     "tipoFuelleStandUpPouch",
     "cantidadSellosPouchPlano",
     "tieneFuelleSelloCentralPouch",
     "materialSelloCentralPouch",
-    "tipoSelloEnFuellePouch",
+    "tipoSelloFuellePouch",
     "specialDesignSpecs",
     "specialDesignComments",
     "perimeterMm",
@@ -1845,7 +1845,7 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
 
     "sampleRequest", "specialStructureSpecs",
 
-    "width", "length", "repetition", "doyPackBase", "gussetWidth",
+    "width", "length", "repetition", "doyPackBase", "anchoFuelle",
 
     "hasZipper", "zipperType", "hasTinTie", "hasValve", "valveType",
     "hasDieCutHandle", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
@@ -1883,7 +1883,7 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   width: "Ancho *",
   length: "Largo *",
   repetition: "Repetición *",
-  gussetWidth: "Ancho Fuelle",
+  anchoFuelle: "Ancho Fuelle",
 
   estimatedVolume: "Cantidad / Volumen estimado",
   unitOfMeasure: "Unidad de medida",
@@ -1913,14 +1913,14 @@ const FIELD_LABELS: Partial<Record<keyof ProjectEditFormData, string>> = {
   alusaReferenceCode: "Código de referencia (ALUSA)",
   designWorkInstructions: "Instrucciones de trabajo para diseño",
   tipoFormatoLamina: "Tipo de Lámina",
-  tipoFamiliaPouch: "Familia de pouch",
+  tipoFormatoPouch: "Familia de pouch",
   tipoStandUpPouch: "Tipo de Stand Up",
   formaDoyPackPouch: "Base Doy Pack",
   tipoFuelleStandUpPouch: "Tipo de fuelle Stand Up",
   cantidadSellosPouchPlano: "Cantidad de sellos del pouch plano",
   tieneFuelleSelloCentralPouch: "¿Tiene fuelle?",
   materialSelloCentralPouch: "Especificación de material",
-  tipoSelloEnFuellePouch: "Tipo de sello en fuelle",
+  tipoSelloFuellePouch: "Tipo de sello en fuelle",
   specialDesignSpecs: "Especificaciones Especiales",
   specialDesignComments: "Comentarios de diseños especiales",
 
@@ -2176,7 +2176,7 @@ function normalizeComparableProjectForm(form: ProjectEditFormData): Record<strin
     length: form.length,
     repetition: form.repetition,
     doyPackBase: form.doyPackBase,
-    gussetWidth: form.gussetWidth,
+    anchoFuelle: form.anchoFuelle,
     gussetType: form.gussetType,
     hasZipper: form.hasZipper,
     zipperType: form.zipperType,
@@ -2335,7 +2335,7 @@ function FormInputWithBadges({
  *    For each form field, add:
  *    - FieldBadges component to show inheritance/SI status
  *    - shouldFieldBeDisabled() check for MOT-based disability
- *    - Example in width/length/gussetWidth fields (see lines 5014-5070)
+ *    - Example in width/length/anchoFuelle fields (see lines 5014-5070)
  *
  * To apply this pattern to a new field:
  *    <div>
@@ -2453,20 +2453,20 @@ export default function ProductEditPage() {
     designPlanType: "",
     designPlanComments: "",
     blueprintFormat: "",
-    tipoPresentacionBolsa: "",
+    tipoFormatoBolsa: "",
     tipoSelloBolsa: "",
     acabadoBolsa: "",
     tieneFuelleBolsa: "",
     tipoFuelleBolsa: "",
     tipoFormatoLamina: "",
-    tipoFamiliaPouch: "",
+    tipoFormatoPouch: "",
     tipoStandUpPouch: "",
     formaDoyPackPouch: "",
     tipoFuelleStandUpPouch: "",
     cantidadSellosPouchPlano: "",
     tieneFuelleSelloCentralPouch: "",
     materialSelloCentralPouch: "",
-    tipoSelloEnFuellePouch: "",
+    tipoSelloFuellePouch: "",
     estimatedVolume: "",
     unitOfMeasure: "",
     technicalApplication: "",
@@ -2557,7 +2557,7 @@ export default function ProductEditPage() {
     toleranciaRepDoyPack: "",
     fuelleCerrado: "",
     selloAnchoLateral: "",
-    gussetWidth: "",
+    anchoFuelle: "",
     gussetType: "",
     alturaEnLaBolsa: "",
     anchoEnLaBolsa: "",
@@ -2852,20 +2852,20 @@ if (!project) {
       salesforceAction: normalizeSalesforceAction(project.salesforceAction || ""),
       rfqCode: (project as any).rfqCode || "",
       blueprintFormat: project.blueprintFormat || "",
-      tipoPresentacionBolsa: (project as any).tipoPresentacionBolsa || "",
+      tipoFormatoBolsa: (project as any).tipoFormatoBolsa || "",
       tipoSelloBolsa: (project as any).tipoSelloBolsa || "",
       acabadoBolsa: (project as any).acabadoBolsa || "",
       tieneFuelleBolsa: (project as any).tieneFuelleBolsa || "",
       tipoFuelleBolsa: (project as any).tipoFuelleBolsa || "",
       tipoFormatoLamina: (project as any).tipoFormatoLamina || "",
-      tipoFamiliaPouch: (project as any).tipoFamiliaPouch || "",
+      tipoFormatoPouch: (project as any).tipoFormatoPouch || "",
       tipoStandUpPouch: (project as any).tipoStandUpPouch || "",
       formaDoyPackPouch: (project as any).formaDoyPackPouch || "",
       tipoFuelleStandUpPouch: (project as any).tipoFuelleStandUpPouch || "",
       cantidadSellosPouchPlano: (project as any).cantidadSellosPouchPlano || "",
       tieneFuelleSelloCentralPouch: (project as any).tieneFuelleSelloCentralPouch || "",
       materialSelloCentralPouch: (project as any).materialSelloCentralPouch || "",
-      tipoSelloEnFuellePouch: (project as any).tipoSelloEnFuellePouch || "",
+      tipoSelloFuellePouch: (project as any).tipoSelloFuellePouch || "",
       estimatedVolume: initialVolume || project.estimatedVolume || "",
       unitOfMeasure: initialUnit || project.unitOfMeasure || "KGS",
       technicalApplication: (project as any).technicalApplication || "",
@@ -2988,7 +2988,7 @@ if (!project) {
       toleranciaRepDoyPack: (project as any).toleranciaRepDoyPack || "",
       fuelleCerrado: toYesNo((project as any).fuelleCerrado),
       selloAnchoLateral: (project as any).selloAnchoLateral || "",
-      gussetWidth: project.gussetWidth || "",
+      anchoFuelle: project.anchoFuelle || "",
       gussetType: project.gussetType || "",
       alturaEnLaBolsa: (project as any).alturaEnLaBolsa || "",
       anchoEnLaBolsa: (project as any).anchoEnLaBolsa || "",
@@ -3135,6 +3135,19 @@ if (!project) {
     setInitialDescription(initialDescription);
     initialFormStateRef.current = normalizeComparableProjectForm(convertedForm);
     setLoading(false);
+  }, [projectCode]);
+
+  // Escuchar cambios en localStorage para refrescar cuando se guarda el proyecto
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (projectCode && e.key === "odiseo_recent_new_validation") {
+        // Recargar el proyecto cuando se guarda
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, [projectCode]);
 
   useEffect(() => {
@@ -3534,9 +3547,9 @@ if (!project) {
     const isLaminaFood = isLaminaWrapping(inheritedWrapping) && normalizedFormat === "FOOD";
 
     if (!isLaminaFood && isPouchWrapping(inheritedWrapping) || isBolsaWrapping(inheritedWrapping)) {
-      // gussetWidth requerido para POUCH/BOLSA
-      if (!fields.includes("gussetWidth")) {
-        fields.push("gussetWidth");
+      // anchoFuelle requerido para POUCH/BOLSA
+      if (!fields.includes("anchoFuelle")) {
+        fields.push("anchoFuelle");
       }
     }
 
@@ -3546,10 +3559,10 @@ if (!project) {
 
     // BOLSA fields - all required when BOLSA wrapping is selected
     if (isBolsaWrapping(inheritedWrapping)) {
-      fields.push("tipoPresentacionBolsa");
+      fields.push("tipoFormatoBolsa");
 
-      // Fields dependent on tipoPresentacionBolsa
-      if (form.tipoPresentacionBolsa === "Bolsa sellada") {
+      // Fields dependent on tipoFormatoBolsa
+      if (form.tipoFormatoBolsa === "Bolsa sellada") {
         fields.push("tipoSelloBolsa", "tieneFuelleBolsa");
       }
 
@@ -3566,31 +3579,31 @@ if (!project) {
 
     // POUCH fields - all required when POUCH wrapping is selected
     if (isPouchWrapping(inheritedWrapping)) {
-      fields.push("tipoFamiliaPouch");
+      fields.push("tipoFormatoPouch");
 
-      // Fields dependent on tipoFamiliaPouch
-      if (form.tipoFamiliaPouch === "Pouch Stand Up") {
+      // Fields dependent on tipoFormatoPouch
+      if (form.tipoFormatoPouch === "Pouch Stand Up") {
         fields.push("tipoStandUpPouch");
       }
 
-      if (form.tipoFamiliaPouch === "Pouch Stand Up" && form.tipoStandUpPouch === "Doy Pack") {
+      if (form.tipoFormatoPouch === "Pouch Stand Up" && form.tipoStandUpPouch === "Doy Pack") {
         fields.push("formaDoyPackPouch");
       }
 
-      if (form.tipoFamiliaPouch === "Pouch Stand Up" && form.tipoStandUpPouch === "Stand Up con Fuelle") {
+      if (form.tipoFormatoPouch === "Pouch Stand Up" && form.tipoStandUpPouch === "Stand Up con Fuelle") {
         fields.push("tipoFuelleStandUpPouch");
       }
 
-      if (form.tipoFamiliaPouch === "Pouch Plano") {
+      if (form.tipoFormatoPouch === "Pouch Plano") {
         fields.push("cantidadSellosPouchPlano");
       }
 
-      if (form.tipoFamiliaPouch === "Pouch con Sello Central") {
+      if (form.tipoFormatoPouch === "Pouch con Sello Central") {
         fields.push("tieneFuelleSelloCentralPouch", "materialSelloCentralPouch");
       }
 
-      if (form.tipoFamiliaPouch === "Pouch con Sello en Fuelle") {
-        fields.push("tipoSelloEnFuellePouch");
+      if (form.tipoFormatoPouch === "Pouch con Sello en Fuelle") {
+        fields.push("tipoSelloFuellePouch");
       }
     }
 
@@ -3624,15 +3637,15 @@ if (!project) {
     shouldApplyPouchDoyPackRestrictions,
     form.hasDesignPlan,
     form.hasCustomerTechnicalSpec,
-    form.tipoPresentacionBolsa,
+    form.tipoFormatoBolsa,
     form.tipoSelloBolsa,
     form.tieneFuelleBolsa,
-    form.tipoFamiliaPouch,
+    form.tipoFormatoPouch,
     form.tipoStandUpPouch,
     form.formaDoyPackPouch,
     form.cantidadSellosPouchPlano,
     form.tieneFuelleSelloCentralPouch,
-    form.tipoSelloEnFuellePouch,
+    form.tipoSelloFuellePouch,
   ]);
   const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -3742,7 +3755,7 @@ if (!project) {
   useEffect(() => {
     if (isGuidedFormatEnabled(inheritedWrapping)) {
       const calculatedFormat = calculateBolsaFormatPlan({
-        tipoPresentacionBolsa: form.tipoPresentacionBolsa,
+        tipoFormatoBolsa: form.tipoFormatoBolsa,
         tipoSelloBolsa: form.tipoSelloBolsa,
         acabadoBolsa: form.acabadoBolsa,
         tieneFuelleBolsa: form.tieneFuelleBolsa,
@@ -3757,7 +3770,7 @@ if (!project) {
     }
   }, [
     inheritedWrapping,
-    form.tipoPresentacionBolsa,
+    form.tipoFormatoBolsa,
     form.tipoSelloBolsa,
     form.acabadoBolsa,
     form.tieneFuelleBolsa
@@ -3768,14 +3781,14 @@ if (!project) {
     if (!isPouch) return;
 
     const calculatedFormat = calculatePouchFormatPlan({
-      tipoFamiliaPouch: form.tipoFamiliaPouch,
+      tipoFormatoPouch: form.tipoFormatoPouch,
       tipoStandUpPouch: form.tipoStandUpPouch,
       formaDoyPackPouch: form.formaDoyPackPouch,
       tipoFuelleStandUpPouch: form.tipoFuelleStandUpPouch,
       cantidadSellosPouchPlano: form.cantidadSellosPouchPlano,
       tieneFuelleSelloCentralPouch: form.tieneFuelleSelloCentralPouch,
       materialSelloCentralPouch: form.materialSelloCentralPouch,
-      tipoSelloEnFuellePouch: form.tipoSelloEnFuellePouch,
+      tipoSelloFuellePouch: form.tipoSelloFuellePouch,
     });
 
     if (calculatedFormat) {
@@ -3786,14 +3799,14 @@ if (!project) {
     }
   }, [
     isPouch,
-    form.tipoFamiliaPouch,
+    form.tipoFormatoPouch,
     form.tipoStandUpPouch,
     form.formaDoyPackPouch,
     form.tipoFuelleStandUpPouch,
     form.cantidadSellosPouchPlano,
     form.tieneFuelleSelloCentralPouch,
     form.materialSelloCentralPouch,
-    form.tipoSelloEnFuellePouch,
+    form.tipoSelloFuellePouch,
   ]);
 
   // Efecto para calcular Formato de Plano (Lámina)
@@ -3820,10 +3833,10 @@ if (!project) {
 
       const widthRestriction = dimensionRestrictions.width;
       const lengthRestriction = dimensionRestrictions.length;
-      const gussetRestriction = dimensionRestrictions.gussetWidth;
+      const gussetRestriction = dimensionRestrictions.anchoFuelle;
 
-      if (gussetRestriction?.min === 0 && gussetRestriction?.max === 0 && prev.gussetWidth !== "0") {
-        next.gussetWidth = "0";
+      if (gussetRestriction?.min === 0 && gussetRestriction?.max === 0 && prev.anchoFuelle !== "0") {
+        next.anchoFuelle = "0";
         changed = true;
       }
 
@@ -3844,8 +3857,8 @@ if (!project) {
     dimensionRestrictions.width?.max,
     dimensionRestrictions.length?.min,
     dimensionRestrictions.length?.max,
-    dimensionRestrictions.gussetWidth?.min,
-    dimensionRestrictions.gussetWidth?.max,
+    dimensionRestrictions.anchoFuelle?.min,
+    dimensionRestrictions.anchoFuelle?.max,
   ]);
 
   // Clean up perforation types based on wrapping type and hasPerforation checkbox
@@ -3895,17 +3908,17 @@ if (!project) {
   const handlePouchFamilyChange = (value: string) => {
     setForm((prev) => ({
       ...prev,
-      tipoFamiliaPouch: value,
+      tipoFormatoPouch: value,
       tipoStandUpPouch: "",
       formaDoyPackPouch: "",
       tipoFuelleStandUpPouch: "",
       cantidadSellosPouchPlano: "",
       tieneFuelleSelloCentralPouch: "",
       materialSelloCentralPouch: "",
-      tipoSelloEnFuellePouch: "",
+      tipoSelloFuellePouch: "",
       blueprintFormat: "",
     }));
-    markFieldAsTouched("tipoFamiliaPouch");
+    markFieldAsTouched("tipoFormatoPouch");
   };
 
   const handlePouchStandUpChange = (value: string) => {
@@ -3967,10 +3980,10 @@ if (!project) {
   const handlePouchSealInGussetTypeChange = (value: string) => {
     setForm((prev) => ({
       ...prev,
-      tipoSelloEnFuellePouch: value,
+      tipoSelloFuellePouch: value,
       blueprintFormat: "",
     }));
-    markFieldAsTouched("tipoSelloEnFuellePouch");
+    markFieldAsTouched("tipoSelloFuellePouch");
   };
 
   const shouldValidateField = (field: keyof ProjectEditFormData): boolean => {
@@ -3996,7 +4009,7 @@ if (!project) {
       if (field === "doyPackBase") {
         if (
           isPouchWrapping(inheritedWrapping) &&
-          form.tipoFamiliaPouch === "Pouch Stand Up" &&
+          form.tipoFormatoPouch === "Pouch Stand Up" &&
           form.tipoStandUpPouch === "Doy Pack" &&
           isFieldEmpty(form[field])
         ) {
@@ -4023,7 +4036,7 @@ if (!project) {
 
     // Validar restricciones de dimensiones por formato de plano
     const validateDimensionRange = (
-      field: "width" | "length" | "gussetWidth",
+      field: "width" | "length" | "anchoFuelle",
       label: string,
       range?: DimensionRange
     ) => {
@@ -4059,9 +4072,9 @@ if (!project) {
     }
 
     // Validar ancho fuelle si tiene restricción y es editable
-    const gussetRestriction = dimensionRestrictions.gussetWidth;
+    const gussetRestriction = dimensionRestrictions.anchoFuelle;
     if (gussetRestriction && canEditDimensions) {
-      validateDimensionRange("gussetWidth", "Ancho Fuelle", gussetRestriction);
+      validateDimensionRange("anchoFuelle", "Ancho Fuelle", gussetRestriction);
     }
 
     if (canEditDesign) {
@@ -4342,21 +4355,21 @@ if (!project) {
       tipoFormatoLamina: form.tipoFormatoLamina || "",
 
       // BOLSA guided format fields
-      tipoPresentacionBolsa: form.tipoPresentacionBolsa || "",
+      tipoFormatoBolsa: form.tipoFormatoBolsa || "",
       tipoSelloBolsa: form.tipoSelloBolsa || "",
       acabadoBolsa: form.acabadoBolsa || "",
       tieneFuelleBolsa: form.tieneFuelleBolsa || "",
       tipoFuelleBolsa: form.tipoFuelleBolsa || "",
 
       // POUCH guided format fields
-      tipoFamiliaPouch: form.tipoFamiliaPouch || "",
+      tipoFormatoPouch: form.tipoFormatoPouch || "",
       tipoStandUpPouch: form.tipoStandUpPouch || "",
       formaDoyPackPouch: form.formaDoyPackPouch || "",
       tipoFuelleStandUpPouch: form.tipoFuelleStandUpPouch || "",
       cantidadSellosPouchPlano: form.cantidadSellosPouchPlano || "",
       tieneFuelleSelloCentralPouch: form.tieneFuelleSelloCentralPouch || "",
       materialSelloCentralPouch: form.materialSelloCentralPouch || "",
-      tipoSelloEnFuellePouch: form.tipoSelloEnFuellePouch || "",
+      tipoSelloFuellePouch: form.tipoSelloFuellePouch || "",
 
       format: form.blueprintFormat,
       volume: form.estimatedVolume,
@@ -4435,9 +4448,9 @@ if (!project) {
       length: form.length,
       repetition: form.repetition,
       doyPackBase: form.doyPackBase,
-      gussetWidth: form.gussetWidth,
+      anchoFuelle: form.anchoFuelle,
       gussetType: form.gussetType,
-      dimensions: [form.width, form.length, form.gussetWidth]
+      dimensions: [form.width, form.length, form.anchoFuelle]
         .filter(Boolean)
         .join(" x "),
 
@@ -4526,14 +4539,31 @@ if (!project) {
 
     if (!projectCode || !form) return;
 
+    // DEBUG: Log values at start
+    console.log("DEBUG 1 - Start handleSubmit:", {
+      completionPercentage,
+      isProjectCompleteForValidation,
+      missingFieldCount,
+      hasMissingRequiredFields,
+    });
+
     const hasValidationErrors = Object.keys(validationErrors).length > 0;
     const shouldForceSaveAsDraft = allowIncompleteSaveRef.current;
 
+    console.log("DEBUG 2 - Validation check:", {
+      hasValidationErrors,
+      shouldForceSaveAsDraft,
+      willShowModal: (hasValidationErrors || hasMissingRequiredFields) && !shouldForceSaveAsDraft,
+    });
+
     // If there are validation errors and user didn't click "Guardar avance", show modal
     if ((hasValidationErrors || hasMissingRequiredFields) && !shouldForceSaveAsDraft) {
+      console.log("DEBUG 3 - Showing missing fields modal");
       setShowMissingFieldsModal(true);
       return;
     }
+
+    console.log("DEBUG 4 - Past validation, proceeding with save");
 
     // User either has no errors or clicked "Guardar avance"
     allowIncompleteSaveRef.current = false;
@@ -4544,6 +4574,10 @@ if (!project) {
 
     const shouldSubmitForValidation =
       isProjectCompleteForValidation && !shouldForceSaveAsDraft;
+
+    console.log("DEBUG 5 - Ready to submit:", {
+      shouldSubmitForValidation,
+    });
 
     // Block submission if "Máquina genérica" is selected
     if (shouldSubmitForValidation && isGenericPackingMachine(inheritedMachine)) {
@@ -4642,21 +4676,21 @@ if (!project) {
       tipoFormatoLamina: form.tipoFormatoLamina || "",
 
       // BOLSA guided format fields
-      tipoPresentacionBolsa: form.tipoPresentacionBolsa || "",
+      tipoFormatoBolsa: form.tipoFormatoBolsa || "",
       tipoSelloBolsa: form.tipoSelloBolsa || "",
       acabadoBolsa: form.acabadoBolsa || "",
       tieneFuelleBolsa: form.tieneFuelleBolsa || "",
       tipoFuelleBolsa: form.tipoFuelleBolsa || "",
 
       // POUCH guided format fields
-      tipoFamiliaPouch: form.tipoFamiliaPouch || "",
+      tipoFormatoPouch: form.tipoFormatoPouch || "",
       tipoStandUpPouch: form.tipoStandUpPouch || "",
       formaDoyPackPouch: form.formaDoyPackPouch || "",
       tipoFuelleStandUpPouch: form.tipoFuelleStandUpPouch || "",
       cantidadSellosPouchPlano: form.cantidadSellosPouchPlano || "",
       tieneFuelleSelloCentralPouch: form.tieneFuelleSelloCentralPouch || "",
       materialSelloCentralPouch: form.materialSelloCentralPouch || "",
-      tipoSelloEnFuellePouch: form.tipoSelloEnFuellePouch || "",
+      tipoSelloFuellePouch: form.tipoSelloFuellePouch || "",
 
       format: form.blueprintFormat,
       volume: form.estimatedVolume,
@@ -4735,9 +4769,9 @@ if (!project) {
       length: form.length,
       repetition: form.repetition,
       doyPackBase: form.doyPackBase,
-      gussetWidth: form.gussetWidth,
+      anchoFuelle: form.anchoFuelle,
       gussetType: form.gussetType,
-      dimensions: [form.width, form.length, form.gussetWidth]
+      dimensions: [form.width, form.length, form.anchoFuelle]
         .filter(Boolean)
         .join(" x "),
 
@@ -4804,10 +4838,10 @@ if (!project) {
       rewindingDirection: form.rewindingDirection,
       rewindingDirectionRef: form.rewindingDirectionRef,
 
-      status: shouldSubmitForValidation ? "En validación" : calculatedStatus,
-      stage: shouldSubmitForValidation ? "P2_VALIDACION_VIABILIDAD_TECNICA" : "P1_PREPARACION_FICHA_PROYECTO",
+      status: shouldSubmitForValidation ? "Ficha Completa" : calculatedStatus,
+      stage: shouldSubmitForValidation ? "P2_VIABILIDAD_TECNICA" : "P1_FICHA_PROYECTO",
       completionPercentage,
-      hasStartedExtendedFicha: (shouldSubmitForValidation ? "En validación" : calculatedStatus) !== "Registrado",
+      hasStartedExtendedFicha: (shouldSubmitForValidation ? "Ficha Completa" : calculatedStatus) !== "Registrado",
       statusUpdatedAt: shouldSubmitForValidation || originalProject?.status !== calculatedStatus ? now : originalProject?.statusUpdatedAt,
       stageUpdatedAt: shouldSubmitForValidation ? now : originalProject?.stageUpdatedAt,
       updatedAt: now,
@@ -4837,11 +4871,19 @@ if (!project) {
       }),
     } as unknown as ProjectRecord);
 
+    console.log("DEBUG 6 - After updateProjectRecord:", {
+      shouldSubmitForValidation,
+      statusThatWasSaved: shouldSubmitForValidation ? "Completado" : calculatedStatus,
+      projectCode,
+    });
+
     if (shouldForceSaveAsDraft) {
       // Close the missing fields modal after saving draft
+      console.log("DEBUG 7a - Closing missing fields modal");
       setShowMissingFieldsModal(false);
     } else if (shouldSubmitForValidation) {
       // Save validation request to localStorage for UI badge
+      console.log("DEBUG 7b - Showing validation success modal");
       const RECENT_NEW_VALIDATION_KEY = "odiseo_recent_new_validation";
       localStorage.setItem(RECENT_NEW_VALIDATION_KEY, JSON.stringify({
         projectId: projectCode,
@@ -4851,6 +4893,7 @@ if (!project) {
       setShowValidationSuccessModal(true);
     } else {
       // Navigate back to projects list
+      console.log("DEBUG 7c - Navigating to /products");
       navigate("/products");
     }
   }; // <-- cierra handleSubmit
@@ -5364,10 +5407,10 @@ if (!project) {
                             <div className="space-y-4">
                               <FormSelect
                                 label="Familia de Pouch *"
-                                value={form.tipoFamiliaPouch}
+                                value={form.tipoFormatoPouch}
                                 onChange={handlePouchFamilyChange}
-                                onBlur={() => markFieldAsTouched("tipoFamiliaPouch")}
-                                error={getError("tipoFamiliaPouch")}
+                                onBlur={() => markFieldAsTouched("tipoFormatoPouch")}
+                                error={getError("tipoFormatoPouch")}
                                 options={[
                                   { value: "Pouch Stand Up", label: "Pouch Stand Up" },
                                   { value: "Pouch Plano", label: "Pouch Plano" },
@@ -5377,7 +5420,7 @@ if (!project) {
                                 placeholder="-- Seleccione --"
                               />
 
-                              {form.tipoFamiliaPouch === "Pouch Stand Up" && (
+                              {form.tipoFormatoPouch === "Pouch Stand Up" && (
                                 <>
                                   <FormSelect
                                     label="Tipo de Stand Up *"
@@ -5425,7 +5468,7 @@ if (!project) {
                                 </>
                               )}
 
-                              {form.tipoFamiliaPouch === "Pouch Plano" && (
+                              {form.tipoFormatoPouch === "Pouch Plano" && (
                                 <>
                                   <FormSelect
                                     label="Cantidad de Sellos *"
@@ -5541,10 +5584,10 @@ if (!project) {
                                 </>
                               )}
 
-                              {form.tipoFamiliaPouch === "Pouch con Sello Central" && (
+                              {form.tipoFormatoPouch === "Pouch con Sello Central" && (
                                 <>
                                   <FormSelect
-                                    label="¿Tendrá Fuelle? *"
+                                    label="¿Tiene Fuelle? *"
                                     value={form.tieneFuelleSelloCentralPouch}
                                     onChange={handlePouchCentralFuelleChange}
                                     onBlur={() => markFieldAsTouched("tieneFuelleSelloCentralPouch")}
@@ -5970,14 +6013,14 @@ if (!project) {
                                 </>
                               )}
 
-                              {form.tipoFamiliaPouch === "Pouch con Sello en Fuelle" && (
+                              {form.tipoFormatoPouch === "Pouch con Sello en Fuelle" && (
                                 <>
                                   <FormSelect
                                     label="Tipo de Sello en Fuelle *"
-                                    value={form.tipoSelloEnFuellePouch}
+                                    value={form.tipoSelloFuellePouch}
                                     onChange={handlePouchSealInGussetTypeChange}
-                                    onBlur={() => markFieldAsTouched("tipoSelloEnFuellePouch")}
-                                    error={getError("tipoSelloEnFuellePouch")}
+                                    onBlur={() => markFieldAsTouched("tipoSelloFuellePouch")}
+                                    error={getError("tipoSelloFuellePouch")}
                                     options={[
                                       { value: "Tipo 4-1", label: "Tipo 4-1" },
                                       { value: "Tipo 1-1", label: "Tipo 1-1" },
@@ -5985,7 +6028,7 @@ if (!project) {
                                     placeholder="-- Seleccione --"
                                   />
 
-                                  {form.tipoSelloEnFuellePouch === "Tipo 4-1" && (
+                                  {form.tipoSelloFuellePouch === "Tipo 4-1" && (
                                     <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2 space-y-4">
                                       <h5 className="text-sm font-semibold text-slate-700">Especificaciones Tipo 4-1</h5>
                                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -6003,12 +6046,12 @@ if (!project) {
                                         />
                                         <FormInput
                                           label="Ancho del fuelle (mm)"
-                                          value={form.gussetWidth}
-                                          onChange={(value) => updateField("gussetWidth", value)}
+                                          value={form.anchoFuelle}
+                                          onChange={(value) => updateField("anchoFuelle", value)}
                                           placeholder="mm"
                                         />
                                         <FormSelect
-                                          label="Ancho Sello lateral"
+                                          label="Ancho Lateral del Sello"
                                           value={form.anchoSelloLateral}
                                           onChange={(value) => updateField("anchoSelloLateral", value)}
                                           placeholder="-- Seleccione --"
@@ -6055,9 +6098,9 @@ if (!project) {
                               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <FormSelect
                                   label="Tipo de presentación *"
-                                  value={form.tipoPresentacionBolsa}
+                                  value={form.tipoFormatoBolsa}
                                   onChange={(value) => {
-                                    updateField("tipoPresentacionBolsa", value);
+                                    updateField("tipoFormatoBolsa", value);
                                     updateField("tipoSelloBolsa", "");
                                     updateField("acabadoBolsa", "");
                                     updateField("tieneFuelleBolsa", "");
@@ -6071,7 +6114,7 @@ if (!project) {
                                   placeholder="-- Seleccione --"
                                 />
 
-                                {form.tipoPresentacionBolsa === "Bolsa sellada" && (
+                                {form.tipoFormatoBolsa === "Bolsa sellada" && (
                                   <FormSelect
                                     label="Tipo de Sello *"
                                     value={form.tipoSelloBolsa}
@@ -6091,7 +6134,7 @@ if (!project) {
 
                                 {form.tipoSelloBolsa === "Sello lateral" && (
                                   <FormSelect
-                                    label="Acabado *"
+                                    label="Acabado Sello Lateral *"
                                     value={form.acabadoBolsa}
                                     onChange={(value) => {
                                       updateField("acabadoBolsa", value);
@@ -6104,10 +6147,10 @@ if (!project) {
                                   />
                                 )}
 
-                                {form.tipoPresentacionBolsa === "Bolsa sellada" && (
+                                {form.tipoFormatoBolsa === "Bolsa sellada" && (
                                   <>
                                     <FormSelect
-                                      label="¿Lleva Fuelle? *"
+                                      label="¿Tiene Fuelle? *"
                                       value={form.tieneFuelleBolsa}
                                       onChange={(value) => {
                                         updateField("tieneFuelleBolsa", value);
@@ -6249,7 +6292,7 @@ if (!project) {
 
                                   const widthRestriction = dimensionRestrictions.width;
                                   const lengthRestriction = dimensionRestrictions.length;
-                                  const gussetRestriction = dimensionRestrictions.gussetWidth;
+                                  const gussetRestriction = dimensionRestrictions.anchoFuelle;
 
                                   const isWidthDisabled = !widthRestriction || (widthRestriction.min === 0 && widthRestriction.max === 0);
                                   const isLengthDisabled = !lengthRestriction || (lengthRestriction.min === 0 && lengthRestriction.max === 0);
@@ -6317,12 +6360,12 @@ if (!project) {
                                         <div>
                                           <FormInput
                                             label={isBolsaWrapping(inheritedWrapping) ? "Ancho fuelle cerrado *" : "Ancho Fuelle *"}
-                                            value={form.gussetWidth}
-                                            onChange={(value) => updateField("gussetWidth", value)}
-                                            onBlur={() => markFieldAsTouched("gussetWidth")}
-                                            error={getError("gussetWidth")}
+                                            value={form.anchoFuelle}
+                                            onChange={(value) => updateField("anchoFuelle", value)}
+                                            onBlur={() => markFieldAsTouched("anchoFuelle")}
+                                            error={getError("anchoFuelle")}
                                             placeholder={gussetRestriction ? `${gussetRestriction.min} - ${gussetRestriction.max} mm` : "mm"}
-                                            disabled={isGussetDisabled || shouldFieldBeDisabled("gussetWidth", form.projectType, inheritedFields)}
+                                            disabled={isGussetDisabled || shouldFieldBeDisabled("anchoFuelle", form.projectType, inheritedFields)}
                                           />
                                           {gussetRestriction && (
                                             <p className="mt-1 text-xs text-slate-500">
@@ -6330,9 +6373,9 @@ if (!project) {
                                             </p>
                                           )}
                                           <FieldBadges
-                                            isInherited={inheritedFields.has("gussetWidth")}
+                                            isInherited={inheritedFields.has("anchoFuelle")}
                                             isSiField={false}
-                                            isLocked={isFieldLockedByMot("gussetWidth", form.projectType)}
+                                            isLocked={isFieldLockedByMot("anchoFuelle", form.projectType)}
                                           />
                                         </div>
                                       )}
@@ -6358,7 +6401,7 @@ if (!project) {
                                     placeholder="mm"
                                   />
                                   <FormInput
-                                    label="Ancho en la bolsa (mm)"
+                                    label="Ancho de la Bolsa (mm)"
                                     value={form.anchoEnLaBolsa}
                                     onChange={(value) => updateField("anchoEnLaBolsa", value)}
                                     onBlur={() => markFieldAsTouched("anchoEnLaBolsa")}
@@ -6405,7 +6448,7 @@ if (!project) {
                             )}
 
                             {/* Información para la Solapa - WICKET */}
-                            {isBolsaWrapping(inheritedWrapping) && form.tipoPresentacionBolsa === "Wicket" && (
+                            {isBolsaWrapping(inheritedWrapping) && form.tipoFormatoBolsa === "Wicket" && (
                               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-6">
                                 <div>
                                   <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
@@ -6628,14 +6671,14 @@ if (!project) {
                             )}
 
                             {/* Especificaciones de Sello - Pouch Plano */}
-                            {isPouchWrapping(inheritedWrapping) && form.tipoFamiliaPouch === "Pouch Plano" && form.cantidadSellosPouchPlano && (
+                            {isPouchWrapping(inheritedWrapping) && form.tipoFormatoPouch === "Pouch Plano" && form.cantidadSellosPouchPlano && (
                               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                                 <p className="mb-3 text-xs font-bold uppercase text-slate-600">Especificaciones de Sello</p>
                                 <div className={`grid grid-cols-1 gap-4 ${form.cantidadSellosPouchPlano === "Tres sellos" ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-                                  <FormInput label="Ancho Sello (mm)" value={form.anchoSello} onChange={(value) => updateField("anchoSello", value)} onBlur={() => markFieldAsTouched("anchoSello")} error={getError("anchoSello")} placeholder="Ej. 25" />
-                                  <FormInput label="Sello Ancho Transversal (mm)" value={form.selloAnchoTransversal} onChange={(value) => updateField("selloAnchoTransversal", value)} onBlur={() => markFieldAsTouched("selloAnchoTransversal")} error={getError("selloAnchoTransversal")} placeholder="Ej. 15" />
+                                  <FormInput label="Ancho del Sello (mm)" value={form.anchoSello} onChange={(value) => updateField("anchoSello", value)} onBlur={() => markFieldAsTouched("anchoSello")} error={getError("anchoSello")} placeholder="Ej. 25" />
+                                  <FormInput label="Ancho Transversal del Sello (mm)" value={form.selloAnchoTransversal} onChange={(value) => updateField("selloAnchoTransversal", value)} onBlur={() => markFieldAsTouched("selloAnchoTransversal")} error={getError("selloAnchoTransversal")} placeholder="Ej. 15" />
                                   {form.cantidadSellosPouchPlano === "Tres sellos" && (
-                                    <FormInput label="Ancho Sello Lateral (mm)" value={form.anchoSelloLateral} onChange={(value) => updateField("anchoSelloLateral", value)} onBlur={() => markFieldAsTouched("anchoSelloLateral")} error={getError("anchoSelloLateral")} placeholder="Ej. 20" />
+                                    <FormInput label="Ancho Lateral del Sello (mm)" value={form.anchoSelloLateral} onChange={(value) => updateField("anchoSelloLateral", value)} onBlur={() => markFieldAsTouched("anchoSelloLateral")} error={getError("anchoSelloLateral")} placeholder="Ej. 20" />
                                   )}
                                 </div>
                               </div>
@@ -6748,8 +6791,8 @@ if (!project) {
                                               </div>
                                             )}
                                             <div className="grid grid-cols-2 gap-3">
-                                              <FormInput label="Ancho Sello (mm)" value={form.anchoSello} onChange={(value) => updateField("anchoSello", value)} onBlur={() => markFieldAsTouched("anchoSello")} error={getError("anchoSello")} placeholder="Ej. 25" />
-                                              <FormInput label="Sello Ancho Transversal (mm)" value={form.selloAnchoTransversal} onChange={(value) => updateField("selloAnchoTransversal", value)} onBlur={() => markFieldAsTouched("selloAnchoTransversal")} error={getError("selloAnchoTransversal")} placeholder="Ej. 15" />
+                                              <FormInput label="Ancho del Sello (mm)" value={form.anchoSello} onChange={(value) => updateField("anchoSello", value)} onBlur={() => markFieldAsTouched("anchoSello")} error={getError("anchoSello")} placeholder="Ej. 25" />
+                                              <FormInput label="Ancho Transversal del Sello (mm)" value={form.selloAnchoTransversal} onChange={(value) => updateField("selloAnchoTransversal", value)} onBlur={() => markFieldAsTouched("selloAnchoTransversal")} error={getError("selloAnchoTransversal")} placeholder="Ej. 15" />
                                             </div>
                                           </div>
                                         </div>
@@ -6763,7 +6806,7 @@ if (!project) {
                                           <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
                                           <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
                                           {form.hasRoundedCorners === "Sí" && (
-                                            <FormSelect label="Tipo Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={roundedCornersOpt} />
+                                            <FormSelect label="Tipo de Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={roundedCornersOpt} />
                                           )}
                                           <AccessoryCheckbox field="hasNotch" label="Muesca" />
                                           <AccessoryCheckbox field="hasPerforation" label="Perforación" />
@@ -8141,18 +8184,18 @@ if (!project) {
               </p>
               <div className="bg-slate-50 rounded p-3 space-y-1 text-sm">
                 <p><span className="font-semibold">Producto:</span> {projectCode}</p>
-                <p><span className="font-semibold">Estado:</span> Pendiente de aprobación</p>
+                <p><span className="font-semibold">Estado:</span> Completado</p>
               </div>
             </div>
             <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex gap-3">
               <button
                 onClick={() => {
                   setShowValidationSuccessModal(false);
-                  navigate(`/products/${projectCode}`);
+                  navigate("/products");
                 }}
-                className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded font-medium hover:bg-slate-300 transition-colors text-sm"
+                className="flex-1 px-4 py-2 bg-brand-primary text-white rounded font-medium hover:bg-brand-primary/90 transition-colors text-sm"
               >
-                Cerrar
+                Ir a la lista de productos
               </button>
             </div>
           </div>

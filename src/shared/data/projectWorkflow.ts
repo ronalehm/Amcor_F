@@ -317,6 +317,7 @@ export function normalizeProjectStatus(rawStatus?: string): ProjectStatus {
       return "En Preparación";
     case "Ficha completa":
     case "Ficha Completa":
+    case "Completado": // Map ProductStatus "Completado" to "Ficha Completa" for defensive programming
       return "Ficha Completa";
     case "En Validación":
     case "En validación":
