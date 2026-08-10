@@ -295,6 +295,36 @@ export default function ProductListPage() {
   }, []);
 
   useEffect(() => {
+    // Escuchar cambios en localStorage para actualizar cuando se guardan proyectos
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "odiseo_recent_new_validation" || e.key === RECENT_NEW_PROJECT_KEY) {
+        // Actualizar la tabla cuando se guarda un proyecto
+        setRefreshKey((prev) => prev + 1);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // Escuchar custom event para actualizaciones en la misma pestaña
+  useEffect(() => {
+    const handleProjectUpdated = (event: any) => {
+      console.log("ProductListPage: Project updated event received:", event.detail);
+      setRefreshKey((prev) => prev + 1);
+    };
+
+    window.addEventListener("projectUpdated", handleProjectUpdated);
+    return () => window.removeEventListener("projectUpdated", handleProjectUpdated);
+  }, []);
+
+  // Refrescar datos cuando el componente se monta (consulta fresca)
+  useEffect(() => {
+    console.log("ProductListPage mounted, refreshing data");
+    setRefreshKey((prev) => prev + 1);
+  }, []);
+
+  useEffect(() => {
     const checkRecentProject = () => {
       const raw = localStorage.getItem(RECENT_NEW_PROJECT_KEY);
       if (!raw) return;
@@ -337,7 +367,10 @@ export default function ProductListPage() {
   const isRecentNewProject = (item: any) =>
     Boolean(recentNewProjectId && (item.code || item.id) === recentNewProjectId);
 
-  const projects = useMemo(() => getProjectRecords(), [refreshKey]);
+  const projects = useMemo(() => {
+    return getProjectRecords();
+  }, [refreshKey]);
+
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), [refreshKey]);
 
   const augmentedProjects = useMemo(() => {

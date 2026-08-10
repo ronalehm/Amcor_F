@@ -10861,8 +10861,18 @@ export function getMicronFrontendControl(
     };
   }
 
+  const uniqueMicronValues = new Set<string>();
   const options = micronRecords
     .filter((record) => record.TbMatMicTip === "VALOR")
+    .reduce((acc: typeof micronRecords, record) => {
+      const micronValue = parseCatalogNumber(record.TbMatMicVal);
+      const valueKey = micronValue !== null ? formatCatalogNumber(micronValue) : "";
+      if (!uniqueMicronValues.has(valueKey)) {
+        uniqueMicronValues.add(valueKey);
+        acc.push(record);
+      }
+      return acc;
+    }, [])
     .map((record) => {
       const micronValue = parseCatalogNumber(record.TbMatMicVal);
       const grammage = parseCatalogNumber(record.TbMatMicGram);

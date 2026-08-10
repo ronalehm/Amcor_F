@@ -137,7 +137,7 @@ export default function ProductStep0General({
               error={shouldShowFieldError("classification") ? getError("classification") : ""}
             />
             <FormSelect
-              label="Motivo/Modificación"
+              label="Modificación"
               value={form.motivoModificacion}
               onChange={(value) => {
                 updateField("motivoModificacion", value);
@@ -145,7 +145,7 @@ export default function ProductStep0General({
               }}
               onBlur={() => markFieldAsTouched("motivoModificacion")}
               options={modificationReasonOptions}
-              placeholder="-- Seleccione Motivo --"
+              placeholder="-- Seleccione Modificación --"
               disabled={false}
             />
           </div>
@@ -349,8 +349,8 @@ export default function ProductStep0General({
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormSelect
                   label="Familia POUCH"
-                  value={form.tipoFamiliaPouch}
-                  onChange={(value) => updateField("tipoFamiliaPouch", value)}
+                  value={form.tipoFormatoPouch}
+                  onChange={(value) => updateField("tipoFormatoPouch", value)}
                   options={[
                     { value: "Stand Up", label: "Stand Up" },
                     { value: "Flat", label: "Flat" },
@@ -359,7 +359,7 @@ export default function ProductStep0General({
                   placeholder="-- Seleccione Familia --"
                 />
                 <FormSelect
-                  label="Tipo Stand Up"
+                  label="Tipo de Stand Up"
                   value={form.tipoStandUpPouch}
                   onChange={(value) => updateField("tipoStandUpPouch", value)}
                   options={[
@@ -380,7 +380,7 @@ export default function ProductStep0General({
                   placeholder="-- Seleccione Forma --"
                 />
                 <FormSelect
-                  label="Tipo Fuelle Stand Up"
+                  label="Tipo de Fuelle Stand Up"
                   value={form.tipoFuelleStandUpPouch}
                   onChange={(value) => updateField("tipoFuelleStandUpPouch", value)}
                   options={[
@@ -412,9 +412,9 @@ export default function ProductStep0General({
                   placeholder="Ej. PE"
                 />
                 <FormSelect
-                  label="Tipo Sello Fuelle"
-                  value={form.tipoSelloEnFuellePouch}
-                  onChange={(value) => updateField("tipoSelloEnFuellePouch", value)}
+                  label="Tipo de Sello Fuelle"
+                  value={form.tipoSelloFuellePouch}
+                  onChange={(value) => updateField("tipoSelloFuellePouch", value)}
                   options={[
                     { value: "T-Seal", label: "T-Seal" },
                     { value: "C-Seal", label: "C-Seal" },
@@ -432,9 +432,9 @@ export default function ProductStep0General({
               <h4 className="font-semibold text-slate-700 mb-3">Especificaciones BOLSA</h4>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormSelect
-                  label="Tipo Presentación"
-                  value={form.tipoPresentacionBolsa}
-                  onChange={(value) => updateField("tipoPresentacionBolsa", value)}
+                  label="Tipo de Presentación"
+                  value={form.tipoFormatoBolsa}
+                  onChange={(value) => updateField("tipoFormatoBolsa", value)}
                   options={[
                     { value: "Bolsa Plana", label: "Bolsa Plana" },
                     { value: "Bolsa con Fuelle", label: "Bolsa con Fuelle" },
@@ -442,7 +442,7 @@ export default function ProductStep0General({
                   placeholder="-- Seleccione --"
                 />
                 <FormSelect
-                  label="Tipo Sello"
+                  label="Tipo de Sello"
                   value={form.tipoSelloBolsa}
                   onChange={(value) => updateField("tipoSelloBolsa", value)}
                   options={[
@@ -473,7 +473,7 @@ export default function ProductStep0General({
                 />
                 {form.tieneFuelleBolsa === "Sí" && (
                   <FormSelect
-                    label="Tipo Fuelle"
+                    label="Tipo de Fuelle"
                     value={form.tipoFuelleBolsa}
                     onChange={(value) => updateField("tipoFuelleBolsa", value)}
                     options={[
@@ -492,7 +492,7 @@ export default function ProductStep0General({
             <div className="border-t pt-4 mt-4">
               <h4 className="font-semibold text-slate-700 mb-3">Especificaciones LÁMINA</h4>
               <FormSelect
-                label="Tipo Formato Lámina"
+                label="Tipo de Formato Lámina"
                 value={form.tipoFormatoLamina}
                 onChange={(value) => updateField("tipoFormatoLamina", value)}
                 options={[

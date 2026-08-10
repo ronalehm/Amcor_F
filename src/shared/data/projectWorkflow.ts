@@ -570,7 +570,8 @@ export function normalizeProjectWorkflow(project: any): any {
     currentValidationStep = "Artes Gráficas";
   }
 
-  const stage = resolveProjectStage(status);
+  // Preservar stage si existe, solo calcular si no está definido
+  const stage = project.stage || resolveProjectStage(status);
 
   return {
     ...project,

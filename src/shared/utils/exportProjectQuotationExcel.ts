@@ -148,7 +148,7 @@ function buildQuotationExportRow(
     "Dimensiones (Largo)": pickValue(product.length, project.length),
     "Repetición": project.repetition || "",
     "Base del Doy Pack": project.doyPackBase || "",
-    "Ancho Fuelle": pickValue(product.gusset, project.gussetWidth),
+    "Ancho Fuelle": pickValue(product.gusset, project.anchoFuelle),
     "Tipo de Fuelle": project.gussetType || "",
     "Accesorios Consumibles - Zipper": boolStr(
       pickValue(product.hasZipper, project.hasZipper)

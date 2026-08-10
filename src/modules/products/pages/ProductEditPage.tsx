@@ -83,6 +83,7 @@ import PhotoregisterAccordion from "../components/PhotoregisterAccordion";
 import CalculatedMeasuresAccordion from "../components/CalculatedMeasuresAccordion";
 import LaminaStructureTable from "../components/LaminaStructureTable";
 import PouchBolsaStructureTable from "../components/PouchBolsaStructureTable";
+import MaterialsEditModal from "../components/MaterialsEditModal";
 import ProductPreliminaryCreateModal from "../../../shared/components/modals/ProductPreliminaryCreateModal";
 import type { ProductPreliminaryRecord } from "../../../shared/data/productPreliminaryTypes";
 import {
@@ -235,6 +236,7 @@ export type ProjectEditFormData = {
   gussetType: string;
   alturaEnLaBolsa: string;
   anchoEnLaBolsa: string;
+  anchoTotalCalculado: string;
 
   hasMicroperforado: string;
   ladoMicroperforado: string;
@@ -287,6 +289,7 @@ export type ProjectEditFormData = {
   anchoFuelleCerrado: string;
   microperforadoAleta: string;
   ladoAleta: string;
+  tipoMicroperforado: string;
   separacionPuasAleta: string;
   distanciaLadoAleta: string;
   ladoCorteAngular: string;
@@ -410,12 +413,7 @@ const ASA_TYPE_OPTIONS = [
   { value: "Asa cosida", label: "Asa cosida" },
 ];
 
-const ASA_COLOR_OPTIONS = [
-  { value: "Blanco", label: "Blanco" },
-  { value: "Negro", label: "Negro" },
-  { value: "Transparente", label: "Transparente" },
-  { value: "Otra", label: "Otra" },
-];
+// Actualizado: usando getCatalogOptions en useMemo abajo
 
 const ASA_SHAPE_OPTIONS = [
   { value: "Circular", label: "Circular" },
@@ -868,6 +866,7 @@ const FORMAT_FIELD_RULES_BY_FDP: Record<string, {
   "BOLSA_DEFAULT": {
     visibleFields: new Set([
       "width", "length", "repetition",
+      "fuelleCerrado", "alturaEnLaBolsa", "anchoEnLaBolsa", "anchoTotalCalculado",
       "hasWicket", "wicketDiameter", "wicketDistSuperior", "wicketDistDerecho",
       "hasWicketControl", "wicketControlDiameter", "wicketControlUbicacion", "wicketControlDistSuperior", "wicketControlDistDerecho",
       "hasDieCutHandle", "tipoAsa", "colorAsa", "formaAsa", "hasReinforcement", "reinforcementThickness", "reinforcementWidth",
@@ -875,6 +874,8 @@ const FORMAT_FIELD_RULES_BY_FDP: Record<string, {
       "hasRoundedCorners", "roundedCornersType", "hasNotch", "distanciaAbocaPerforacion",
       "hasPerforation", "bagPerforationType", "perforationLocation",
       "hasAngularCut", "hasPreCut", "preCutType", "distanciaAbocaPrecorte", "otherAccessories",
+      "perforacionParaAire", "perforacionFugaAire", "tipoPerfFuelleBolsaWicket", "distMargenSuperiorPerforacion", "distFuellePerforacion",
+      "precutFuelleAbreFacil", "precutFuelleA10mm",
       "materialPackaging", "specialMaterialPackaging", "exportProductPackaging", "splices",
       "rewindingDirection", "rewindingDirectionRef", "hasPhotocell", "photocellLocation",
       "fr1Width", "fr1Height", "fr1MarginRight", "fr1MarginBottom", "fr1MarginLeft", "fr1MarginTop",
@@ -1541,7 +1542,8 @@ const MATERIAL_CATALOG: MaterialCatalog = {
     fixedMaterial("BOPP - BOPP CRISTAL - 30", "BOPP CRISTAL - 30", "30", "27"),
     fixedMaterial("BOPP - BOPP CRISTAL - 35", "BOPP CRISTAL - 35", "35", "31.5"),
     fixedMaterial("BOPP - BOPP CRISTAL ETIQUETA - 13.5", "BOPP CRISTAL ETIQUETA - 13.5", "13.5", "12.2"),
-    fixedMaterial("BOPP - BOPP BLANCO/MATE - 17", "BOPP MATE - 17", "17", "15.5"),
+    fixedMaterial("BOPP - BOPP BLANCO/MATE - 17", "BOPP MATE - 17", "17", "15"),
+    fixedMaterial("BOPP - BOPP BLANCO/MATE - 18", "BOPP MATE - 18", "18", "16"),
     fixedMaterial("BOPP - BOPP BLANCO/MATE - 20", "BOPP MATE - 20", "20", "18"),
     fixedMaterial("BOPP - BOPP BLANCO/MATE - 27", "BOPP BLANCO - 27", "27", "17.3"),
     fixedMaterial("BOPP - BOPP ALOX - 16", "BOPP ALOX - 16", "16", "14"),
@@ -1838,10 +1840,6 @@ const STEP_FIELDS: Record<number, Array<keyof ProjectEditFormData>> = {
     "referenceEmVersion",
     "structureType",
 
-    "layer1MaterialGroup", "layer1Material", "layer1Micron", "layer1Grammage",
-    "layer2MaterialGroup", "layer2Material", "layer2Micron", "layer2Grammage",
-    "layer3MaterialGroup", "layer3Material", "layer3Micron", "layer3Grammage",
-    "layer4MaterialGroup", "layer4Material", "layer4Micron", "layer4Grammage",
 
     "sampleRequest", "specialStructureSpecs",
 
@@ -2561,6 +2559,7 @@ export default function ProductEditPage() {
     gussetType: "",
     alturaEnLaBolsa: "",
     anchoEnLaBolsa: "",
+    anchoTotalCalculado: "",
     hasMicroperforado: "",
     ladoMicroperforado: "",
     separacionPuas: "",
@@ -2606,6 +2605,7 @@ export default function ProductEditPage() {
     anchoFuelleCerrado: "",
     microperforadoAleta: "",
     ladoAleta: "",
+    tipoMicroperforado: "",
     separacionPuasAleta: "",
     distanciaLadoAleta: "",
     ladoCorteAngular: "",
@@ -2673,6 +2673,7 @@ export default function ProductEditPage() {
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
   const [showInheritedDataModal, setShowInheritedDataModal] = useState(false);
   const [showStructureEditModal, setShowStructureEditModal] = useState(false);
+  const [showMaterialsEditModal, setShowMaterialsEditModal] = useState(false);
   const [openStructureSections, setOpenStructureSections] = useState({
     specs: true,
     dimensions: true,
@@ -2732,9 +2733,33 @@ export default function ProductEditPage() {
   const valveTypeOpt = useMemo(() => getCatalogOptions("valve_type"), []);
   const roundedCornersOpt = useMemo(() => getCatalogOptions("rounded_corners_type"), []);
   const pouchPerforationOpt = useMemo(() => getCatalogOptions("pouch_perforation_type"), []);
+  const eyeletPerforationOpt = useMemo(() => getCatalogOptions("eyelet_perforation_type"), []);
+  const handleTypeOpt = useMemo(() => getCatalogOptions("handle_type"), []);
+  const handleColorOpt = useMemo(() => getCatalogOptions("handle_color"), []);
   const bagPerforationOpt = useMemo(() => getCatalogOptions("bag_perforation_type"), []);
+  const wicketPerforationOpt = useMemo(() => getCatalogOptions("wicket_perforation_type"), []);
   const precutTypeOpt = useMemo(() => getCatalogOptions("precut_type"), []);
   const coreMaterialOpt = useMemo(() => getCatalogOptions("core_material"), []);
+
+  // Lógica condicional para mostrar diferentes opciones de perforación según material y fuelle
+  const pouchPerforationOptionsConditional = useMemo(() => {
+    if (
+      form.tipoFormatoPouch === "Pouch con Sello Central" &&
+      form.materialSelloCentralPouch === "Aleta" &&
+      form.tieneFuelleSelloCentralPouch === "Sí"
+    ) {
+      return eyeletPerforationOpt;
+    }
+    return pouchPerforationOpt;
+  }, [form.tipoFormatoPouch, form.materialSelloCentralPouch, form.tieneFuelleSelloCentralPouch, eyeletPerforationOpt, pouchPerforationOpt]);
+
+  // Lógica condicional para mostrar diferentes opciones de perforación en BOLSA según tipo de presentación
+  const bagPerforationOptionsConditional = useMemo(() => {
+    if (form.tipoFormatoBolsa === "Wicket") {
+      return wicketPerforationOpt;
+    }
+    return bagPerforationOpt;
+  }, [form.tipoFormatoBolsa, wicketPerforationOpt, bagPerforationOpt]);
 
   // Resolve and display SKU code
   const displaySkuCode = useMemo(() => {
@@ -2992,6 +3017,7 @@ if (!project) {
       gussetType: project.gussetType || "",
       alturaEnLaBolsa: (project as any).alturaEnLaBolsa || "",
       anchoEnLaBolsa: (project as any).anchoEnLaBolsa || "",
+      anchoTotalCalculado: (project as any).anchoTotalCalculado || "",
       hasMicroperforado: toYesNo((project as any).hasMicroperforado),
       ladoMicroperforado: (project as any).ladoMicroperforado || "",
       separacionPuas: (project as any).separacionPuas || "",
@@ -3037,6 +3063,7 @@ if (!project) {
       anchoFuelleCerrado: (project as any).anchoFuelleCerrado || "",
       microperforadoAleta: (project as any).microperforadoAleta || "",
       ladoAleta: (project as any).ladoAleta || "",
+      tipoMicroperforado: (project as any).tipoMicroperforado || "",
       separacionPuasAleta: (project as any).separacionPuasAleta || "",
       distanciaLadoAleta: (project as any).distanciaLadoAleta || "",
       ladoCorteAngular: (project as any).ladoCorteAngular || "",
@@ -3499,15 +3526,6 @@ if (!project) {
 
     if (form.hasReferenceStructure !== "Sí") {
       fields.push("structureType");
-
-      for (let layer = 1; layer <= visibleLayerCount; layer++) {
-        fields.push(
-          `layer${layer}MaterialGroup` as keyof ProjectEditFormData,
-          `layer${layer}Material` as keyof ProjectEditFormData,
-          `layer${layer}Micron` as keyof ProjectEditFormData,
-          `layer${layer}Grammage` as keyof ProjectEditFormData
-        );
-      }
     }
     if (form.printClass && form.printClass !== "Sin impresión") {
       fields.push("printType");
@@ -3562,7 +3580,7 @@ if (!project) {
       fields.push("tipoFormatoBolsa");
 
       // Fields dependent on tipoFormatoBolsa
-      if (form.tipoFormatoBolsa === "Bolsa sellada") {
+      if (form.tipoFormatoBolsa === "Bolsa") {
         fields.push("tipoSelloBolsa", "tieneFuelleBolsa");
       }
 
@@ -3571,10 +3589,8 @@ if (!project) {
         fields.push("acabadoBolsa");
       }
 
-      // Fields dependent on tieneFuelleBolsa
-      if (form.tieneFuelleBolsa === "Sí") {
-        fields.push("tipoFuelleBolsa");
-      }
+      // tipoFuelleBolsa no se requiere para BOLSA
+      // (se usa para otros formatos, pero no para BOLSA)
     }
 
     // POUCH fields - all required when POUCH wrapping is selected
@@ -3582,15 +3598,15 @@ if (!project) {
       fields.push("tipoFormatoPouch");
 
       // Fields dependent on tipoFormatoPouch
-      if (form.tipoFormatoPouch === "Pouch Stand Up") {
+      if (form.tipoFormatoPouch === "Stand Up Pouch") {
         fields.push("tipoStandUpPouch");
       }
 
-      if (form.tipoFormatoPouch === "Pouch Stand Up" && form.tipoStandUpPouch === "Doy Pack") {
+      if (form.tipoFormatoPouch === "Stand Up Pouch" && form.tipoStandUpPouch === "Doy Pack") {
         fields.push("formaDoyPackPouch");
       }
 
-      if (form.tipoFormatoPouch === "Pouch Stand Up" && form.tipoStandUpPouch === "Stand Up con Fuelle") {
+      if (form.tipoFormatoPouch === "Stand Up Pouch" && form.tipoStandUpPouch === "Stand Up con Fuelle") {
         fields.push("tipoFuelleStandUpPouch");
       }
 
@@ -3753,21 +3769,19 @@ if (!project) {
 
   // Efecto para calcular Formato de Plano (Bolsa)
   useEffect(() => {
-    if (isGuidedFormatEnabled(inheritedWrapping)) {
-      const calculatedFormat = calculateBolsaFormatPlan({
-        tipoFormatoBolsa: form.tipoFormatoBolsa,
-        tipoSelloBolsa: form.tipoSelloBolsa,
-        acabadoBolsa: form.acabadoBolsa,
-        tieneFuelleBolsa: form.tieneFuelleBolsa,
-      });
+    if (!isBolsaWrapping(inheritedWrapping)) return;
 
-      if (calculatedFormat) {
-        setForm(prev => {
-          if (prev.blueprintFormat === calculatedFormat) return prev;
-          return { ...prev, blueprintFormat: calculatedFormat };
-        });
-      }
-    }
+    const calculatedFormat = calculateBolsaFormatPlan({
+      tipoFormatoBolsa: form.tipoFormatoBolsa,
+      tipoSelloBolsa: form.tipoSelloBolsa,
+      acabadoBolsa: form.acabadoBolsa,
+      tieneFuelleBolsa: form.tieneFuelleBolsa,
+    });
+
+    setForm(prev => {
+      if (prev.blueprintFormat === calculatedFormat) return prev;
+      return { ...prev, blueprintFormat: calculatedFormat };
+    });
   }, [
     inheritedWrapping,
     form.tipoFormatoBolsa,
@@ -4009,7 +4023,7 @@ if (!project) {
       if (field === "doyPackBase") {
         if (
           isPouchWrapping(inheritedWrapping) &&
-          form.tipoFormatoPouch === "Pouch Stand Up" &&
+          form.tipoFormatoPouch === "Stand Up Pouch" &&
           form.tipoStandUpPouch === "Doy Pack" &&
           isFieldEmpty(form[field])
         ) {
@@ -4873,7 +4887,7 @@ if (!project) {
 
     console.log("DEBUG 6 - After updateProjectRecord:", {
       shouldSubmitForValidation,
-      statusThatWasSaved: shouldSubmitForValidation ? "Completado" : calculatedStatus,
+      statusThatWasSaved: shouldSubmitForValidation ? "Ficha Completa" : calculatedStatus,
       projectCode,
     });
 
@@ -5412,7 +5426,7 @@ if (!project) {
                                 onBlur={() => markFieldAsTouched("tipoFormatoPouch")}
                                 error={getError("tipoFormatoPouch")}
                                 options={[
-                                  { value: "Pouch Stand Up", label: "Pouch Stand Up" },
+                                  { value: "Stand Up Pouch", label: "Stand Up Pouch" },
                                   { value: "Pouch Plano", label: "Pouch Plano" },
                                   { value: "Pouch con Sello Central", label: "Pouch con Sello Central" },
                                   { value: "Pouch con Sello en Fuelle", label: "Pouch con Sello en Fuelle" },
@@ -5420,7 +5434,7 @@ if (!project) {
                                 placeholder="-- Seleccione --"
                               />
 
-                              {form.tipoFormatoPouch === "Pouch Stand Up" && (
+                              {form.tipoFormatoPouch === "Stand Up Pouch" && (
                                 <>
                                   <FormSelect
                                     label="Tipo de Stand Up *"
@@ -5429,7 +5443,7 @@ if (!project) {
                                     onBlur={() => markFieldAsTouched("tipoStandUpPouch")}
                                     error={getError("tipoStandUpPouch")}
                                     options={[
-                                      { value: "Tipo K", label: "Tipo K" },
+                                      { value: "Sello K", label: "Sello K" },
                                       { value: "Normal", label: "Normal" },
                                       { value: "Doy Pack", label: "Doy Pack" },
                                     ]}
@@ -5438,19 +5452,6 @@ if (!project) {
 
                                   {form.tipoStandUpPouch === "Doy Pack" && (
                                     <>
-                                      <FormSelect
-                                        label="Base Doy Pack *"
-                                        value={form.formaDoyPackPouch}
-                                        onChange={handlePouchDoyPackShapeChange}
-                                        onBlur={() => markFieldAsTouched("formaDoyPackPouch")}
-                                        error={getError("formaDoyPackPouch")}
-                                        options={[
-                                          { value: "Redondo", label: "Redondo" },
-                                          { value: "Cuadrado", label: "Cuadrado" },
-                                        ]}
-                                        placeholder="-- Seleccione --"
-                                      />
-
                                       <FormSelect
                                         label="Tipo de Fuelle *"
                                         value={form.tipoFuelleStandUpPouch}
@@ -5463,6 +5464,21 @@ if (!project) {
                                         ]}
                                         placeholder="-- Seleccione --"
                                       />
+
+                                      <FormSelect
+                                        label="Base Doy Pack *"
+                                        value={form.formaDoyPackPouch}
+                                        onChange={handlePouchDoyPackShapeChange}
+                                        onBlur={() => markFieldAsTouched("formaDoyPackPouch")}
+                                        error={getError("formaDoyPackPouch")}
+                                        disabled={!form.tipoFuelleStandUpPouch}
+                                        options={[
+                                          { value: "Redondo", label: "Redondo" },
+                                          { value: "Cuadrado", label: "Cuadrado" },
+                                        ]}
+                                        placeholder="-- Seleccione --"
+                                      />
+
                                     </>
                                   )}
                                 </>
@@ -5587,16 +5603,6 @@ if (!project) {
                               {form.tipoFormatoPouch === "Pouch con Sello Central" && (
                                 <>
                                   <FormSelect
-                                    label="¿Tiene Fuelle? *"
-                                    value={form.tieneFuelleSelloCentralPouch}
-                                    onChange={handlePouchCentralFuelleChange}
-                                    onBlur={() => markFieldAsTouched("tieneFuelleSelloCentralPouch")}
-                                    error={getError("tieneFuelleSelloCentralPouch")}
-                                    options={YES_NO_OPTIONS}
-                                    placeholder="-- Seleccione --"
-                                  />
-
-                                  <FormSelect
                                     label="Material del Sello Central *"
                                     value={form.materialSelloCentralPouch}
                                     onChange={handlePouchCentralMaterialChange}
@@ -5607,6 +5613,16 @@ if (!project) {
                                       { value: "Aleta", label: "Aleta" },
                                       { value: "Otro material", label: "Otro material" },
                                     ]}
+                                    placeholder="-- Seleccione --"
+                                  />
+
+                                  <FormSelect
+                                    label="¿Tiene Fuelle? *"
+                                    value={form.tieneFuelleSelloCentralPouch}
+                                    onChange={handlePouchCentralFuelleChange}
+                                    onBlur={() => markFieldAsTouched("tieneFuelleSelloCentralPouch")}
+                                    error={getError("tieneFuelleSelloCentralPouch")}
+                                    options={YES_NO_OPTIONS}
                                     placeholder="-- Seleccione --"
                                   />
 
@@ -5657,71 +5673,8 @@ if (!project) {
                                       </div>
 
                                       <div className="border-t border-slate-200 pt-4 space-y-3">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                          <input
-                                            type="checkbox"
-                                            checked={form.hasValve === "Sí"}
-                                            onChange={(e) => {
-                                              updateField("hasValve", e.target.checked ? "Sí" : "No");
-                                              if (!e.target.checked) {
-                                                updateField("distanciaAbocaValvula", "");
-                                              }
-                                            }}
-                                            className="w-4 h-4 rounded border-slate-300 cursor-pointer"
-                                          />
-                                          <span className="text-sm text-slate-700">Válvula</span>
-                                        </label>
-
-                                        {form.hasValve === "Sí" && (
-                                          <FormInput
-                                            label="Distancia de la boca del pouch al inicio de válvula (mm)"
-                                            value={form.distanciaAbocaValvula}
-                                            onChange={(value) => updateField("distanciaAbocaValvula", value)}
-                                            placeholder="mm"
-                                          />
-                                        )}
                                       </div>
 
-                                      <div className="border-t border-slate-200 pt-4">
-                                        <label className="flex items-center gap-2 cursor-pointer mb-3">
-                                          <input
-                                            type="checkbox"
-                                            checked={form.hasPerforation === "Sí"}
-                                            onChange={(e) => {
-                                              updateField("hasPerforation", e.target.checked ? "Sí" : "No");
-                                              if (!e.target.checked) {
-                                                updateField("pouchPerforationType", "");
-                                                updateField("distanciaAbocaPerforacion", "");
-                                              }
-                                            }}
-                                            className="w-4 h-4 rounded border-slate-300 cursor-pointer"
-                                          />
-                                          <span className="text-sm text-slate-700">Perforación</span>
-                                        </label>
-
-                                        {form.hasPerforation === "Sí" && (
-                                          <div className="space-y-3">
-                                            <FormSelect
-                                              label="Tipo de perforación"
-                                              value={form.pouchPerforationType}
-                                              onChange={(value) => updateField("pouchPerforationType", value)}
-                                              placeholder="-- Seleccione --"
-                                              options={[
-                                                { value: "CIRCULAR D 4mm", label: "CIRCULAR D 4mm" },
-                                                { value: "CIRCULAR D 6mm", label: "CIRCULAR D 6mm" },
-                                                { value: "CIRCULAR D 8mm", label: "CIRCULAR D 8mm" },
-                                                { value: "CIRCULAR D 10mm", label: "CIRCULAR D 10mm" },
-                                              ]}
-                                            />
-                                            <FormInput
-                                              label="Distancia de la boca del pouch a la perforación (mm)"
-                                              value={form.distanciaAbocaPerforacion}
-                                              onChange={(value) => updateField("distanciaAbocaPerforacion", value)}
-                                              placeholder="mm"
-                                            />
-                                          </div>
-                                        )}
-                                      </div>
                                     </div>
                                   )}
 
@@ -5794,6 +5747,16 @@ if (!project) {
                                             ]}
                                           />
                                           <FormSelect
+                                            label="Tipo Microperforado"
+                                            value={form.tipoMicroperforado}
+                                            onChange={(value) => updateField("tipoMicroperforado", value)}
+                                            placeholder="-- Seleccione --"
+                                            options={[
+                                              { value: "Total", label: "Total" },
+                                              { value: "Parcial", label: "Parcial" },
+                                            ]}
+                                          />
+                                          <FormSelect
                                             label="Separación de puas"
                                             value={form.separacionPuasAleta}
                                             onChange={(value) => updateField("separacionPuasAleta", value)}
@@ -5812,31 +5775,6 @@ if (!project) {
                                           />
                                         </div>
 
-                                        <div className="border-t border-slate-200 pt-3">
-                                          <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                              type="checkbox"
-                                              checked={form.hasValve === "Sí"}
-                                              onChange={(e) => {
-                                                updateField("hasValve", e.target.checked ? "Sí" : "No");
-                                                if (!e.target.checked) {
-                                                  updateField("distanciaAbocaValvula", "");
-                                                }
-                                              }}
-                                              className="w-4 h-4 rounded border-slate-300 cursor-pointer"
-                                            />
-                                            <span className="text-sm text-slate-700">Válvula</span>
-                                          </label>
-
-                                          {form.hasValve === "Sí" && (
-                                            <FormInput
-                                              label="Distancia de la boca del pouch al inicio de válvula (mm)"
-                                              value={form.distanciaAbocaValvula}
-                                              onChange={(value) => updateField("distanciaAbocaValvula", value)}
-                                              placeholder="mm"
-                                            />
-                                          )}
-                                        </div>
                                       </div>
                                     </div>
                                   )}
@@ -5884,46 +5822,6 @@ if (!project) {
                                         </div>
                                       </div>
 
-                                      <div className="border-t border-slate-200 pt-4">
-                                        <label className="flex items-center gap-2 cursor-pointer mb-3">
-                                          <input
-                                            type="checkbox"
-                                            checked={form.hasPerforation === "Sí"}
-                                            onChange={(e) => {
-                                              updateField("hasPerforation", e.target.checked ? "Sí" : "No");
-                                              if (!e.target.checked) {
-                                                updateField("pouchPerforationType", "");
-                                                updateField("distanciaAbocaPerforacion", "");
-                                              }
-                                            }}
-                                            className="w-4 h-4 rounded border-slate-300 cursor-pointer"
-                                          />
-                                          <span className="text-sm text-slate-700">Perforación</span>
-                                        </label>
-
-                                        {form.hasPerforation === "Sí" && (
-                                          <div className="space-y-3">
-                                            <FormSelect
-                                              label="Tipo de perforación"
-                                              value={form.pouchPerforationType}
-                                              onChange={(value) => updateField("pouchPerforationType", value)}
-                                              placeholder="-- Seleccione --"
-                                              options={[
-                                                { value: "CIRCULAR D 4mm", label: "CIRCULAR D 4mm" },
-                                                { value: "CIRCULAR D 6mm", label: "CIRCULAR D 6mm" },
-                                                { value: "CIRCULAR D 8mm", label: "CIRCULAR D 8mm" },
-                                                { value: "CIRCULAR D 10mm", label: "CIRCULAR D 10mm" },
-                                              ]}
-                                            />
-                                            <FormInput
-                                              label="Distancia de la boca del pouch a la perforación (mm)"
-                                              value={form.distanciaAbocaPerforacion}
-                                              onChange={(value) => updateField("distanciaAbocaPerforacion", value)}
-                                              placeholder="mm"
-                                            />
-                                          </div>
-                                        )}
-                                      </div>
                                     </div>
                                   )}
 
@@ -5987,6 +5885,16 @@ if (!project) {
                                             options={[
                                               { value: "Derecho del pouch", label: "Derecho del pouch" },
                                               { value: "Izquierdo del pouch", label: "Izquierdo del pouch" },
+                                            ]}
+                                          />
+                                          <FormSelect
+                                            label="Tipo Microperforado"
+                                            value={form.tipoMicroperforado}
+                                            onChange={(value) => updateField("tipoMicroperforado", value)}
+                                            placeholder="-- Seleccione --"
+                                            options={[
+                                              { value: "Total", label: "Total" },
+                                              { value: "Parcial", label: "Parcial" },
                                             ]}
                                           />
                                           <FormSelect
@@ -6059,26 +5967,6 @@ if (!project) {
                                             { value: "10", label: "10" },
                                           ]}
                                         />
-                                        <FormSelect
-                                          label="Válvula"
-                                          value={form.hasValve}
-                                          onChange={(value) => {
-                                            updateField("hasValve", value);
-                                            if (value === "No") {
-                                              updateField("distanciaAbocaValvula", "");
-                                            }
-                                          }}
-                                          placeholder="-- Seleccione --"
-                                          options={YES_NO_OPTIONS}
-                                        />
-                                        {form.hasValve === "Sí" && (
-                                          <FormInput
-                                            label="Distancia de la boca al inicio de válvula (mm)"
-                                            value={form.distanciaAbocaValvula}
-                                            onChange={(value) => updateField("distanciaAbocaValvula", value)}
-                                            placeholder="mm"
-                                          />
-                                        )}
                                         <div className="rounded bg-slate-100 p-3 md:col-span-2">
                                           <label className="text-xs font-semibold text-slate-600">Ancho Total (calculado)</label>
                                           <div className="text-sm font-bold text-slate-900 mt-1">—</div>
@@ -6107,14 +5995,14 @@ if (!project) {
                                     updateField("tipoFuelleBolsa", "");
                                   }}
                                   options={[
-                                    { value: "Bolsa sellada", label: "Bolsa sellada" },
+                                    { value: "Bolsa", label: "Bolsa" },
                                     { value: "Wicket", label: "Wicket" },
                                     { value: "Hojas", label: "Hojas" },
                                   ]}
                                   placeholder="-- Seleccione --"
                                 />
 
-                                {form.tipoFormatoBolsa === "Bolsa sellada" && (
+                                {form.tipoFormatoBolsa === "Bolsa" && (
                                   <FormSelect
                                     label="Tipo de Sello *"
                                     value={form.tipoSelloBolsa}
@@ -6147,31 +6035,17 @@ if (!project) {
                                   />
                                 )}
 
-                                {form.tipoFormatoBolsa === "Bolsa sellada" && (
-                                  <>
-                                    <FormSelect
-                                      label="¿Tiene Fuelle? *"
-                                      value={form.tieneFuelleBolsa}
-                                      onChange={(value) => {
-                                        updateField("tieneFuelleBolsa", value);
-                                        updateField("tipoFuelleBolsa", "");
-                                      }}
-                                      options={YES_NO_OPTIONS}
-                                      placeholder="-- Seleccione --"
-                                    />
-                                    {form.tieneFuelleBolsa === "Sí" && (
-                                      <FormSelect
-                                        label="Tipo de Fuelle *"
-                                        value={form.tipoFuelleBolsa}
-                                        onChange={(value) => updateField("tipoFuelleBolsa", value)}
-                                        options={[
-                                          { value: "Fondo", label: "Fondo" },
-                                          { value: "Lateral", label: "Lateral" },
-                                        ]}
-                                        placeholder="-- Seleccione --"
-                                      />
-                                    )}
-                                  </>
+                                {form.tipoFormatoBolsa === "Bolsa" && (
+                                  <FormSelect
+                                    label="¿Tiene fuelle lateral? *"
+                                    value={form.tieneFuelleBolsa}
+                                    onChange={(value) => {
+                                      updateField("tieneFuelleBolsa", value);
+                                      updateField("tipoFuelleBolsa", "");
+                                    }}
+                                    options={YES_NO_OPTIONS}
+                                    placeholder="-- Seleccione --"
+                                  />
                                 )}
                               </div>
                             </div>
@@ -6431,17 +6305,13 @@ if (!project) {
                                     ]}
                                   />
                                   <FormSelect
-                                    label="Tipo de perforación"
+                                    label="Tipo de Perforación *"
                                     value={form.bagPerforationType}
                                     onChange={(value) => updateField("bagPerforationType", value)}
                                     onBlur={() => markFieldAsTouched("bagPerforationType")}
                                     error={getError("bagPerforationType")}
                                     placeholder="-- Seleccione --"
-                                    options={[
-                                      { value: "Cruz 5 mm", label: "Cruz 5 mm" },
-                                      { value: "Cruz 7 mm", label: "Cruz 7 mm" },
-                                      { value: "Media luna D 5 mm", label: "Media luna D 5 mm" },
-                                    ]}
+                                    options={bagPerforationOptionsConditional}
                                   />
                                 </div>
                               </div>
@@ -6638,6 +6508,79 @@ if (!project) {
 
                                 <div>
                                   <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                    Corte Aliviador
+                                  </h4>
+                                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <FormSelect
+                                      label="Corte Aliviador"
+                                      value={form.hasCortaAliviador}
+                                      onChange={(value) => {
+                                        updateField("hasCortaAliviador", value);
+                                        if (value === "No") {
+                                          updateField("cortaAliviadorDistDerecho", "");
+                                        }
+                                      }}
+                                      placeholder="-- Seleccione --"
+                                      options={YES_NO_OPTIONS}
+                                    />
+                                    {form.hasCortaAliviador === "Sí" && (
+                                      <FormInput
+                                        label="Distancia Derecho (mm)"
+                                        value={form.cortaAliviadorDistDerecho}
+                                        onChange={(value) => updateField("cortaAliviadorDistDerecho", value)}
+                                        placeholder="mm"
+                                        type="number"
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                    Dispensador
+                                  </h4>
+                                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <FormSelect
+                                      label="Dispensador"
+                                      value={form.hasDispensador}
+                                      onChange={(value) => {
+                                        updateField("hasDispensador", value);
+                                        if (value === "No") {
+                                          updateField("dispensadorDistIzquierdo", "");
+                                        }
+                                      }}
+                                      placeholder="-- Seleccione --"
+                                      options={YES_NO_OPTIONS}
+                                    />
+                                    {form.hasDispensador === "Sí" && (
+                                      <FormInput
+                                        label="Distancia Izquierdo (mm)"
+                                        value={form.dispensadorDistIzquierdo}
+                                        onChange={(value) => updateField("dispensadorDistIzquierdo", value)}
+                                        placeholder="mm"
+                                        type="number"
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
+                                    Fotocélula Bolsa Wicket
+                                  </h4>
+                                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <FormSelect
+                                      label="Fotocélula Bolsa Wicket"
+                                      value={form.hasFotocelulaBolsaWicket}
+                                      onChange={(value) => updateField("hasFotocelulaBolsaWicket", value)}
+                                      placeholder="-- Seleccione --"
+                                      options={YES_NO_OPTIONS}
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="mb-4 text-sm font-bold uppercase tracking-wide text-slate-900">
                                     Información para el Fuelle
                                   </h4>
                                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -6649,21 +6592,11 @@ if (!project) {
                                       options={YES_NO_OPTIONS}
                                     />
                                     <FormSelect
-                                      label="Tipo de perforación"
+                                      label="Tipo de Perforación *"
                                       value={form.bagPerforationType}
                                       onChange={(value) => updateField("bagPerforationType", value)}
                                       placeholder="-- Seleccione --"
-                                      options={[
-                                        { value: "OJAL 50x15 mm", label: "OJAL 50x15 mm" },
-                                        { value: "OJAL 70x20 mm", label: "OJAL 70x20 mm" },
-                                        { value: "OJAL 78x20 mm", label: "OJAL 78x20 mm" },
-                                        { value: "EUROPUNCH 32x10 mm", label: "EUROPUNCH 32x10 mm" },
-                                        { value: "EUROPUNCH 38x10 mm", label: "EUROPUNCH 38x10 mm" },
-                                        { value: "CIRCULAR D 4mm", label: "CIRCULAR D 4mm" },
-                                        { value: "CIRCULAR D 6mm", label: "CIRCULAR D 6mm" },
-                                        { value: "CIRCULAR D 8mm", label: "CIRCULAR D 8mm" },
-                                        { value: "CIRCULAR D 10mm", label: "CIRCULAR D 10mm" },
-                                      ]}
+                                      options={bagPerforationOptionsConditional}
                                     />
                                   </div>
                                 </div>
@@ -6739,7 +6672,10 @@ if (!project) {
                                         <AccessoryCheckbox field="hasTinTie" label="Tin-Tie" />
                                         <AccessoryCheckbox field="hasValve" label="Válvula" />
                                         {form.hasValve === "Sí" && (
-                                          <FormSelect label="Tipo de Válvula" value={form.valveType} onChange={(value) => updateField("valveType", value)} placeholder="-- Seleccione --" options={valveTypeOpt} />
+                                          <div className="space-y-3">
+                                            <FormSelect label="Tipo de Válvula *" value={form.valveType} onChange={(value) => updateField("valveType", value)} placeholder="-- Seleccione --" options={valveTypeOpt} />
+                                            <FormInput label="Distancia de la boca del pouch al inicio de válvula (mm)" value={form.distanciaAbocaValvula} onChange={(value) => updateField("distanciaAbocaValvula", value)} placeholder="mm" />
+                                          </div>
                                         )}
                                       </div>
                                     </div>
@@ -6761,7 +6697,7 @@ if (!project) {
                                                   onBlur={() => markFieldAsTouched("tipoAsa")}
                                                   error={getError("tipoAsa")}
                                                   placeholder="-- Seleccione --"
-                                                  options={ASA_TYPE_OPTIONS}
+                                                  options={handleTypeOpt}
                                                 />
                                                 <FormSelect
                                                   label="Color de Asa"
@@ -6770,7 +6706,7 @@ if (!project) {
                                                   onBlur={() => markFieldAsTouched("colorAsa")}
                                                   error={getError("colorAsa")}
                                                   placeholder="-- Seleccione --"
-                                                  options={ASA_COLOR_OPTIONS}
+                                                  options={handleColorOpt}
                                                 />
                                                 <FormSelect
                                                   label="Forma de Asa"
@@ -6803,7 +6739,20 @@ if (!project) {
                                       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                                         <p className="mb-3 text-xs font-bold uppercase text-slate-600">Accesorios Internos</p>
                                         <div className="space-y-3">
+                                          <AccessoryCheckbox field="hasRiñonera" label="Riñonera" />
                                           <AccessoryCheckbox field="hasAngularCut" label="Corte Angular" />
+                                          {form.hasAngularCut === "Sí" && (
+                                            <FormSelect
+                                              label="Lado Corte Angular"
+                                              value={form.ladoCorteAngular}
+                                              onChange={(value) => updateField("ladoCorteAngular", value)}
+                                              placeholder="-- Seleccione --"
+                                              options={[
+                                                { value: "Derecho", label: "Derecho" },
+                                                { value: "Izquierdo", label: "Izquierdo" },
+                                              ]}
+                                            />
+                                          )}
                                           <AccessoryCheckbox field="hasRoundedCorners" label="Esquinas Redondas" />
                                           {form.hasRoundedCorners === "Sí" && (
                                             <FormSelect label="Tipo de Esquinas Redondas" value={form.roundedCornersType} onChange={(value) => updateField("roundedCornersType", value)} placeholder="-- Seleccione --" options={roundedCornersOpt} />
@@ -6814,24 +6763,24 @@ if (!project) {
                                             <div className="space-y-3">
                                               {shouldShowPouchPerforationType && (
                                                 <FormSelect
-                                                  label="Tipo Perforación Pouch"
+                                                  label="Tipo de Perforación Pouch *"
                                                   value={form.pouchPerforationType}
                                                   onChange={(value) => updateField("pouchPerforationType", value)}
                                                   onBlur={() => markFieldAsTouched("pouchPerforationType")}
                                                   error={getError("pouchPerforationType")}
                                                   placeholder="-- Seleccione --"
-                                                  options={pouchPerforationOpt}
+                                                  options={pouchPerforationOptionsConditional}
                                                 />
                                               )}
                                               {shouldShowBolsaPerforationType && (
                                                 <FormSelect
-                                                  label="Tipo Perforación Bolsa"
+                                                  label="Tipo de Perforación *"
                                                   value={form.bagPerforationType}
                                                   onChange={(value) => updateField("bagPerforationType", value)}
                                                   onBlur={() => markFieldAsTouched("bagPerforationType")}
                                                   error={getError("bagPerforationType")}
                                                   placeholder="-- Seleccione --"
-                                                  options={bagPerforationOpt}
+                                                  options={bagPerforationOptionsConditional}
                                                 />
                                               )}
                                               {isPouchWrapping(inheritedWrapping) && (
@@ -6913,7 +6862,7 @@ if (!project) {
                                     )}
 
                                     <FormSelect
-                                      label="Otros accesorios"
+                                      label="Accesorios internos - Otros"
                                       value={form.otherAccessories}
                                       onChange={(value) => updateField("otherAccessories", value)}
                                       placeholder="-- Seleccione --"
@@ -7557,18 +7506,13 @@ if (!project) {
                           label="Tipo de Estructura *"
                           value={form.structureType}
                           onChange={(value) => {
-                            const isChangingValue = form.structureType && form.structureType !== value;
-                            updateField("structureType", value);
-                            markFieldAsTouched("structureType");
-                            if (isChangingValue) {
-                              setShowStructureEditModal(true);
-                            }
+                            // Campo no editable - cambios solo por modal de materiales
                           }}
                           onBlur={() => markFieldAsTouched("structureType")}
                           error={getError("structureType")}
                           placeholder="-- Seleccione --"
                           options={STRUCTURE_TYPE_OPTIONS}
-                          disabled={!canEditStructure}
+                          disabled={true}
                         />
                       )}
                     </div>
@@ -7683,6 +7627,7 @@ if (!project) {
                             hasInkProtectionVarnish={form.hasInkProtectionVarnish === "Sí"}
                             grammage=""
                             grammageTolerance={form.grammageTolerance}
+                            onEditMaterials={() => setShowMaterialsEditModal(true)}
                           />
                         </>
                       )}
@@ -7709,6 +7654,7 @@ if (!project) {
                             hasInkProtectionVarnish={form.hasInkProtectionVarnish === "Sí"}
                             grammage=""
                             grammageTolerance={form.grammageTolerance}
+                            onEditMaterials={() => setShowMaterialsEditModal(true)}
                           />
                         </>
                       )}
@@ -7734,6 +7680,7 @@ if (!project) {
                             structureType={form.structureType}
                             hasMatteFinishVarnish={form.hasMatteFinishVarnish === "Sí"}
                             hasInkProtectionVarnish={form.hasInkProtectionVarnish === "Sí"}
+                            onEditMaterials={() => setShowMaterialsEditModal(true)}
                           />
                         </>
                       )}
@@ -8184,7 +8131,7 @@ if (!project) {
               </p>
               <div className="bg-slate-50 rounded p-3 space-y-1 text-sm">
                 <p><span className="font-semibold">Producto:</span> {projectCode}</p>
-                <p><span className="font-semibold">Estado:</span> Completado</p>
+                <p><span className="font-semibold">Estado:</span> Ficha Completa</p>
               </div>
             </div>
             <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex gap-3">
@@ -8212,6 +8159,59 @@ if (!project) {
           initialPortfolioCode={selectedPortfolio?.codigo || selectedPortfolio?.code || ""}
         />
       )}
+
+      {/* MATERIALS EDIT MODAL */}
+      <MaterialsEditModal
+        isOpen={showMaterialsEditModal}
+        onClose={() => setShowMaterialsEditModal(false)}
+        onSave={(data) => {
+          // Actualizar estructura y capas
+          const updatedLayers: Record<string, string> = {};
+
+          // Actualizar capas con nuevos valores
+          const maxLayers = 4;
+          for (let i = 0; i < maxLayers; i++) {
+            const layer = data.layers[i];
+            const materialField = `layer${i + 1}Material`;
+            const micronField = `layer${i + 1}Micron`;
+            const grammageField = `layer${i + 1}Grammage`;
+
+            if (layer) {
+              updatedLayers[materialField] = layer.material;
+              updatedLayers[micronField] = layer.micron;
+              updatedLayers[grammageField] = layer.grammage;
+            } else {
+              // Limpiar capas no usadas
+              updatedLayers[materialField] = "";
+              updatedLayers[micronField] = "";
+              updatedLayers[grammageField] = "";
+            }
+          }
+
+          // Actualizar form state de una sola vez
+          setForm((prevForm) => ({
+            ...prevForm,
+            structureType: data.structureType,
+            ...updatedLayers,
+          }));
+
+          // Cerrar modal
+          setShowMaterialsEditModal(false);
+        }}
+        currentStructureType={form.structureType}
+        currentLayers={[
+          { material: form.layer1Material, micron: form.layer1Micron, grammage: form.layer1Grammage },
+          { material: form.layer2Material, micron: form.layer2Micron, grammage: form.layer2Grammage },
+          { material: form.layer3Material, micron: form.layer3Micron, grammage: form.layer3Grammage },
+          { material: form.layer4Material, micron: form.layer4Micron, grammage: form.layer4Grammage },
+        ]}
+        currentPrintClass={form.printClass}
+        currentHasMatteFinishVarnish={form.hasMatteFinishVarnish === "Sí"}
+        currentHasInkProtectionVarnish={form.hasInkProtectionVarnish === "Sí"}
+        disabled={!canEditStructure}
+        inherited={inheritedFields.has("structureType")}
+        allowStructureChange={false}
+      />
 
       {/* ========== CANCEL CONFIRMATION MODAL ========== */}
       {showCancelConfirmModal && (

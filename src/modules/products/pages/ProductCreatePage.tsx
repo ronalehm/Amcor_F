@@ -87,7 +87,7 @@ type ProjectFormData = {
   length: string;
   repetition: string;
   doyPackBase: string;
-  gussetWidth: string;
+  anchoFuelle: string;
   gussetType: string;
 
   hasZipper: string;
@@ -527,7 +527,7 @@ const initialForm = (portfolioCode: string): ProjectFormData => ({
   length: "",
   repetition: "",
   doyPackBase: "",
-  gussetWidth: "",
+  anchoFuelle: "",
   gussetType: "",
 
   hasZipper: "",
@@ -582,7 +582,7 @@ const STEPS = [
 const STEP_FIELDS: Record<number, Array<keyof ProjectFormData>> = {
   0: ["salesforceAction", "projectName", "projectDescription", "executiveId", "portfolioCode"],
   1: ["blueprintFormat", "technicalApplication", "estimatedVolume", "unitOfMeasure"],
-  2: ["length", "repetition", "gussetWidth"],
+  2: ["length", "repetition", "anchoFuelle"],
   3: [],
   4: [],
 };
@@ -700,7 +700,7 @@ export default function ProductCreatePage() {
           length: original.length || "",
           repetition: original.repetition || "",
           doyPackBase: original.doyPackBase || "",
-          gussetWidth: original.gussetWidth || "",
+          anchoFuelle: original.anchoFuelle || "",
           gussetType: original.gussetType || "",
           hasZipper: original.hasZipper === true ? "Sí" : original.hasZipper === false ? "No" : (original.hasZipper || "No"),
           zipperType: original.zipperType || "",
@@ -903,7 +903,7 @@ export default function ProductCreatePage() {
     if (shouldValidateDimensions) {
       const lengthNum = Number(form.length);
       const repetitionNum = Number(form.repetition);
-      const gussetWidthNum = Number(form.gussetWidth);
+      const anchoFuelleNum = Number(form.anchoFuelle);
 
       if (form.length && (!isNaN(lengthNum))) {
         if (lengthNum < DIMENSION_MIN_MM) {
@@ -921,11 +921,11 @@ export default function ProductCreatePage() {
         }
       }
 
-      if (form.gussetWidth && (!isNaN(gussetWidthNum))) {
-        if (gussetWidthNum < DIMENSION_MIN_MM) {
-          errors.gussetWidth = "El ancho fuelle mínimo es 38 mm.";
-        } else if (gussetWidthNum > DIMENSION_MAX_MM) {
-          errors.gussetWidth = "El ancho fuelle máximo es 2390 mm.";
+      if (form.anchoFuelle && (!isNaN(anchoFuelleNum))) {
+        if (anchoFuelleNum < DIMENSION_MIN_MM) {
+          errors.anchoFuelle = "El ancho fuelle mínimo es 38 mm.";
+        } else if (anchoFuelleNum > DIMENSION_MAX_MM) {
+          errors.anchoFuelle = "El ancho fuelle máximo es 2390 mm.";
         }
       }
     }
@@ -1144,9 +1144,9 @@ export default function ProductCreatePage() {
       length: form.length,
       repetition: form.repetition,
       doyPackBase: form.doyPackBase,
-      gussetWidth: form.gussetWidth,
+      anchoFuelle: form.anchoFuelle,
       gussetType: form.gussetType,
-      dimensions: [form.width, form.length, form.gussetWidth]
+      dimensions: [form.width, form.length, form.anchoFuelle]
         .filter(Boolean)
         .join(" x "),
 
@@ -1692,10 +1692,10 @@ export default function ProductCreatePage() {
                       )}
                       <FormInput
                         label="Ancho Fuelle"
-                        value={form.gussetWidth}
-                        onChange={(value) => updateField("gussetWidth", value)}
-                        onBlur={() => markFieldAsTouched("gussetWidth")}
-                        error={getError("gussetWidth")}
+                        value={form.anchoFuelle}
+                        onChange={(value) => updateField("anchoFuelle", value)}
+                        onBlur={() => markFieldAsTouched("anchoFuelle")}
+                        error={getError("anchoFuelle")}
                         placeholder="mm"
                       />
                     </>

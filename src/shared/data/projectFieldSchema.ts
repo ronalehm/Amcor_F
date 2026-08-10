@@ -813,7 +813,7 @@ export const PROJECT_FIELD_SCHEMA: ProjectFieldSchema[] = [
     backendField: "TbProyBDoy",
   },
   {
-    key: "gussetWidth",
+    key: "anchoFuelle",
     label: "Ancho de Fuelle (mm)",
     section: "Dimensiones y Accesorios",
     required: false,

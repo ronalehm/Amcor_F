@@ -25,6 +25,7 @@ interface PouchBolsaStructureTableProps {
   structureType: string;
   hasMatteFinishVarnish: boolean;
   hasInkProtectionVarnish: boolean;
+  onEditMaterials?: () => void;
 }
 
 export default function PouchBolsaStructureTable({
@@ -45,6 +46,7 @@ export default function PouchBolsaStructureTable({
   structureType,
   hasMatteFinishVarnish,
   hasInkProtectionVarnish,
+  onEditMaterials,
 }: PouchBolsaStructureTableProps) {
   const rows = useMemo(() => {
     return buildStructureCompositionRows({
@@ -121,7 +123,29 @@ export default function PouchBolsaStructureTable({
   return (
     <div className="space-y-4">
       {/* Structure table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <div className="relative overflow-x-auto rounded-lg border border-slate-200">
+        {onEditMaterials && (
+          <button
+            type="button"
+            onClick={onEditMaterials}
+            className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500 hover:bg-blue-600 text-white shadow-md transition-colors"
+            title="Editar materiales"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+          </button>
+        )}
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-900 text-white">

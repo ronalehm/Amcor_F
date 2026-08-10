@@ -57,7 +57,7 @@ export const exportProductsToExcel = (projectCode: string): void => {
     "Estructura": p.structure || project.structureType || "",
     "Ancho": p.width ?? project.width ?? "",
     "Largo": p.length ?? project.length ?? "",
-    "Fuelle": p.gusset ?? project.gussetWidth ?? "",
+    "Fuelle": p.gusset ?? project.anchoFuelle ?? "",
     "Espesor": p.micron ?? "",
     "Gramaje": p.grammage ?? project.grammage ?? "",
     "Volumen Estimado": p.estimatedVolume ?? project.estimatedVolume ?? "",

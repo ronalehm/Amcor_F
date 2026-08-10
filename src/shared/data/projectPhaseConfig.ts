@@ -120,7 +120,7 @@ const P3_FIELDS: PhaseField[] = [
   { name: "length", label: "Largo", section: "6", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
   { name: "repetition", label: "Repetición", section: "6", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
   { name: "doyPackBase", label: "Base Doy Pack", section: "6", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
-  { name: "gussetWidth", label: "Ancho Fuelle", section: "6", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
+  { name: "anchoFuelle", label: "Ancho Fuelle", section: "6", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
   { name: "hasZipper", label: "Zipper", section: "6", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
   { name: "zipperType", label: "Tipo de Zipper", section: "6", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },
   { name: "hasTinTie", label: "Tin-Tie", section: "6", required: false, editableByRoles: ["RyD"], visibleInPhases: ["P3", "P4", "P5", "P6"] },

@@ -202,21 +202,21 @@ export type ProjectRecord = {
   portafolioEstandar?: string;
 
   // Lógica de Formato de Plano para BOLSA
-  tipoPresentacionBolsa?: string;
+  tipoFormatoBolsa?: string;
   tipoSelloBolsa?: string;
   acabadoBolsa?: string;
   tieneFuelleBolsa?: string;
   tipoFuelleBolsa?: string;
 
   // Lógica de Formato de Plano para POUCH
-  tipoFamiliaPouch?: string;
+  tipoFormatoPouch?: string;
   tipoStandUpPouch?: string;
   formaDoyPackPouch?: string;
   tipoFuelleStandUpPouch?: string;
   cantidadSellosPouchPlano?: string;
   tieneFuelleSelloCentralPouch?: string;
   materialSelloCentralPouch?: string;
-  tipoSelloEnFuellePouch?: string;
+  tipoSelloFuellePouch?: string;
 
   // Lógica de Formato de Plano para LÁMINA
   tipoFormatoLamina?: string;
@@ -348,7 +348,7 @@ export type ProjectRecord = {
   length?: string;
   repetition?: string;
   doyPackBase?: string;
-  gussetWidth?: string;
+  anchoFuelle?: string;
   gussetType?: string;
 
   hasZipper?: BooleanLike;
@@ -360,6 +360,8 @@ export type ProjectRecord = {
   valveType?: string;
 
   hasDieCutHandle?: BooleanLike;
+  handleType?: string;
+  handleColor?: string;
 
   hasReinforcement?: BooleanLike;
   reinforcementThickness?: string;
@@ -595,10 +597,10 @@ function normalizeProjectRecord(record: ProjectRecord): ProjectRecord {
 
   const width = record.width || "";
   const length = record.length || "";
-  const gussetWidth = record.gussetWidth || "";
+  const anchoFuelle = record.anchoFuelle || "";
   const dimensions =
     record.dimensions ||
-    [width, length, gussetWidth].filter(Boolean).join(" x ");
+    [width, length, anchoFuelle].filter(Boolean).join(" x ");
 
   const microns =
     record.microns ||
@@ -784,7 +786,7 @@ const INITIAL_PROJECTS: ProjectRecord[] = [
 
     width: "100",
     length: "150",
-    gussetWidth: "30",
+    anchoFuelle: "30",
     dimensions: "100 x 150 x 30",
 
     hasZipper: "No",
@@ -1088,6 +1090,15 @@ export function updateProjectRecord(
     );
 
     persistProjects(updated);
+  }
+
+  // Dispatch custom event for same-tab synchronization
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("projectUpdated", {
+        detail: { projectCode: code, newStatus: normalized.status },
+      })
+    );
   }
 
   if (
@@ -1417,7 +1428,7 @@ export function createProjectFromPortfolio(params: {
     unitOfMeasure: params.initialData.unidad || "",
     width: params.initialData.ancho || "",
     length: params.initialData.largo || "",
-    gussetWidth: params.initialData.anchoFuelle || "",
+    anchoFuelle: params.initialData.anchoFuelle || "",
 
     status: "Registrado",
     stage: "P1_FICHA_PROYECTO",

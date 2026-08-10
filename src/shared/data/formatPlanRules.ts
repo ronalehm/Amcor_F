@@ -20,21 +20,21 @@ export function isPouchWrapping(envoltura?: string): boolean {
 }
 
 export interface BolsaParams {
-  tipoPresentacionBolsa?: string;
+  tipoFormatoBolsa?: string;
   tipoSelloBolsa?: string;
   acabadoBolsa?: string;
   tieneFuelleBolsa?: string;
 }
 
 export interface PouchParams {
-  tipoFamiliaPouch?: string;
+  tipoFormatoPouch?: string;
   tipoStandUpPouch?: string;
   formaDoyPackPouch?: string;
   tipoFuelleStandUpPouch?: string;
   cantidadSellosPouchPlano?: string;
   tieneFuelleSelloCentralPouch?: string;
   materialSelloCentralPouch?: string;
-  tipoSelloEnFuellePouch?: string;
+  tipoSelloFuellePouch?: string;
 }
 
 export function isGuidedFormatEnabled(envoltura?: string): boolean {
@@ -66,19 +66,27 @@ export function calculateFormatPlanByWrapping(params: any): string {
 
 export function calculateBolsaFormatPlan(params: BolsaParams): string {
   const {
-    tipoPresentacionBolsa,
+    tipoFormatoBolsa,
     tipoSelloBolsa,
     acabadoBolsa,
     tieneFuelleBolsa,
   } = params;
 
-  if (!tipoPresentacionBolsa) return "";
+  if (!tipoFormatoBolsa) return "";
 
-  if (tipoPresentacionBolsa === "Wicket") return "WICKET";
-  if (tipoPresentacionBolsa === "Hojas") return "HOJAS";
+  // Wicket y Hojas resuelven inmediatamente
+  if (tipoFormatoBolsa === "Wicket") return "WICKET";
+  if (tipoFormatoBolsa === "Hojas") return "HOJAS";
 
-  if (tipoPresentacionBolsa === "Bolsa sellada") {
+  // Para Bolsa, requiere combinación completa
+  if (tipoFormatoBolsa === "Bolsa") {
+    // Validar que tieneFuelleBolsa esté definido
+    if (!tieneFuelleBolsa) return "";
+
     if (tipoSelloBolsa === "Sello lateral") {
+      // Requiere acabadoBolsa (Corte o Pestaña)
+      if (!acabadoBolsa) return "";
+
       if (acabadoBolsa === "Corte") {
         if (tieneFuelleBolsa === "Sí") return "SELLO LATERAL\\CORTE\\CON FUELLE FONDO";
         if (tieneFuelleBolsa === "No") return "SELLO LATERAL\\CORTE\\SIN FUELLE FONDO";
@@ -87,6 +95,7 @@ export function calculateBolsaFormatPlan(params: BolsaParams): string {
         if (tieneFuelleBolsa === "No") return "SELLO LATERAL\\PESTAÑA\\SIN FUELLE FONDO";
       }
     } else if (tipoSelloBolsa === "Sello de fondo") {
+      // No requiere acabadoBolsa, solo tieneFuelleBolsa
       if (tieneFuelleBolsa === "Sí") return "SELLO DE FONDO\\CON FUELLE LATERAL";
       if (tieneFuelleBolsa === "No") return "SELLO DE FONDO\\SIN FUELLE LATERAL";
     }
@@ -106,18 +115,18 @@ export function calculateLaminaFormatPlan(params: any): string {
 }
 
 export function calculatePouchFormatPlan(params: PouchParams): string {
-  const familia = String(params.tipoFamiliaPouch || "").trim();
+  const familia = String(params.tipoFormatoPouch || "").trim();
   const standUp = String(params.tipoStandUpPouch || "").trim();
   const formaDoyPack = String(params.formaDoyPackPouch || "").trim();
   const fuelleStandUp = String(params.tipoFuelleStandUpPouch || "").trim();
   const sellosPlano = String(params.cantidadSellosPouchPlano || "").trim();
   const tieneFuelleCentral = String(params.tieneFuelleSelloCentralPouch || "").trim();
   const materialCentral = String(params.materialSelloCentralPouch || "").trim();
-  const tipoSelloEnFuelle = String(params.tipoSelloEnFuellePouch || "").trim();
+  const tipoSelloEnFuelle = String(params.tipoSelloFuellePouch || "").trim();
 
-  if (familia === "Pouch Stand Up") {
-    if (standUp === "Tipo K") {
-      return "POUCH STAND UP\\TIPO K\\FUELLE PROPIO";
+  if (familia === "Stand Up Pouch") {
+    if (standUp === "Sello K") {
+      return "POUCH STAND UP\\SELLO K\\FUELLE PROPIO";
     }
 
     if (standUp === "Normal") {
@@ -191,12 +200,12 @@ export function validatePouchFormatPlan(params: PouchParams & { envoltura?: stri
 
   if (!isPouchWrapping(params.envoltura)) return errors;
 
-  if (!params.tipoFamiliaPouch) {
-    errors.tipoFamiliaPouch = "Selecciona la familia de pouch.";
+  if (!params.tipoFormatoPouch) {
+    errors.tipoFormatoPouch = "Selecciona la familia de pouch.";
     return errors;
   }
 
-  if (params.tipoFamiliaPouch === "Pouch Stand Up") {
+  if (params.tipoFormatoPouch === "Stand Up Pouch") {
     if (!params.tipoStandUpPouch) {
       errors.tipoStandUpPouch = "Selecciona el tipo de Stand Up.";
     }
@@ -212,13 +221,13 @@ export function validatePouchFormatPlan(params: PouchParams & { envoltura?: stri
     }
   }
 
-  if (params.tipoFamiliaPouch === "Pouch Plano") {
+  if (params.tipoFormatoPouch === "Pouch Plano") {
     if (!params.cantidadSellosPouchPlano) {
       errors.cantidadSellosPouchPlano = "Selecciona la cantidad de sellos.";
     }
   }
 
-  if (params.tipoFamiliaPouch === "Pouch con Sello Central") {
+  if (params.tipoFormatoPouch === "Pouch con Sello Central") {
     if (!params.tieneFuelleSelloCentralPouch) {
       errors.tieneFuelleSelloCentralPouch = "Indica si tendrá fuelle.";
     }
@@ -228,9 +237,9 @@ export function validatePouchFormatPlan(params: PouchParams & { envoltura?: stri
     }
   }
 
-  if (params.tipoFamiliaPouch === "Pouch con Sello en Fuelle") {
-    if (!params.tipoSelloEnFuellePouch) {
-      errors.tipoSelloEnFuellePouch = "Selecciona el tipo de sello en fuelle.";
+  if (params.tipoFormatoPouch === "Pouch con Sello en Fuelle") {
+    if (!params.tipoSelloFuellePouch) {
+      errors.tipoSelloFuellePouch = "Selecciona el tipo de sello en fuelle.";
     }
   }
 

@@ -7,6 +7,7 @@ import {
   createProjectFromPortfolio,
   type ProjectRecord,
 } from "./projectStorage";
+import { normalizeProjectStatus } from "./projectWorkflow";
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -102,11 +103,7 @@ describe("Project Storage Status Update Bug - QA Test", () => {
 
     // Assert: Status should be "Ficha Completa"
     expect(retrievedProject).toBeDefined();
-    expect(retrievedProject?.status).toBe(
-      "Ficha Completa",
-      "Status should be 'Ficha Completa' after update, got: " +
-        retrievedProject?.status
-    );
+    expect(retrievedProject?.status).toBe("Ficha Completa");
   });
 
   it("DEFENSIVE TEST: Should handle legacy 'Completado' status gracefully", () => {
@@ -156,11 +153,7 @@ describe("Project Storage Status Update Bug - QA Test", () => {
     // Assert: Should be normalized to "Ficha Completa"
     const retrieved = getProjectByCode(projectCode);
     expect(retrieved).toBeDefined();
-    expect(retrieved?.status).toBe(
-      "Ficha Completa",
-      "Legacy 'Completado' should normalize to 'Ficha Completa', got: " +
-        retrieved?.status
-    );
+    expect(retrieved?.status).toBe("Ficha Completa");
   });
 
   it("PASSING TEST: getProjectByCode() should return updated 'Ficha Completa' status", () => {
@@ -208,16 +201,10 @@ describe("Project Storage Status Update Bug - QA Test", () => {
     // Assert: getProjectByCode should return updated status
     const retrieved = getProjectByCode(projectCode);
     expect(retrieved).toBeDefined();
-    expect(retrieved?.status).toBe(
-      "Ficha Completa",
-      "getProjectByCode() should return status: Ficha Completa"
-    );
+    expect(retrieved?.status).toBe("Ficha Completa");
   });
 
   it("VALIDATION: Test normalization functions directly", () => {
-    // Import and test the normalize functions
-    const { normalizeProjectStatus } = require("./projectWorkflow");
-
     // This should handle "Completado" gracefully
     const result = normalizeProjectStatus("Completado");
     console.log("normalizeProjectStatus('Completado') returns:", result);

@@ -487,7 +487,7 @@ export const PRODUCT_CATALOGS = {
     label: "Familia de Pouch",
     code: "FPC",
     values: [
-      "Pouch Stand Up",
+      "Stand Up Pouch",
       "Pouch Plano",
       "Pouch con Sello Central",
       "Pouch con Sello en Fuelle",
@@ -496,7 +496,7 @@ export const PRODUCT_CATALOGS = {
   tipoDeStandUp: {
     label: "Tipo de Stand Up",
     code: "TSU",
-    values: ["Tipo K", "Normal", "Doy Pack"],
+    values: ["Sello K", "Normal", "Doy Pack"],
   },
   fuellePlano: {
     label: "Fuelle plano",
@@ -518,7 +518,7 @@ export const PRODUCT_CATALOGS = {
     code: "MSC",
     values: ["PE-PE/PE", "Otro material"],
   },
-  tipoDeSelloEnFuelle: {
+  tipoSelloBolsaEnFuelle: {
     label: "Tipo de sello en fuelle",
     code: "TSF",
     values: ["Tipo 4-1", "Tipo 1-1"],
@@ -528,7 +528,7 @@ export const PRODUCT_CATALOGS = {
     code: "TPR",
     values: ["Bolsa Sellada", "Wicket", "Hojas"],
   },
-  tipoDeSello: {
+  tipoSelloBolsa: {
     label: "Tipo de sello",
     code: "TSO",
     values: ["Sello lateral", "Sello de fondo"],
@@ -538,12 +538,12 @@ export const PRODUCT_CATALOGS = {
     code: "ACB",
     values: ["Pestaña", "Corte"],
   },
-  tipoDeFuelle: {
+  tipoFuelleBolsa: {
     label: "Tipo de Fuelle",
     code: "TFU",
     values: ["Fondo", "Lateral"],
   },
-  tipoDeLamina: {
+  tipoFormatoLamina: {
     label: "Tipo de Lámina",
     code: "LAM",
     values: ["Genérica", "Tissue", "Food"],
@@ -1443,17 +1443,17 @@ export const PRODUCT_FIELD_CATALOG_MAP: Record<
   "P2:Sentido de embobinado": "sentidoDeEmbobinado",
   "P2:Separación de púas": "separacionDePuas",
   "P1:Envasado / Máquina de cliente": "tipoDeEnvasadoMaquinaDeCliente",
-  "P2:Tipo de Fuelle": "tipoDeFuelle",
+  "P2:Tipo de Fuelle": "tipoFuelleBolsa",
   "P2:Tipo de Impresión": "tipoDeImpresion",
-  "P2:Tipo de Lámina": "tipoDeLamina",
+  "P2:Tipo de Lámina": "tipoFormatoLamina",
   "P2:Tipo de Perforación Bolsa": "tipoDePerforacionBolsa",
   "P2:Tipo de Perforación Fuelle Bolsa Wicket": "tipoDePerforacionBolsaWicket",
   "P2:Tipo de Perforación Pouch": "tipoDePerforacionPouch",
   "P2:Tipo de Perforación Pouch Sello Central Aleta con Fuelle": "tipoDePerforacionPouchSelloCentralAletaConFuelle",
   "P2:Tipo de Presentación": "tipoDePresentacion",
   "P2:Tipo de Stand Up": "tipoDeStandUp",
-  "P2:Tipo de Sello": "tipoDeSello",
-  "P2:Tipo de Sello en Fuelle": "tipoDeSelloEnFuelle",
+  "P2:Tipo de Sello": "tipoSelloBolsa",
+  "P2:Tipo de Sello en Fuelle": "tipoSelloBolsaEnFuelle",
   "P2:Tolerancia de Repetición exacta de DoyPack": "toleranciaRepeticionExactaDoypack",
   "P2:Ubicación de wicket de control": "ubicacionWicketDeControl",
   "P2:Ubicación de fotocélula": "ubicacionDeFotocelula",

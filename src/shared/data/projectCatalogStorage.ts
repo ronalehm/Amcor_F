@@ -208,19 +208,42 @@ export const ROUNDED_CORNERS_TYPE_CATALOG: CatalogItem[] = [
 
 // 11. Tipo de Perforación Pouch
 export const POUCH_PERFORATION_TYPE_CATALOG: CatalogItem[] = [
-  { id: "1", code: "PP-001", name: "Lineal Horizontal", description: "Perforación lineal horizontal", isActive: true },
-  { id: "2", code: "PP-002", name: "Lineal Vertical", description: "Perforación lineal vertical", isActive: true },
-  { id: "3", code: "PP-003", name: "Punteado", description: "Perforación punteada", isActive: true },
-  { id: "4", code: "PP-004", name: "Microperforación", description: "Microperforación para gas", isActive: true },
+  { id: "1", code: "PP-001", name: "Circular D 4 mm", description: "Perforación circular diámetro 4 mm", isActive: true },
+  { id: "2", code: "PP-002", name: "Circular D 6 mm", description: "Perforación circular diámetro 6 mm", isActive: true },
+  { id: "3", code: "PP-003", name: "Circular D 8 mm", description: "Perforación circular diámetro 8 mm", isActive: true },
+  { id: "4", code: "PP-004", name: "Circular 10 mm", description: "Perforación circular diámetro 10 mm", isActive: true },
+];
+
+// 11.5 Tipo de Perforación Ojal (para Pouch con Sello Central Aleta con Fuelle)
+export const EYELET_PERFORATION_TYPE_CATALOG: CatalogItem[] = [
+  { id: "1", code: "EP-001", name: "Ojal 50x15 mm", description: "Perforación ojal 50x15 mm", isActive: true },
+  { id: "2", code: "EP-002", name: "Ojal 70x20 mm", description: "Perforación ojal 70x20 mm", isActive: true },
+  { id: "3", code: "EP-003", name: "Ojal 78x20 mm", description: "Perforación ojal 78x20 mm", isActive: true },
+  { id: "4", code: "EP-004", name: "Circular 4 mm", description: "Perforación circular diámetro 4 mm", isActive: true },
+  { id: "5", code: "EP-005", name: "Circular 6 mm", description: "Perforación circular diámetro 6 mm", isActive: true },
+  { id: "6", code: "EP-006", name: "Circular 8 mm", description: "Perforación circular diámetro 8 mm", isActive: true },
+  { id: "7", code: "EP-007", name: "Circular 10 mm", description: "Perforación circular diámetro 10 mm", isActive: true },
 ];
 
 // 12. Tipo de Perforación Bolsa
 export const BAG_PERFORATION_TYPE_CATALOG: CatalogItem[] = [
-  { id: "1", code: "BP-001", name: "Euroslot", description: "Ranura euro", isActive: true },
-  { id: "2", code: "BP-002", name: "Sombrero", description: "Perforación tipo sombrero", isActive: true },
-  { id: "3", code: "BP-003", name: "Doble Sombrero", description: "Doble perforación sombrero", isActive: true },
-  { id: "4", code: "BP-004", name: "En O", description: "Perforación circular", isActive: true },
-  { id: "5", code: "BP-005", name: "En Delta", description: "Perforación triangular", isActive: true },
+  { id: "1", code: "BP-001", name: "Cruz 5 mm", description: "Perforación cruz 5 mm", isActive: true },
+  { id: "2", code: "BP-002", name: "Cruz 7 mm", description: "Perforación cruz 7 mm", isActive: true },
+  { id: "3", code: "BP-003", name: "Media Luna D 5 mm", description: "Perforación media luna 5 mm", isActive: true },
+];
+
+// 12.5 Tipo de Perforación Wicket
+export const WICKET_PERFORATION_TYPE_CATALOG: CatalogItem[] = [
+  { id: "1", code: "WP-001", name: "TBW", description: "Perforación TBW", isActive: true },
+  { id: "2", code: "WP-002", name: "Ojal 50x15 mm", description: "Perforación ojal 50x15 mm", isActive: true },
+  { id: "3", code: "WP-003", name: "Ojal 70x20 mm", description: "Perforación ojal 70x20 mm", isActive: true },
+  { id: "4", code: "WP-004", name: "Ojal 78x20 mm", description: "Perforación ojal 78x20 mm", isActive: true },
+  { id: "5", code: "WP-005", name: "Europunch 32x10 mm", description: "Perforación europunch 32x10 mm", isActive: true },
+  { id: "6", code: "WP-006", name: "Europunch 38x10 mm", description: "Perforación europunch 38x10 mm", isActive: true },
+  { id: "7", code: "WP-007", name: "Circular 4 mm", description: "Perforación circular 4 mm", isActive: true },
+  { id: "8", code: "WP-008", name: "Circular 6 mm", description: "Perforación circular 6 mm", isActive: true },
+  { id: "9", code: "WP-009", name: "Circular 8 mm", description: "Perforación circular 8 mm", isActive: true },
+  { id: "10", code: "WP-010", name: "Circular 10 mm", description: "Perforación circular 10 mm", isActive: true },
 ];
 
 // 13. Tipo de Pre-Corte

@@ -113,7 +113,7 @@ export const PROJECT_FIELD_IMPACT_BY_AREA: Record<WorkArea, AreaImpactConfig> = 
       { fieldKey: "length", label: "Largo (mm)", impactLevel: "alta", editable: true, required: true },
       { fieldKey: "repetition", label: "Repetición (mm)", impactLevel: "media", editable: true, required: false },
       { fieldKey: "doyPackBase", label: "Base Doy Pack (mm)", impactLevel: "media", editable: true, required: false },
-      { fieldKey: "gussetWidth", label: "Ancho de Fuelle (mm)", impactLevel: "media", editable: true, required: false },
+      { fieldKey: "anchoFuelle", label: "Ancho de Fuelle (mm)", impactLevel: "media", editable: true, required: false },
       // Accesorios
       { fieldKey: "hasZipper", label: "¿Tiene Zipper?", impactLevel: "media", editable: true, required: false },
       { fieldKey: "zipperType", label: "Tipo de Zipper", impactLevel: "media", editable: true, required: false },
@@ -273,7 +273,7 @@ export const FIELD_TO_STAGE_RELEVANCE: Record<string, string[]> = {
   "length": ["P2", "P3"],
   "repetition": ["P3"],
   "doyPackBase": ["P3"],
-  "gussetWidth": ["P3"],
+  "anchoFuelle": ["P3"],
   "hasZipper": ["P3"],
   "zipperType": ["P3"],
   "hasTinTie": ["P3"],

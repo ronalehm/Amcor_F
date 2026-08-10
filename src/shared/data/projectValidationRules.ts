@@ -72,7 +72,7 @@ export const STAGE_VALIDATION_RULES: Record<string, ValidationRule[]> = {
       max: 2000,
     },
     {
-      fieldKey: "gussetWidth",
+      fieldKey: "anchoFuelle",
       rule: "range",
       message: "El fuelle debe estar entre 5mm y 150mm",
       min: 5,
@@ -299,7 +299,7 @@ export function validateProjectByStage(
     if (constraints) {
       const width = data.width ? Number(data.width) : undefined;
       const length = data.length ? Number(data.length) : undefined;
-      const gusset = data.gussetWidth ? Number(data.gussetWidth) : undefined;
+      const gusset = data.anchoFuelle ? Number(data.anchoFuelle) : undefined;
       
       if (width !== undefined) {
         if (width < constraints.minWidth || width > constraints.maxWidth) {
@@ -315,7 +315,7 @@ export function validateProjectByStage(
       
       if (gusset !== undefined && constraints.minGusset !== undefined && constraints.maxGusset !== undefined) {
         if (gusset > 0 && (gusset < constraints.minGusset || gusset > constraints.maxGusset)) {
-          errors["gussetWidth"] = `Fuelle debe estar entre ${constraints.minGusset}mm y ${constraints.maxGusset}mm para este formato`;
+          errors["anchoFuelle"] = `Fuelle debe estar entre ${constraints.minGusset}mm y ${constraints.maxGusset}mm para este formato`;
         }
       }
     }

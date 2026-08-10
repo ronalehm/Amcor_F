@@ -97,6 +97,32 @@ export default function ProductDetailPage() {
     fetchProjectData();
   }, [projectCode, refreshTrigger]);
 
+  // Escuchar cambios en localStorage para refrescar cuando se guarda el proyecto
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (projectCode && e.key === "odiseo_recent_new_validation") {
+        // Forzar refresh del proyecto
+        setRefreshTrigger((prev) => prev + 1);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [projectCode]);
+
+  // Escuchar custom event para actualizaciones en la misma pestaña
+  useEffect(() => {
+    const handleProjectUpdated = (event: any) => {
+      if (projectCode && event.detail?.projectCode === projectCode) {
+        console.log("ProductDetailPage: Project updated event received:", event.detail);
+        setRefreshTrigger((prev) => prev + 1);
+      }
+    };
+
+    window.addEventListener("projectUpdated", handleProjectUpdated);
+    return () => window.removeEventListener("projectUpdated", handleProjectUpdated);
+  }, [projectCode]);
+
   useEffect(() => {
     if (projectCode && project) {
       setHeader({
@@ -302,7 +328,7 @@ export default function ProductDetailPage() {
               <PreviewRow label="Largo" value={project.length} />
               <PreviewRow label="Repetición" value={project.repetition} />
               <PreviewRow label="Base Doy Pack" value={project.doyPackBase} />
-              <PreviewRow label="Ancho de Fuelle" value={project.gussetWidth} />
+              <PreviewRow label="Ancho de Fuelle" value={project.anchoFuelle} />
               
               <div className="md:col-span-2 border-t border-slate-100 pt-4 mt-2">
                 <h4 className="font-semibold text-slate-700 mb-3">Accesorios</h4>

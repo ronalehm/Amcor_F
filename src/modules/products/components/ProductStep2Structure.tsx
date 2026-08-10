@@ -18,6 +18,13 @@ type StepProps = {
   inheritedWrapping: string;
 };
 
+function calculateAnchoTotal(ancho: string, fuelleCerrado: string): string {
+  const anchoNum = parseFloat(ancho) || 0;
+  const fuelleNum = parseFloat(fuelleCerrado) || 0;
+  const total = anchoNum + (2 * fuelleNum);
+  return isNaN(total) || total === 0 ? "" : total.toFixed(2);
+}
+
 export default function ProductStep2Structure({
   form,
   updateField,
@@ -177,8 +184,8 @@ export default function ProductStep2Structure({
                 />
                 <FormInput
                   label="Ancho Fuelle (mm)"
-                  value={form.gussetWidth}
-                  onChange={(value) => updateField("gussetWidth", value)}
+                  value={form.anchoFuelle}
+                  onChange={(value) => updateField("anchoFuelle", value)}
                   placeholder="Ancho fuelle"
                   type="number"
                 />
@@ -196,11 +203,56 @@ export default function ProductStep2Structure({
                   />
                 </div>
                 <FormInput
-                  label="Sello Ancho Lateral (mm)"
+                  label="Ancho Lateral del Sello (mm)"
                   value={form.selloAnchoLateral}
                   onChange={(value) => updateField("selloAnchoLateral", value)}
                   placeholder="Ancho lateral"
                   type="number"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* BOLSA - Márgenes del Área Impresa (Sello Lateral) */}
+          {inheritedWrapping === "BOLSA" && form.tipoSelloBolsa === "Sello lateral" && (
+            <div className="border-t pt-4 mt-4">
+              <h4 className="font-semibold text-slate-700 mb-3">Márgenes del Área Impresa</h4>
+
+              {/* Ancho Total Calculado (SOLO LECTURA) */}
+              <div className="mb-4">
+                <FormInput
+                  label="Ancho Total (calculado) (mm)"
+                  value={calculateAnchoTotal(form.width, form.fuelleCerrado)}
+                  disabled={true}
+                  placeholder="Se calcula automáticamente"
+                />
+              </div>
+
+              {/* Altura en la bolsa y Ancho en la bolsa */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormInput
+                  label="Altura en la bolsa (mm)"
+                  value={form.alturaEnLaBolsa}
+                  onChange={(value) => {
+                    updateField("alturaEnLaBolsa", value);
+                    markFieldAsTouched("alturaEnLaBolsa");
+                  }}
+                  onBlur={() => markFieldAsTouched("alturaEnLaBolsa")}
+                  placeholder="Altura"
+                  type="number"
+                  error={shouldShowFieldError("alturaEnLaBolsa") ? getError("alturaEnLaBolsa") : ""}
+                />
+                <FormInput
+                  label="Ancho en la bolsa (mm)"
+                  value={form.anchoEnLaBolsa}
+                  onChange={(value) => {
+                    updateField("anchoEnLaBolsa", value);
+                    markFieldAsTouched("anchoEnLaBolsa");
+                  }}
+                  onBlur={() => markFieldAsTouched("anchoEnLaBolsa")}
+                  placeholder="Ancho"
+                  type="number"
+                  error={shouldShowFieldError("anchoEnLaBolsa") ? getError("anchoEnLaBolsa") : ""}
                 />
               </div>
             </div>
@@ -246,7 +298,7 @@ export default function ProductStep2Structure({
                 />
                 {inheritedWrapping === "POUCH" && (
                   <FormInput
-                    label="Dist. Lado Pouch (mm)"
+                    label="Distancia Lado Pouch (mm)"
                     value={form.distanciaLadoPouch}
                     onChange={(value) => updateField("distanciaLadoPouch", value)}
                     placeholder="Distancia"
@@ -291,7 +343,7 @@ export default function ProductStep2Structure({
                   placeholder="-- Seleccione Tipo --"
                 />
                 <FormInput
-                  label="Dist. Boca a Zipper (mm)"
+                  label="Distancia Boca a Zipper (mm)"
                   value={form.distanciaAbocaZipper}
                   onChange={(value) => updateField("distanciaAbocaZipper", value)}
                   placeholder="Distancia"
@@ -330,7 +382,7 @@ export default function ProductStep2Structure({
                   placeholder="-- Seleccione Tipo --"
                 />
                 <FormInput
-                  label="Dist. Boca a Válvula (mm)"
+                  label="Distancia Boca a Válvula (mm)"
                   value={form.distanciaAbocaValvula}
                   onChange={(value) => updateField("distanciaAbocaValvula", value)}
                   placeholder="Distancia"
@@ -387,14 +439,14 @@ export default function ProductStep2Structure({
                     type="number"
                   />
                   <FormInput
-                    label="Dist. Superior (mm)"
+                    label="Distancia Superior (mm)"
                     value={form.wicketDistSuperior}
                     onChange={(value) => updateField("wicketDistSuperior", value)}
                     placeholder="Superior"
                     type="number"
                   />
                   <FormInput
-                    label="Dist. Derecho (mm)"
+                    label="Distancia Derecho (mm)"
                     value={form.wicketDistDerecho}
                     onChange={(value) => updateField("wicketDistDerecho", value)}
                     placeholder="Derecho"
@@ -438,7 +490,7 @@ export default function ProductStep2Structure({
                     placeholder="-- Seleccione --"
                   />
                   <FormInput
-                    label="Dist. Superior (mm)"
+                    label="Distancia Superior (mm)"
                     value={form.wicketControlDistSuperior}
                     onChange={(value) => updateField("wicketControlDistSuperior", value)}
                     placeholder="Superior"
@@ -475,7 +527,7 @@ export default function ProductStep2Structure({
               {form.hasCortaAliviador === "Sí" && (
                 <div className="mb-4 pl-4 border-l-4 border-purple-300">
                   <FormInput
-                    label="Dist. Derecho (mm)"
+                    label="Distancia Derecho (mm)"
                     value={form.cortaAliviadorDistDerecho}
                     onChange={(value) => updateField("cortaAliviadorDistDerecho", value)}
                     placeholder="Distancia"
@@ -501,7 +553,7 @@ export default function ProductStep2Structure({
               {form.hasDispensador === "Sí" && (
                 <div className="mb-4 pl-4 border-l-4 border-purple-300">
                   <FormInput
-                    label="Dist. Izquierdo (mm)"
+                    label="Distancia Izquierdo (mm)"
                     value={form.dispensadorDistIzquierdo}
                     onChange={(value) => updateField("dispensadorDistIzquierdo", value)}
                     placeholder="Distancia"
@@ -559,7 +611,7 @@ export default function ProductStep2Structure({
                     placeholder="-- Seleccione --"
                   />
                   <FormInput
-                    label="Dist. Derecho (mm)"
+                    label="Distancia Derecho (mm)"
                     value={form.precorteWicketDistDerecho}
                     onChange={(value) => updateField("precorteWicketDistDerecho", value)}
                     placeholder="Distancia"
@@ -651,7 +703,7 @@ export default function ProductStep2Structure({
             {form.hasNotch === "Sí" && (
               <div className="mb-4 pl-4 border-l-4 border-green-300">
                 <FormInput
-                  label="Dist. Boca a Muesca (mm)"
+                  label="Distancia Boca a Muesca (mm)"
                   value={form.distanciaAbocaMuesca}
                   onChange={(value) => updateField("distanciaAbocaMuesca", value)}
                   placeholder="Distancia"
@@ -678,7 +730,7 @@ export default function ProductStep2Structure({
               <div className="pl-4 border-l-4 border-green-300 mb-4">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <FormInput
-                    label="Dist. Boca a Perforación (mm)"
+                    label="Distancia Boca a Perforación (mm)"
                     value={form.distanciaAbocaPerforacion}
                     onChange={(value) => updateField("distanciaAbocaPerforacion", value)}
                     placeholder="Distancia"
@@ -688,7 +740,7 @@ export default function ProductStep2Structure({
                   {inheritedWrapping === "POUCH" && (
                     <>
                       <FormSelect
-                        label="Tipo Perf Pouch Sello Central"
+                        label="Tipo Perforación Pouch Sello Central"
                         value={form.tipoPerfPouchSelloCentral}
                         onChange={(value) => updateField("tipoPerfPouchSelloCentral", value)}
                         options={[
@@ -704,7 +756,7 @@ export default function ProductStep2Structure({
                   {inheritedWrapping === "BOLSA" && (
                     <>
                       <FormSelect
-                        label="Tipo Perf Fuelle Bolsa"
+                        label="Tipo Perforación Fuelle Bolsa"
                         value={form.tipoPerfFuelleBolsaWicket}
                         onChange={(value) => updateField("tipoPerfFuelleBolsaWicket", value)}
                         options={[
@@ -745,16 +797,16 @@ export default function ProductStep2Structure({
                   </div>
 
                   <FormInput
-                    label="Dist. Margen Superior Perf. (mm)"
+                    label="Distancia Margen Superior Perf. (mm)"
                     value={form.distMargenSuperiorPerforacion}
                     onChange={(value) => updateField("distMargenSuperiorPerforacion", value)}
                     placeholder="Distancia"
                     type="number"
                   />
 
-                  {(form.gussetWidth || form.tieneFuelleBolsa === "Sí") && (
+                  {(form.anchoFuelle || form.tieneFuelleBolsa === "Sí") && (
                     <FormInput
-                      label="Dist. Fuelle Perf. (mm)"
+                      label="Distancia Fuelle Perforación (mm)"
                       value={form.distFuellePerforacion}
                       onChange={(value) => updateField("distFuellePerforacion", value)}
                       placeholder="Distancia"
@@ -793,7 +845,7 @@ export default function ProductStep2Structure({
                     placeholder="-- Seleccione Tipo --"
                   />
                   <FormInput
-                    label="Dist. Boca a Precorte (mm)"
+                    label="Distancia Boca a Precorte (mm)"
                     value={form.distanciaAbocaPrecorte}
                     onChange={(value) => updateField("distanciaAbocaPrecorte", value)}
                     placeholder="Distancia"
