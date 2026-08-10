@@ -1,0 +1,57 @@
+﻿# ÁRBOL DECISIÓN + RESTRICCIONES + REGLAS + VALIDACIONES - LÁMINA
+
+## ÁRBOL DE DECISIÓN (8 Niveles, 48 Casuísticas)
+
+NIVEL 0: Seleccionar LÁMINA → Habilitar campos LÁMINA
+NIVEL 1: Clasificación → Producto Nuevo (editable) | Producto Modificado (heredada)
+NIVEL 2: Información Básica → 13 campos obligatorios
+NIVEL 3: Diseño → Sin Impresión | Flexografía | Huecograbado
+NIVEL 4: Estructura → Mono | Bilam | Trilam | Tetralaminado
+NIVEL 5: Formato → Dimensiones (100-20,000 mm), Acabado, Embobinado
+NIVEL 6: Configuración → Material Core, Perforación, Fotocélula, Pre-corte
+NIVEL 7: 🔷 FOTOREGISTRO LÁMINA EXCLUSIVE → Tipo, Ubicación, Margen (máx 1)
+NIVEL 8: Validación Final → Guardar o mostrar errores
+
+## RESTRICCIONES (10)
+
+RES-1: Exclusividad de Envoltura → Campos BOLSA/POUCH deshabilitados
+RES-2: Fotoregistro LÁMINA Exclusive → Solo LÁMINA (máx 1)
+RES-3: Herencia Estructura Modificado → Read-only estructura, editable dimensiones
+RES-4: Combinaciones 405 SI → Solo validadas
+RES-5: Rango Dimensiones → Ancho/Repetición 100-20,000 mm
+RES-6: Validación Fotocelula → 50-(Ancho-50) mm
+RES-7: Impresión Condicional → Sin Impr: campos deshabilitados
+RES-8: Acabado Recomendado → Seco→Mate, Líquido→Brillante (⚠)
+RES-9: Herencia Modificado → Materiales, Micrones, Adhesivos heredados
+RES-10: Grammage Auto-calculado → ±10% tolerancia
+
+## REGLAS DE NEGOCIO (10)
+
+RB-1: Exclusividad Envoltura
+RB-2: Fotoregistro LÁMINA Exclusive
+RB-3: Restricción Estructura Editable
+RB-4: Combinaciones Homologadas 405 SI
+RB-5: Rango Dimensiones LÁMINA
+RB-6: Validación Fotocelula
+RB-7: Impresión Requerida
+RB-8: Acabado según Aplicación
+RB-9: Herencia Producto Modificado
+RB-10: Validación Grammage
+
+## CRITERIOS DE VALIDACIÓN
+
+CV-1: CAMPOS OBLIGATORIOS (26 base + condicionales)
+CV-2: VALIDACIONES DE RANGO (Ancho, Repetición, Fotocelula, Margen, Grammage)
+CV-3: VALIDACIONES DE DEPENDENCIA (Print Class → Diseño, Estructura → Capas, etc)
+CV-4: VALIDACIONES LÓGICAS (405 SI, Herencia, Max 1 FR, Perimetro)
+
+## TOTALES
+
+Casuísticas: 48 (Producto Nuevo: 32, Producto Modificado: 16)
+Campos totales: 59 (Obligatorios: 26, Condicionales: 18, Opcionales: 15)
+Origen: ODISEO 45 (76%), SI 14 (24%)
+Restricciones: 10
+Reglas de Negocio: 10
+Criterios de Validación: 4 categorías (15+ puntos)
+
+Documento generado: 2026-08-10

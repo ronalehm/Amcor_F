@@ -7,7 +7,11 @@
     "dev": "vite --port 5173 --strictPort",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:images": "playwright test image-loading.spec.ts",
+    "test:images:ui": "playwright test image-loading.spec.ts --ui"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",

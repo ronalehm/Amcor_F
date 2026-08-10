@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Árbol de Decisiones - 3 Formatos</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      border-bottom: 3px solid transparent;
+      color: #6b7280;
+    }
+
+    .tab:hover {
+      background: #f3f4f6;
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .content {
+      padding: 40px;
+      display: none;
+    }
+
+    .content.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .tree {
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      background: #f9fafb;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      white-space: pre;
+      color: #1f2937;
+    }
+
+    .tree-item {
+      margin: 12px 0;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+
+    .card {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      border-radius: 12px;
+      padding: 20px;
+      border-left: 4px solid #667eea;
+    }
+
+    .card.bolsa {
+      border-left-color: #f59e0b;
+    }
+
+    .card.lamina {
+      border-left-color: #10b981;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: #1f2937;
+    }
+
+    .card-content {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #374151;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 2px;
+    }
+
+    .badge.optional {
+      background: #9ca3af;
+    }
+
+    .badge.required {
+      background: #ef4444;
+    }
+
+    .complexity {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+
+    .complexity h3 {
+      margin-bottom: 15px;
+      color: #1f2937;
+    }
+
+    .complexity-bar {
+      margin: 15px 0;
+    }
+
+    .complexity-label {
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #374151;
+    }
+
+    .bar {
+      height: 24px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .bar-simple { background: #10b981; width: 30%; }
+    .bar-moderate { background: #f59e0b; width: 60%; }
+    .bar-complex { background: #ef4444; width: 100%; }
+
+    .decision-flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .flow-item {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      transition: all 0.3s;
+    }
+
+    .flow-item:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .flow-item-title {
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+
+    .flow-item-content {
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+
+      .tabs {
+        flex-direction: column;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎨 Árbol de Decisiones - 3 Formatos</h1>
+      <p>POUCH | BOLSA | LÁMINA</p>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="pouch">📦 POUCH</div>
+      <div class="tab" data-tab="bolsa">🛍️ BOLSA</div>
+      <div class="tab" data-tab="lamina">📄 LÁMINA</div>
+    </div>
+
+    <!-- POUCH Content -->
+    <div id="pouch" class="content active">
+      <h2 style="margin-bottom: 20px;">📦 POUCH - Árbol de Decisiones</h2>
+
+      <div class="decision-flow">
+        <div class="flow-item">
+          <div class="flow-item-title">1️⃣ Stand Up Pouch</div>
+          <div class="flow-item-content">
+            • Sello K<br>
+            • Normal<br>
+            • Doy Pack (Redondo/Cuadrado)<br>
+            <span class="badge required">4-9 campos</span>
+          </div>
+        </div>
+
+        <div class="flow-item">
+          <div class="flow-item-title">2️⃣ Pouch Plano</div>
+          <div class="flow-item-content">
+            • Dos Sellos<br>
+            • Tres Sellos<br>
+            <span class="badge required">Obligatorio: width, length, anchoFuelle</span>
+          </div>
+        </div>
+
+        <div class="flow-item">
+          <div class="flow-item-title">3️⃣ Sello Central</div>
+          <div class="flow-item-content">
+            • Material (PE-PE/PE, Aleta, Otro)<br>
+            • Fuelle (Sí/No)<br>
+            <span class="badge required">6 combinaciones</span>
+          </div>
+        </div>
+
+        <div class="flow-item">
+          <div class="flow-item-title">4️⃣ Sello en Fuelle</div>
+          <div class="flow-item-content">
+            • Tipo 4-1<br>
+            • Tipo 1-1<br>
+            <span class="badge required">Cálculos: Perímetro</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="comparison">
+        <div class="card">
+          <h3>Obligatorios</h3>
+          <div class="card-content">
+            ✅ tipoFormatoPouch<br>
+            ✅ width, length, anchoFuelle<br>
+            ✅ Campos dinámicos por familia<br>
+            <strong>Total: 4-9 campos</strong>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Dimensiones Especiales</h3>
+          <div class="card-content">
+            📏 Doy Pack Redondo/Cuadrado:<br>
+            • width: 80-230 mm<br>
+            • length: 134-340 mm<br>
+            • fuelle: 0-3 mm
+          </div>
+        </div>
+        <div class="card">
+          <h3>Características</h3>
+          <div class="card-content">
+            🔧 Máximo 3 accesorios<br>
+            📐 Cálculos automáticos<br>
+            ⚙️ Campos condicionales<br>
+            🎯 Complejidad: ALTA
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOLSA Content -->
+    <div id="bolsa" class="content">
+      <h2 style="margin-bottom: 20px;">🛍️ BOLSA - Árbol de Decisiones</h2>
+
+      <div class="decision-flow">
+        <div class="flow-item">
+          <div class="flow-item-title">1️⃣ Bolsa</div>
+          <div class="flow-item-content">
+            • Sello Lateral (Corte/Pestaña)<br>
+            • Sello de Fondo<br>
+            • Fuelle (Sí/No)<br>
+            <span class="badge required">4 combinaciones</span>
+          </div>
+        </div>
+
+        <div class="flow-item">
+          <div class="flow-item-title">2️⃣ Wicket</div>
+          <div class="flow-item-content">
+            • Wicket (D 12/14/16)<br>
+            • Wicket Control<br>
+            • Pre-corte, Dispensador<br>
+            <span class="badge required">Múltiples campos opcionales</span>
+          </div>
+        </div>
+
+        <div class="flow-item">
+          <div class="flow-item-title">3️⃣ Hojas</div>
+          <div class="flow-item-content">
+            • Configuración flexible<br>
+            • Pocos campos específicos<br>
+            <span class="badge optional">Configuración simple</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="comparison">
+        <div class="card bolsa">
+          <h3>Obligatorios</h3>
+          <div class="card-content">
+            ✅ tipoFormatoBolsa<br>
+            ✅ tipoSelloBolsa<br>
+            ✅ acabadoBolsa (si Lateral)<br>
+            ✅ tieneFuelleBolsa<br>
+            <strong>Total: 4-5 campos</strong>
+          </div>
+        </div>
+        <div class="card bolsa">
+          <h3>Accesorios (máx 3)</h3>
+          <div class="card-content">
+            🏷️ Producto:<br>
+            • Asa Troquelada<br>
+            • Refuerzo<br>
+            📌 Internos: Corte, Esquinas, etc.
+          </div>
+        </div>
+        <div class="card bolsa">
+          <h3>Características</h3>
+          <div class="card-content">
+            🔀 Flujo ramificado<br>
+            ⚙️ Campos condicionales<br>
+            🎯 Complejidad: MEDIA<br>
+            📊 3 ramas principales
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LÁMINA Content -->
+    <div id="lamina" class="content">
+      <h2 style="margin-bottom: 20px;">📄 LÁMINA - Árbol de Decisiones</h2>
+
+      <div class="decision-flow">
+        <div class="flow-item">
+          <div class="flow-item-title">🎯 Tipo (Obligatorio)</div>
+          <div class="flow-item-content">
+            • Genérica<br>
+            • Tissue<br>
+            • Food<br>
+            <span class="badge required">Auto-genera Formato</span>
+          </div>
+        </div>
+
+        <div class="flow-item">
+          <div class="flow-item-title">📐 Dimensiones</div>
+          <div class="flow-item-content">
+            • width (Obligatorio)<br>
+            • repetition (Obligatorio)<br>
+            <span class="badge required">Campos fijos</span>
+          </div>
+        </div>
+
+        <div class="flow-item">
+          <div class="flow-item-title">🎨 Fotoregistro (Solo LÁMINA)</div>
+          <div class="flow-item-content">
+            • FR1 (Obligatorio si Sí)<br>
+            • FR2 (Condicional: Auto/Manual)<br>
+            <span class="badge optional">Opcional</span>
+          </div>
+        </div>
+
+        <div class="flow-item">
+          <div class="flow-item-title">🔧 Core</div>
+          <div class="flow-item-content">
+            • Material (Obligatorio)<br>
+            • Diámetro (Obligatorio)<br>
+            <span class="badge required">SI - Catálogo</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="comparison">
+        <div class="card lamina">
+          <h3>Obligatorios</h3>
+          <div class="card-content">
+            ✅ tipoFormatoLamina<br>
+            ✅ width<br>
+            ✅ repetition<br>
+            ✅ coreMaterial<br>
+            ✅ coreDiameter<br>
+            <strong>Total: 5 campos</strong>
+          </div>
+        </div>
+        <div class="card lamina">
+          <h3>Fotoregistro (Opcional)</h3>
+          <div class="card-content">
+            📊 Solo en LÁMINA<br>
+            • FR1: Dimensiones + Márgenes<br>
+            • FR2: Automático o Manual<br>
+            🧮 Cálculos de márgenes
+          </div>
+        </div>
+        <div class="card lamina">
+          <h3>Características</h3>
+          <div class="card-content">
+            ➡️ Flujo LINEAL<br>
+            📋 Estructura fija<br>
+            🎯 Complejidad: SIMPLE<br>
+            ✨ Menos campos condicionales
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Complexity Comparison -->
+    <div style="padding: 40px; border-top: 2px solid #e5e7eb;">
+      <h2 style="margin-bottom: 30px;">📈 Comparativa de Complejidad</h2>
+
+      <div class="complexity">
+        <div class="complexity-bar">
+          <div class="complexity-label">📄 LÁMINA - Complejidad: SIMPLE ✅</div>
+          <div class="bar">
+            <div class="bar-fill bar-simple">30%</div>
+          </div>
+          <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">
+            Flujo lineal • 5 campos obligatorios • Sin cascadas profundas
+          </div>
+        </div>
+
+        <div class="complexity-bar">
+          <div class="complexity-label">🛍️ BOLSA - Complejidad: MEDIA ⚠️</div>
+          <div class="bar">
+            <div class="bar-fill bar-moderate">60%</div>
+          </div>
+          <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">
+            3 ramas principales • 4-5 campos obligatorios • Cascadas hasta 4 niveles
+          </div>
+        </div>
+
+        <div class="complexity-bar">
+          <div class="complexity-label">📦 POUCH - Complejidad: ALTA 🔴</div>
+          <div class="bar">
+            <div class="bar-fill bar-complex">100%</div>
+          </div>
+          <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">
+            4 familias + subfamilias • 4-9 campos obligatorios • Múltiples combinaciones
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+
+        // Remove active from all tabs and contents
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+
+        // Add active to clicked tab and corresponding content
+        tab.classList.add('active');
+        document.getElementById(tabName).classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

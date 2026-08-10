@@ -191,25 +191,14 @@ export default function LaminaStructureTable({
       </div>
 
       {/* Printing surface */}
-      {hasPrinting && printingSurface && (
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-600 mb-2">
-            Superficie a imprimir
-          </p>
-          <p className="text-sm font-semibold text-slate-900">{printingSurface}</p>
-        </div>
-      )}
-
-      {!hasPrinting && (
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-600 mb-2">
-            Superficie a imprimir
-          </p>
-          <p className="text-sm text-slate-600">
-            No aplica — producto sin impresión
-          </p>
-        </div>
-      )}
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-600 mb-2">
+          Superficie a imprimir
+        </p>
+        <p className="text-sm font-semibold text-slate-900">
+          {printingSurface ? printingSurface : "-"}
+        </p>
+      </div>
     </div>
   );
 }

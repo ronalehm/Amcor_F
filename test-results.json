@@ -1,0 +1,304 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "image-loading.spec.ts"
+    ],
+    "configFile": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\playwright.config.ts",
+    "rootDir": "C:/Users/ronal/OneDrive/Documents/Amcor_F2/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/ronal/OneDrive/Documents/Amcor_F2/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/Users/ronal/OneDrive/Documents/Amcor_F2/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:5173",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "image-loading.spec.ts",
+      "file": "image-loading.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Image Loading Tests",
+          "file": "image-loading.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Verify Rewinding Direction images load correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\tests\\e2e\\image-loading.spec.ts",
+                        "line": 20,
+                        "column": 12
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 8287,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🖼️ Starting Rewinding Direction Image Test\n"
+                        },
+                        {
+                          "text": "⚠️ No products found. Creating a test product...\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-10T06:00:10.377Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "location": {
+                            "file": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\tests\\e2e\\image-loading.spec.ts",
+                            "line": 20,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "3632cedf513ff267eabd-8bc1a24d180b1f47e625",
+              "file": "image-loading.spec.ts",
+              "line": 6,
+              "column": 3
+            },
+            {
+              "title": "Verify Wrapping Type images load correctly in sidebar",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\tests\\e2e\\image-loading.spec.ts",
+                        "line": 93,
+                        "column": 12
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 2031,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🖼️ Starting Wrapping Type Image Test\n"
+                        },
+                        {
+                          "text": "⚠️ No products found.\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-10T06:00:19.601Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "location": {
+                            "file": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\tests\\e2e\\image-loading.spec.ts",
+                            "line": 93,
+                            "column": 12
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "3632cedf513ff267eabd-e8bfa834e8700c957574",
+              "file": "image-loading.spec.ts",
+              "line": 81,
+              "column": 3
+            },
+            {
+              "title": "Check for 404 errors in network tab for images",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4839,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔍 Monitoring network requests for image errors\n"
+                        },
+                        {
+                          "text": "✅ No failed image requests detected\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-10T06:00:21.669Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3632cedf513ff267eabd-3e547315808f74e699d9",
+              "file": "image-loading.spec.ts",
+              "line": 127,
+              "column": 3
+            },
+            {
+              "title": "Console errors for image loading",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4496,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🐛 Checking browser console for image-related errors\n"
+                        },
+                        {
+                          "text": "✅ No image-related console errors\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-10T06:00:26.541Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3632cedf513ff267eabd-4e32ac7faf983cb5f19d",
+              "file": "image-loading.spec.ts",
+              "line": 174,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-08-10T05:59:56.502Z",
+    "duration": 35017.16499999999,
+    "expected": 2,
+    "skipped": 2,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
