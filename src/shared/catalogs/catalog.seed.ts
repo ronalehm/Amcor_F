@@ -654,26 +654,6 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     sortOrder: 4,
   },
 
-  // ============ YES_NO (Sí/No - 2 items) ============
-  {
-    id: "yn_001",
-    catalogId: "catalog_yes_no",
-    catalogCode: "yes_no",
-    item: "YN-001",
-    name: "Sí",
-    status: "Activo",
-    sortOrder: 1,
-  },
-  {
-    id: "yn_002",
-    catalogId: "catalog_yes_no",
-    catalogCode: "yes_no",
-    item: "YN-002",
-    name: "No",
-    status: "Activo",
-    sortOrder: 2,
-  },
-
   // ============ CLIENT_TYPE (Tipo de Cliente - 4 items) ============
   {
     id: "ct_001",

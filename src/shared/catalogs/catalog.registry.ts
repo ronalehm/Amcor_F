@@ -168,16 +168,7 @@ export const CATALOG_REGISTRY: CatalogDefinition[] = [
     status: "active",
   },
 
-  // FASE 2 - CATÁLOGOS AUXILIARES
-  {
-    id: "catalog_yes_no",
-    code: "yes_no",
-    name: "Sí/No",
-    description: "Valores booleanos estándar",
-    ownerModule: "shared",
-    ownerSystem: "ODISEO",
-    status: "active",
-  },
+  // FASE 2 - CATÁLOGOS AUXILIARES (Se eliminó "Sí/No" porque es un booleano, no un catálogo)
 
   // FASE 3 - CATÁLOGOS DE CLIENTES
   {
