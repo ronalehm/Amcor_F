@@ -269,6 +269,20 @@ export function extractProductEditPageCatalogs(): Record<
     'valve_type',
     'wicket_perforation_type',
     'zipper_type',
+    // Nuevos catálogos centralizados
+    'client',
+    'executive',
+    'unit_measure',
+    'modification_new',
+    'modification_modified',
+    'seals_count',
+    'central_seal_material',
+    'seal_type_gusset',
+    'seal_type_bag',
+    'micron_pe',
+    'material_packaging',
+    'export_packaging',
+    'splices',
   ];
 
   const usedCatalogs = CATALOG_REGISTRY.filter(
