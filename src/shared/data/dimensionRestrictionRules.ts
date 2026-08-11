@@ -163,9 +163,42 @@ export function normalizeFormatPlan(value: any): string {
   return String(value || "").trim().toUpperCase();
 }
 
+export function getWrappingTypeFromFormat(formatPlan: any): "LAMINA" | "BOLSA" | "POUCH" | null {
+  const normalized = normalizeFormatPlan(formatPlan);
+
+  // Determinar envoltura basada en formato
+  if (normalized === "GENERICA" || normalized === "TISSUE" || normalized === "FOOD") {
+    return "LAMINA";
+  }
+
+  if (normalized.includes("POUCH")) {
+    return "POUCH";
+  }
+
+  if (normalized.includes("SELLO") || normalized.includes("FONDO") ||
+      normalized === "WICKET" || normalized === "HOJAS") {
+    return "BOLSA";
+  }
+
+  return null;
+}
+
 export function getDimensionRestrictionsByFormat(
   formatPlan: any
 ): DimensionRestriction {
+  const normalized = normalizeFormatPlan(formatPlan);
+  return DIMENSION_RESTRICTIONS_BY_FORMAT[normalized] || {};
+}
+
+export function getDimensionRestrictionsByFormatAndWrapping(
+  formatPlan: any,
+  wrappingType?: "LAMINA" | "BOLSA" | "POUCH" | string
+): DimensionRestriction {
+  // Si no se proporciona envoltura, determinarla del formato
+  const wrapping = wrappingType || getWrappingTypeFromFormat(formatPlan);
+
+  // Por ahora, retornar las restricciones del formato
+  // En el futuro, estas podrían filtrarse por envoltura desde la base de datos
   const normalized = normalizeFormatPlan(formatPlan);
   return DIMENSION_RESTRICTIONS_BY_FORMAT[normalized] || {};
 }
