@@ -1417,6 +1417,23 @@ const STRUCTURE_TYPE_OPTIONS = [
   { value: "Tetralaminado", label: "Tetralaminado" },
 ];
 
+const PROJECT_TYPE_RD_OPTIONS = [
+  { value: "Producto nuevo", label: "Producto nuevo" },
+  { value: "Nuevo equipamiento de envasado", label: "Nuevo equipamiento de envasado" },
+  { value: "Nuevos insumos", label: "Nuevos insumos" },
+  { value: "Nueva estructura", label: "Nueva estructura" },
+  { value: "Nuevo formato de envasado", label: "Nuevo formato de envasado" },
+  { value: "Nuevos accesorios", label: "Nuevos accesorios" },
+  { value: "Nuevos procesos por el lado del cliente", label: "Nuevos procesos por el lado del cliente" },
+  { value: "Nuevas temperaturas de envasado y almacenaje", label: "Nuevas temperaturas de envasado y almacenaje" },
+];
+
+const DESIGN_PLAN_TYPE_OPTIONS = [
+  { value: "CON_WEBCENTER", label: "Con WebCenter", description: "Se envía archivo de arte a través de WebCenter", requiresFile: true, acceptedExtensions: [".pdf", ".ai", ".psd"] },
+  { value: "SIN_WEBCENTER", label: "Sin WebCenter", description: "Se envía archivo de arte sin usar WebCenter", requiresFile: true, acceptedExtensions: [".pdf", ".ai", ".psd"] },
+  { value: "SOLO_DATOS_SIN_WEBCENTER", label: "Solo datos sin WebCenter", description: "Se envían solo datos sin archivo de arte", requiresFile: false, acceptedExtensions: [] },
+];
+
 type MaterialEntry = {
   value: string; label: string; micron: string; grammage: string; isFree: boolean;
 };

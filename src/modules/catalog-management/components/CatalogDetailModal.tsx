@@ -205,7 +205,7 @@ export function CatalogDetailModal({ catalogData, onClose }: CatalogDetailModalP
               <Download className="w-4 h-4" />
               Descargar CSV
             </Button>
-            <Button onClick={onClose} variant="default">
+            <Button onClick={onClose} variant="outline">
               Cerrar
             </Button>
           </div>

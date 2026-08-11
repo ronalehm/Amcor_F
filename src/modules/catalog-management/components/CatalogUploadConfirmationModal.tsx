@@ -235,7 +235,7 @@ export function CatalogUploadConfirmationModal({
             </Button>
 
             {step === "review" && (
-              <Button onClick={handleReview} variant="default">
+              <Button onClick={handleReview} variant="outline">
                 Continuar
               </Button>
             )}
@@ -251,7 +251,7 @@ export function CatalogUploadConfirmationModal({
                 </Button>
                 <Button
                   onClick={handleReason}
-                  variant="default"
+                  variant="outline"
                   disabled={isProcessing}
                 >
                   {isProcessing ? "Procesando..." : "Confirmar Cambios"}

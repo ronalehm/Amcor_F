@@ -122,7 +122,7 @@ export function CatalogUploadResultModal({
 
         {/* Footer */}
         <div className={`px-6 py-4 border-t ${isSuccess ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
-          <Button onClick={onClose} variant="default" className="w-full">
+          <Button onClick={onClose} variant="outline" className="w-full">
             {isSuccess ? "Cerrar" : "Reintentar"}
           </Button>
         </div>

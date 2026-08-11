@@ -315,7 +315,7 @@ export class CatalogTemplateValidator {
       ];
 
       if (data.length > 0) {
-        const firstRow = data[0];
+        const firstRow = data[0] as Record<string, unknown>;
         const missingColumns = expectedColumns.filter(
           (col) => !(col in firstRow)
         );

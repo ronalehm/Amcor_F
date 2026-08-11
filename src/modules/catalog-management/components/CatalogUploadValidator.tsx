@@ -259,7 +259,7 @@ export function CatalogUploadValidator() {
           {result.isValid && !uploadResult && (
             <div className="flex gap-2 pt-4">
               <Button
-                variant="default"
+                variant="outline"
                 className="flex-1"
                 onClick={() => setShowConfirmation(true)}
               >
@@ -283,7 +283,7 @@ export function CatalogUploadValidator() {
           {uploadResult && uploadResult.success && (
             <div className="pt-4 flex gap-2">
               <Button
-                variant="default"
+                variant="outline"
                 className="flex-1"
                 onClick={() => {
                   setFile(null);
