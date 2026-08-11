@@ -31,8 +31,8 @@ export default function ElementSelector({
       return allCatalogs
         .filter((cat) => cat.ownerSystem === catalogSource)
         .map((catalog) => ({
-          id: catalog.code, // Usar código del registry como ID
-          code: catalog.code,
+          id: String(catalog.code).trim(), // Asegurar string limpio como ID
+          code: String(catalog.code).trim(),
           name: catalog.name,
           meta: `Código: ${catalog.code}`,
         }));
@@ -41,8 +41,8 @@ export default function ElementSelector({
     if (type === "restriction") {
       const allRestrictions = getAvailableRestrictions();
       return allRestrictions.map((r) => ({
-        id: r.id,
-        code: r.id,
+        id: String(r.id).trim(), // Asegurar string limpio como ID
+        code: String(r.id).trim(),
         name: r.name,
         meta: restrictionType === "dimension" ? "Restricción de Dimensión" : "Restricción de Validación",
       }));

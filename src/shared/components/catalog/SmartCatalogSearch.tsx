@@ -33,7 +33,14 @@ export default function SmartCatalogSearch({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const selectedOption = options.find((option) => String(option.id) === value);
+  // Búsqueda robusta normalizando ambos lados
+  const selectedOption = useMemo(() => {
+    if (!value) return undefined;
+    const normalizedValue = String(value).toLowerCase().trim();
+    return options.find(
+      (option) => String(option.id).toLowerCase().trim() === normalizedValue
+    );
+  }, [options, value]);
 
   const [query, setQuery] = useState(selectedOption?.name || "");
   const [isOpen, setIsOpen] = useState(false);
@@ -44,11 +51,14 @@ export default function SmartCatalogSearch({
   // Sincronizar query con el valor del padre cuando hay una selección
   useEffect(() => {
     if (selectedOption) {
+      // Si hay una opción seleccionada, actualizar query con su nombre
       setQuery(selectedOption.name);
-    } else if (!value && query.trim() === "") {
-      // Solo limpiar si tanto value como query están vacíos
+    } else if (!value) {
+      // Si no hay valor, limpiar query
       setQuery("");
     }
+    // Si value existe pero selectedOption no se encuentra, mantener el query actual
+    // para evitar que se limpie cuando hay un mismatch temporal
   }, [value, selectedOption]);
 
   useEffect(() => {
