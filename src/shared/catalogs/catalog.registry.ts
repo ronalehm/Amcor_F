@@ -423,15 +423,6 @@ export const CATALOG_REGISTRY: CatalogDefinition[] = [
     status: "active",
   },
   {
-    id: "catalog_color_target",
-    code: "color_target",
-    name: "Objetivo de Color",
-    description: "Objetivos para control de color",
-    ownerModule: "products",
-    ownerSystem: "ODISEO",
-    status: "active",
-  },
-  {
     id: "catalog_approver",
     code: "approver",
     name: "Aprobador",
