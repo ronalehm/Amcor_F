@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { ProjectEditFormData } from "../pages/ProductEditPage";
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
@@ -7,7 +8,7 @@ import SegmentedControl from "../../../shared/components/forms/SegmentedControl"
 import CollapsibleSection from "../../../shared/components/forms/CollapsibleSection";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import ProjectDocumentsSection from "./ProjectDocumentsSection";
-import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
+import { getCatalogOptions } from "../../../shared/catalogs";
 
 type StepProps = {
   form: ProjectEditFormData;
@@ -33,6 +34,14 @@ export default function ProductStep2Structure({
   shouldShowFieldError,
   inheritedWrapping,
 }: StepProps) {
+  // Usar catálogo centralizado para Tipo de Estructura
+  const structureTypeOptions = useMemo(() => {
+    return getCatalogOptions("structure_type").map((opt) => ({
+      value: opt.label, // Usar label como valor
+      label: opt.label,
+    }));
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Especificaciones de Estructura */}
@@ -58,10 +67,7 @@ export default function ProductStep2Structure({
                 markFieldAsTouched("structureType");
               }}
               onBlur={() => markFieldAsTouched("structureType")}
-              options={PRODUCT_CATALOGS.tipoDeEstructura.values.map((val) => ({
-                value: val,
-                label: val,
-              }))}
+              options={structureTypeOptions}
               placeholder="-- Seleccione Tipo --"
             />
           </div>

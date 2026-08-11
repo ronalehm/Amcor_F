@@ -277,11 +277,6 @@ const PRINT_TYPE_OPTIONS = PRODUCT_CATALOGS.tipoDeImpresion.values.map((val) => 
   label: val,
 }));
 
-const STRUCTURE_TYPE_OPTIONS = PRODUCT_CATALOGS.tipoDeEstructura.values.map((val) => ({
-  value: val,
-  label: val,
-}));
-
 type MaterialEntry = { value: string; label: string; micron: string; isFree: boolean };
 type MaterialCatalog = Record<string, MaterialEntry[]>;
 
@@ -627,8 +622,14 @@ export default function ProductCreatePage() {
   // Obtener opciones desde catálogos centralizados
   const unitOfMeasureOpt = useMemo(() => getCatalogOptions("unit_measure"), []);
   const printClassOpt = useMemo(() => getCatalogOptions("print_class"), []);
+  const structureTypeOpt = useMemo(
+    () => getCatalogOptions("structure_type").map((opt) => ({
+      value: opt.label,
+      label: opt.label,
+    })),
+    []
+  );
   const printTypeOpt = useMemo(() => getCatalogOptions("print_type"), []);
-  const structureTypeOpt = useMemo(() => getCatalogOptions("structure_type"), []);
   const saleTypeOpt = useMemo(() => getCatalogOptions("sale_type"), []);
   const incotermOpt = useMemo(() => getCatalogOptions("incoterm"), []);
   const countryOpt = useMemo(() => getCatalogOptions("destination_country"), []);
