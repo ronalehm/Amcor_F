@@ -1,0 +1,326 @@
+import * as XLSX from "xlsx";
+import {
+  getDimensionRestrictions,
+  getValidationRestrictions,
+  updateDimensionRestriction,
+  updateValidationRestriction,
+} from "../../../shared/data/restrictionCatalogsStorage";
+import type {
+  DimensionRestrictionCatalog,
+  ValidationRestrictionCatalog,
+} from "../../../shared/data/restrictionCatalogs";
+import type {
+  RestrictionExportData,
+  RestrictionValidationSummary,
+  RestrictionChangePreviewRow,
+  RestrictionDetectedChangeAction,
+} from "../types/catalogRestriction.types";
+import { getCurrentUser } from "../../../shared/data/userStorage";
+import { addRestrictionChangeLogEntry } from "../../../shared/data/restrictionChangeLog";
+
+// ============ EXPORTACIÓN ============
+
+/**
+ * Exportar restricciones de dimensión a Excel
+ */
+export function exportDimensionRestrictionsToExcel(): RestrictionExportData[] {
+  const restrictions = getDimensionRestrictions();
+
+  return restrictions.map((r) => ({
+    id: r.id,
+    nombre: r.name,
+    codigo: r.code,
+    tipoProducto: r.productType,
+    formatoPlan: r.formatPlan,
+    ancho_min: r.ancho?.min ?? 0,
+    ancho_max: r.ancho?.max ?? 0,
+    largo_min: r.largo?.min ?? 0,
+    largo_max: r.largo?.max ?? 0,
+    anchoFuelle_min: r.anchoFuelle?.min ?? 0,
+    anchoFuelle_max: r.anchoFuelle?.max ?? 0,
+    perimetro_min: r.perimetro?.min ?? 0,
+    perimetro_max: r.perimetro?.max ?? 0,
+    estado: r.status,
+  }));
+}
+
+/**
+ * Exportar restricciones de validación a Excel
+ */
+export function exportValidationRestrictionsToExcel(): RestrictionExportData[] {
+  const restrictions = getValidationRestrictions();
+
+  return restrictions.map((r) => ({
+    id: r.id,
+    nombre: r.name,
+    codigo: r.code,
+    tipoProducto: r.productType,
+    campoOrigen: r.sourceField,
+    valorOrigen: r.sourceValue,
+    campoDependiente: r.dependentField,
+    valoresPermitidos: r.allowedValues.join("; "),
+    estado: r.status,
+  }));
+}
+
+/**
+ * Descargar plantilla Excel con restricciones (dimensión)
+ */
+export async function downloadDimensionRestrictionsTemplate(): Promise<void> {
+  const exportData = exportDimensionRestrictionsToExcel();
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Restricciones Dimensión");
+
+  const fileName = `Plantilla_Restricciones_Dimension_${new Date().getTime()}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
+/**
+ * Descargar plantilla Excel con restricciones (validación)
+ */
+export async function downloadValidationRestrictionsTemplate(): Promise<void> {
+  const exportData = exportValidationRestrictionsToExcel();
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Restricciones Validación");
+
+  const fileName = `Plantilla_Restricciones_Validacion_${new Date().getTime()}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
+/**
+ * Descargar todas las restricciones (dimensión + validación)
+ */
+export async function downloadAllRestrictionsTemplate(): Promise<void> {
+  const dimensionData = exportDimensionRestrictionsToExcel();
+  const validationData = exportValidationRestrictionsToExcel();
+
+  const wb = XLSX.utils.book_new();
+  const wsDimension = XLSX.utils.json_to_sheet(dimensionData);
+  const wsValidation = XLSX.utils.json_to_sheet(validationData);
+
+  XLSX.utils.book_append_sheet(wb, wsDimension, "Dimensión");
+  XLSX.utils.book_append_sheet(wb, wsValidation, "Validación");
+
+  const fileName = `Plantilla_Restricciones_Completa_${new Date().getTime()}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
+// ============ IMPORTACIÓN Y VALIDACIÓN ============
+
+/**
+ * Validar y cargar plantilla Excel de restricciones de dimensión
+ */
+export async function uploadAndValidateDimensionTemplate(
+  file: File,
+  restrictionType: "dimension" | "validation"
+): Promise<RestrictionValidationSummary> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<any>(worksheet);
+
+        if (rows.length === 0) {
+          throw new Error("La plantilla no contiene datos");
+        }
+
+        // Obtener restricciones actuales
+        const currentRestrictions =
+          restrictionType === "dimension"
+            ? getDimensionRestrictions()
+            : getValidationRestrictions();
+
+        const previewRows: RestrictionChangePreviewRow[] = [];
+        const detectedChanges: Array<{
+          id: string;
+          action: RestrictionDetectedChangeAction;
+          oldData: any;
+          newData: any;
+        }> = [];
+
+        // Procesar cada fila del Excel
+        rows.forEach((row, index) => {
+          const id = row.id || row.Id || "";
+          const currentRest = currentRestrictions.find((r) => r.id === id);
+
+          if (!id) {
+            throw new Error(`Fila ${index + 1}: ID es requerido`);
+          }
+
+          if (!currentRest) {
+            throw new Error(`Fila ${index + 1}: Restricción con ID ${id} no encontrada`);
+          }
+
+          // Detectar cambios
+          const hasChanges = JSON.stringify(currentRest) !== JSON.stringify(row);
+
+          if (hasChanges) {
+            previewRows.push({
+              id,
+              nombre: row.nombre || currentRest.name,
+              tipoProducto: row.tipoProducto || currentRest.productType,
+              cambiosDetectados: "Sí",
+              status: "modificado",
+            });
+
+            detectedChanges.push({
+              id,
+              action: "modified",
+              oldData: currentRest,
+              newData: row,
+            });
+          }
+        });
+
+        const summary: RestrictionValidationSummary = {
+          status: detectedChanges.length > 0 ? "valid" : "with_observations",
+          totalRecords: rows.length,
+          validRecords: rows.length,
+          modifiedRecords: detectedChanges.length,
+          newRecords: 0,
+          inactivatedRecords: 0,
+          blockedRecords: 0,
+          criticalErrors: 0,
+          observations: detectedChanges.length === 0 ? 1 : 0,
+          rows: previewRows,
+          detectedChanges,
+        };
+
+        resolve(summary);
+      } catch (error) {
+        reject(new Error(`Error al procesar plantilla: ${error instanceof Error ? error.message : String(error)}`));
+      }
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Error al leer el archivo"));
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/**
+ * Aplicar cambios de restricciones importadas
+ */
+export async function applyRestrictionChanges(
+  detectedChanges: Array<{ id: string; action: string; oldData?: any; newData: any }>,
+  restrictionType: "dimension" | "validation",
+  reason: string
+): Promise<{ success: boolean; appliedCount: number; errorCount: number }> {
+  let appliedCount = 0;
+  let errorCount = 0;
+  const user = getCurrentUser();
+
+  try {
+    for (const change of detectedChanges) {
+      try {
+        // Obtener datos actuales antes de actualizar (para bitácora)
+        const currentRestrictions =
+          restrictionType === "dimension"
+            ? getDimensionRestrictions()
+            : getValidationRestrictions();
+        const currentData = currentRestrictions.find((r) => r.id === change.id);
+
+        if (restrictionType === "dimension") {
+          updateDimensionRestriction(change.id, change.newData);
+          appliedCount++;
+
+          // Construir objeto de cambios detallado
+          const changesDetail: Record<string, { old: any; new: any }> = {};
+          if (currentData && change.newData) {
+            Object.keys(change.newData).forEach((key) => {
+              if (JSON.stringify(currentData[key as keyof typeof currentData]) !==
+                  JSON.stringify(change.newData[key])) {
+                changesDetail[key] = {
+                  old: currentData[key as keyof typeof currentData],
+                  new: change.newData[key],
+                };
+              }
+            });
+          }
+
+          // Registrar en bitácora con detalle de cambios
+          addRestrictionChangeLogEntry(
+            {
+              restrictionId: change.id,
+              restrictionName: change.newData.name || currentData?.name || "Unknown",
+              restrictionType: "dimension",
+              action: "updated",
+              changes: Object.keys(changesDetail).length > 0 ? changesDetail : { modified: { old: currentData, new: change.newData } },
+              result: "success",
+              reason,
+            },
+            reason
+          );
+        } else {
+          updateValidationRestriction(change.id, change.newData);
+          appliedCount++;
+
+          // Construir objeto de cambios detallado
+          const changesDetail: Record<string, { old: any; new: any }> = {};
+          if (currentData && change.newData) {
+            Object.keys(change.newData).forEach((key) => {
+              if (JSON.stringify(currentData[key as keyof typeof currentData]) !==
+                  JSON.stringify(change.newData[key])) {
+                changesDetail[key] = {
+                  old: currentData[key as keyof typeof currentData],
+                  new: change.newData[key],
+                };
+              }
+            });
+          }
+
+          // Registrar en bitácora con detalle de cambios
+          addRestrictionChangeLogEntry(
+            {
+              restrictionId: change.id,
+              restrictionName: change.newData.name || currentData?.name || "Unknown",
+              restrictionType: "validation",
+              action: "updated",
+              changes: Object.keys(changesDetail).length > 0 ? changesDetail : { modified: { old: currentData, new: change.newData } },
+              result: "success",
+              reason,
+            },
+            reason
+          );
+        }
+      } catch (error) {
+        console.error(`Error aplicando cambio para ${change.id}:`, error);
+
+        // Registrar error en bitácora
+        addRestrictionChangeLogEntry(
+          {
+            restrictionId: change.id,
+            restrictionName: change.newData?.name || "Unknown",
+            restrictionType: restrictionType,
+            action: "updated",
+            changes: { error: { old: String(error), new: change.newData } },
+            result: "error",
+            reason,
+          },
+          reason
+        );
+
+        errorCount++;
+      }
+    }
+
+    // Registrar resumen general en bitácora
+    if (appliedCount > 0) {
+      console.log(`✓ ${appliedCount} restricción(es) actualizada(s) desde plantilla Excel`);
+      console.log(`Motivo: ${reason}`);
+    }
+
+    return { success: errorCount === 0, appliedCount, errorCount };
+  } catch (error) {
+    console.error("Error aplicando cambios de restricciones:", error);
+    return { success: false, appliedCount, errorCount };
+  }
+}

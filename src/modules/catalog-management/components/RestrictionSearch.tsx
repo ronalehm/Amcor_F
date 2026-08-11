@@ -27,7 +27,7 @@ export default function RestrictionSearch({
 
   const restrictions = getAvailableRestrictions();
   const results = useMemo(() => {
-    if (!value.trim()) return [];
+    if (!value.trim()) return restrictions;
     const searchTerm = value.toLowerCase();
     return restrictions.filter((r) => r.name.toLowerCase().includes(searchTerm));
   }, [value, restrictions]);
@@ -84,10 +84,6 @@ export default function RestrictionSearch({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-2">
-        Restricción a actualizar *
-      </label>
-
       <div className="relative">
         <Search
           size={16}
@@ -104,7 +100,7 @@ export default function RestrictionSearch({
             setSelectedIndex(-1);
           }}
           onKeyDown={handleKeyDown}
-          onFocus={() => value && setIsOpen(true)}
+          onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
           disabled={disabled}
           className={`w-full rounded-lg border px-9 py-2 text-sm transition-colors outline-none
@@ -129,7 +125,7 @@ export default function RestrictionSearch({
         </div>
       )}
 
-      {isOpen && value && results.length > 0 && (
+      {isOpen && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-slate-200 bg-white shadow-lg max-h-80 overflow-y-auto">
           {results.map((restriction, index) => (
             <button

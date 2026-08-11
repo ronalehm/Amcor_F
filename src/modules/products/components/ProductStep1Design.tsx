@@ -8,7 +8,7 @@ import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
 
 type StepProps = {
   form: ProjectEditFormData;
-  updateField: (field: keyof ProjectEditFormData, value: string | string[]) => void;
+  updateField: (field: keyof ProjectEditFormData, value: string | string[] | boolean) => void;
   markFieldAsTouched: (field: keyof ProjectEditFormData) => void;
   getError: (field: keyof ProjectEditFormData) => string;
   shouldShowFieldError: (field: keyof ProjectEditFormData) => boolean;
@@ -134,19 +134,20 @@ export default function ProductStep1Design({
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 ¿Co-printing?
               </label>
-              <SegmentedControl
-                options={[
-                  { value: "Sí", label: "Sí" },
-                  { value: "No", label: "No" },
-                ]}
-                value={form.coPrinting || ""}
-                onChange={(value) => {
-                  updateField("coPrinting", value);
-                  markFieldAsTouched("coPrinting");
-                }}
-              />
+              <label className="flex items-center gap-2 p-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean((form as any).coPrinting)}
+                  onChange={(e) => {
+                    updateField("coPrinting", e.target.checked);
+                    markFieldAsTouched("coPrinting");
+                  }}
+                  className="rounded"
+                />
+                <span className="text-sm">¿Co-printing?</span>
+              </label>
             </div>
-            {form.coPrinting === "Sí" && (
+            {form.coPrinting && (
               <FormInput
                 label="Códigos a Imprimir"
                 value={form.codesToPrint}

@@ -23,6 +23,10 @@ import type {
   DetectedChangeAction,
 } from "../types/catalogRestriction.types";
 import { getCurrentUser } from "../../../shared/data/userStorage";
+import {
+  getDimensionRestrictions,
+  getValidationRestrictions,
+} from "../../../shared/data/restrictionCatalogsStorage";
 
 // Adapter: Convertir CatalogDefinition a CatalogItem para compatibilidad
 export function getAvailableCatalogs(): CatalogItem[] {
@@ -34,9 +38,25 @@ export function getAvailableCatalogs(): CatalogItem[] {
   }));
 }
 
-// Placeholder: Restricciones no existen aún en el sistema
+// Obtener restricciones disponibles (combinadas: dimensiones + validación)
 export function getAvailableRestrictions(): RestrictionItem[] {
-  return [];
+  const dimensionRestrictions = getDimensionRestrictions();
+  const validationRestrictions = getValidationRestrictions();
+
+  const restrictions: RestrictionItem[] = [
+    // Restricciones de Dimensiones
+    ...dimensionRestrictions.map((r) => ({
+      id: r.id,
+      name: r.name,
+    })),
+    // Restricciones de Validación
+    ...validationRestrictions.map((r) => ({
+      id: r.id,
+      name: r.name,
+    })),
+  ];
+
+  return restrictions;
 }
 
 // Descargar plantilla Excel con datos reales del catálogo

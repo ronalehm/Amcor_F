@@ -11,7 +11,7 @@ import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
 
 type StepProps = {
   form: ProjectEditFormData;
-  updateField: (field: keyof ProjectEditFormData, value: string | string[]) => void;
+  updateField: (field: keyof ProjectEditFormData, value: string | string[] | boolean) => void;
   markFieldAsTouched: (field: keyof ProjectEditFormData) => void;
   getError: (field: keyof ProjectEditFormData) => string;
   shouldShowFieldError: (field: keyof ProjectEditFormData) => boolean;
@@ -769,31 +769,27 @@ export default function ProductStep2Structure({
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Perforación para aire
+                    <label className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean((form as any).perforacionParaAire)}
+                        onChange={(e) => updateField("perforacionParaAire", e.target.checked)}
+                        className="rounded"
+                      />
+                      <span className="text-sm font-medium text-slate-700">Perforación para aire</span>
                     </label>
-                    <SegmentedControl
-                      options={[
-                        { value: "Sí", label: "Sí" },
-                        { value: "No", label: "No" },
-                      ]}
-                      value={form.perforacionParaAire || ""}
-                      onChange={(value) => updateField("perforacionParaAire", value)}
-                    />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Perforación fuga aire
+                    <label className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean((form as any).perforacionFugaAire)}
+                        onChange={(e) => updateField("perforacionFugaAire", e.target.checked)}
+                        className="rounded"
+                      />
+                      <span className="text-sm font-medium text-slate-700">Perforación fuga aire</span>
                     </label>
-                    <SegmentedControl
-                      options={[
-                        { value: "Sí", label: "Sí" },
-                        { value: "No", label: "No" },
-                      ]}
-                      value={form.perforacionFugaAire || ""}
-                      onChange={(value) => updateField("perforacionFugaAire", value)}
-                    />
                   </div>
 
                   <FormInput

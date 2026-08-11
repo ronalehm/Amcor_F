@@ -141,49 +141,7 @@ export function extractProductEditPageCatalogs(): Record<
     };
   }
 
-  // 4. Wicket de Control
-  if (PRODUCT_CATALOGS.wicketDeControl) {
-    catalogs['wicketDeControl'] = {
-      id: 'wicketDeControl',
-      name: 'Wicket de Control',
-      code: 'CTL',
-      description: 'Métodos de control para wicket',
-      source: 'ODISEO',
-      pageOrigin: 'ProductEditPage',
-      values: PRODUCT_CATALOGS.wicketDeControl.values.map((value: string) => ({
-        code: value.substring(0, 3).toUpperCase(),
-        label: value,
-        active: true,
-      })),
-      version: '1.0',
-      lastUpdated: new Date(),
-      ownerSystem: 'ODISEO',
-      editable: true,
-    };
-  }
-
-  // 5. Microperforado
-  if (PRODUCT_CATALOGS.microperforado) {
-    catalogs['microperforado'] = {
-      id: 'microperforado',
-      name: 'Microperforado',
-      code: 'MIC',
-      description: 'Tipos de microperforado disponibles',
-      source: 'ODISEO',
-      pageOrigin: 'ProductEditPage',
-      values: PRODUCT_CATALOGS.microperforado.values.map((value: string) => ({
-        code: value.substring(0, 3).toUpperCase(),
-        label: value,
-        active: true,
-      })),
-      version: '1.0',
-      lastUpdated: new Date(),
-      ownerSystem: 'ODISEO',
-      editable: true,
-    };
-  }
-
-  // 6. Zipper
+  // 4. Zipper
   if (PRODUCT_CATALOGS.zipper) {
     catalogs['zipper'] = {
       id: 'zipper',

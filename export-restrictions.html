@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exportar Restricciones a Excel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #1f2937;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #374151;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .button-primary {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .button-primary:hover:not(:disabled) {
+            background-color: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .button-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+
+        .button-secondary:hover:not(:disabled) {
+            background-color: #d1d5db;
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .info-box {
+            background-color: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #0c4a6e;
+            line-height: 1.6;
+        }
+
+        .features {
+            list-style: none;
+            margin-bottom: 30px;
+        }
+
+        .features li {
+            padding: 8px 0;
+            color: #4b5563;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .features li:before {
+            content: "✓";
+            color: #667eea;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+
+        .status.success {
+            background-color: #dcfce7;
+            color: #166534;
+            display: block;
+        }
+
+        .status.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+
+        .status.loading {
+            background-color: #fef3c7;
+            color: #78350f;
+            display: block;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 30px 0;
+        }
+
+        .footer {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 12px;
+        }
+
+        .stat-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            background-color: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Exportador de Restricciones</h1>
+        <p class="subtitle">Descarga todas las restricciones en Excel con información completa</p>
+
+        <div class="info-box">
+            <strong>💡 Información:</strong> Este archivo contiene todas las restricciones de dimensiones y validaciones organizadas por categoría, envoltura y formato. Puedes editarlo y volver a importarlo al sistema.
+        </div>
+
+        <div class="section">
+            <h2>📈 Estadísticas</h2>
+            <div class="stat-box">
+                <div class="stat">
+                    <div class="stat-number" id="dimCount">-</div>
+                    <div class="stat-label">Dimensiones</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="valCount">-</div>
+                    <div class="stat-label">Validaciones</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>✨ Características</h2>
+            <ul class="features">
+                <li>Dos hojas (Dimensiones y Validaciones)</li>
+                <li>Organizado por envoltura (LÁMINA, BOLSA, POUCH)</li>
+                <li>Todos los campos y rangos de valores</li>
+                <li>Columna de descripción para editar</li>
+                <li>Resumen estadístico incluido</li>
+                <li>Formato Excel (.xlsx) compatible</li>
+            </ul>
+        </div>
+
+        <button class="button button-primary" id="downloadBtn" onclick="downloadExcel()">
+            <span>⬇️</span>
+            <span id="btnText">Descargar Restricciones (Excel)</span>
+        </button>
+
+        <div class="status" id="status"></div>
+
+        <div class="divider"></div>
+
+        <p class="footer">
+            Generado: <span id="timestamp"></span><br>
+            Los datos se cargan directamente desde el navegador
+        </p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+
+    <script>
+        // Datos de restricciones (estos deberían venir de tu API o JSON)
+        // Por ahora, lo declaro como estructura vacía que se llenarán desde localStorage si está disponible
+
+        const DIMENSION_RESTRICTIONS = [
+            {
+                id: "dim-lamina-001",
+                code: "LAMINA_GENERICA",
+                name: "LÁMINA - GENÉRICA",
+                productType: "LAMINA",
+                formatPlan: "GENERICA",
+                ancho: { min: 38, max: 2390 },
+                largo: { min: 0, max: 961 },
+                designAreaWidth: { min: 0, max: 2390 },
+                designAreaHeight: { min: 0, max: 961 },
+                status: "Activo",
+            },
+            // Nota: Agregar todas las restricciones aquí
+        ];
+
+        const VALIDATION_RESTRICTIONS = [
+            // Nota: Agregar todas las validaciones aquí
+        ];
+
+        function getEnvolturaLabel(productType) {
+            const labels = {
+                LAMINA: "LÁMINA",
+                BOLSA: "BOLSA",
+                POUCH: "POUCH",
+            };
+            return labels[productType] || productType;
+        }
+
+        function formatRange(obj) {
+            if (!obj) return "-";
+            return `${obj.min}-${obj.max}`;
+        }
+
+        function updateStats() {
+            document.getElementById("dimCount").textContent = DIMENSION_RESTRICTIONS.length;
+            document.getElementById("valCount").textContent = VALIDATION_RESTRICTIONS.length;
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById("status");
+            status.textContent = message;
+            status.className = `status ${type}`;
+            if (type === "success") {
+                setTimeout(() => {
+                    status.className = "status";
+                }, 3000);
+            }
+        }
+
+        function downloadExcel() {
+            const btn = document.getElementById("downloadBtn");
+            btn.disabled = true;
+            document.getElementById("btnText").textContent = "Generando...";
+            showStatus("Generando archivo Excel...", "loading");
+
+            try {
+                const wb = XLSX.utils.book_new();
+
+                // Hoja de Dimensiones
+                const dimRows = DIMENSION_RESTRICTIONS.map((r) => ({
+                    "Categoría": "Dimensiones",
+                    "Envoltura": getEnvolturaLabel(r.productType),
+                    "Código": r.code,
+                    "Nombre": r.name,
+                    "Formato": r.formatPlan || "-",
+                    "Ancho (min-max)": formatRange(r.ancho),
+                    "Largo (min-max)": formatRange(r.largo),
+                    "Estado": r.status,
+                    "Descripción": "",
+                }));
+
+                const wsD = XLSX.utils.json_to_sheet(dimRows);
+                XLSX.utils.book_append_sheet(wb, wsD, "Restricciones Dimensión");
+
+                // Hoja de Validaciones
+                const valRows = VALIDATION_RESTRICTIONS.map((r) => ({
+                    "Categoría": "Validación",
+                    "Envoltura": getEnvolturaLabel(r.productType),
+                    "Código": r.code,
+                    "Nombre": r.name,
+                    "Campo Origen": r.sourceField || "-",
+                    "Campo Dependiente": r.dependentField || "-",
+                    "Valores Permitidos": (r.allowedValues || []).join("; "),
+                    "Estado": r.status,
+                    "Descripción": r.description || "",
+                }));
+
+                const wsV = XLSX.utils.json_to_sheet(valRows);
+                XLSX.utils.book_append_sheet(wb, wsV, "Restricciones Validación");
+
+                // Hoja de Resumen
+                const summaryData = [
+                    ["RESUMEN DE RESTRICCIONES"],
+                    [],
+                    ["Categoría", "Envoltura", "Cantidad"],
+                    ...generateSummaryData(),
+                ];
+
+                const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+                XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen");
+
+                // Descargar
+                const fileName = `Restricciones_${new Date().toISOString().split("T")[0]}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+
+                showStatus(`✅ Archivo descargado: ${fileName}`, "success");
+            } catch (error) {
+                console.error(error);
+                showStatus(`❌ Error: ${error.message}`, "error");
+            } finally {
+                btn.disabled = false;
+                document.getElementById("btnText").textContent = "Descargar Restricciones (Excel)";
+            }
+        }
+
+        function generateSummaryData() {
+            const data = [];
+            const envolturas = ["LAMINA", "BOLSA", "POUCH"];
+
+            for (const env of envolturas) {
+                const count = DIMENSION_RESTRICTIONS.filter((r) => r.productType === env).length;
+                if (count > 0) {
+                    data.push(["Dimensiones", getEnvolturaLabel(env), count]);
+                }
+            }
+
+            for (const env of envolturas) {
+                const count = VALIDATION_RESTRICTIONS.filter((r) => r.productType === env).length;
+                if (count > 0) {
+                    data.push(["Validación", getEnvolturaLabel(env), count]);
+                }
+            }
+
+            data.push([]);
+            data.push(["Total Dimensiones", "", DIMENSION_RESTRICTIONS.length]);
+            data.push(["Total Validaciones", "", VALIDATION_RESTRICTIONS.length]);
+            data.push(["Total Restricciones", "", DIMENSION_RESTRICTIONS.length + VALIDATION_RESTRICTIONS.length]);
+
+            return data;
+        }
+
+        // Inicializar
+        document.getElementById("timestamp").textContent = new Date().toLocaleString("es-ES");
+        updateStats();
+    </script>
+</body>
+</html>

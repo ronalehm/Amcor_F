@@ -146,7 +146,7 @@ export type ProjectEditFormData = {
   printForm: string;
   designAreaWidth: string;
   designAreaHeight: string;
-  coPrinting: string;
+  coPrinting: boolean;
   codesToPrint: string;
   rewindingDirection: string;
   rewindingDirectionRef: string;
@@ -304,7 +304,7 @@ export type ProjectEditFormData = {
   perforationLocation: string;
   tipoPerfPouchSelloCentral: string;
   tipoPerfFuelleBolsaWicket: string;
-  perforacionParaAire: string;
+  perforacionParaAire: boolean;
   perforacionFugaAire: string;
   distMargenSuperiorPerforacion: string;
   distFuellePerforacion: string;
@@ -2485,7 +2485,7 @@ export default function ProductEditPage() {
     printForm: "",
     designAreaWidth: "",
     designAreaHeight: "",
-    coPrinting: "",
+    coPrinting: false,
     codesToPrint: "",
     rewindingDirection: "",
     rewindingDirectionRef: "",
@@ -2630,7 +2630,7 @@ export default function ProductEditPage() {
     perforationLocation: "",
     tipoPerfPouchSelloCentral: "",
     tipoPerfFuelleBolsaWicket: "",
-    perforacionParaAire: "",
+    perforacionParaAire: false,
     perforacionFugaAire: "",
     distMargenSuperiorPerforacion: "",
     distFuellePerforacion: "",
@@ -2729,15 +2729,9 @@ export default function ProductEditPage() {
   const classificationOpt = useMemo(() => {
     return getActiveProductClassificationOptions();
   }, []);
-  const subclassificationOpt = useMemo(() => getCatalogOptions("subclassification"), []);
   // unitOfMeasureOpt removed - using UNIT_OPTIONS from PRODUCT_CATALOGS directly
   const printClassOpt = useMemo(() => getCatalogOptions("print_class"), []);
   const printTypeOpt = useMemo(() => getCatalogOptions("print_type"), []);
-  const structureTypeOpt = useMemo(() => getCatalogOptions("structure_type"), []);
-  const saleTypeOpt = useMemo(() => getCatalogOptions("sale_type"), []);
-  const incotermOpt = useMemo(() => getCatalogOptions("incoterm"), []);
-  const countryOpt = useMemo(() => getCatalogOptions("destination_country"), []);
-  const currencyOpt = useMemo(() => getCatalogOptions("currency"), []);
   const zipperTypeOpt = useMemo(() => getCatalogOptions("zipper_type"), []);
   const valveTypeOpt = useMemo(() => getCatalogOptions("valve_type"), []);
   const roundedCornersOpt = useMemo(() => getCatalogOptions("rounded_corners_type"), []);
@@ -2911,7 +2905,7 @@ if (!project) {
       printForm: (project as any).printForm || "",
       designAreaWidth: (project as any).designAreaWidth || "",
       designAreaHeight: (project as any).designAreaHeight || "",
-      coPrinting: (project as any).coPrinting || "",
+      coPrinting: Boolean((project as any).coPrinting),
       codesToPrint: (project as any).codesToPrint || "",
       rewindingDirection: (project as any).rewindingDirection || "",
       rewindingDirectionRef: (project as any).rewindingDirectionRef || "",
@@ -3087,7 +3081,7 @@ if (!project) {
       perforationLocation: project.perforationLocation || "",
       tipoPerfPouchSelloCentral: (project as any).tipoPerfPouchSelloCentral || "",
       tipoPerfFuelleBolsaWicket: (project as any).tipoPerfFuelleBolsaWicket || "",
-      perforacionParaAire: toYesNo((project as any).perforacionParaAire),
+      perforacionParaAire: Boolean((project as any).perforacionParaAire),
       perforacionFugaAire: toYesNo((project as any).perforacionFugaAire),
       distMargenSuperiorPerforacion: (project as any).distMargenSuperiorPerforacion || "",
       distFuellePerforacion: (project as any).distFuellePerforacion || "",
@@ -3672,7 +3666,7 @@ if (!project) {
     form.tieneFuelleSelloCentralPouch,
     form.tipoSelloFuellePouch,
   ]);
-  const updateField = (field: keyof ProjectEditFormData, value: string | string[]) => {
+  const updateField = (field: keyof ProjectEditFormData, value: string | string[] | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -6103,26 +6097,23 @@ if (!project) {
 
                               {/* Co-printing para LÁMINA */}
                               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-6 pt-6 border-t border-slate-200">
-                                <FormSelect
-                                  label="¿Co-printing?"
-                                  value={form.coPrinting}
-                                  onChange={(value) => {
-                                    updateField("coPrinting", value);
-                                    if (value === "No") {
-                                      updateField("codesToPrint", "");
-                                    }
-                                    markFieldAsTouched("coPrinting");
-                                  }}
-                                  onBlur={() => markFieldAsTouched("coPrinting")}
-                                  error={getError("coPrinting")}
-                                  options={[
-                                    { value: "Sí", label: "Sí" },
-                                    { value: "No", label: "No" },
-                                  ]}
-                                  placeholder="-- Seleccione --"
-                                />
+                                <label className="flex items-center gap-2 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(form.coPrinting)}
+                                    onChange={(e) => {
+                                      updateField("coPrinting", e.target.checked);
+                                      if (!e.target.checked) {
+                                        updateField("codesToPrint", "");
+                                      }
+                                      markFieldAsTouched("coPrinting");
+                                    }}
+                                    className="rounded"
+                                  />
+                                  <span className="text-sm font-medium text-slate-700">¿Co-printing?</span>
+                                </label>
 
-                                {form.coPrinting === "Sí" && (
+                                {form.coPrinting && (
                                   <FormInput
                                     label="Códigos a imprimir *"
                                     value={form.codesToPrint}
@@ -6831,8 +6822,8 @@ if (!project) {
                                                 <label className="flex items-center gap-2 cursor-pointer">
                                                   <input
                                                     type="checkbox"
-                                                    checked={form.perforacionParaAire === "Sí"}
-                                                    onChange={(e) => updateField("perforacionParaAire", e.target.checked ? "Sí" : "No")}
+                                                    checked={Boolean(form.perforacionParaAire)}
+                                                    onChange={(e) => updateField("perforacionParaAire", e.target.checked)}
                                                     className="w-4 h-4 rounded border-slate-300 cursor-pointer"
                                                   />
                                                   <span className="text-sm text-slate-700">Perforación para Aire</span>
@@ -7416,8 +7407,8 @@ if (!project) {
                   </div>
                 )}
 
-                {/* BLOQUE 3: SENTIDO DE BOBINADO */}
-                {canEditDesign && (
+                {/* BLOQUE 3: SENTIDO DE BOBINADO - SOLO LÁMINA */}
+                {canEditDesign && isLaminaWrapping(inheritedWrapping) && (
                   <FormCard title="Sentido de Embobinado" icon="🔄" color="#27ae60">
                     <div className="space-y-4">
                       <RewindingDirectionSelector

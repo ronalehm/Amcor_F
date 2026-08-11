@@ -109,11 +109,6 @@ export const PRODUCT_CATALOGS = {
     { code: "OZ", label: "OZ" },
     { code: "UNI", label: "UNI" },
   ],
-  tieneEstructuraDeReferencia: {
-    label: "¿Tiene Estructura de Referencia?",
-    code: "ENV",
-    values: ["Sí", "No"],
-  },
   especificacionesDeDisenoEspeciales: {
     label: "Especificaciones de Diseño Especiales",
     code: "EDE",
@@ -152,11 +147,6 @@ export const PRODUCT_CATALOGS = {
     label: "Tipo de Estructura",
     code: "TDE",
     values: ["Monocapa", "Bilaminado", "Trilaminado", "Tetralaminado"],
-  },
-  solicitudDeMuestra: {
-    label: "¿Solicitud de Muestra?",
-    code: "SMT",
-    values: ["Sí", "No"],
   },
   baseDelDoypack: {
     label: "Base del DoyPack",
@@ -197,11 +187,6 @@ export const PRODUCT_CATALOGS = {
     code: "TPB",
     values: ["Cruz 5 mm", "Cruz 7 mm", "Media Luna D 5 mm"],
   },
-  perforacionParaAire: {
-    label: "Perforación para aire",
-    code: "PPA",
-    values: ["Sí", "No"],
-  },
   precorteAbreFacilEnFuelle: {
     label: "Precorte (Abre facil en fuelle)",
     code: "PAF",
@@ -235,11 +220,6 @@ export const PRODUCT_CATALOGS = {
       "Circular 10 mm",
     ],
   },
-  fotocelulaBolsaWicket: {
-    label: "Fotocélula Bolsa Wicket",
-    code: "FBW",
-    values: ["Sí", "No"],
-  },
   repeticionExactaDeDoypack: {
     label: "Repetición Exacta de DoyPack",
     code: "DPK",
@@ -249,16 +229,6 @@ export const PRODUCT_CATALOGS = {
     label: "Tolerancia Repetición exacta DoyPack",
     code: "TDP",
     values: ["0.15"],
-  },
-  perforacionParaFugaDeAire: {
-    label: "Perforacion para fuga de aire",
-    code: "PFA",
-    values: ["Sí", "No"],
-  },
-  microperforado: {
-    label: "Microperforado",
-    code: "MPF",
-    values: ["Sí", "No"],
   },
   ladoMicroperforado: {
     label: "Lado microperforado",
@@ -294,11 +264,6 @@ export const PRODUCT_CATALOGS = {
     code: "SDP",
     values: ["Avena 20-20 mm", "Fideos/Detergente 30-30 mm", "Detergente 40-40 mm"],
   },
-  rinonera: {
-    label: "Riñonera",
-    code: "RNR",
-    values: ["Sí", "No"],
-  },
   preCorte: {
     label: "Pre-corte",
     code: "PRE",
@@ -321,11 +286,6 @@ export const PRODUCT_CATALOGS = {
       "Sentido 7",
       "Sentido 8",
     ],
-  },
-  elDisenoLlevaFotocelula: {
-    label: "¿El diseño lleva fotocélula?",
-    code: "DFT",
-    values: ["Sí", "No"],
   },
   ubicacionDeFotocelula: {
     label: "Ubicación de fotocélula",
@@ -460,29 +420,6 @@ export const PRODUCT_CATALOGS = {
       "Cambio de insumo no homologado",
     ],
   },
-  // Catálogo consolidado de todos los motivos (para retrocompatibilidad)
-  motivo: {
-    label: "Motivo",
-    code: "MOT",
-    values: [
-      "Nueva estructura",
-      "Nuevos insumos",
-      "Nuevo formato de envasado",
-      "Nuevo diseño",
-      "Nuevo equipamiento / proceso / temperatura",
-      "Modifica dimensiones",
-      "Modifica propiedades",
-      "Cambia estructura",
-      "Cambia materia prima",
-      "Cambia diseño",
-      "Misma estructura",
-      "Cambia dimensión fuera de tolerancia",
-      "Cambia diseño por variante",
-      "Referencia aprobada sin cambios",
-      "Mismo producto, misma especificación",
-      "Cambio de insumo no homologado",
-    ],
-  },
   familiaDePouch: {
     label: "Familia de Pouch",
     code: "FPC",
@@ -507,11 +444,6 @@ export const PRODUCT_CATALOGS = {
     label: "Cantidad de sellos",
     code: "CDE",
     values: ["Dos sellos", "Tres sellos"],
-  },
-  tendraFuelle: {
-    label: "¿Tendrá fuelle?",
-    code: "TFL",
-    values: ["Sí", "No"],
   },
   materialDelSelloCentral: {
     label: "Material del Sello central",
@@ -558,11 +490,6 @@ export const PRODUCT_CATALOGS = {
     code: "ADH",
     values: ["D 12 mm", "D 14 mm", "D 16 mm"],
   },
-  wicketDeControl: {
-    label: "Wicket de control",
-    code: "WCL",
-    values: ["Sí", "No"],
-  },
   diametroDeWicketDeControl: {
     label: "Diámetro de Wicket de control",
     code: "DWC",
@@ -572,11 +499,6 @@ export const PRODUCT_CATALOGS = {
     label: "Ubicación Wicket de control",
     code: "USP",
     values: ["Superior", "Inferior"],
-  },
-  precorteWicket: {
-    label: "Precorte wicket",
-    code: "PWK",
-    values: ["Sí", "No"],
   },
   ubicacionDelPrecorteWicket: {
     label: "Ubicación del precorte wicket",
@@ -612,11 +534,6 @@ export const PRODUCT_CATALOGS = {
     label: "Aprobador",
     code: "APR",
     values: ["Cliente", "Supervisor", "Ejecutivo Comercial / Coordinador AAGG"],
-  },
-  coPrinting: {
-    label: "Co-printing",
-    code: "COP",
-    values: ["Sí", "No"],
   },
   planta: {
     label: "Planta",
@@ -1405,7 +1322,6 @@ export const PRODUCT_FIELD_CATALOG_MAP: Record<
   "P2:Cantidad de sellos": "cantidadDeSellos",
   "P2:Impresión*": "claseDeImpresion",
   "P1:Clasificación": "clasificacion",
-  "P2:Co-printing": "coPrinting",
   "P2:Distancia del margen derecho al precorte wicket": "distanciaDelMargenDerechoAlPrecorteWicket",
   "P2:Diámetro de Wicket": "diametroDeWicket",
   "P2:Diámetro de wicket de control": "diametroDeWicketDeControl",
@@ -1414,14 +1330,11 @@ export const PRODUCT_FIELD_CATALOG_MAP: Record<
   "P2:Tipo de Esquinas Redondas": "esquinasPr",
   "P2:Familia de Pouch": "familiaDePouch",
   "P2:Forma de impresión": "formaDeImpresion",
-  "P2:Fotocélula Bolsa Wicket": "fotocelulaBolsaWicket",
   "P2:Fuelle Plano": "fuellePlano",
   "P2:Lado Corte Angular": "ladoCorteAngular",
   "P2:Lado de microperforado": "ladoMicroperforado",
   "P1:Nombre del Cliente": "MAESTRO_CLIENTES",
   "P2:Material del sello Central": "materialDelSelloCentral",
-  "P2:Microperforado": "microperforado",
-  "P1:Modificación": "motivo",
   "P1:Materiales Capa 1": "numeroDeMicrajePolietilenoPorCapa",
   "P1:Número de Micraje - Capa 1": "numeroDeMicrajePolietilenoPorCapa",
   "P1:Materiales Capa 2": "numeroDeMicrajePolietilenoPorCapa",
@@ -1431,15 +1344,11 @@ export const PRODUCT_FIELD_CATALOG_MAP: Record<
   "P1:Materiales Capa 4": "numeroDeMicrajePolietilenoPorCapa",
   "P1:Número de Micraje - Capa 4": "numeroDeMicrajePolietilenoPorCapa",
   "P3:Objetivo de color": "objetivoDeColor",
-  "P2:Perforación de fuga de aire": "perforacionParaFugaDeAire",
-  "P2:Perforación para aire": "perforacionParaAire",
   "P1:Planta de Origen": "PENDING_DEFINITION",
   "P2:Tipo de pre-corte": "preCorte",
   "P2:Precorte (Abre facil en fuelle)": "precorteAbreFacilEnFuelle",
   "P2:Precorte (Abre facil en fuelle) a 10 mm del centro": "precorteAbreFacilEnFuelleA10MmDelCentro",
-  "P2:Precorte wicket": "precorteWicket",
   "P2:Repetición exacta Doypack": "repeticionExactaDeDoypack",
-  "P2:Riñonera": "rinonera",
   "P2:Sentido de embobinado": "sentidoDeEmbobinado",
   "P2:Separación de púas": "separacionDePuas",
   "P1:Envasado / Máquina de cliente": "tipoDeEnvasadoMaquinaDeCliente",
@@ -1459,12 +1368,6 @@ export const PRODUCT_FIELD_CATALOG_MAP: Record<
   "P2:Ubicación de fotocélula": "ubicacionDeFotocelula",
   "P2:Ubicación de precorte wicket": "ubicacionDelPrecorteWicket",
   "P1:Unidad de medida": "unidadDeMedida",
-  "P2:Wicket de control": "wicketDeControl",
-  "P2:¿El diseño lleva fotocélula?": "elDisenoLlevaFotocelula",
-  "P2:¿Solicitud de Muestra?*": "solicitudDeMuestra",
-  "P2:¿Tendrá Fuelle?": "tendraFuelle",
-  "P3:¿Tiene Diseño de Referencia?": "tieneEstructuraDeReferencia",
-  "P3:¿Tiene Archivos Digitales?": "tieneEstructuraDeReferencia",
   "P4:Embalaje de Productos de Exportación": "PENDING_DEFINITION",
   "P4:Embalaje de material": "PENDING_DEFINITION",
   "P4:Empalmes": "PENDING_DEFINITION",

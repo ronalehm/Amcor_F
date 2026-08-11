@@ -91,10 +91,6 @@ export default function CatalogSearch({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-2">
-        Catálogo a actualizar *
-      </label>
-
       <div className="relative">
         <Search
           size={16}

@@ -562,7 +562,7 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     sortOrder: 2,
   },
 
-  // ============ STRUCTURE_TYPE (Tipo de Estructura - 6 items) ============
+  // ============ STRUCTURE_TYPE (Tipo de Estructura - 4 items) ============
   {
     id: "st_str_001",
     catalogId: "catalog_structure_type",
@@ -578,7 +578,7 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     catalogId: "catalog_structure_type",
     catalogCode: "structure_type",
     item: "ST-002",
-    name: "Dúplex",
+    name: "Bilaminado",
     description: "Estructura de dos capas",
     status: "Activo",
     sortOrder: 2,
@@ -588,7 +588,7 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     catalogId: "catalog_structure_type",
     catalogCode: "structure_type",
     item: "ST-003",
-    name: "Tríplex",
+    name: "Trilaminado",
     description: "Estructura de tres capas",
     status: "Activo",
     sortOrder: 3,
@@ -598,30 +598,10 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     catalogId: "catalog_structure_type",
     catalogCode: "structure_type",
     item: "ST-004",
-    name: "Cuádruple",
+    name: "Tetralaminado",
     description: "Estructura de cuatro capas",
     status: "Activo",
     sortOrder: 4,
-  },
-  {
-    id: "st_str_005",
-    catalogId: "catalog_structure_type",
-    catalogCode: "structure_type",
-    item: "ST-005",
-    name: "Coextruida",
-    description: "Estructura coextruida",
-    status: "Activo",
-    sortOrder: 5,
-  },
-  {
-    id: "st_str_006",
-    catalogId: "catalog_structure_type",
-    catalogCode: "structure_type",
-    item: "ST-006",
-    name: "Laminada",
-    description: "Estructura laminada",
-    status: "Activo",
-    sortOrder: 6,
   },
 
   // ============ FINAL_USE (Uso Final - 10+ items de FINAL_USE_CATALOG) ============
@@ -992,6 +972,26 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     catalogId: "catalog_portfolio_status",
     catalogCode: "portfolio_status",
     item: "PS-002",
+    name: "Inactivo",
+    status: "Activo",
+    sortOrder: 2,
+  },
+
+  // ============ PRODUCT_STATUS (Estado de Producto - 2 items) ============
+  {
+    id: "pst_001",
+    catalogId: "catalog_product_status",
+    catalogCode: "product_status",
+    item: "PST-001",
+    name: "Activo",
+    status: "Activo",
+    sortOrder: 1,
+  },
+  {
+    id: "pst_002",
+    catalogId: "catalog_product_status",
+    catalogCode: "product_status",
+    item: "PST-002",
     name: "Inactivo",
     status: "Activo",
     sortOrder: 2,
