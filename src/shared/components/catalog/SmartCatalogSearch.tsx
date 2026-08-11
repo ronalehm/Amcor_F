@@ -47,6 +47,7 @@ export default function SmartCatalogSearch({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [dropdownPosition, setDropdownPosition] = useState<"bottom" | "top">("bottom");
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const [isSelectingOption, setIsSelectingOption] = useState(false);
 
   // Sincronizar query con el valor del padre cuando hay una selección
   useEffect(() => {
@@ -63,16 +64,21 @@ export default function SmartCatalogSearch({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Si estamos seleccionando una opción, no cerrar
+      if (isSelectingOption) return;
+
       if (
         wrapperRef.current &&
-        !wrapperRef.current.contains(event.target as Node)
+        !wrapperRef.current.contains(event.target as Node) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isSelectingOption]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -160,10 +166,14 @@ export default function SmartCatalogSearch({
   };
 
   const selectOption = (option: SmartCatalogOption) => {
+    // Marcar que estamos seleccionando para evitar que handleClickOutside cierre el dropdown
+    setIsSelectingOption(true);
     onChange(String(option.id));
     setQuery(option.name);
     setIsOpen(false);
     setSelectedIndex(-1);
+    // Limpiar el flag después de que se procese la selección
+    setTimeout(() => setIsSelectingOption(false), 0);
   };
 
   const showDropdown = isOpen && (query.trim().length === 0 || filteredOptions.length > 0);
@@ -208,9 +218,16 @@ export default function SmartCatalogSearch({
                 <button
                   key={option.id}
                   type="button"
-                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  onClick={() => selectOption(option)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectOption(option);
+                  }}
                   className={`block w-full border-b border-slate-100 px-3 py-2 text-left transition-colors last:border-0 ${
                     index === selectedIndex
                       ? "bg-brand-secondary-soft"
