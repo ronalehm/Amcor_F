@@ -11,20 +11,42 @@ import type {
 export interface DimensionRestrictionRow {
   Categoría: string;
   Envoltura: string;
+  Formato: string;
   Código: string;
   "Nombre Restricción": string;
-  Formato: string;
-  "Ancho (min-max)": string;
-  "Largo (min-max)": string;
-  "Ancho Fuelle (min-max)": string;
-  Perímetro: string;
-  Repetición: string;
-  "Diseño Ancho (min-max)": string;
-  "Diseño Altura (min-max)": string;
-  "Separación Púas (min-max)": string;
-  "Distancia Lado Pouch (min-max)": string;
-  "Wicket Diámetro (min-max)": string;
-  "Ancho Sello (min-max)": string;
+  // Ancho
+  "Ancho Min": string;
+  "Ancho Max": string;
+  // Largo
+  "Largo Min": string;
+  "Largo Max": string;
+  // Ancho Fuelle
+  "Ancho Fuelle Min": string;
+  "Ancho Fuelle Max": string;
+  // Perímetro
+  "Perímetro Min": string;
+  "Perímetro Max": string;
+  // Repetición
+  "Repetición Min": string;
+  "Repetición Max": string;
+  // Diseño Ancho
+  "Diseño Ancho Min": string;
+  "Diseño Ancho Max": string;
+  // Diseño Altura
+  "Diseño Altura Min": string;
+  "Diseño Altura Max": string;
+  // Separación Púas
+  "Separación Púas Min": string;
+  "Separación Púas Max": string;
+  // Distancia Lado Pouch
+  "Distancia Lado Pouch Min": string;
+  "Distancia Lado Pouch Max": string;
+  // Wicket Diámetro
+  "Wicket Diámetro Min": string;
+  "Wicket Diámetro Max": string;
+  // Ancho Sello
+  "Ancho Sello Min": string;
+  "Ancho Sello Max": string;
   Estado: string;
   Descripción: string;
 }
@@ -51,42 +73,42 @@ export function exportRestrictionsToExcel(): void {
     (restriction) => ({
       Categoría: "Dimensiones",
       Envoltura: getEnvolturaLabel(restriction.productType),
+      Formato: restriction.formatPlan || "-",
       Código: restriction.code,
       "Nombre Restricción": restriction.name,
-      Formato: restriction.formatPlan || "-",
-      "Ancho (min-max)": restriction.ancho
-        ? `${restriction.ancho.min}-${restriction.ancho.max}`
-        : "-",
-      "Largo (min-max)": restriction.largo
-        ? `${restriction.largo.min}-${restriction.largo.max}`
-        : "-",
-      "Ancho Fuelle (min-max)": restriction.anchoFuelle
-        ? `${restriction.anchoFuelle.min}-${restriction.anchoFuelle.max}`
-        : "-",
-      Perímetro: restriction.perimetro
-        ? `${restriction.perimetro.min}-${restriction.perimetro.max}`
-        : "-",
-      Repetición: restriction.repeticion
-        ? `${restriction.repeticion.min}-${restriction.repeticion.max}`
-        : "-",
-      "Diseño Ancho (min-max)": restriction.designAreaWidth
-        ? `${restriction.designAreaWidth.min}-${restriction.designAreaWidth.max}`
-        : "-",
-      "Diseño Altura (min-max)": restriction.designAreaHeight
-        ? `${restriction.designAreaHeight.min}-${restriction.designAreaHeight.max}`
-        : "-",
-      "Separación Púas (min-max)": restriction.separacionPuas
-        ? `${restriction.separacionPuas.min}-${restriction.separacionPuas.max}`
-        : "-",
-      "Distancia Lado Pouch (min-max)": restriction.distanciaLadoPouch
-        ? `${restriction.distanciaLadoPouch.min}-${restriction.distanciaLadoPouch.max}`
-        : "-",
-      "Wicket Diámetro (min-max)": restriction.wicketDiameter
-        ? `${restriction.wicketDiameter.min}-${restriction.wicketDiameter.max}`
-        : "-",
-      "Ancho Sello (min-max)": restriction.anchoSello
-        ? `${restriction.anchoSello.min}-${restriction.anchoSello.max}`
-        : "-",
+      // Ancho
+      "Ancho Min": restriction.ancho ? String(restriction.ancho.min) : "-",
+      "Ancho Max": restriction.ancho ? String(restriction.ancho.max) : "-",
+      // Largo
+      "Largo Min": restriction.largo ? String(restriction.largo.min) : "-",
+      "Largo Max": restriction.largo ? String(restriction.largo.max) : "-",
+      // Ancho Fuelle
+      "Ancho Fuelle Min": restriction.anchoFuelle ? String(restriction.anchoFuelle.min) : "-",
+      "Ancho Fuelle Max": restriction.anchoFuelle ? String(restriction.anchoFuelle.max) : "-",
+      // Perímetro
+      "Perímetro Min": restriction.perimetro ? String(restriction.perimetro.min) : "-",
+      "Perímetro Max": restriction.perimetro ? String(restriction.perimetro.max) : "-",
+      // Repetición
+      "Repetición Min": restriction.repeticion ? String(restriction.repeticion.min) : "-",
+      "Repetición Max": restriction.repeticion ? String(restriction.repeticion.max) : "-",
+      // Diseño Ancho
+      "Diseño Ancho Min": restriction.designAreaWidth ? String(restriction.designAreaWidth.min) : "-",
+      "Diseño Ancho Max": restriction.designAreaWidth ? String(restriction.designAreaWidth.max) : "-",
+      // Diseño Altura
+      "Diseño Altura Min": restriction.designAreaHeight ? String(restriction.designAreaHeight.min) : "-",
+      "Diseño Altura Max": restriction.designAreaHeight ? String(restriction.designAreaHeight.max) : "-",
+      // Separación Púas
+      "Separación Púas Min": restriction.separacionPuas ? String(restriction.separacionPuas.min) : "-",
+      "Separación Púas Max": restriction.separacionPuas ? String(restriction.separacionPuas.max) : "-",
+      // Distancia Lado Pouch
+      "Distancia Lado Pouch Min": restriction.distanciaLadoPouch ? String(restriction.distanciaLadoPouch.min) : "-",
+      "Distancia Lado Pouch Max": restriction.distanciaLadoPouch ? String(restriction.distanciaLadoPouch.max) : "-",
+      // Wicket Diámetro
+      "Wicket Diámetro Min": restriction.wicketDiameter ? String(restriction.wicketDiameter.min) : "-",
+      "Wicket Diámetro Max": restriction.wicketDiameter ? String(restriction.wicketDiameter.max) : "-",
+      // Ancho Sello
+      "Ancho Sello Min": restriction.anchoSello ? String(restriction.anchoSello.min) : "-",
+      "Ancho Sello Max": restriction.anchoSello ? String(restriction.anchoSello.max) : "-",
       Estado: restriction.status,
       Descripción: "",
     })
