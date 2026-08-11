@@ -242,6 +242,7 @@ export function exportCatalogToExcel(catalogCode: string): {
     Item: string;
     Nombre: string;
     Estado: string;
+    Descripción: string;
   }>;
 } {
   const catalogDef = getCatalogByCode(catalogCode);
@@ -256,6 +257,7 @@ export function exportCatalogToExcel(catalogCode: string): {
     Item: v.item,
     Nombre: v.name,
     Estado: v.status,
+    Descripción: v.description || "",
   }));
 
   return {
