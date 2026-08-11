@@ -1,6 +1,8 @@
 import * as XLSX from "xlsx";
-import { getCatalogs, getCatalogValues } from "../../../shared/catalogs";
+import { getCatalogs, getCatalogValues, exportCatalogToExcel } from "../../../shared/catalogs";
 import { getAvailableRestrictions } from "./catalogRestrictionService";
+import { exportRestrictionsToExcel } from "../utils/exportRestrictionsToExcel";
+import { getDimensionRestrictions, getValidationRestrictions } from "../../../shared/data/restrictionCatalogsStorage";
 
 export async function exportAllCatalogs(): Promise<void> {
   const catalogs = getCatalogs();
@@ -100,47 +102,62 @@ export async function exportAllRestrictions(): Promise<void> {
 
 export async function exportAllData(): Promise<void> {
   const catalogs = getCatalogs();
-  const restrictions = getAvailableRestrictions();
   const wb = XLSX.utils.book_new();
 
-  // Agregar catálogos
+  // Agregar catálogos con datos completos
   for (const catalog of catalogs) {
-    const values = getCatalogValues(catalog.code);
+    const exportData = exportCatalogToExcel(catalog.code);
+    const ws = XLSX.utils.json_to_sheet(exportData.data);
 
-    const data = values.map((v) => ({
-      Item: v.item,
-      Nombre: v.name,
-      Descripción: v.description || "",
-      Estado: v.status,
-      Orden: v.sortOrder,
+    // Auto-ajustar ancho de columnas
+    const colWidths = Object.keys(exportData.data[0] || {}).map((key) => ({
+      wch: Math.max(
+        key.length,
+        Math.max(
+          ...exportData.data.map((row) => String(row[key] || "").length)
+        )
+      ),
     }));
-
-    const ws = XLSX.utils.json_to_sheet(data);
-    ws["!cols"] = [
-      { wch: 12 },
-      { wch: 20 },
-      { wch: 30 },
-      { wch: 12 },
-      { wch: 8 },
-    ];
+    ws["!cols"] = colWidths;
 
     XLSX.utils.book_append_sheet(wb, ws, `CAT_${catalog.code}`);
   }
 
-  // Agregar restricciones si las hay
-  if (restrictions.length > 0) {
-    const restrictionData = restrictions.map((r) => ({
-      ID: r.id,
-      Nombre: r.name,
+  // Agregar restricciones de dimensión
+  const dimensionRestrictions = getDimensionRestrictions();
+  if (dimensionRestrictions.length > 0) {
+    // Usar la exportación completa de restricciones (que ya tiene las columnas correctas)
+    exportRestrictionsToExcel(); // Esto descarga el archivo, pero necesitamos extraer solo los datos
+
+    // Por ahora, agregamos un resumen básico de restricciones
+    const dimensionData = dimensionRestrictions.map((r) => ({
+      Categoría: "Dimensiones",
+      Envoltura: getEnvolturaLabel(r.productType),
+      Formato: r.formatPlan || "-",
+      Código: r.code,
+      "Nombre Restricción": r.name,
+      Estado: r.status,
     }));
 
-    const restrictionWs = XLSX.utils.json_to_sheet(restrictionData);
-    restrictionWs["!cols"] = [
-      { wch: 20 },
-      { wch: 30 },
-    ];
+    const dimWs = XLSX.utils.json_to_sheet(dimensionData);
+    XLSX.utils.book_append_sheet(wb, dimWs, "REST_Dimensiones");
+  }
 
-    XLSX.utils.book_append_sheet(wb, restrictionWs, "Restricciones");
+  // Agregar restricciones de validación
+  const validationRestrictions = getValidationRestrictions();
+  if (validationRestrictions.length > 0) {
+    const validationData = validationRestrictions.map((r) => ({
+      Categoría: "Validación",
+      Envoltura: getEnvolturaLabel(r.productType),
+      Código: r.code,
+      "Nombre Restricción": r.name,
+      "Campo Origen": r.sourceField,
+      "Campo Dependiente": r.dependentField,
+      Estado: r.status,
+    }));
+
+    const valWs = XLSX.utils.json_to_sheet(validationData);
+    XLSX.utils.book_append_sheet(wb, valWs, "REST_Validaciones");
   }
 
   // Crear hoja de resumen de catálogos
@@ -157,7 +174,6 @@ export async function exportAllData(): Promise<void> {
       Activos: activeCount,
       Inactivos: inactiveCount,
       Bloqueados: blockedCount,
-      Sistema: catalog.ownerSystem,
     };
   });
 
@@ -169,13 +185,25 @@ export async function exportAllData(): Promise<void> {
     { wch: 10 },
     { wch: 12 },
     { wch: 12 },
-    { wch: 15 },
   ];
 
-  XLSX.utils.book_append_sheet(wb, catalogSummaryWs, "Resumen Catálogos");
+  XLSX.utils.book_append_sheet(wb, catalogSummaryWs, "0_Resumen");
   // Move summary sheet to the beginning
   wb.SheetNames.unshift(wb.SheetNames.pop()!);
 
   const timestamp = new Date().toISOString().slice(0, 10);
   XLSX.writeFile(wb, `Catalogos_Restricciones_${timestamp}.xlsx`);
+}
+
+function getEnvolturaLabel(productType: string): string {
+  switch (productType) {
+    case "LAMINA":
+      return "LÁMINA";
+    case "BOLSA":
+      return "BOLSA";
+    case "POUCH":
+      return "POUCH";
+    default:
+      return productType;
+  }
 }
