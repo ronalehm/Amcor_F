@@ -38,7 +38,7 @@ export const APP_ROUTES = {
   },
 
   CATALOG_MANAGEMENT: {
-    LIST: '/catalogs',
-    VIEW_ALL: '/catalogs/view-all',
+    CATALOGS: '/catalogs',
+    RESTRICTIONS: '/catalogs/management',
   }
 };

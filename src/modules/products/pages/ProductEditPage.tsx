@@ -352,75 +352,7 @@ const YES_NO_OPTIONS = [
   { value: "No", label: "No" },
 ];
 
-const COLOR_OBJECTIVE_OPTIONS = [
-  {
-    code: "1",
-    value: "No existe objetivo trabajar a criterio",
-    label: "No existe objetivo trabajar a criterio",
-    catalogCode: "ODC",
-  },
-  {
-    code: "2",
-    value: "Muestra física",
-    label: "Muestra física",
-    catalogCode: "ODC",
-  },
-  {
-    code: "3",
-    value: "Color Pantone del archivo",
-    label: "Color Pantone del archivo",
-    catalogCode: "ODC",
-  },
-  {
-    code: "4",
-    value: "Producción de referencia",
-    label: "Producción de referencia",
-    catalogCode: "ODC",
-  },
-  {
-    code: "5",
-    value: "Otros",
-    label: "Otros",
-    catalogCode: "ODC",
-  },
-];
-
-const PRESS_APPROVER_OPTIONS = [
-  {
-    code: "1",
-    value: "Cliente",
-    label: "Cliente",
-    catalogCode: "APR",
-  },
-  {
-    code: "2",
-    value: "Supervisor",
-    label: "Supervisor",
-    catalogCode: "APR",
-  },
-  {
-    code: "3",
-    value: "Ejecutivo Comercial / Coordinador AAGG",
-    label: "Ejecutivo Comercial / Coordinador AAGG",
-    catalogCode: "APR",
-  },
-];
-
-const ASA_TYPE_OPTIONS = [
-  { value: "Asida", label: "Asida" },
-  { value: "Tirador", label: "Tirador" },
-  { value: "Anilla", label: "Anilla" },
-  { value: "Asa cosida", label: "Asa cosida" },
-];
-
 // Actualizado: usando getCatalogOptions en useMemo abajo
-
-const ASA_SHAPE_OPTIONS = [
-  { value: "Circular", label: "Circular" },
-  { value: "Plana", label: "Plana" },
-  { value: "Rectangular", label: "Rectangular" },
-  { value: "Ovalada", label: "Ovalada" },
-];
 
 // MOT (Motivo de Modificación) - Configuración central que define qué campos se habilitan/bloquean
 const MOT_FIELD_RULES: Record<string, {
@@ -1115,25 +1047,6 @@ const getSubclassificationOptions = (classification: string) => {
   return [];
 };
 
-const PROJECT_TYPE_RD_OPTIONS = [
-  { value: "Producto nuevo", label: "Producto nuevo" },
-  { value: "Nuevo equipamiento de envasado", label: "Nuevo equipamiento de envasado" },
-  { value: "Nuevos insumos", label: "Nuevos insumos" },
-  { value: "Nueva estructura", label: "Nueva estructura" },
-  { value: "Nuevo formato de envasado", label: "Nuevo formato de envasado" },
-  { value: "Nuevos accesorios", label: "Nuevos accesorios" },
-  { value: "Nuevos procesos por el lado del cliente", label: "Nuevos procesos por el lado del cliente" },
-  { value: "Nuevas temperaturas de envasado y almacenaje", label: "Nuevas temperaturas de envasado y almacenaje" },
-];
-
-const PROJECT_TYPE_TECNICA_OPTIONS = [
-  { value: "Extensión de línea por familia (EM de referencia)", label: "Extensión de línea por familia (EM de referencia)" },
-  { value: "Modifica Dimensiones", label: "Modifica Dimensiones" },
-  { value: "Modifica Propiedades", label: "Modifica Propiedades" },
-  { value: "Portafolio Estándar", label: "Portafolio Estándar" },
-  { value: "ICO (Intercompany), BCP (Business Continous Production)", label: "ICO (Intercompany), BCP (Business Continous Production)" },
-];
-
 const POUCH_FORMAT_OPTIONS = [
   { value: "POUCH C/SELLO EN FUELLE\\TIPO 4-1\\FUELLE PROPIO", label: "POUCH C/SELLO EN FUELLE\\TIPO 4-1\\FUELLE PROPIO" },
   { value: "POUCH STAND UP\\TIPO K\\FUELLE PROPIO", label: "POUCH STAND UP\\TIPO K\\FUELLE PROPIO" },
@@ -1618,44 +1531,6 @@ const MATERIAL_CATALOG: MaterialCatalog = {
 
 const MATERIAL_GROUP_OPTIONS = Object.keys(MATERIAL_CATALOG).map(g => ({ value: g, label: g }));
 
-const SALE_TYPE_OPTIONS = [
-  { value: "Nacional", label: "Nacional" },
-  { value: "Internacional", label: "Internacional" },
-];
-
-const INCOTERM_OPTIONS = [
-  { value: "EXW", label: "EXW" },
-  { value: "FCA", label: "FCA" },
-  { value: "FAS", label: "FAS" },
-  { value: "FOB", label: "FOB" },
-  { value: "CPT", label: "CPT" },
-  { value: "CIP", label: "CIP" },
-  { value: "CFR", label: "CFR" },
-  { value: "CIF", label: "CIF" },
-  { value: "DAP", label: "DAP" },
-  { value: "DPU", label: "DPU" },
-  { value: "DDP", label: "DDP" },
-];
-
-const CURRENCY_OPTIONS = [
-  { value: "Soles", label: "Soles" },
-  { value: "Dólares", label: "Dólares" },
-];
-
-const SPECIAL_DESIGN_SPECS_OPTIONS = [
-  { value: "Tintas Holográficas", label: "Tintas Holográficas" },
-  { value: "Efectos/texturas/características especiales", label: "Efectos/texturas/características especiales" },
-  { value: "Acabados Especiales o Barnices nuevos", label: "Acabados Especiales o Barnices nuevos" },
-  { value: "Otros (comentar cuáles)", label: "Otros (comentar cuáles)" },
-  { value: "No aplica", label: "No aplica" },
-];
-
-const DOY_PACK_BASE_OPTIONS = [
-  { value: "Redonda", label: "Redonda" },
-  { value: "Cuadrada", label: "Cuadrada" },
-  { value: "No aplica", label: "No aplica" },
-];
-
 const CORE_MATERIAL_OPTIONS = [
   { value: "Cartón", label: "Cartón" },
   { value: "Plástico", label: "Plástico" },
@@ -1694,28 +1569,9 @@ const BAG_PERFORATION_TYPE_OPTIONS = [
   { value: "Media luna", label: "Media luna" },
 ];
 
-const PERFORATION_LOCATION_OPTIONS = [
-  { value: "Delantero", label: "Delantero" },
-  { value: "Posterior", label: "Posterior" },
-];
-
 const PRECUT_TYPE_OPTIONS = [
   { value: "Pre-corte mecánico abre fácil sectorizado", label: "Pre-corte mecánico abre fácil sectorizado" },
   { value: "Pre-corte mecánico abre fácil", label: "Pre-corte mecánico abre fácil" },
-];
-
-const OTHER_ACCESSORIES_OPTIONS = [
-  { value: "Pega-pega", label: "Pega-pega" },
-  { value: "No aplica", label: "No aplica" },
-];
-
-const DESTINATION_COUNTRY_OPTIONS = [
-  { value: "Perú", label: "Perú" },
-  { value: "Chile", label: "Chile" },
-  { value: "Colombia", label: "Colombia" },
-  { value: "Ecuador", label: "Ecuador" },
-  { value: "Portugal", label: "Portugal" },
-  { value: "Otro", label: "Otro" },
 ];
 
 const POUCH_DOY_PACK_REDONDO_FUELLE_PROPIO = "POUCH STAND UP\\DOY PACK REDONDO\\FUELLE PROPIO";
@@ -1724,37 +1580,6 @@ const POUCH_DOY_PACK_DIMENSION_RESTRICTIONS = {
   length: { min: 134, max: 340, label: "Largo" },
   anchoFuelle: { min: 0, max: 3, label: "Ancho fuelle" },
 } as const;
-
-const DESIGN_PLAN_TYPE_OPTIONS = [
-  {
-    value: "AI_ZIP_EMPAQUETADO",
-    label: "Archivo .ai empaquetado en formato ZIP",
-    description: "Guardado con la opción EMPAQUETAR de Illustrator.",
-    acceptedExtensions: [".zip"],
-    requiresFile: true,
-  },
-  {
-    value: "AI_PDF_FUENTES_LINKS_ZIP",
-    label: "Archivos individuales múltiples .ai, .pdf con fuentes y links empaquetados en ZIP",
-    description: "Debe cargarse en un archivo ZIP consolidado.",
-    acceptedExtensions: [".zip"],
-    requiresFile: true,
-  },
-  {
-    value: "AI_PDF_BAJA_ALTA_RESOLUCION",
-    label: "Archivos individuales .ai, .pdf baja resolución y .pdf alta resolución",
-    description: "Debe incluir fuentes y links correspondientes.",
-    acceptedExtensions: [".ai", ".pdf", ".zip"],
-    requiresFile: true,
-  },
-  {
-    value: "SOLO_DATOS_SIN_WEBCENTER",
-    label: "Solo datos. Archivo de arte no enviado con WebCenter.",
-    description: "No se carga archivo de arte. Registrar comentario obligatorio.",
-    acceptedExtensions: [],
-    requiresFile: false,
-  },
-];
 
 const STEPS = [
   { label: "Producto" },
@@ -2743,6 +2568,32 @@ export default function ProductEditPage() {
   const wicketPerforationOpt = useMemo(() => getCatalogOptions("wicket_perforation_type"), []);
   const precutTypeOpt = useMemo(() => getCatalogOptions("precut_type"), []);
   const coreMaterialOpt = useMemo(() => getCatalogOptions("core_material"), []);
+  const presentationTypeOpt = useMemo(() => getCatalogOptions("presentation_type"), []);
+  const handleShapeOpt = useMemo(() => getCatalogOptions("handle_shape"), []);
+  const doyPackBaseOpt = useMemo(() => getCatalogOptions("doy_pack_base"), []);
+  const colorObjectiveOpt = useMemo(() => getCatalogOptions("color_objective"), []);
+  const pressApproverOpt = useMemo(() => getCatalogOptions("press_approver"), []);
+  const specialDesignSpecsOpt = useMemo(() => getCatalogOptions("special_design_specs"), []);
+  const perforationLocationOpt = useMemo(() => getCatalogOptions("perforation_location"), []);
+  const otherAccessoriesOpt = useMemo(() => getCatalogOptions("other_accessories"), []);
+  const doypackBellowsTypeOpt = useMemo(() => getCatalogOptions("doypack_bellows_type"), []);
+  const microperforadoSideOpt = useMemo(() => getCatalogOptions("microperforado_side"), []);
+  const sealWidthOpt = useMemo(() => getCatalogOptions("seal_width"), []);
+  const microperforadoTypeOpt = useMemo(() => getCatalogOptions("microperforado_type"), []);
+  const stitchingSeparationOpt = useMemo(() => getCatalogOptions("stitching_separation"), []);
+  const wicketDiameterOpt = useMemo(() => getCatalogOptions("wicket_diameter"), []);
+  const controlWicketDiameterOpt = useMemo(() => getCatalogOptions("control_wicket_diameter"), []);
+  const marginDistanceOpt = useMemo(() => getCatalogOptions("margin_distance"), []);
+  const precutWicketLocationOpt = useMemo(() => getCatalogOptions("precut_wicket_location"), []);
+  const perforationMouthDistanceOpt = useMemo(() => getCatalogOptions("perforation_mouth_distance"), []);
+  const perforationTypeGeneralOpt = useMemo(() => getCatalogOptions("perforation_type_general"), []);
+  const bellowsWidthOpt = useMemo(() => getCatalogOptions("bellows_width"), []);
+  const laminaTypeOpt = useMemo(() => getCatalogOptions("lamina_type"), []);
+  const controlWicketLocationOpt = useMemo(() => getCatalogOptions("control_wicket_location"), []);
+  const precutWicketLengthOpt = useMemo(() => getCatalogOptions("precut_wicket_length"), []);
+  const sealCountOpt = useMemo(() => getCatalogOptions("seals_count"), []);
+  const pouchFamilyOpt = useMemo(() => getCatalogOptions("pouch_family"), []);
+  const standupTypeOpt = useMemo(() => getCatalogOptions("standup_type"), []);
 
   // Lógica condicional para mostrar diferentes opciones de perforación según material y fuelle
   const pouchPerforationOptionsConditional = useMemo(() => {
@@ -3456,10 +3307,6 @@ if (!project) {
   const projectTypeOptions = useMemo(() => {
     if (isProductoNuevo(form.classification)) {
       return PROJECT_TYPE_RD_OPTIONS;
-    }
-
-    if (isProductoModificado(form.classification)) {
-      return PROJECT_TYPE_TECNICA_OPTIONS;
     }
 
     return [];
@@ -5397,7 +5244,7 @@ if (!project) {
                             value={form.specialDesignSpecs}
                             onChange={(value) => updateField("specialDesignSpecs", value)}
                             placeholder="-- Seleccione --"
-                            options={SPECIAL_DESIGN_SPECS_OPTIONS}
+                            options={specialDesignSpecsOpt}
                             disabled={!canEditDesign || isPrintingDisabled}
                           />
                         </div>
@@ -5428,12 +5275,7 @@ if (!project) {
                                 onChange={handlePouchFamilyChange}
                                 onBlur={() => markFieldAsTouched("tipoFormatoPouch")}
                                 error={getError("tipoFormatoPouch")}
-                                options={[
-                                  { value: "Stand Up Pouch", label: "Stand Up Pouch" },
-                                  { value: "Pouch Plano", label: "Pouch Plano" },
-                                  { value: "Pouch con Sello Central", label: "Pouch con Sello Central" },
-                                  { value: "Pouch con Sello en Fuelle", label: "Pouch con Sello en Fuelle" },
-                                ]}
+                                options={pouchFamilyOpt}
                                 placeholder="-- Seleccione --"
                               />
 
@@ -5445,11 +5287,7 @@ if (!project) {
                                     onChange={handlePouchStandUpChange}
                                     onBlur={() => markFieldAsTouched("tipoStandUpPouch")}
                                     error={getError("tipoStandUpPouch")}
-                                    options={[
-                                      { value: "Sello K", label: "Sello K" },
-                                      { value: "Normal", label: "Normal" },
-                                      { value: "Doy Pack", label: "Doy Pack" },
-                                    ]}
+                                    options={standupTypeOpt}
                                     placeholder="-- Seleccione --"
                                   />
 
@@ -5461,10 +5299,7 @@ if (!project) {
                                         onChange={handlePouchStandUpFuelleChange}
                                         onBlur={() => markFieldAsTouched("tipoFuelleStandUpPouch")}
                                         error={getError("tipoFuelleStandUpPouch")}
-                                        options={[
-                                          { value: "Fuelle Propio", label: "Fuelle Propio" },
-                                          { value: "Fuelle Insertado", label: "Fuelle Insertado" },
-                                        ]}
+                                        options={doypackBellowsTypeOpt}
                                         placeholder="-- Seleccione --"
                                       />
 
@@ -5475,10 +5310,7 @@ if (!project) {
                                         onBlur={() => markFieldAsTouched("formaDoyPackPouch")}
                                         error={getError("formaDoyPackPouch")}
                                         disabled={!form.tipoFuelleStandUpPouch}
-                                        options={[
-                                          { value: "Redondo", label: "Redondo" },
-                                          { value: "Cuadrado", label: "Cuadrado" },
-                                        ]}
+                                        options={doyPackBaseOpt}
                                         placeholder="-- Seleccione --"
                                       />
 
@@ -5495,10 +5327,7 @@ if (!project) {
                                     onChange={handlePouchPlanoSealCountChange}
                                     onBlur={() => markFieldAsTouched("cantidadSellosPouchPlano")}
                                     error={getError("cantidadSellosPouchPlano")}
-                                    options={[
-                                      { value: "Dos sellos", label: "Dos sellos" },
-                                      { value: "Tres sellos", label: "Tres sellos" },
-                                    ]}
+                                    options={sealCountOpt}
                                     placeholder="-- Seleccione --"
                                   />
 
@@ -5583,18 +5412,7 @@ if (!project) {
                                             value={form.pouchPerforationType}
                                             onChange={(value) => updateField("pouchPerforationType", value)}
                                             placeholder="-- Seleccione --"
-                                            options={[
-                                              { value: "OJAL 50x15 mm", label: "OJAL 50x15 mm" },
-                                              { value: "OJAL 70x20 mm", label: "OJAL 70x20 mm" },
-                                              { value: "OJAL 78x20 mm", label: "OJAL 78x20 mm" },
-                                              { value: "EUROPUNCH 32 x 10 mm", label: "EUROPUNCH 32 x 10 mm" },
-                                              { value: "EUROPUNCH 38 x 10 mm", label: "EUROPUNCH 38 x 10 mm" },
-                                              { value: "CIRCULAR D 4 mm", label: "CIRCULAR D 4 mm" },
-                                              { value: "CIRCULAR D 6 mm", label: "CIRCULAR D 6 mm" },
-                                              { value: "CIRCULAR D 8 mm", label: "CIRCULAR D 8 mm" },
-                                              { value: "CIRCULAR D 10 mm", label: "CIRCULAR D 10 mm" },
-                                              { value: "Esquinas Redondas", label: "Esquinas Redondas" },
-                                            ]}
+                                            options={perforationMouthDistanceOpt}
                                           />
                                         </div>
                                       )}
@@ -5708,11 +5526,7 @@ if (!project) {
                                           value={form.anchoSelloAleta}
                                           onChange={(value) => updateField("anchoSelloAleta", value)}
                                           placeholder="-- Seleccione --"
-                                          options={[
-                                            { value: "10", label: "10" },
-                                            { value: "12", label: "12" },
-                                            { value: "15", label: "15" },
-                                          ]}
+                                          options={sealWidthOpt}
                                         />
                                         <FormInput
                                           label="Ancho del sello transversal (mm)"
@@ -5744,31 +5558,21 @@ if (!project) {
                                             value={form.ladoAleta}
                                             onChange={(value) => updateField("ladoAleta", value)}
                                             placeholder="-- Seleccione --"
-                                            options={[
-                                              { value: "Derecho del pouch", label: "Derecho del pouch" },
-                                              { value: "Izquierdo del pouch", label: "Izquierdo del pouch" },
-                                            ]}
+                                            options={microperforadoSideOpt}
                                           />
                                           <FormSelect
                                             label="Tipo Microperforado"
                                             value={form.tipoMicroperforado}
                                             onChange={(value) => updateField("tipoMicroperforado", value)}
                                             placeholder="-- Seleccione --"
-                                            options={[
-                                              { value: "Total", label: "Total" },
-                                              { value: "Parcial", label: "Parcial" },
-                                            ]}
+                                            options={microperforadoTypeOpt}
                                           />
                                           <FormSelect
                                             label="Separación de puas"
                                             value={form.separacionPuasAleta}
                                             onChange={(value) => updateField("separacionPuasAleta", value)}
                                             placeholder="-- Seleccione --"
-                                            options={[
-                                              { value: "Avena 20-20 mm", label: "Avena 20-20 mm" },
-                                              { value: "Fideos/Detergente 30-30 mm", label: "Fideos/Detergente 30-30 mm" },
-                                              { value: "Detergente 40-40 mm", label: "Detergente 40-40 mm" },
-                                            ]}
+                                            options={stitchingSeparationOpt}
                                           />
                                           <FormInput
                                             label="Distancia al lado del pouch (mm)"
@@ -5803,11 +5607,7 @@ if (!project) {
                                           value={form.anchoSelloAleta}
                                           onChange={(value) => updateField("anchoSelloAleta", value)}
                                           placeholder="-- Seleccione --"
-                                          options={[
-                                            { value: "10", label: "10" },
-                                            { value: "12", label: "12" },
-                                            { value: "15", label: "15" },
-                                          ]}
+                                          options={sealWidthOpt}
                                         />
                                         <FormInput
                                           label="Ancho del sello transversal (mm)"
@@ -5849,11 +5649,7 @@ if (!project) {
                                           value={form.anchoSelloAleta}
                                           onChange={(value) => updateField("anchoSelloAleta", value)}
                                           placeholder="-- Seleccione --"
-                                          options={[
-                                            { value: "10", label: "10" },
-                                            { value: "12", label: "12" },
-                                            { value: "15", label: "15" },
-                                          ]}
+                                          options={sealWidthOpt}
                                         />
                                         <FormInput
                                           label="Ancho del sello transversal (mm)"
@@ -5885,31 +5681,21 @@ if (!project) {
                                             value={form.ladoAleta}
                                             onChange={(value) => updateField("ladoAleta", value)}
                                             placeholder="-- Seleccione --"
-                                            options={[
-                                              { value: "Derecho del pouch", label: "Derecho del pouch" },
-                                              { value: "Izquierdo del pouch", label: "Izquierdo del pouch" },
-                                            ]}
+                                            options={microperforadoSideOpt}
                                           />
                                           <FormSelect
                                             label="Tipo Microperforado"
                                             value={form.tipoMicroperforado}
                                             onChange={(value) => updateField("tipoMicroperforado", value)}
                                             placeholder="-- Seleccione --"
-                                            options={[
-                                              { value: "Total", label: "Total" },
-                                              { value: "Parcial", label: "Parcial" },
-                                            ]}
+                                            options={microperforadoTypeOpt}
                                           />
                                           <FormSelect
                                             label="Separación de puas"
                                             value={form.separacionPuasAleta}
                                             onChange={(value) => updateField("separacionPuasAleta", value)}
                                             placeholder="-- Seleccione --"
-                                            options={[
-                                              { value: "Avena 20-20 mm", label: "Avena 20-20 mm" },
-                                              { value: "Fideos/Detergente 30-30 mm", label: "Fideos/Detergente 30-30 mm" },
-                                              { value: "Detergente 40-40 mm", label: "Detergente 40-40 mm" },
-                                            ]}
+                                            options={stitchingSeparationOpt}
                                           />
                                           <FormInput
                                             label="Distancia al lado del pouch (mm)"
@@ -5997,11 +5783,7 @@ if (!project) {
                                     updateField("tieneFuelleBolsa", "");
                                     updateField("tipoFuelleBolsa", "");
                                   }}
-                                  options={[
-                                    { value: "Bolsa", label: "Bolsa" },
-                                    { value: "Wicket", label: "Wicket" },
-                                    { value: "Hojas", label: "Hojas" },
-                                  ]}
+                                  options={presentationTypeOpt}
                                   placeholder="-- Seleccione --"
                                 />
 
@@ -6064,11 +5846,7 @@ if (!project) {
                                   }}
                                   onBlur={() => markFieldAsTouched("tipoFormatoLamina")}
                                   error={getError("tipoFormatoLamina")}
-                                  options={[
-                                    { value: "Genérica", label: "Genérica" },
-                                    { value: "Tissue", label: "Tissue" },
-                                    { value: "Food", label: "Food" },
-                                  ]}
+                                  options={laminaTypeOpt}
                                   placeholder="-- Seleccione --"
                                 />
                                 <div />
@@ -6362,11 +6140,7 @@ if (!project) {
                                           value={form.wicketDiameter}
                                           onChange={(value) => updateField("wicketDiameter", value)}
                                           placeholder="-- Seleccione --"
-                                          options={[
-                                            { value: "D 12 mm", label: "D 12 mm" },
-                                            { value: "D 14 mm", label: "D 14 mm" },
-                                            { value: "D 16 mm", label: "D 16 mm" },
-                                          ]}
+                                          options={wicketDiameterOpt}
                                         />
                                         <FormInput
                                           label="Distancia del margen superior al centro del wicket (mm)"
@@ -6412,22 +6186,14 @@ if (!project) {
                                           value={form.wicketControlDiameter}
                                           onChange={(value) => updateField("wicketControlDiameter", value)}
                                           placeholder="-- Seleccione --"
-                                          options={[
-                                            { value: "D 8 mm", label: "D 8 mm" },
-                                            { value: "D 12 mm", label: "D 12 mm" },
-                                            { value: "D 14 mm", label: "D 14 mm" },
-                                            { value: "D 16 mm", label: "D 16 mm" },
-                                          ]}
+                                          options={controlWicketDiameterOpt}
                                         />
                                         <FormSelect
                                           label="Ubicación"
                                           value={form.wicketControlUbicacion}
                                           onChange={(value) => updateField("wicketControlUbicacion", value)}
                                           placeholder="-- Seleccione --"
-                                          options={[
-                                            { value: "Superior", label: "Superior" },
-                                            { value: "Inferior", label: "Inferior" },
-                                          ]}
+                                          options={controlWicketLocationOpt}
                                         />
                                         <FormInput
                                           label="Distancia del margen superior al centro del wicket control (mm)"
@@ -6472,34 +6238,21 @@ if (!project) {
                                           value={form.precorteWicketLargo}
                                           onChange={(value) => updateField("precorteWicketLargo", value)}
                                           placeholder="-- Seleccione --"
-                                          options={[
-                                            { value: "3 mm", label: "3 mm" },
-                                            { value: "4 mm", label: "4 mm" },
-                                            { value: "5 mm", label: "5 mm" },
-                                            { value: "6 mm", label: "6 mm" },
-                                            { value: "7 mm", label: "7 mm" },
-                                          ]}
+                                          options={precutWicketLengthOpt}
                                         />
                                         <FormSelect
                                           label="Ubicación de precorte wicket"
                                           value={form.precorteWicketUbicacion}
                                           onChange={(value) => updateField("precorteWicketUbicacion", value)}
                                           placeholder="-- Seleccione --"
-                                          options={[
-                                            { value: "A los extremos del wicket", label: "A los extremos del wicket" },
-                                            { value: "Al centro del wicket", label: "Al centro del wicket" },
-                                            { value: "A los extremos internos del wicket", label: "A los extremos internos del wicket" },
-                                          ]}
+                                          options={precutWicketLocationOpt}
                                         />
                                         <FormSelect
                                           label="Distancia del margen derecho al precorte wicket"
                                           value={form.precorteWicketDistDerecho}
                                           onChange={(value) => updateField("precorteWicketDistDerecho", value)}
                                           placeholder="-- Seleccione --"
-                                          options={[
-                                            { value: "Al borde", label: "Al borde" },
-                                            { value: "4 mm", label: "4 mm" },
-                                          ]}
+                                          options={marginDistanceOpt}
                                         />
                                       </>
                                     )}
@@ -6715,7 +6468,7 @@ if (!project) {
                                                   onBlur={() => markFieldAsTouched("formaAsa")}
                                                   error={getError("formaAsa")}
                                                   placeholder="-- Seleccione --"
-                                                  options={ASA_SHAPE_OPTIONS}
+                                                  options={handleShapeOpt}
                                                 />
                                               </div>
                                             )}
@@ -6791,7 +6544,7 @@ if (!project) {
                                                   onBlur={() => markFieldAsTouched("perforationLocation")}
                                                   error={getError("perforationLocation")}
                                                   placeholder="-- Seleccione --"
-                                                  options={PERFORATION_LOCATION_OPTIONS}
+                                                  options={perforationLocationOpt}
                                                 />
                                               )}
                                               <FormInput
@@ -6866,7 +6619,7 @@ if (!project) {
                                       value={form.otherAccessories}
                                       onChange={(value) => updateField("otherAccessories", value)}
                                       placeholder="-- Seleccione --"
-                                      options={OTHER_ACCESSORIES_OPTIONS}
+                                      options={otherAccessoriesOpt}
                                     />
 
                                     <div className="text-xs text-slate-500 text-center">
@@ -7177,22 +6930,19 @@ if (!project) {
                       label="Objetivo de color"
                       value={form.colorObjectiveCode}
                       onChange={(value) => {
-                        const selected = COLOR_OBJECTIVE_OPTIONS.find((item) => item.code === value);
+                        const selected = colorObjectiveOpt.find((item) => item.value === value);
 
-                        updateField("colorObjectiveCode", selected?.code || "");
-                        updateField("colorObjective", selected?.value || "");
+                        updateField("colorObjectiveCode", selected?.value || "");
+                        updateField("colorObjective", selected?.label || "");
 
-                        if (selected?.code !== "5") {
+                        if (selected?.value !== "CO-005") {
                           updateField("colorObjectiveOther", "");
                         }
 
                         markFieldAsTouched("colorObjectiveCode");
                       }}
                       placeholder="-- Seleccione --"
-                      options={COLOR_OBJECTIVE_OPTIONS.map((item) => ({
-                        value: item.code,
-                        label: item.label,
-                      }))}
+                      options={colorObjectiveOpt}
                       disabled={!canEditDesign}
                       error={getError("colorObjectiveCode")}
                     />
@@ -7213,18 +6963,15 @@ if (!project) {
                       label="Aprobador de prensa"
                       value={form.pressApproverCode}
                       onChange={(value) => {
-                        const selected = PRESS_APPROVER_OPTIONS.find((item) => item.code === value);
+                        const selected = pressApproverOpt.find((item) => item.value === value);
 
-                        updateField("pressApproverCode", selected?.code || "");
-                        updateField("pressApprover", selected?.value || "");
+                        updateField("pressApproverCode", selected?.value || "");
+                        updateField("pressApprover", selected?.label || "");
 
                         markFieldAsTouched("pressApproverCode");
                       }}
                       placeholder="-- Seleccione --"
-                      options={PRESS_APPROVER_OPTIONS.map((item) => ({
-                        value: item.code,
-                        label: item.label,
-                      }))}
+                      options={pressApproverOpt}
                       disabled={!canEditDesign}
                       error={getError("pressApproverCode")}
                     />

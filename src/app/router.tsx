@@ -38,6 +38,7 @@ import ComplianceDocumentPage from "../shared/pages/ComplianceDocumentPage";
 import {
   CatalogRestrictionManagementPage,
   ViewAllCatalogsPage,
+  CatalogsViewPage,
 } from "../modules/catalog-management";
 
 import { getCurrentUser } from "../shared/data/userStorage";
@@ -165,10 +166,10 @@ export default function AppRouter() {
         <Route path="users/:userId/edit" element={<UserEditPage />} />
 
         {/* Catálogos */}
-        <Route path="catalogs" element={<CatalogRestrictionManagementPage />} />
+        <Route path="catalogs" element={<CatalogsViewPage />} />
         <Route
-          path="catalogs/view-all"
-          element={<ViewAllCatalogsPage />}
+          path="catalogs/management"
+          element={<CatalogRestrictionManagementPage />}
         />
 
         {/* Rutas temporales del sidebar */}

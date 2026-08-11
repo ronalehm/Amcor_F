@@ -375,11 +375,6 @@ const SPECIAL_DESIGN_SPECS_OPTIONS = PRODUCT_CATALOGS.especificacionesDeDisenoEs
   label: val,
 }));
 
-const DOY_PACK_BASE_OPTIONS = PRODUCT_CATALOGS.baseDelDoypack.values.map((val) => ({
-  value: val,
-  label: val,
-}));
-
 const CORE_MATERIAL_OPTIONS = PRODUCT_CATALOGS.materialDeTuco.values.map((val) => ({
   value: val,
   label: val,
@@ -641,6 +636,7 @@ export default function ProductCreatePage() {
   const bagPerforationOpt = useMemo(() => getCatalogOptions("bag_perforation_type"), []);
   const precutTypeOpt = useMemo(() => getCatalogOptions("precut_type"), []);
   const coreMaterialOpt = useMemo(() => getCatalogOptions("core_material"), []);
+  const doyPackBaseOpt = useMemo(() => getCatalogOptions("doy_pack_base"), []);
 
   // Load original project data when in duplicate mode
   useEffect(() => {
@@ -1689,7 +1685,7 @@ export default function ProductCreatePage() {
                         />
                       )}
                       {wrapping.includes("pouch") && (
-                        <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(value) => updateField("doyPackBase", value)} placeholder="-- Seleccione --" options={DOY_PACK_BASE_OPTIONS} />
+                        <FormSelect label="Base Doy Pack" value={form.doyPackBase} onChange={(value) => updateField("doyPackBase", value)} placeholder="-- Seleccione --" options={doyPackBaseOpt} />
                       )}
                       <FormInput
                         label="Ancho Fuelle"

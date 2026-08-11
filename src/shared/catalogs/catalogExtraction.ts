@@ -278,7 +278,7 @@ export function extractProductEditPageCatalogs(): Record<
     'seals_count',
     'central_seal_material',
     'seal_type_gusset',
-    'seal_type_bag',
+    'bag_seal_type',
     'micron_pe',
     'material_packaging',
     'export_packaging',

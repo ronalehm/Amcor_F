@@ -1,5 +1,6 @@
 import type { ProjectEditFormData } from "../pages/ProductEditPage";
 import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
+import { getCatalogOptions } from "../../../shared/catalogs/catalog.service";
 import FormCard from "../../../shared/components/forms/FormCard";
 import FormInput from "../../../shared/components/forms/FormInput";
 import FormSelect from "../../../shared/components/forms/FormSelect";
@@ -7,6 +8,7 @@ import FormTextarea from "../../../shared/components/forms/FormTextarea";
 import CommercialExecutiveMultiSearch from "../../../shared/components/forms/CommercialExecutiveMultiSearch";
 import PreviewRow from "../../../shared/components/display/PreviewRow";
 import ProductStructureConfigurator from "./ProductStructureConfigurator";
+import { useMemo } from "react";
 import type { ProductStructureValue } from "../../../shared/types/productStructure.types";
 
 type StepProps = {
@@ -46,6 +48,31 @@ export default function ProductStep0General({
   modificationReasonOptions,
   shouldShowFieldError,
 }: StepProps) {
+  // Cargar opciones del catálogo de tipos de sello en fuelle
+  const tipoSelloFuelleOptions = useMemo(() => {
+    return getCatalogOptions("seal_type_gusset");
+  }, []);
+
+  // Cargar opciones del catálogo de tipos de sello de bolsa
+  const tipoSelloBolsaOptions = useMemo(() => {
+    return getCatalogOptions("bag_seal_type");
+  }, []);
+
+  // Cargar opciones del catálogo de acabado
+  const acabadoOptions = useMemo(() => {
+    return getCatalogOptions("finish");
+  }, []);
+
+  // Cargar opciones del catálogo de familia de pouch
+  const familiaPounchOptions = useMemo(() => {
+    return getCatalogOptions("pouch_family");
+  }, []);
+
+  // Cargar opciones del catálogo de tipo de stand up
+  const tipoStandUpOptions = useMemo(() => {
+    return getCatalogOptions("standup_type");
+  }, []);
+
   const handleProductStructureChange = (nextValue: any) => {
     updateField("structureType", nextValue.structureType);
     const layers = nextValue.layers || [];
@@ -351,41 +378,24 @@ export default function ProductStep0General({
                   label="Familia POUCH"
                   value={form.tipoFormatoPouch}
                   onChange={(value) => updateField("tipoFormatoPouch", value)}
-                  options={[
-                    { value: "Stand Up", label: "Stand Up" },
-                    { value: "Flat", label: "Flat" },
-                    { value: "Gusseted", label: "Gusseted" },
-                  ]}
+                  options={familiaPounchOptions}
                   placeholder="-- Seleccione Familia --"
                 />
                 <FormSelect
                   label="Tipo de Stand Up"
                   value={form.tipoStandUpPouch}
                   onChange={(value) => updateField("tipoStandUpPouch", value)}
-                  options={[
-                    { value: "Clásico", label: "Clásico" },
-                    { value: "Ziplock", label: "Ziplock" },
-                    { value: "Otro", label: "Otro" },
-                  ]}
+                  options={tipoStandUpOptions}
                   placeholder="-- Seleccione Tipo --"
-                />
-                <FormSelect
-                  label="Forma DoyPack"
-                  value={form.formaDoyPackPouch}
-                  onChange={(value) => updateField("formaDoyPackPouch", value)}
-                  options={[
-                    { value: "Rectangular", label: "Rectangular" },
-                    { value: "Redondeada", label: "Redondeada" },
-                  ]}
-                  placeholder="-- Seleccione Forma --"
                 />
                 <FormSelect
                   label="Tipo de Fuelle Stand Up"
                   value={form.tipoFuelleStandUpPouch}
                   onChange={(value) => updateField("tipoFuelleStandUpPouch", value)}
                   options={[
-                    { value: "Abierto", label: "Abierto" },
-                    { value: "Cerrado", label: "Cerrado" },
+                    { value: "Bolsa", label: "Bolsa" },
+                    { value: "Wicket", label: "Wicket" },
+                    { value: "Hojas", label: "Hojas" },
                   ]}
                   placeholder="-- Seleccione Tipo --"
                 />
@@ -415,11 +425,7 @@ export default function ProductStep0General({
                   label="Tipo de Sello Fuelle"
                   value={form.tipoSelloFuellePouch}
                   onChange={(value) => updateField("tipoSelloFuellePouch", value)}
-                  options={[
-                    { value: "T-Seal", label: "T-Seal" },
-                    { value: "C-Seal", label: "C-Seal" },
-                    { value: "Otro", label: "Otro" },
-                  ]}
+                  options={tipoSelloFuelleOptions}
                   placeholder="-- Seleccione Tipo --"
                 />
               </div>
@@ -432,33 +438,17 @@ export default function ProductStep0General({
               <h4 className="font-semibold text-slate-700 mb-3">Especificaciones BOLSA</h4>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormSelect
-                  label="Tipo de Presentación"
-                  value={form.tipoFormatoBolsa}
-                  onChange={(value) => updateField("tipoFormatoBolsa", value)}
-                  options={[
-                    { value: "Bolsa Plana", label: "Bolsa Plana" },
-                    { value: "Bolsa con Fuelle", label: "Bolsa con Fuelle" },
-                  ]}
-                  placeholder="-- Seleccione --"
-                />
-                <FormSelect
                   label="Tipo de Sello"
                   value={form.tipoSelloBolsa}
                   onChange={(value) => updateField("tipoSelloBolsa", value)}
-                  options={[
-                    { value: "Sello Simple", label: "Sello Simple" },
-                    { value: "Sello Doble", label: "Sello Doble" },
-                  ]}
+                  options={tipoSelloBolsaOptions}
                   placeholder="-- Seleccione --"
                 />
                 <FormSelect
                   label="Acabado"
                   value={form.acabadoBolsa}
                   onChange={(value) => updateField("acabadoBolsa", value)}
-                  options={[
-                    { value: "Mate", label: "Mate" },
-                    { value: "Brillante", label: "Brillante" },
-                  ]}
+                  options={acabadoOptions}
                   placeholder="-- Seleccione --"
                 />
                 <FormSelect
@@ -477,8 +467,9 @@ export default function ProductStep0General({
                     value={form.tipoFuelleBolsa}
                     onChange={(value) => updateField("tipoFuelleBolsa", value)}
                     options={[
-                      { value: "Lateral", label: "Lateral" },
-                      { value: "Inferior", label: "Inferior" },
+                      { value: "Bolsa", label: "Bolsa" },
+                      { value: "Wicket", label: "Wicket" },
+                      { value: "Hojas", label: "Hojas" },
                     ]}
                     placeholder="-- Seleccione --"
                   />
@@ -496,8 +487,9 @@ export default function ProductStep0General({
                 value={form.tipoFormatoLamina}
                 onChange={(value) => updateField("tipoFormatoLamina", value)}
                 options={[
-                  { value: "Pliego", label: "Pliego" },
-                  { value: "Rollo", label: "Rollo" },
+                  { value: "Bolsa", label: "Bolsa" },
+                  { value: "Wicket", label: "Wicket" },
+                  { value: "Hojas", label: "Hojas" },
                 ]}
                 placeholder="-- Seleccione --"
               />
