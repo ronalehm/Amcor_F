@@ -237,6 +237,8 @@ export function resetCatalogs(): void {
 export function exportCatalogToExcel(catalogCode: string): {
   catalogName: string;
   data: Array<{
+    Campo: string;
+    "Código del Campo": string;
     Item: string;
     Nombre: string;
     Estado: string;
@@ -249,6 +251,8 @@ export function exportCatalogToExcel(catalogCode: string): {
 
   const values = getCatalogValues(catalogCode);
   const data = values.map((v) => ({
+    Campo: catalogDef.name,
+    "Código del Campo": catalogDef.code,
     Item: v.item,
     Nombre: v.name,
     Estado: v.status,
