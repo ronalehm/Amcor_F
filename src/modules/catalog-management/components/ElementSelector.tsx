@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import SmartCatalogSearch from "../../../shared/components/catalog/SmartCatalogSearch";
-import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
+import { getCatalogs } from "../../../shared/catalogs";
 import { getAvailableRestrictions } from "../services/catalogRestrictionService";
 import type { SmartCatalogOption } from "../../../shared/components/catalog/SmartCatalogSearch";
 import type { ManagementType } from "../types/catalogRestriction.types";
@@ -26,13 +26,15 @@ export default function ElementSelector({
 }: ElementSelectorProps) {
   const options: SmartCatalogOption[] = useMemo(() => {
     if (type === "catalog") {
-      return Object.entries(PRODUCT_CATALOGS)
-        .filter(([_, catalog]) => catalog && "label" in catalog)
-        .map(([key, catalog]) => ({
-          id: key,
-          code: (catalog as any).code || key,
-          name: (catalog as any).label || key,
-          meta: `Código: ${(catalog as any).code || key}`,
+      // Usar catálogo centralizado en lugar de PRODUCT_CATALOGS
+      const allCatalogs = getCatalogs();
+      return allCatalogs
+        .filter((cat) => cat.ownerSystem === catalogSource)
+        .map((catalog) => ({
+          id: catalog.code, // Usar código del registry como ID
+          code: catalog.code,
+          name: catalog.name,
+          meta: `Código: ${catalog.code}`,
         }));
     }
 
@@ -47,7 +49,7 @@ export default function ElementSelector({
     }
 
     return [];
-  }, [type, restrictionType]);
+  }, [type, restrictionType, catalogSource]);
 
   const handleChange = (selectedId: string) => {
     onTargetIdChange(selectedId);
