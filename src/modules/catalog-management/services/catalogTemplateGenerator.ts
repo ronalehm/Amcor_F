@@ -6,6 +6,7 @@ import { getCatalogValues } from "../../../shared/catalogs/catalog.service";
 export interface CatalogSummaryRow {
   "Código Catálogo": string;
   "Nombre del Campo": string;
+  "Dominio": string;
   "Aplicable en": string;
   "Aplica en Otros": string;
   "Sistema": string;
@@ -20,6 +21,7 @@ export interface CatalogSummaryRow {
 export interface CatalogDetailRow {
   "Código Catálogo": string;
   "Nombre del Campo": string;
+  "Dominio": string;
   "Código Valor": string;
   "Valor": string;
   "Descripción": string;
@@ -146,6 +148,7 @@ export class CatalogTemplateGenerator {
       {
         "Código Catálogo": catCode,
         "Nombre del Campo": catalog.name,
+        "Dominio": this.getDomain(catalog),
         "Aplicable en": this.getApplicableIn(catalog),
         "Aplica en Otros": this.getApplicableInOthers(catalog),
         "Sistema": "ODISEO",
@@ -169,6 +172,7 @@ export class CatalogTemplateGenerator {
     const detailData: CatalogDetailRow[] = values.map((value) => ({
       "Código Catálogo": catCode,
       "Nombre del Campo": catalog.name,
+      "Dominio": this.getDomain(catalog),
       "Código Valor": value.item || "",
       "Valor": value.name,
       "Descripción": value.description || "",
@@ -225,6 +229,7 @@ export class CatalogTemplateGenerator {
       return {
         "Código Catálogo": catCode,
         "Nombre del Campo": catalog.name,
+        "Dominio": this.getDomain(catalog),
         "Aplicable en": this.getApplicableIn(catalog),
         "Aplica en Otros": this.getApplicableInOthers(catalog),
         "Sistema": catalog.ownerSystem || "ODISEO",
@@ -243,6 +248,7 @@ export class CatalogTemplateGenerator {
     sheet["!cols"] = [
       { wch: 18 }, // Código Catálogo
       { wch: 25 }, // Nombre del Campo
+      { wch: 15 }, // Dominio
       { wch: 18 }, // Aplicable en
       { wch: 18 }, // Aplica en Otros
       { wch: 15 }, // Sistema
@@ -273,6 +279,7 @@ export class CatalogTemplateGenerator {
         detailRows.push({
           "Código Catálogo": catCode,
           "Nombre del Campo": catalog.name,
+          "Dominio": this.getDomain(catalog),
           "Código Valor": value.item || "",
           "Valor": value.name,
           "Descripción": value.description || "",
@@ -288,6 +295,7 @@ export class CatalogTemplateGenerator {
     sheet["!cols"] = [
       { wch: 18 }, // Código Catálogo
       { wch: 25 }, // Nombre del Campo
+      { wch: 15 }, // Dominio
       { wch: 18 }, // Código Valor
       { wch: 25 }, // Valor
       { wch: 35 }, // Descripción
@@ -398,6 +406,31 @@ export class CatalogTemplateGenerator {
     };
     const others = multiApplicable[catalog.code] || [];
     return others.length > 0 ? others.join(", ") : "";
+  }
+
+  /**
+   * Obtiene el dominio al que pertenece un catálogo
+   */
+  private getDomain(catalog: CatalogDefinition): string {
+    const domainMap: Record<string, string> = {
+      // Portafolio
+      classification: "Portafolio",
+      project_type: "Portafolio",
+      modification_type: "Portafolio",
+      format_plan: "Portafolio",
+
+      // Clientes
+      client: "Clientes",
+
+      // Usuarios
+      user: "Usuarios",
+      executive: "Usuarios",
+
+      // Producto - todos los demás
+    };
+
+    // Si está en el mapa, retornar el dominio; sino, es Producto
+    return domainMap[catalog.code] || "Producto";
   }
 
   /**
