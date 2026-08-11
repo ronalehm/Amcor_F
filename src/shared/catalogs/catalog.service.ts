@@ -236,14 +236,7 @@ export function resetCatalogs(): void {
 // Exportar datos en formato para plantilla Excel
 export function exportCatalogToExcel(catalogCode: string): {
   catalogName: string;
-  data: Array<{
-    Campo: string;
-    "Código del Campo": string;
-    Item: string;
-    Nombre: string;
-    Estado: string;
-    Descripción: string;
-  }>;
+  data: Array<any>;
 } {
   const catalogDef = getCatalogByCode(catalogCode);
   if (!catalogDef) {
@@ -251,14 +244,36 @@ export function exportCatalogToExcel(catalogCode: string): {
   }
 
   const values = getCatalogValues(catalogCode);
-  const data = values.map((v) => ({
-    Campo: catalogDef.name,
-    "Código del Campo": catalogDef.code,
-    Item: v.item,
-    Nombre: v.name,
-    Estado: v.status,
-    Descripción: v.description || "",
-  }));
+
+  // Verificar si algún valor tiene información de envoltura o formato
+  const hasWrappingType = values.some((v) => v.wrappingType);
+  const hasFormat = values.some((v) => (v as any).formatPlan);
+
+  const data = values.map((v) => {
+    const row: any = {
+      Campo: catalogDef.name,
+      "Código del Campo": catalogDef.code,
+      Item: v.item,
+      Nombre: v.name,
+    };
+
+    // Agregar columnas de Envoltura y Formato si están disponibles
+    if (hasWrappingType) {
+      row["Envoltura"] = v.wrappingType
+        ? v.wrappingType.charAt(0).toUpperCase() + v.wrappingType.slice(1).toUpperCase()
+        : "-";
+    }
+
+    if (hasFormat) {
+      row["Formato"] = (v as any).formatPlan || "-";
+    }
+
+    // Agregar estado y descripción al final
+    row["Estado"] = v.status;
+    row["Descripción"] = v.description || "";
+
+    return row;
+  });
 
   return {
     catalogName: catalogDef.name,
