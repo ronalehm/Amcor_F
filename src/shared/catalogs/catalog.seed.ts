@@ -29,7 +29,7 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     catalogId: "catalog_wrapping_type",
     catalogCode: "wrapping_type",
     item: "ENV-003",
-    name: "LÃMINA",
+    name: "LáMINA",
     status: "Activo",
     sortOrder: 3,
   },
@@ -1602,7 +1602,7 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     sortOrder: 14,
   },
 
-  // Máquinas para LÃMINA (Etiquetadora, Túnel de Termoenogimiento, Manual)
+  // Máquinas para LáMINA (Etiquetadora, Túnel de Termoenogimiento, Manual)
   {
     id: "pm_015",
     catalogId: "catalog_packaging_machine",
@@ -3074,7 +3074,7 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     sortOrder: 3,
   },
 
-  // ============ TIPO DE FORMATO LÃMINA (3 items) ============
+  // ============ TIPO DE FORMATO LáMINA (3 items) ============
   {
     id: "lamina_format_1",
     catalogId: "catalog_lamina_format",
@@ -3444,7 +3444,7 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     sortOrder: 3,
   },
 
-  // ============ TIPO DE LÃMINA (3 items) ============
+  // ============ TIPO DE LáMINA (3 items) ============
   {
     id: "lamina_type_001",
     catalogId: "catalog_lamina_type",
