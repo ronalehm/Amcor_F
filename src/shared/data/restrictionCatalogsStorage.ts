@@ -35,18 +35,40 @@ export function getDimensionRestrictionsByProductType(
 
 export function updateDimensionRestriction(
   id: string,
-  updates: Partial<DimensionRestrictionCatalog>
+  updates: Partial<DimensionRestrictionCatalog>,
+  reason?: string
 ): DimensionRestrictionCatalog | undefined {
   const restrictions = getDimensionRestrictions();
   const index = restrictions.findIndex((r) => r.id === id);
   if (index === -1) return undefined;
 
+  const oldRestriction = restrictions[index];
   restrictions[index] = {
     ...restrictions[index],
     ...updates,
     id: restrictions[index].id, // Prevent ID change
   };
   localStorage.setItem(DIMENSION_RESTRICTIONS_KEY, JSON.stringify(restrictions));
+
+  // Registrar en bitácora con motivo
+  addRestrictionChangeLogEntry(
+    {
+      restrictionId: id,
+      restrictionName: restrictions[index].name,
+      restrictionType: "dimension",
+      action: "updated",
+      changes: {
+        updated: {
+          old: oldRestriction,
+          new: restrictions[index],
+        },
+      },
+      result: "success",
+      reason: reason,
+    },
+    reason
+  );
+
   return restrictions[index];
 }
 

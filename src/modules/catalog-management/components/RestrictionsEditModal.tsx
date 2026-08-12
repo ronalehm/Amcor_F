@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import ReactDOM from "react-dom";
 import { X, Download, Upload, AlertCircle, Search } from "lucide-react";
 import * as XLSX from "xlsx";
+import { RestrictionUploadConfirmationModal } from "./RestrictionUploadConfirmationModal";
 import {
   getDimensionRestrictions,
   updateDimensionRestriction,
@@ -26,6 +27,7 @@ export function RestrictionsEditModal({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [uploadedData, setUploadedData] = useState<any | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -196,11 +198,17 @@ export function RestrictionsEditModal({
     }
   };
 
-  const handleConfirmUpload = () => {
+  const handleShowConfirmationModal = () => {
+    setShowConfirmation(false);
+    setShowConfirmationModal(true);
+  };
+
+  const handleConfirmUpload = (reason: string) => {
     if (!uploadedData || !selectedRestriction) return;
 
     try {
-      const updated = updateDimensionRestriction(selectedRestriction.id, {
+      // Crear objeto de cambios con el motivo registrado
+      const changes = {
         ancho: {
           min: parseFloat(uploadedData["Ancho Mín"]) || 0,
           max: parseFloat(uploadedData["Ancho Máx"]) || 0,
@@ -229,9 +237,12 @@ export function RestrictionsEditModal({
           min: parseFloat(uploadedData["Área Diseño Alto Mín"]) || 0,
           max: parseFloat(uploadedData["Área Diseño Alto Máx"]) || 0,
         },
-      });
+      };
+
+      const updated = updateDimensionRestriction(selectedRestriction.id, changes, reason);
 
       if (updated) {
+        setShowConfirmationModal(false);
         setShowConfirmation(false);
         setUploadedData(null);
         setValidationError(null);
@@ -440,50 +451,74 @@ export function RestrictionsEditModal({
               </div>
             )}
 
-            {/* CONFIRMACIÓN */}
+            {/* PREVIEW DE CAMBIOS */}
             {showConfirmation && uploadedData && (
               <div className="space-y-4">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <h4 className="text-sm font-bold text-slate-900 mb-3">
-                    Valores a Actualizar
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <h4 className="text-sm font-bold text-blue-900 mb-3">
+                    Vista Previa de Cambios
                   </h4>
                   <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="flex justify-between p-2 bg-white rounded">
-                      <span className="text-slate-600">Ancho:</span>
-                      <span className="font-mono font-semibold text-slate-900">
-                        {uploadedData["Ancho Mín"]} - {uploadedData["Ancho Máx"]}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-white rounded">
-                      <span className="text-slate-600">Largo:</span>
-                      <span className="font-mono font-semibold text-slate-900">
-                        {uploadedData["Largo Mín"]} - {uploadedData["Largo Máx"]}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-white rounded">
-                      <span className="text-slate-600">Fuelle:</span>
-                      <span className="font-mono font-semibold text-slate-900">
-                        {uploadedData["Fuelle Mín"]} - {uploadedData["Fuelle Máx"]}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-white rounded">
-                      <span className="text-slate-600">Perímetro:</span>
-                      <span className="font-mono font-semibold text-slate-900">
-                        {uploadedData["Perímetro Mín"]} - {uploadedData["Perímetro Máx"]}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-white rounded">
-                      <span className="text-slate-600">Repetición:</span>
-                      <span className="font-mono font-semibold text-slate-900">
-                        {uploadedData["Repetición Mín"]} - {uploadedData["Repetición Máx"]}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-white rounded">
-                      <span className="text-slate-600">Área Diseño:</span>
-                      <span className="font-mono font-semibold text-slate-900">
-                        {uploadedData["Área Diseño Ancho Mín"]}-{uploadedData["Área Diseño Ancho Máx"]}
-                      </span>
-                    </div>
+                    {uploadedData["Ancho Mín"] && (
+                      <div className="flex justify-between p-2 bg-white rounded">
+                        <span className="text-slate-600">Ancho:</span>
+                        <span className="font-mono font-semibold text-slate-900">
+                          {uploadedData["Ancho Mín"]} - {uploadedData["Ancho Máx"]}
+                        </span>
+                      </div>
+                    )}
+                    {uploadedData["Largo Mín"] && (
+                      <div className="flex justify-between p-2 bg-white rounded">
+                        <span className="text-slate-600">Largo:</span>
+                        <span className="font-mono font-semibold text-slate-900">
+                          {uploadedData["Largo Mín"]} - {uploadedData["Largo Máx"]}
+                        </span>
+                      </div>
+                    )}
+                    {uploadedData["Fuelle Mín"] && (
+                      <div className="flex justify-between p-2 bg-white rounded">
+                        <span className="text-slate-600">Fuelle:</span>
+                        <span className="font-mono font-semibold text-slate-900">
+                          {uploadedData["Fuelle Mín"]} - {uploadedData["Fuelle Máx"]}
+                        </span>
+                      </div>
+                    )}
+                    {uploadedData["Perímetro Mín"] && (
+                      <div className="flex justify-between p-2 bg-white rounded">
+                        <span className="text-slate-600">Perímetro:</span>
+                        <span className="font-mono font-semibold text-slate-900">
+                          {uploadedData["Perímetro Mín"]} - {uploadedData["Perímetro Máx"]}
+                        </span>
+                      </div>
+                    )}
+                    {uploadedData["Repetición Mín"] && (
+                      <div className="flex justify-between p-2 bg-white rounded">
+                        <span className="text-slate-600">Repetición:</span>
+                        <span className="font-mono font-semibold text-slate-900">
+                          {uploadedData["Repetición Mín"]} - {uploadedData["Repetición Máx"]}
+                        </span>
+                      </div>
+                    )}
+                    {uploadedData["Área Diseño Ancho Mín"] && (
+                      <div className="flex justify-between p-2 bg-white rounded">
+                        <span className="text-slate-600">Área Diseño:</span>
+                        <span className="font-mono font-semibold text-slate-900">
+                          {uploadedData["Área Diseño Ancho Mín"]}-{uploadedData["Área Diseño Ancho Máx"]}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-yellow-900">
+                      Requiere justificación
+                    </p>
+                    <p className="text-xs text-yellow-800 mt-1">
+                      Debes proporcionar un motivo o comentario para todos los cambios en restricciones.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -512,15 +547,56 @@ export function RestrictionsEditModal({
                 Volver
               </button>
               <button
-                onClick={handleConfirmUpload}
+                onClick={handleShowConfirmationModal}
                 className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:bg-brand-primary/90"
               >
-                Confirmar Cambios
+                Continuar a Confirmación
               </button>
             </>
           )}
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {selectedRestriction && (
+        <RestrictionUploadConfirmationModal
+          isOpen={showConfirmationModal}
+          restrictionName={selectedRestriction.name}
+          restrictionCode={selectedRestriction.code}
+          changes={{
+            ancho: uploadedData ? {
+              min: parseFloat(uploadedData["Ancho Mín"]) || 0,
+              max: parseFloat(uploadedData["Ancho Máx"]) || 0,
+            } : undefined,
+            largo: uploadedData ? {
+              min: parseFloat(uploadedData["Largo Mín"]) || 0,
+              max: parseFloat(uploadedData["Largo Máx"]) || 0,
+            } : undefined,
+            anchoFuelle: uploadedData ? {
+              min: parseFloat(uploadedData["Fuelle Mín"]) || 0,
+              max: parseFloat(uploadedData["Fuelle Máx"]) || 0,
+            } : undefined,
+            perimetro: uploadedData ? {
+              min: parseFloat(uploadedData["Perímetro Mín"]) || 0,
+              max: parseFloat(uploadedData["Perímetro Máx"]) || 0,
+            } : undefined,
+            repeticion: uploadedData ? {
+              min: parseFloat(uploadedData["Repetición Mín"]) || 0,
+              max: parseFloat(uploadedData["Repetición Máx"]) || 0,
+            } : undefined,
+            designAreaWidth: uploadedData ? {
+              min: parseFloat(uploadedData["Área Diseño Ancho Mín"]) || 0,
+              max: parseFloat(uploadedData["Área Diseño Ancho Máx"]) || 0,
+            } : undefined,
+            designAreaHeight: uploadedData ? {
+              min: parseFloat(uploadedData["Área Diseño Alto Mín"]) || 0,
+              max: parseFloat(uploadedData["Área Diseño Alto Máx"]) || 0,
+            } : undefined,
+          }}
+          onConfirmed={handleConfirmUpload}
+          onCancelled={() => setShowConfirmationModal(false)}
+        />
+      )}
     </div>,
     document.body
   );
