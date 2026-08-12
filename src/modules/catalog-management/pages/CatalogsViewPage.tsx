@@ -652,14 +652,17 @@ export function CatalogsViewPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             type="button"
-                            title="Ver detalle"
+                            title="Histórico"
                             onClick={() => {
-                              setDetailModalData(row);
-                              setShowDetailModal(true);
+                              if (viewType === "catalogs" && "catCode" in row) {
+                                setChangeLogData(row as CatalogRowData);
+                                setShowChangeLogModal(true);
+                              }
                             }}
-                            className="rounded-lg bg-brand-primary p-2 text-white transition-colors hover:bg-brand-primary/90"
+                            disabled={viewType !== "catalogs"}
+                            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Eye size={16} />
+                            <History size={16} />
                           </button>
 
                           <button
@@ -676,17 +679,14 @@ export function CatalogsViewPage() {
 
                           <button
                             type="button"
-                            title="Histórico"
+                            title="Ver detalle"
                             onClick={() => {
-                              if (viewType === "catalogs" && "catCode" in row) {
-                                setChangeLogData(row as CatalogRowData);
-                                setShowChangeLogModal(true);
-                              }
+                              setDetailModalData(row);
+                              setShowDetailModal(true);
                             }}
-                            disabled={viewType !== "catalogs"}
-                            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="rounded-lg bg-brand-primary p-2 text-white transition-colors hover:bg-brand-primary/90"
                           >
-                            <History size={16} />
+                            <Eye size={16} />
                           </button>
                         </div>
                       </td>
