@@ -11,7 +11,7 @@ type EnvolturaSelectorProps = {
 };
 
 const ENVOLTURA_IMAGES: Record<string, string> = {
-  "LÁMINA": "/assets/envolturas/lamina.png",
+  "LAMINA": "/assets/envolturas/lamina.png",
   "BOLSA": "/assets/envolturas/bolsa.png",
   "POUCH": "/assets/envolturas/pouch.png",
 };
@@ -36,22 +36,31 @@ export default function EnvolturaSelector({
     return unsubscribe;
   }, []);
 
+  const getImageForType = (id: string): string => {
+    const imageMap: Record<string, string> = {
+      "LAMINA": "/assets/envolturas/lamina.png",
+      "BOLSA": "/assets/envolturas/bolsa.png",
+      "POUCH": "/assets/envolturas/pouch.png",
+    };
+    return imageMap[id] || "/assets/envolturas/default.png";
+  };
+
   const envolturas = useMemo(() => {
     const catalogValues = getCatalogValues("wrapping_type", { activeOnly: true });
     return catalogValues.map((v) => {
       // Normalizar nombre para detectar tipo
-      const normalizedName = (v.name || "").toLowerCase().trim();
+      const normalizedName = (v.name || "").toLowerCase().trim().replace(/[^a-z]/g, "");
 
       // Mapear item a formato compatible con Portfolio
       let id = "LAMINA"; // default
       if (normalizedName.includes("bolsa")) id = "BOLSA";
       else if (normalizedName.includes("pouch")) id = "POUCH";
-      else if (normalizedName.includes("lamina") || normalizedName.includes("lámina")) id = "LAMINA";
+      else if (normalizedName.includes("lamina")) id = "LAMINA";
 
       return {
         id,
         label: v.name,
-        image: ENVOLTURA_IMAGES[v.name] || "/assets/envolturas/default.png",
+        image: getImageForType(id),
         description: v.name,
         item: v.item,
       };
