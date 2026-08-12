@@ -130,7 +130,7 @@ export default function TemplateDownloadCard({
             <input
               ref={fileInputRef}
               type="file"
-              accept=".xlsx,.csv"
+              accept=".xlsx,.xls"
               onChange={handleFileChange}
               className="hidden"
             />

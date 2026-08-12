@@ -238,14 +238,87 @@ function autoSizeColumns(
 
   const colWidths = Object.keys(data[0]).map((key) => ({
     wch: Math.max(
-      key.length,
+      key.length + 2,
       Math.max(
         ...data.map(
           (row) => String(row[key] || "").length
         )
-      )
+      ) + 2
     ),
   }));
 
   ws["!cols"] = colWidths;
+
+  // Aplicar estilos profesionales
+  applyProfessionalFormatting(ws, data);
+}
+
+function applyProfessionalFormatting(
+  ws: XLSX.WorkSheet,
+  data: any[]
+): void {
+  const keys = Object.keys(data[0]);
+
+  // Estilos para encabezados
+  const headerStyle = {
+    fill: { fgColor: { rgb: "1F4E78" } }, // Azul oscuro profesional
+    font: { bold: true, color: { rgb: "FFFFFF" }, size: 11 },
+    alignment: { horizontal: "center", vertical: "center", wrapText: true },
+    border: {
+      left: { style: "thin", color: { rgb: "000000" } },
+      right: { style: "thin", color: { rgb: "000000" } },
+      top: { style: "thin", color: { rgb: "000000" } },
+      bottom: { style: "thin", color: { rgb: "000000" } },
+    },
+  };
+
+  // Estilos para filas pares (zebra striping)
+  const evenRowStyle = {
+    fill: { fgColor: { rgb: "F2F2F2" } }, // Gris claro
+    font: { size: 10 },
+    alignment: { horizontal: "left", vertical: "center" },
+    border: {
+      left: { style: "thin", color: { rgb: "CCCCCC" } },
+      right: { style: "thin", color: { rgb: "CCCCCC" } },
+      top: { style: "thin", color: { rgb: "CCCCCC" } },
+      bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+    },
+  };
+
+  // Estilos para filas impares
+  const oddRowStyle = {
+    fill: { fgColor: { rgb: "FFFFFF" } }, // Blanco
+    font: { size: 10 },
+    alignment: { horizontal: "left", vertical: "center" },
+    border: {
+      left: { style: "thin", color: { rgb: "CCCCCC" } },
+      right: { style: "thin", color: { rgb: "CCCCCC" } },
+      top: { style: "thin", color: { rgb: "CCCCCC" } },
+      bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+    },
+  };
+
+  // Aplicar estilos a encabezados
+  for (let i = 0; i < keys.length; i++) {
+    const cellRef = XLSX.utils.encode_col(i) + "1";
+    if (!ws[cellRef]) ws[cellRef] = { t: "s", v: keys[i] };
+    ws[cellRef].s = headerStyle;
+  }
+
+  // Aplicar estilos a datos
+  for (let row = 0; row < data.length; row++) {
+    const rowStyle = row % 2 === 0 ? evenRowStyle : oddRowStyle;
+    for (let col = 0; col < keys.length; col++) {
+      const cellRef = XLSX.utils.encode_col(col) + (row + 2);
+      if (ws[cellRef]) {
+        ws[cellRef].s = rowStyle;
+      }
+    }
+  }
+
+  // Congelar fila de encabezado
+  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+
+  // Agregar filtros automáticos
+  ws["!autofilter"] = { ref: `A1:${XLSX.utils.encode_col(keys.length - 1)}${data.length + 1}` };
 }

@@ -47,24 +47,6 @@ export default function RestrictionTemplateDownloadCard({
   const [showPreview, setShowPreview] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const handleDownload = async () => {
-    setIsDownloading(true);
-    try {
-      if (restrictionType === "dimension") {
-        await downloadDimensionRestrictionsTemplate();
-      } else if (restrictionType === "validation") {
-        await downloadValidationRestrictionsTemplate();
-      } else {
-        await downloadAllRestrictionsTemplate();
-      }
-    } catch (error) {
-      console.error("Error descargando plantilla:", error);
-      alert("Error al descargar la plantilla");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -93,6 +75,45 @@ export default function RestrictionTemplateDownloadCard({
     }
   };
 
+  const downloadOptions = [
+    {
+      type: "dimension" as const,
+      label: "Restricciones de Dimensión",
+      description: "Ancho, largo, fuelle, perímetro",
+      icon: "📏",
+    },
+    {
+      type: "validation" as const,
+      label: "Restricciones de Validación",
+      description: "Validaciones de campos dependientes",
+      icon: "✓",
+    },
+    {
+      type: "all" as const,
+      label: "Todas las Restricciones",
+      description: "Dimensión + Validación (2 hojas)",
+      icon: "📦",
+    },
+  ];
+
+  const handleSelectiveDownload = async (type: "dimension" | "validation" | "all") => {
+    setIsDownloading(true);
+    try {
+      if (type === "dimension") {
+        await downloadDimensionRestrictionsTemplate();
+      } else if (type === "validation") {
+        await downloadValidationRestrictionsTemplate();
+      } else {
+        await downloadAllRestrictionsTemplate();
+      }
+    } catch (error) {
+      console.error("Error descargando plantilla:", error);
+      alert("Error al descargar la plantilla");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <>
       {showPreview && validationSummary && (
@@ -107,30 +128,43 @@ export default function RestrictionTemplateDownloadCard({
       )}
 
       <FormCard title="Plantilla de Restricciones" icon="📊" color="#7C3AED">
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <p className="text-sm text-slate-600 mb-3">
-              Descarga la plantilla de {getRestrictionTypeLabel().toLowerCase()}, actualiza los valores necesarios y vuelve a cargar el archivo para que ODISEO detecte los cambios automáticamente.
+            <h3 className="text-base font-bold text-slate-900 mb-2">Descargar Restricciones</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Selecciona qué restricciones descargar en formato Excel profesional. Actualiza los valores y carga el archivo para detectar cambios automáticamente.
             </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="inline-flex items-center gap-2 rounded-lg border border-brand-primary bg-white px-4 py-2 text-sm font-semibold text-brand-primary hover:bg-brand-primary hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isDownloading ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Descargando...
-                  </>
-                ) : (
-                  <>↓ Descargar plantilla</>
-                )}
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {downloadOptions.map((option) => (
+                <button
+                  key={option.type}
+                  type="button"
+                  onClick={() => handleSelectiveDownload(option.type)}
+                  disabled={isDownloading}
+                  className="group relative overflow-hidden rounded-lg border-2 border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 text-left transition-all hover:border-brand-primary hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-brand-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-2xl">{option.icon}</span>
+                      {isDownloading && (
+                        <svg className="w-4 h-4 animate-spin text-brand-primary" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      )}
+                    </div>
+                    <p className="text-sm font-semibold text-slate-900 group-hover:text-brand-primary transition-colors">
+                      {option.label}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">{option.description}</p>
+                    <div className="mt-3 flex items-center gap-1 text-xs font-medium text-slate-600 group-hover:text-brand-primary transition-colors">
+                      <span>↓ Descargar Excel</span>
+                      <span>→</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 

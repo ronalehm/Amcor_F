@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import * as XLSX from "xlsx";
 import { X, Download } from "lucide-react";
 import Button from "../../../shared/components/ui/Button";
 import { getCatalogValues } from "../../../shared/catalogs/catalog.service";
@@ -51,33 +52,86 @@ export function CatalogDetailModal({ catalogData, onClose }: CatalogDetailModalP
   };
 
   const handleDownloadValues = () => {
-    // Preparar CSV
-    const headers = ["Código Valor", "Valor", "Descripción", "Estado"];
-    const rows = values.map((v) => [
-      v.item || "",
-      v.name,
-      v.description || "",
-      v.status,
-    ]);
+    // Preparar Excel
+    const data = values.map((v) => ({
+      "Código Valor": v.item || "",
+      "Valor": v.name,
+      "Descripción": v.description || "",
+      "Estado": v.status,
+    }));
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) =>
-        row
-          .map((cell) => `"${cell?.toString().replace(/"/g, '""') || ""}"`)
-          .join(",")
-      ),
-    ].join("\n");
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, catalogData.catalog.name);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = `${catalogData.catCode}_${catalogData.catalog.code}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Aplicar estilos profesionales
+    const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+    const headerColor = "#1F4E78";
+    const headerFont = "FFFFFF";
+    const evenRowColor = "#F2F2F2";
+    const borderColor = "#000000";
+    const dataBorderColor = "#CCCCCC";
+
+    // Estilos para encabezados
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_col(C) + "1";
+      if (ws[address]) {
+        ws[address].s = {
+          fill: { fgColor: { rgb: headerColor } },
+          font: { bold: true, color: { rgb: headerFont }, size: 11 },
+          alignment: { horizontal: "center", vertical: "center", wrapText: true },
+          border: {
+            top: { style: "thin", color: { rgb: borderColor } },
+            bottom: { style: "thin", color: { rgb: borderColor } },
+            left: { style: "thin", color: { rgb: borderColor } },
+            right: { style: "thin", color: { rgb: borderColor } },
+          },
+        };
+      }
+    }
+
+    // Estilos para datos (zebra striping)
+    for (let R = 2; R <= range.e.r + 1; ++R) {
+      const isEvenRow = (R - 2) % 2 === 0;
+      const rowColor = isEvenRow ? evenRowColor : "FFFFFF";
+
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_col(C) + R;
+        if (ws[address]) {
+          ws[address].s = {
+            fill: { fgColor: { rgb: rowColor } },
+            font: { size: 10 },
+            alignment: { horizontal: "left", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: dataBorderColor } },
+              bottom: { style: "thin", color: { rgb: dataBorderColor } },
+              left: { style: "thin", color: { rgb: dataBorderColor } },
+              right: { style: "thin", color: { rgb: dataBorderColor } },
+            },
+          };
+        }
+      }
+    }
+
+    // Auto-ajustar ancho de columnas
+    const colWidths = [];
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      let maxLength = 10;
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const address = XLSX.utils.encode_col(C) + (R + 1);
+        if (ws[address] && ws[address].v) {
+          maxLength = Math.max(maxLength, String(ws[address].v).length);
+        }
+      }
+      colWidths.push({ wch: Math.min(maxLength + 2, 50) });
+    }
+    ws["!cols"] = colWidths;
+
+    // Congelación y filtros
+    ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+    ws["!autofilter"] = { ref: ws["!ref"] };
+
+    XLSX.writeFile(wb, `${catalogData.catCode}_${catalogData.catalog.code}.xlsx`);
   };
 
   return (
@@ -203,7 +257,7 @@ export function CatalogDetailModal({ catalogData, onClose }: CatalogDetailModalP
               className="gap-2"
             >
               <Download className="w-4 h-4" />
-              Descargar CSV
+              Descargar Excel
             </Button>
             <Button onClick={onClose} variant="outline">
               Cerrar

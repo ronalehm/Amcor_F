@@ -2567,9 +2567,9 @@ export default function ProductEditPage() {
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
   const executives = useMemo(() => getActiveExecutiveRecords(), []);
 
-  // Obtener opciones de Clasificación desde TABMODPRODODISEO
+  // Obtener opciones de Clasificación desde catálogo centralizado
   const classificationOpt = useMemo(() => {
-    return getActiveProductClassificationOptions();
+    return getCatalogOptions("classification");
   }, []);
   // unitOfMeasureOpt removed - using UNIT_OPTIONS from PRODUCT_CATALOGS directly
   const printClassOpt = useMemo(() => getCatalogOptions("print_class"), []);
@@ -5082,10 +5082,7 @@ if (!project) {
                         onBlur={() => markFieldAsTouched("technicalApplication")}
                         error={getError("technicalApplication")}
                         placeholder="-- Seleccione --"
-                        options={TECHNICAL_APPLICATION_CATALOG.map((item) => ({
-                          value: item.code,
-                          label: item.name,
-                        }))}
+                        options={getCatalogOptions("aplicacionTecnica")}
                       />
 
                       <FormInput

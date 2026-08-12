@@ -82,16 +82,20 @@ export class CatalogTemplateGenerator {
     // 1. Construir hoja Resumen_Catalogos
     const summarySheet = this.buildSummarySheet(catalogsData);
     XLSX.utils.book_append_sheet(newWorkbook, summarySheet, "Resumen_Catalogos");
+    // Aplicar formato profesional (se extrae dinámicamente de la hoja)
+    applyProfessionalFormattingToSheetAuto(summarySheet, { headerColor: "1F4E78" });
 
     // 2. Construir hoja Detalle_Catalogos
     const detailSheet = this.buildDetailSheet(catalogsData);
     XLSX.utils.book_append_sheet(newWorkbook, detailSheet, "Detalle_Catalogos");
+    applyProfessionalFormattingToSheetAuto(detailSheet, { headerColor: "2E5090" });
 
     // 3. Construir hojas individuales por catálogo
     catalogsData.forEach((catalogData) => {
       const catalogSheet = this.buildCatalogSheet(catalogData);
       const sheetName = this.generateSheetName(catalogData.catalog);
       XLSX.utils.book_append_sheet(newWorkbook, catalogSheet, sheetName);
+      applyProfessionalFormattingToSheetAuto(catalogSheet, { headerColor: "3D5A80" });
     });
 
     // 4. Generar el archivo y retornar como Blob
@@ -546,4 +550,190 @@ export function downloadAllCatalogsTemplate(): void {
 export function generateCatalogsTemplateBlob(): Blob {
   const generator = new CatalogTemplateGenerator();
   return generator.generateCompleteTemplate();
+}
+
+/**
+ * Aplica formato profesional a un worksheet
+ * Incluye: encabezados de color, zebra striping, bordes, alineación, congelación y filtros
+ */
+export function applyProfessionalFormattingToSheet(
+  ws: XLSX.WorkSheet,
+  data: any[],
+  options?: {
+    frozenRows?: number;
+    headerColor?: string;
+    alternateRowColor?: string;
+  }
+): void {
+  if (data.length === 0) return;
+
+  const frozenRows = options?.frozenRows ?? 1;
+  const headerColor = options?.headerColor ?? "1F4E78";
+  const alternateRowColor = options?.alternateRowColor ?? "F2F2F2";
+
+  const keys = Object.keys(data[0]);
+
+  // Estilos para encabezados
+  const headerStyle = {
+    fill: { fgColor: { rgb: headerColor } },
+    font: { bold: true, color: { rgb: "FFFFFF" }, size: 11 },
+    alignment: { horizontal: "center", vertical: "center", wrapText: true },
+    border: {
+      left: { style: "thin", color: { rgb: "000000" } },
+      right: { style: "thin", color: { rgb: "000000" } },
+      top: { style: "thin", color: { rgb: "000000" } },
+      bottom: { style: "thin", color: { rgb: "000000" } },
+    },
+  };
+
+  // Estilos para filas pares (zebra striping)
+  const evenRowStyle = {
+    fill: { fgColor: { rgb: alternateRowColor } },
+    font: { size: 10 },
+    alignment: { horizontal: "left", vertical: "center" },
+    border: {
+      left: { style: "thin", color: { rgb: "CCCCCC" } },
+      right: { style: "thin", color: { rgb: "CCCCCC" } },
+      top: { style: "thin", color: { rgb: "CCCCCC" } },
+      bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+    },
+  };
+
+  // Estilos para filas impares
+  const oddRowStyle = {
+    fill: { fgColor: { rgb: "FFFFFF" } },
+    font: { size: 10 },
+    alignment: { horizontal: "left", vertical: "center" },
+    border: {
+      left: { style: "thin", color: { rgb: "CCCCCC" } },
+      right: { style: "thin", color: { rgb: "CCCCCC" } },
+      top: { style: "thin", color: { rgb: "CCCCCC" } },
+      bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+    },
+  };
+
+  // Aplicar estilos a encabezados
+  for (let i = 0; i < keys.length; i++) {
+    const cellRef = XLSX.utils.encode_col(i) + "1";
+    if (!ws[cellRef]) ws[cellRef] = { t: "s", v: keys[i] };
+    ws[cellRef].s = headerStyle;
+  }
+
+  // Aplicar estilos a datos
+  for (let row = 0; row < data.length; row++) {
+    const rowStyle = row % 2 === 0 ? evenRowStyle : oddRowStyle;
+    for (let col = 0; col < keys.length; col++) {
+      const cellRef = XLSX.utils.encode_col(col) + (row + 2);
+      if (ws[cellRef]) {
+        ws[cellRef].s = rowStyle;
+      }
+    }
+  }
+
+  // Ajustar ancho de columnas
+  const colWidths = keys.map((key) => ({
+    wch: Math.max(
+      key.length + 2,
+      Math.max(
+        ...data.map((row) => String(row[key] || "").length + 2)
+      )
+    ),
+  }));
+  ws["!cols"] = colWidths;
+
+  // Congelar fila de encabezado
+  ws["!freeze"] = { xSplit: 0, ySplit: frozenRows };
+
+  // Agregar filtros automáticos
+  ws["!autofilter"] = {
+    ref: `A1:${XLSX.utils.encode_col(keys.length - 1)}${data.length + 1}`,
+  };
+}
+
+/**
+ * Aplica formato profesional a un worksheet existente sin necesidad de pasar datos
+ * Detecta dinámicamente filas y columnas del worksheet
+ */
+export function applyProfessionalFormattingToSheetAuto(
+  ws: XLSX.WorkSheet,
+  options?: {
+    headerColor?: string;
+    alternateRowColor?: string;
+  }
+): void {
+  const headerColor = options?.headerColor ?? "1F4E78";
+  const alternateRowColor = options?.alternateRowColor ?? "F2F2F2";
+
+  // Detectar rango de datos
+  if (!ws["!ref"]) return;
+
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const colCount = range.e.c + 1;
+  const rowCount = range.e.r + 1;
+
+  // Estilos para encabezados
+  const headerStyle = {
+    fill: { fgColor: { rgb: headerColor } },
+    font: { bold: true, color: { rgb: "FFFFFF" }, size: 11 },
+    alignment: { horizontal: "center", vertical: "center", wrapText: true },
+    border: {
+      left: { style: "thin", color: { rgb: "000000" } },
+      right: { style: "thin", color: { rgb: "000000" } },
+      top: { style: "thin", color: { rgb: "000000" } },
+      bottom: { style: "thin", color: { rgb: "000000" } },
+    },
+  };
+
+  // Estilos para filas pares
+  const evenRowStyle = {
+    fill: { fgColor: { rgb: alternateRowColor } },
+    font: { size: 10 },
+    alignment: { horizontal: "left", vertical: "center" },
+    border: {
+      left: { style: "thin", color: { rgb: "CCCCCC" } },
+      right: { style: "thin", color: { rgb: "CCCCCC" } },
+      top: { style: "thin", color: { rgb: "CCCCCC" } },
+      bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+    },
+  };
+
+  // Estilos para filas impares
+  const oddRowStyle = {
+    fill: { fgColor: { rgb: "FFFFFF" } },
+    font: { size: 10 },
+    alignment: { horizontal: "left", vertical: "center" },
+    border: {
+      left: { style: "thin", color: { rgb: "CCCCCC" } },
+      right: { style: "thin", color: { rgb: "CCCCCC" } },
+      top: { style: "thin", color: { rgb: "CCCCCC" } },
+      bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+    },
+  };
+
+  // Aplicar estilos a encabezados (fila 1)
+  for (let col = 0; col < colCount; col++) {
+    const cellRef = XLSX.utils.encode_col(col) + "1";
+    if (ws[cellRef]) {
+      ws[cellRef].s = headerStyle;
+    }
+  }
+
+  // Aplicar estilos a datos
+  for (let row = 1; row < rowCount; row++) {
+    const rowStyle = row % 2 === 1 ? evenRowStyle : oddRowStyle;
+    for (let col = 0; col < colCount; col++) {
+      const cellRef = XLSX.utils.encode_col(col) + (row + 1);
+      if (ws[cellRef]) {
+        ws[cellRef].s = rowStyle;
+      }
+    }
+  }
+
+  // Congelar fila de encabezado
+  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+
+  // Agregar filtros automáticos
+  ws["!autofilter"] = {
+    ref: `A1:${XLSX.utils.encode_col(colCount - 1)}${rowCount}`,
+  };
 }

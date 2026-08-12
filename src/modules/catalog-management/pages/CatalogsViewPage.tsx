@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import * as XLSX from "xlsx";
 import {
   Search,
   Download,
@@ -18,6 +19,10 @@ import { CatalogDetailModal } from "../components/CatalogDetailModal";
 import { CatalogEditModal } from "../components/CatalogEditModal";
 import { CatalogChangeLogTable } from "../components/CatalogChangeLogTable";
 import { CatalogChangeLogModal } from "../components/CatalogChangeLogModal";
+import {
+  getDimensionRestrictions,
+  getValidationRestrictions,
+} from "../../../shared/data/restrictionCatalogsStorage";
 import type { CatalogDefinition } from "../../../shared/catalogs/catalog.types";
 
 type TabFilter = "todos" | "ODISEO" | "SISTEMA_INTEGRAL";
@@ -34,7 +39,10 @@ interface CatalogRowData {
   lastUpdatedBy: string;
 }
 
+type ViewType = "catalogs" | "restrictions";
+
 export function CatalogsViewPage() {
+  const [viewType, setViewType] = useState<ViewType>("catalogs");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabFilter>("todos");
   const [selectedCatalog, setSelectedCatalog] = useState<CatalogRowData | null>(
@@ -47,6 +55,16 @@ export function CatalogsViewPage() {
     null
   );
   const [showChangeLogModal, setShowChangeLogModal] = useState(false);
+
+  // Limpiar búsqueda y selecciones al cambiar de vista
+  const handleViewTypeChange = (newViewType: ViewType) => {
+    if (newViewType !== viewType) {
+      setViewType(newViewType);
+      setSearchQuery("");
+      setSelectedCatalog(null);
+      setActiveTab("todos");
+    }
+  };
 
   // Funciones helper
   const formatDateTime = (dateString?: string): string => {
@@ -107,8 +125,10 @@ export function CatalogsViewPage() {
     });
   }, []);
 
-  // Filtrar según búsqueda y sistema
+  // Filtrar según búsqueda y sistema (solo para catálogos)
   const filteredCatalogs = useMemo(() => {
+    if (viewType === "restrictions") return [];
+
     return catalogsData.filter((item) => {
       const matchesSearch =
         searchQuery === "" ||
@@ -121,7 +141,7 @@ export function CatalogsViewPage() {
 
       return matchesSearch && matchesSystem;
     });
-  }, [catalogsData, searchQuery, activeTab]);
+  }, [catalogsData, searchQuery, activeTab, viewType]);
 
   // Estadísticas
   const stats = useMemo(() => {
@@ -137,7 +157,11 @@ export function CatalogsViewPage() {
     return { total, odiseo, si, totalValues, activoValues };
   }, [catalogsData]);
 
-  const tabs = [
+  // Dynamic tabs based on viewType
+  const dimensionRestrictions = getDimensionRestrictions();
+  const validationRestrictions = getValidationRestrictions();
+
+  const tabs = viewType === "catalogs" ? [
     {
       key: "todos" as TabFilter,
       label: "Todos los catálogos",
@@ -145,13 +169,29 @@ export function CatalogsViewPage() {
     },
     {
       key: "ODISEO" as TabFilter,
-      label: "ODISEO (Editables)",
+      label: "ODISEO",
       count: catalogsData.filter((c) => c.isEditable).length,
     },
     {
       key: "SISTEMA_INTEGRAL" as TabFilter,
       label: "Sistema Integral",
       count: catalogsData.filter((c) => !c.isEditable).length,
+    },
+  ] : [
+    {
+      key: "todos" as TabFilter,
+      label: "Todas las restricciones",
+      count: dimensionRestrictions.length + validationRestrictions.length,
+    },
+    {
+      key: "ODISEO" as TabFilter,
+      label: "Dimensiones",
+      count: dimensionRestrictions.length,
+    },
+    {
+      key: "SISTEMA_INTEGRAL" as TabFilter,
+      label: "Validaciones",
+      count: validationRestrictions.length,
     },
   ];
 
@@ -160,75 +200,240 @@ export function CatalogsViewPage() {
     setActiveTab("todos");
   };
 
-  const downloadCatalogsCSV = () => {
-    const rows: string[] = [
-      ["Código", "Nombre", "Sistema", "Total", "Activos", "Inactivos", "Bloqueados", "Actualizado por", "Fecha de actualización"].join(","),
-    ];
+  const downloadCatalogsExcel = () => {
+    // Preparar datos para Excel
+    const data = catalogsData.map((cat) => ({
+      "Código": cat.catCode,
+      "Nombre": cat.catalog.name,
+      "Sistema Propietario": cat.catalog.ownerSystem,
+      "Total Items": cat.totalCount,
+      "Activos": cat.activosCount,
+      "Inactivos": cat.inactivosCount,
+      "Bloqueados": cat.bloqueadosCount,
+      "Actualizado por": cat.lastUpdatedBy,
+      "Fecha de Actualización": cat.lastUpdatedAt,
+    }));
 
-    catalogsData.forEach((cat) => {
-      rows.push(
-        [
-          cat.catCode,
-          `"${cat.catalog.name}"`,
-          cat.catalog.ownerSystem,
-          cat.totalCount,
-          cat.activosCount,
-          cat.inactivosCount,
-          cat.bloqueadosCount,
-          cat.lastUpdatedBy,
-          cat.lastUpdatedAt,
-        ].join(",")
-      );
-    });
+    // Crear workbook
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Catálogos");
 
-    const csv = rows.join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = `Catalogos_${new Date().getTime()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Aplicar estilos profesionales
+    const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+    const headerColor = "#1F4E78";
+    const headerFont = "FFFFFF";
+    const evenRowColor = "#F2F2F2";
+    const borderColor = "#000000";
+    const dataBorderColor = "#CCCCCC";
+
+    // Estilos para encabezados
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_col(C) + "1";
+      if (ws[address]) {
+        ws[address].s = {
+          fill: { fgColor: { rgb: headerColor } },
+          font: { bold: true, color: { rgb: headerFont }, size: 11 },
+          alignment: { horizontal: "center", vertical: "center", wrapText: true },
+          border: {
+            top: { style: "thin", color: { rgb: borderColor } },
+            bottom: { style: "thin", color: { rgb: borderColor } },
+            left: { style: "thin", color: { rgb: borderColor } },
+            right: { style: "thin", color: { rgb: borderColor } },
+          },
+        };
+      }
+    }
+
+    // Estilos para datos (zebra striping)
+    for (let R = 2; R <= range.e.r + 1; ++R) {
+      const isEvenRow = (R - 2) % 2 === 0;
+      const rowColor = isEvenRow ? evenRowColor : "FFFFFF";
+
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_col(C) + R;
+        if (ws[address]) {
+          ws[address].s = {
+            fill: { fgColor: { rgb: rowColor } },
+            font: { size: 10 },
+            alignment: { horizontal: "left", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: dataBorderColor } },
+              bottom: { style: "thin", color: { rgb: dataBorderColor } },
+              left: { style: "thin", color: { rgb: dataBorderColor } },
+              right: { style: "thin", color: { rgb: dataBorderColor } },
+            },
+          };
+        }
+      }
+    }
+
+    // Auto-ajustar ancho de columnas
+    const colWidths = [];
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      let maxLength = 10;
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const address = XLSX.utils.encode_col(C) + (R + 1);
+        if (ws[address] && ws[address].v) {
+          maxLength = Math.max(maxLength, String(ws[address].v).length);
+        }
+      }
+      colWidths.push({ wch: Math.min(maxLength + 2, 50) });
+    }
+    ws["!cols"] = colWidths;
+
+    // Congelación y filtros
+    ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+    ws["!autofilter"] = { ref: ws["!ref"] };
+
+    XLSX.writeFile(wb, `Catalogos_${new Date().getTime()}.xlsx`);
     setShowDownloadMenu(false);
   };
 
-  const downloadRestrictionsCSV = () => {
-    // Descargar restricciones de catálogos
-    const rows: string[] = [
-      ["Código Catálogo", "Nombre Catálogo", "Tipo de Restricción", "Descripción"].join(","),
-    ];
+  const downloadRestrictionsExcel = () => {
+    const dimensionRestrictions = getDimensionRestrictions();
+    const validationRestrictions = getValidationRestrictions();
 
-    catalogsData.forEach((cat) => {
-      // Ejemplo: mostrar restricciones básicas de cada catálogo
-      rows.push([
-        cat.catCode,
-        `"${cat.catalog.name}"`,
-        "Editable",
-        cat.isEditable ? "Permite modificaciones via plantilla" : "Solo lectura (Sistema Integral)",
-      ].join(","));
-    });
+    // Preparar datos de restricciones de dimensión
+    const dimensionData = dimensionRestrictions.map((r) => ({
+      "Categoría": "Dimensión",
+      "Envoltura": r.productType,
+      "Código": r.code,
+      "Nombre": r.name,
+      "Ancho Min": r.ancho?.min ?? "-",
+      "Ancho Max": r.ancho?.max ?? "-",
+      "Largo Min": r.largo?.min ?? "-",
+      "Largo Max": r.largo?.max ?? "-",
+      "Fuelle Min": r.anchoFuelle?.min ?? "-",
+      "Fuelle Max": r.anchoFuelle?.max ?? "-",
+      "Perímetro Min": r.perimetro?.min ?? "-",
+      "Perímetro Max": r.perimetro?.max ?? "-",
+      "Estado": r.status,
+    }));
 
-    const csv = rows.join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = `Restricciones_Catalogos_${new Date().getTime()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Preparar datos de restricciones de validación
+    const validationData = validationRestrictions.map((r) => ({
+      "Categoría": "Validación",
+      "Envoltura": r.productType,
+      "Código": r.code,
+      "Nombre": r.name,
+      "Campo Origen": r.sourceField,
+      "Valor Origen": r.sourceValue,
+      "Campo Dependiente": r.dependentField,
+      "Valores Permitidos": r.allowedValues.join(", "),
+      "Estado": r.status,
+    }));
+
+    // Crear workbook con múltiples hojas
+    const wb = XLSX.utils.book_new();
+
+    // Hoja 1: Restricciones de Dimensión
+    if (dimensionData.length > 0) {
+      const wsDim = XLSX.utils.json_to_sheet(dimensionData);
+      XLSX.utils.book_append_sheet(wb, wsDim, "Dimensión");
+      applyRestrictionStyles(wsDim, dimensionData);
+    }
+
+    // Hoja 2: Restricciones de Validación
+    if (validationData.length > 0) {
+      const wsVal = XLSX.utils.json_to_sheet(validationData);
+      XLSX.utils.book_append_sheet(wb, wsVal, "Validación");
+      applyRestrictionStyles(wsVal, validationData);
+    }
+
+    // Hoja 3: Resumen de Catálogos
+    const catalogData = catalogsData.map((cat) => ({
+      "Código": cat.catCode,
+      "Nombre": cat.catalog.name,
+      "Sistema": cat.catalog.ownerSystem,
+      "Total Valores": cat.totalCount,
+      "Activos": cat.activosCount,
+      "Inactivos": cat.inactivosCount,
+      "Bloqueados": cat.bloqueadosCount,
+    }));
+
+    const wsCat = XLSX.utils.json_to_sheet(catalogData);
+    XLSX.utils.book_append_sheet(wb, wsCat, "Catálogos");
+    applyRestrictionStyles(wsCat, catalogData);
+
+    XLSX.writeFile(wb, `Restricciones_Catalogos_${new Date().getTime()}.xlsx`);
     setShowDownloadMenu(false);
   };
 
-  const downloadBothCSV = () => {
-    // Descargar ambos en un ZIP o dos archivos consecutivos
-    // Por simplicidad, descargaremos primero catálogos y luego restricciones
-    downloadCatalogsCSV();
+  const applyRestrictionStyles = (ws: XLSX.WorkSheet, data: any[]) => {
+    if (data.length === 0) return;
+
+    const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+    const headerColor = "#1F4E78";
+    const headerFont = "FFFFFF";
+    const evenRowColor = "#F2F2F2";
+    const borderColor = "#000000";
+    const dataBorderColor = "#CCCCCC";
+
+    // Estilos para encabezados
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_col(C) + "1";
+      if (ws[address]) {
+        ws[address].s = {
+          fill: { fgColor: { rgb: headerColor } },
+          font: { bold: true, color: { rgb: headerFont }, size: 11 },
+          alignment: { horizontal: "center", vertical: "center", wrapText: true },
+          border: {
+            top: { style: "thin", color: { rgb: borderColor } },
+            bottom: { style: "thin", color: { rgb: borderColor } },
+            left: { style: "thin", color: { rgb: borderColor } },
+            right: { style: "thin", color: { rgb: borderColor } },
+          },
+        };
+      }
+    }
+
+    // Estilos para datos (zebra striping)
+    for (let R = 2; R <= range.e.r + 1; ++R) {
+      const isEvenRow = (R - 2) % 2 === 0;
+      const rowColor = isEvenRow ? evenRowColor : "FFFFFF";
+
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_col(C) + R;
+        if (ws[address]) {
+          ws[address].s = {
+            fill: { fgColor: { rgb: rowColor } },
+            font: { size: 10 },
+            alignment: { horizontal: "left", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: dataBorderColor } },
+              bottom: { style: "thin", color: { rgb: dataBorderColor } },
+              left: { style: "thin", color: { rgb: dataBorderColor } },
+              right: { style: "thin", color: { rgb: dataBorderColor } },
+            },
+          };
+        }
+      }
+    }
+
+    // Auto-ajustar ancho de columnas
+    const colWidths = [];
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      let maxLength = 10;
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        const address = XLSX.utils.encode_col(C) + (R + 1);
+        if (ws[address] && ws[address].v) {
+          maxLength = Math.max(maxLength, String(ws[address].v).length);
+        }
+      }
+      colWidths.push({ wch: Math.min(maxLength + 2, 50) });
+    }
+    ws["!cols"] = colWidths;
+
+    // Congelación y filtros
+    ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+    ws["!autofilter"] = { ref: ws["!ref"] };
+  };
+
+  const downloadBothExcel = () => {
+    downloadCatalogsExcel();
     setTimeout(() => {
-      downloadRestrictionsCSV();
+      downloadRestrictionsExcel();
     }, 500);
   };
 
@@ -266,7 +471,7 @@ export function CatalogsViewPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wide text-emerald-600">
-                    ODISEO (Editables)
+                    ODISEO
                   </p>
                   <p className="mt-2 text-3xl font-extrabold text-slate-900">
                     {stats.odiseo}
@@ -300,27 +505,27 @@ export function CatalogsViewPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Total de valores
+                  <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
+                    Restricciones
                   </p>
                   <p className="mt-2 text-3xl font-extrabold text-slate-900">
-                    {stats.totalValues}
+                    {getDimensionRestrictions().length + getValidationRestrictions().length}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Registrados en catálogos
+                    Restricciones activas
                   </p>
                 </div>
-                <div className="rounded-xl bg-slate-100 p-3 text-slate-600">
-                  <Download size={22} />
+                <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
+                  <CheckCircle size={22} />
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Tabs and Filters Section */}
+          {/* Tabs and Filters Section - Shared */}
           <section className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
             {/* Tabs */}
             <div className="flex flex-col gap-3 border-b border-slate-100 px-5 pt-4 xl:flex-row xl:items-end xl:justify-between">
@@ -360,6 +565,23 @@ export function CatalogsViewPage() {
               </p>
             </div>
 
+            {/* View Type Selector */}
+            <div className="border-b border-slate-100 px-5 py-3 bg-slate-50/50">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  Tipo de información
+                </label>
+                <select
+                  value={viewType}
+                  onChange={(e) => handleViewTypeChange(e.target.value as ViewType)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm outline-none transition-colors hover:border-slate-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                >
+                  <option value="catalogs">Catálogos</option>
+                  <option value="restrictions">Restricciones</option>
+                </select>
+              </div>
+            </div>
+
             {/* Search and Actions */}
             <div className="border-b border-slate-100 px-5 py-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -372,7 +594,11 @@ export function CatalogsViewPage() {
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar por código, nombre..."
+                    placeholder={
+                      viewType === "catalogs"
+                        ? "Buscar catálogo o descripción..."
+                        : "Buscar campo, código o regla..."
+                    }
                     className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
                   />
                 </div>
@@ -386,7 +612,7 @@ export function CatalogsViewPage() {
                     icon={<RotateCcw size={16} />}
                   />
 
-                  {/* Dropdown de descargas */}
+                  {/* Dropdown de descargas - Siempre visible */}
                   <div className="relative">
                     <button
                       onClick={() => setShowDownloadMenu(!showDownloadMenu)}
@@ -400,21 +626,21 @@ export function CatalogsViewPage() {
                     {showDownloadMenu && (
                       <div className="absolute right-0 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg z-50">
                         <button
-                          onClick={downloadCatalogsCSV}
+                          onClick={downloadCatalogsExcel}
                           className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100 first:rounded-t-lg"
                         >
                           <div className="font-medium">Catálogos</div>
-                          <div className="text-xs text-slate-500">Descargar información de catálogos</div>
+                          <div className="text-xs text-slate-500">Descargar información de catálogos (Excel)</div>
                         </button>
                         <button
-                          onClick={downloadRestrictionsCSV}
+                          onClick={downloadRestrictionsExcel}
                           className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100"
                         >
                           <div className="font-medium">Restricciones</div>
-                          <div className="text-xs text-slate-500">Descargar restricciones de catálogos</div>
+                          <div className="text-xs text-slate-500">Descargar restricciones de catálogos (Excel)</div>
                         </button>
                         <button
-                          onClick={downloadBothCSV}
+                          onClick={downloadBothExcel}
                           className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100"
                         >
                           <div className="font-medium">Catálogos + Restricciones</div>
@@ -431,8 +657,9 @@ export function CatalogsViewPage() {
                     )}
                   </div>
 
+                  {/* Botón de edición - Cambia label según vista */}
                   <ActionButton
-                    label="Editar Catálogo"
+                    label={viewType === "catalogs" ? "Editar Catálogo" : "Editar Restricción"}
                     onClick={() => setShowEditModal(true)}
                     variant="primary"
                     size="sm"
@@ -561,27 +788,79 @@ export function CatalogsViewPage() {
                                 title="Descargar valores del catálogo"
                                 onClick={() => {
                                   const values = getCatalogValues(row.catalog.code) || [];
-                                  const csv = [
-                                    ["Código Valor", "Valor", "Descripción", "Estado"],
-                                    ...values.map((v) => [
-                                      v.item || "",
-                                      v.name || "",
-                                      v.description || "",
-                                      v.status || "",
-                                    ]),
-                                  ]
-                                    .map((row) => row.map((cell) => `"${cell}"`).join(","))
-                                    .join("\n");
+                                  const data = values.map((v) => ({
+                                    "Código Valor": v.item || "",
+                                    "Valor": v.name || "",
+                                    "Descripción": v.description || "",
+                                    "Estado": v.status || "",
+                                  }));
 
-                                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                                  const link = document.createElement("a");
-                                  const url = URL.createObjectURL(blob);
-                                  link.href = url;
-                                  link.download = `${row.catCode}_${row.catalog.code}.csv`;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                  URL.revokeObjectURL(url);
+                                  const ws = XLSX.utils.json_to_sheet(data);
+                                  const wb = XLSX.utils.book_new();
+                                  XLSX.utils.book_append_sheet(wb, ws, row.catalog.name);
+
+                                  // Estilos profesionales
+                                  const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+                                  const headerColor = "#1F4E78";
+                                  const headerFont = "FFFFFF";
+                                  const evenRowColor = "#F2F2F2";
+                                  const borderColor = "#000000";
+                                  const dataBorderColor = "#CCCCCC";
+
+                                  for (let C = range.s.c; C <= range.e.c; ++C) {
+                                    const address = XLSX.utils.encode_col(C) + "1";
+                                    if (ws[address]) {
+                                      ws[address].s = {
+                                        fill: { fgColor: { rgb: headerColor } },
+                                        font: { bold: true, color: { rgb: headerFont }, size: 11 },
+                                        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                                        border: {
+                                          top: { style: "thin", color: { rgb: borderColor } },
+                                          bottom: { style: "thin", color: { rgb: borderColor } },
+                                          left: { style: "thin", color: { rgb: borderColor } },
+                                          right: { style: "thin", color: { rgb: borderColor } },
+                                        },
+                                      };
+                                    }
+                                  }
+
+                                  for (let R = 2; R <= range.e.r + 1; ++R) {
+                                    const isEvenRow = (R - 2) % 2 === 0;
+                                    const rowColor = isEvenRow ? evenRowColor : "FFFFFF";
+                                    for (let C = range.s.c; C <= range.e.c; ++C) {
+                                      const address = XLSX.utils.encode_col(C) + R;
+                                      if (ws[address]) {
+                                        ws[address].s = {
+                                          fill: { fgColor: { rgb: rowColor } },
+                                          font: { size: 10 },
+                                          alignment: { horizontal: "left", vertical: "center" },
+                                          border: {
+                                            top: { style: "thin", color: { rgb: dataBorderColor } },
+                                            bottom: { style: "thin", color: { rgb: dataBorderColor } },
+                                            left: { style: "thin", color: { rgb: dataBorderColor } },
+                                            right: { style: "thin", color: { rgb: dataBorderColor } },
+                                          },
+                                        };
+                                      }
+                                    }
+                                  }
+
+                                  const colWidths = [];
+                                  for (let C = range.s.c; C <= range.e.c; ++C) {
+                                    let maxLength = 10;
+                                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                                      const address = XLSX.utils.encode_col(C) + (R + 1);
+                                      if (ws[address] && ws[address].v) {
+                                        maxLength = Math.max(maxLength, String(ws[address].v).length);
+                                      }
+                                    }
+                                    colWidths.push({ wch: Math.min(maxLength + 2, 50) });
+                                  }
+                                  ws["!cols"] = colWidths;
+                                  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+                                  ws["!autofilter"] = { ref: ws["!ref"] };
+
+                                  XLSX.writeFile(wb, `${row.catCode}_${row.catalog.code}.xlsx`);
                                 }}
                                 className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
                               >
@@ -649,6 +928,7 @@ export function CatalogsViewPage() {
               </div>
             )}
           </div>
+
       </>
 
       {/* Detail Modal */}

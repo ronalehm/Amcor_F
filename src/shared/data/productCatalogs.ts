@@ -194,7 +194,7 @@ export const PRODUCT_CATALOGS = {
   },
   tipoDePerforacionPouchSelloCentralAletaConFuelle: {
     label: "Tipo de Perforación Pouch Sello Central Aleta con Fuelle",
-    code: "TPP",
+    code: "TPS",
     values: [
       "Ojal 50x15 mm",
       "Ojal 70x20 mm",
@@ -207,7 +207,7 @@ export const PRODUCT_CATALOGS = {
   },
   tipoDePerforacionBolsaWicket: {
     label: "Tipo de Perforación Bolsa Wicket",
-    code: "TPP",
+    code: "TPW",
     values: [
       "Ojal 50x15 mm",
       "Ojal 70x20 mm",
@@ -286,11 +286,6 @@ export const PRODUCT_CATALOGS = {
       "Sentido 7",
       "Sentido 8",
     ],
-  },
-  ubicacionDeFotocelula: {
-    label: "Ubicación de fotocélula",
-    code: "UFT",
-    values: ["Lámina Izquierda", "Lámina Derecha", "Lámina Centro", "Lámina Ambos"],
   },
   incoterm: {
     label: "Incoterm",
@@ -1185,132 +1180,6 @@ export const PRODUCT_CATALOGS = {
   },
 } as const;
 
-// Catálogo centralizado de opciones de Modificación por Clasificación
-export const PRODUCT_MODIFICATION_CATALOG: ProductModificationCatalogItem[] = [
-  // Producto Nuevo
-  {
-    code: "MOD-PN-001",
-    label: "Nueva estructura",
-    classification: "Producto Nuevo",
-    active: true,
-    sortOrder: 1,
-  },
-  {
-    code: "MOD-PN-002",
-    label: "Nuevos insumos",
-    classification: "Producto Nuevo",
-    active: true,
-    sortOrder: 2,
-  },
-  {
-    code: "MOD-PN-003",
-    label: "Nuevo formato de envasado",
-    classification: "Producto Nuevo",
-    active: true,
-    sortOrder: 3,
-  },
-  {
-    code: "MOD-PN-004",
-    label: "Diseño nuevo",
-    classification: "Producto Nuevo",
-    active: true,
-    sortOrder: 4,
-  },
-  {
-    code: "MOD-PN-005",
-    label: "Extensión de Línea",
-    classification: "Producto Nuevo",
-    active: true,
-    sortOrder: 5,
-  },
-  {
-    code: "MOD-PN-006",
-    label: "Nuevo equipamiento / proceso / temperatura",
-    classification: "Producto Nuevo",
-    active: true,
-    sortOrder: 6,
-  },
-  // Producto Modificado
-  {
-    code: "MOD-PM-001",
-    label: "Modifica Dimensiones",
-    classification: "Producto Modificado",
-    active: true,
-    sortOrder: 1,
-  },
-  {
-    code: "MOD-PM-002",
-    label: "Modifica Propiedades",
-    classification: "Producto Modificado",
-    active: true,
-    sortOrder: 2,
-  },
-  {
-    code: "MOD-PM-003",
-    label: "Cambia Estructura",
-    classification: "Producto Modificado",
-    active: true,
-    sortOrder: 3,
-  },
-  {
-    code: "MOD-PM-004",
-    label: "Cambia Materia Prima",
-    classification: "Producto Modificado",
-    active: true,
-    sortOrder: 4,
-  },
-  {
-    code: "MOD-PM-005",
-    label: "Cambia Diseño",
-    classification: "Producto Modificado",
-    active: true,
-    sortOrder: 5,
-  },
-  {
-    code: "MOD-PM-006",
-    label: "Portafolio Estándar",
-    classification: "Producto Modificado",
-    active: true,
-    sortOrder: 6,
-  },
-];
-
-// Helper para obtener opciones de modificación por clasificación
-export const getModificationOptionsByClassification = (
-  classification: string
-): Array<{ value: string; label: string }> => {
-  const normalizedClassification = classification
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-
-  return PRODUCT_MODIFICATION_CATALOG
-    .filter((item) => {
-      const itemClassification = item.classification
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, " ");
-
-      return (
-        item.active &&
-        (itemClassification === normalizedClassification ||
-          (normalizedClassification === "producto nuevo" &&
-            itemClassification === "producto nuevo") ||
-          (normalizedClassification === "nuevo" &&
-            itemClassification === "producto nuevo") ||
-          (normalizedClassification === "producto modificado" &&
-            itemClassification === "producto modificado") ||
-          (normalizedClassification === "modificado" &&
-            itemClassification === "producto modificado"))
-      );
-    })
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((item) => ({
-      value: item.label,
-      label: item.label,
-    }));
-};
-
 export const PRODUCT_FIELD_CATALOG_MAP: Record<
   string,
   ProductCatalogKey | "MAESTRO_CLIENTES" | "PENDING_DEFINITION"
@@ -1365,7 +1234,6 @@ export const PRODUCT_FIELD_CATALOG_MAP: Record<
   "P2:Tipo de Sello en Fuelle": "tipoSelloBolsaEnFuelle",
   "P2:Tolerancia de Repetición exacta de DoyPack": "toleranciaRepeticionExactaDoypack",
   "P2:Ubicación de wicket de control": "ubicacionWicketDeControl",
-  "P2:Ubicación de fotocélula": "ubicacionDeFotocelula",
   "P2:Ubicación de precorte wicket": "ubicacionDelPrecorteWicket",
   "P1:Unidad de medida": "unidadDeMedida",
   "P4:Embalaje de Productos de Exportación": "PENDING_DEFINITION",

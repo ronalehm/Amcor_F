@@ -18,6 +18,138 @@ import type {
 import { getCurrentUser } from "../../../shared/data/userStorage";
 import { addRestrictionChangeLogEntry } from "../../../shared/data/restrictionChangeLog";
 
+// ============ ESTILOS PROFESIONALES ============
+
+interface CellStyle {
+  fill?: { fgColor?: { rgb?: string } };
+  font?: { bold?: boolean; color?: { rgb?: string }; size?: number };
+  alignment?: { horizontal?: string; vertical?: string; wrapText?: boolean };
+  border?: {
+    top?: { style?: string; color?: { rgb?: string } };
+    bottom?: { style?: string; color?: { rgb?: string } };
+    left?: { style?: string; color?: { rgb?: string } };
+    right?: { style?: string; color?: { rgb?: string } };
+  };
+}
+
+// Mapeo de nombres de columnas para encabezados legibles
+const headerMappingDimension: Record<string, string> = {
+  id: "ID",
+  nombre: "Nombre de Restricción",
+  codigo: "Código",
+  tipoProducto: "Tipo de Producto",
+  formatoPlan: "Formato de Plano",
+  ancho_min: "Ancho Mín (mm)",
+  ancho_max: "Ancho Máx (mm)",
+  largo_min: "Largo Mín (mm)",
+  largo_max: "Largo Máx (mm)",
+  anchoFuelle_min: "Ancho Fuelle Mín (mm)",
+  anchoFuelle_max: "Ancho Fuelle Máx (mm)",
+  perimetro_min: "Perímetro Mín (mm)",
+  perimetro_max: "Perímetro Máx (mm)",
+  estado: "Estado",
+};
+
+const headerMappingValidation: Record<string, string> = {
+  id: "ID",
+  nombre: "Nombre de Restricción",
+  codigo: "Código",
+  tipoProducto: "Tipo de Producto",
+  campoOrigen: "Campo Origen",
+  valorOrigen: "Valor Origen",
+  campoDependiente: "Campo Dependiente",
+  valoresPermitidos: "Valores Permitidos",
+  estado: "Estado",
+};
+
+function applyProfessionalStylesRestrictions(
+  ws: XLSX.WorkSheet,
+  headerRowIndex: number = 1,
+  dataRowCount: number = 0,
+  headerMapping: Record<string, string> = {}
+): void {
+  if (!ws["!ref"]) return;
+
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const headerColor = "#1F4E78";
+  const headerFont = "FFFFFF";
+  const evenRowColor = "#F2F2F2";
+  const borderColor = "#000000";
+  const dataBorderColor = "#CCCCCC";
+
+  // Renombrar encabezados
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    const address = XLSX.utils.encode_col(C) + headerRowIndex;
+    if (ws[address] && headerMapping[ws[address].v]) {
+      ws[address].v = headerMapping[ws[address].v];
+    }
+  }
+
+  // Estilos para encabezados
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    const address = XLSX.utils.encode_col(C) + headerRowIndex;
+    if (!ws[address]) continue;
+
+    ws[address].s = {
+      fill: { fgColor: { rgb: headerColor } },
+      font: { bold: true, color: { rgb: headerFont }, size: 11 },
+      alignment: { horizontal: "center", vertical: "center", wrapText: true },
+      border: {
+        top: { style: "thin", color: { rgb: borderColor } },
+        bottom: { style: "thin", color: { rgb: borderColor } },
+        left: { style: "thin", color: { rgb: borderColor } },
+        right: { style: "thin", color: { rgb: borderColor } },
+      },
+    };
+  }
+
+  // Estilos para datos (zebra striping)
+  for (let R = headerRowIndex + 1; R <= headerRowIndex + dataRowCount; ++R) {
+    const isEvenRow = (R - headerRowIndex - 1) % 2 === 0;
+    const rowColor = isEvenRow ? evenRowColor : "FFFFFF";
+
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const address = XLSX.utils.encode_col(C) + R;
+      if (!ws[address]) continue;
+
+      ws[address].s = {
+        fill: { fgColor: { rgb: rowColor } },
+        font: { size: 10 },
+        alignment: { horizontal: "left", vertical: "center" },
+        border: {
+          top: { style: "thin", color: { rgb: dataBorderColor } },
+          bottom: { style: "thin", color: { rgb: dataBorderColor } },
+          left: { style: "thin", color: { rgb: dataBorderColor } },
+          right: { style: "thin", color: { rgb: dataBorderColor } },
+        },
+      };
+    }
+  }
+
+  // Auto-ajustar ancho de columnas
+  const colWidths: number[] = [];
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    let maxLength = 10;
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      const address = XLSX.utils.encode_col(C) + (R + 1);
+      if (ws[address] && ws[address].v) {
+        const cellValue = String(ws[address].v);
+        maxLength = Math.max(maxLength, cellValue.length);
+      }
+    }
+    colWidths.push(Math.min(maxLength + 2, 50));
+  }
+  ws["!cols"] = colWidths.map((w) => ({ wch: w }));
+
+  // Congelación de fila de encabezado
+  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+
+  // Filtros automáticos
+  if (ws["!ref"]) {
+    ws["!autofilter"] = { ref: ws["!ref"] };
+  }
+}
+
 // ============ EXPORTACIÓN ============
 
 /**
@@ -69,10 +201,14 @@ export function exportValidationRestrictionsToExcel(): RestrictionExportData[] {
 export async function downloadDimensionRestrictionsTemplate(): Promise<void> {
   const exportData = exportDimensionRestrictionsToExcel();
   const ws = XLSX.utils.json_to_sheet(exportData);
+
+  // Aplicar estilos profesionales con mapeo de encabezados
+  applyProfessionalStylesRestrictions(ws, 1, exportData.length, headerMappingDimension);
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Restricciones Dimensión");
 
-  const fileName = `Plantilla_Restricciones_Dimension_${new Date().getTime()}.xlsx`;
+  const fileName = `Restricciones_Dimension_${new Date().getTime()}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }
 
@@ -82,10 +218,14 @@ export async function downloadDimensionRestrictionsTemplate(): Promise<void> {
 export async function downloadValidationRestrictionsTemplate(): Promise<void> {
   const exportData = exportValidationRestrictionsToExcel();
   const ws = XLSX.utils.json_to_sheet(exportData);
+
+  // Aplicar estilos profesionales con mapeo de encabezados
+  applyProfessionalStylesRestrictions(ws, 1, exportData.length, headerMappingValidation);
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Restricciones Validación");
 
-  const fileName = `Plantilla_Restricciones_Validacion_${new Date().getTime()}.xlsx`;
+  const fileName = `Restricciones_Validacion_${new Date().getTime()}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }
 
@@ -100,10 +240,14 @@ export async function downloadAllRestrictionsTemplate(): Promise<void> {
   const wsDimension = XLSX.utils.json_to_sheet(dimensionData);
   const wsValidation = XLSX.utils.json_to_sheet(validationData);
 
+  // Aplicar estilos profesionales a ambas hojas con mapeos correspondientes
+  applyProfessionalStylesRestrictions(wsDimension, 1, dimensionData.length, headerMappingDimension);
+  applyProfessionalStylesRestrictions(wsValidation, 1, validationData.length, headerMappingValidation);
+
   XLSX.utils.book_append_sheet(wb, wsDimension, "Dimensión");
   XLSX.utils.book_append_sheet(wb, wsValidation, "Validación");
 
-  const fileName = `Plantilla_Restricciones_Completa_${new Date().getTime()}.xlsx`;
+  const fileName = `Restricciones_Completa_${new Date().getTime()}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }
 

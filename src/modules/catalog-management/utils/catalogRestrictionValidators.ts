@@ -31,12 +31,12 @@ export function validateFileUpload(file: File | null): Record<string, string> {
     return errors;
   }
 
-  const validExtensions = [".xlsx", ".csv"];
+  const validExtensions = [".xlsx", ".xls"];
   const fileName = file.name.toLowerCase();
   const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
 
   if (!hasValidExtension) {
-    errors.file = "El archivo debe ser .xlsx o .csv.";
+    errors.file = "El archivo debe ser .xlsx o .xls";
   }
 
   const maxSizeMB = 10;

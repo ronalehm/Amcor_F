@@ -18,7 +18,7 @@ import { getAllApprovedProducts } from "../../data/approvedProductStorage";
 import { getActiveExecutiveRecords } from "../../data/executiveStorage";
 
 import { getCatalogOptions } from "../../catalogs";
-import { PRODUCT_CATALOGS, getModificationOptionsByClassification } from "../../data/productCatalogs";
+import { PRODUCT_CATALOGS } from "../../data/productCatalogs";
 import {
   getActiveProductClassificationOptions,
   getActiveModificationOptionsByClassification,
@@ -256,9 +256,9 @@ const compareSimilarityMatches = (
 
 const ClientSearchField = ClientSearch as unknown as ComponentType<any>;
 
-// Obtener opciones de Clasificación desde TABMODPRODODISEO
+// Obtener opciones de Clasificación desde catálogo centralizado
 const getClassificationOptions = () => {
-  return getActiveProductClassificationOptions();
+  return getCatalogOptions("classification");
 };
 
 // Funciones helper para validar clasificación
