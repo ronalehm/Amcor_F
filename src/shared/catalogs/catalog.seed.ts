@@ -29,7 +29,7 @@ export const CATALOG_VALUES_SEED: CatalogValue[] = [
     catalogId: "catalog_wrapping_type",
     catalogCode: "wrapping_type",
     item: "ENV-003",
-    name: "LáMINA",
+    name: "LÁMINA",
     status: "Activo",
     sortOrder: 3,
   },
