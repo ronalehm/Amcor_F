@@ -15,9 +15,9 @@ import {
 import ActionButton from "../../../shared/components/buttons/ActionButton";
 import { CATALOG_REGISTRY } from "../../../shared/catalogs/catalog.registry";
 import { getCatalogValues } from "../../../shared/catalogs/catalog.service";
-import { downloadAllCatalogsTemplate } from "../services/catalogTemplateGenerator";
 import { CatalogDetailModal } from "../components/CatalogDetailModal";
 import { CatalogEditModal } from "../components/CatalogEditModal";
+import { RestrictionsEditModal } from "../components/RestrictionsEditModal";
 import { CatalogChangeLogTable } from "../components/CatalogChangeLogTable";
 import { CatalogChangeLogModal } from "../components/CatalogChangeLogModal";
 import {
@@ -48,6 +48,7 @@ interface RestrictionRowData {
   category: string;
   type: "dimension" | "validation";
   description: string;
+  rule: string;
   status: string;
   updatedAt: string;
 }
@@ -56,33 +57,36 @@ export function CatalogsViewPage() {
   const [viewType, setViewType] = useState<ViewType>("catalogs");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TabFilter>("todos");
+
+  // Estados separados: selección visual vs. modales
   const [selectedRow, setSelectedRow] = useState<CatalogRowData | RestrictionRowData | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [detailRow, setDetailRow] = useState<CatalogRowData | RestrictionRowData | null>(null);
+  const [editRow, setEditRow] = useState<CatalogRowData | RestrictionRowData | null>(null);
+
+  // Visibilidad de modales
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showCatalogEditModal, setShowCatalogEditModal] = useState(false);
+  const [showRestrictionEditModal, setShowRestrictionEditModal] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [showChangeLog, setShowChangeLog] = useState(false);
-  const [changeLogData, setChangeLogData] = useState<CatalogRowData | null>(null);
   const [showChangeLogModal, setShowChangeLogModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [detailModalData, setDetailModalData] = useState<any>(null);
+
+  // Datos para bitácora
+  const [changeLogData, setChangeLogData] = useState<CatalogRowData | null>(null);
 
   const handleViewTypeChange = (newViewType: ViewType) => {
     if (newViewType !== viewType) {
       setViewType(newViewType);
       setSearchQuery("");
       setSelectedRow(null);
+      setDetailRow(null);
+      setEditRow(null);
       setActiveTab("todos");
     }
   };
 
   const formatDateTime = (dateString?: string): string => {
-    if (!dateString) return new Intl.DateTimeFormat("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    }).format(new Date());
+    if (!dateString) return "Sin información";
     try {
       const date = new Date(dateString);
       if (Number.isNaN(date.getTime())) return "—";
@@ -139,7 +143,8 @@ export function CatalogsViewPage() {
       name: r.name,
       category: r.productType,
       type: "dimension" as const,
-      description: `Restricción de dimensión: ${r.name}`,
+      description: `Formato: ${r.formatPlan}`,
+      rule: `Ancho: ${r.ancho?.min || 0}-${r.ancho?.max || 0}, Largo: ${r.largo?.min || 0}-${r.largo?.max || 0}`,
       status: r.status,
       updatedAt: formatDateTime(),
     }));
@@ -150,7 +155,8 @@ export function CatalogsViewPage() {
       name: r.name,
       category: r.productType,
       type: "validation" as const,
-      description: `Restricción de validación: ${r.name}`,
+      description: `Validación: ${r.name}`,
+      rule: `Regla de validación`,
       status: r.status,
       updatedAt: formatDateTime(),
     }));
@@ -179,7 +185,8 @@ export function CatalogsViewPage() {
           searchQuery === "" ||
           item.catCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.catalog.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.catalog.code.toLowerCase().includes(searchQuery.toLowerCase());
+          item.catalog.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.catalog.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesTab =
           activeTab === "todos" ||
@@ -194,7 +201,9 @@ export function CatalogsViewPage() {
           searchQuery === "" ||
           item.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.category.toLowerCase().includes(searchQuery.toLowerCase());
+          item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.rule.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesTab =
           activeTab === "todos" ||
@@ -211,8 +220,8 @@ export function CatalogsViewPage() {
     total: catalogsData.length,
     odiseo: catalogsData.filter((c) => c.isEditable).length,
     si: catalogsData.filter((c) => !c.isEditable).length,
-    restrictions: dimensionRestrictions.length + validationRestrictions.length,
-  }), [catalogsData, dimensionRestrictions, validationRestrictions]);
+    restrictions: restrictionsData.filter((r) => r.status === "Activo").length,
+  }), [catalogsData, restrictionsData]);
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -220,21 +229,8 @@ export function CatalogsViewPage() {
   };
 
   // ====== DESCARGAS ======
-  const downloadData = () => {
-    if (viewType === "catalogs") {
-      downloadCatalogsExcel(true);
-    } else {
-      downloadRestrictionsExcel(true);
-    }
-  };
-
-  const downloadAllCatalogs = () => downloadCatalogsExcel(false);
-  const downloadFilteredCatalogs = () => downloadCatalogsExcel(true);
-  const downloadAllRestrictions = () => downloadRestrictionsExcel(false);
-  const downloadFilteredRestrictions = () => downloadRestrictionsExcel(true);
-
-  const downloadCatalogsExcel = (filtered: boolean = true) => {
-    const data = (filtered ? filteredData : catalogsData).map((row: any) => ({
+  const downloadAllCatalogsExcel = () => {
+    const data = catalogsData.map((row) => ({
       "Código": row.catCode,
       "Nombre": row.catalog.name,
       "Total": row.totalCount,
@@ -254,13 +250,35 @@ export function CatalogsViewPage() {
     setShowDownloadMenu(false);
   };
 
-  const downloadRestrictionsExcel = (filtered: boolean = true) => {
-    const data = (filtered ? filteredData : restrictionsData).map((row: any) => ({
+  const downloadFilteredCatalogsExcel = () => {
+    const data = filteredData.map((row: any) => ({
+      "Código": row.catCode,
+      "Nombre": row.catalog.name,
+      "Total": row.totalCount,
+      "Activos": row.activosCount,
+      "Inactivos": row.inactivosCount,
+      "Bloqueados": row.bloqueadosCount,
+      "Sistema": row.isEditable ? "ODISEO" : "SI",
+      "Actualizado por": row.lastUpdatedBy,
+      "Fecha": row.lastUpdatedAt,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Catálogos");
+    applyStyles(ws);
+    XLSX.writeFile(wb, `Catalogos_filtrados_${new Date().getTime()}.xlsx`);
+    setShowDownloadMenu(false);
+  };
+
+  const downloadAllRestrictionsExcel = () => {
+    const data = restrictionsData.map((row) => ({
       "Código": row.code,
       "Nombre": row.name,
       "Categoría": row.category,
       "Tipo": row.type === "dimension" ? "Dimensión" : "Validación",
       "Descripción": row.description,
+      "Regla": row.rule,
       "Estado": row.status,
       "Actualizado": row.updatedAt,
     }));
@@ -270,6 +288,66 @@ export function CatalogsViewPage() {
     XLSX.utils.book_append_sheet(wb, ws, "Restricciones");
     applyStyles(ws);
     XLSX.writeFile(wb, `Restricciones_${new Date().getTime()}.xlsx`);
+    setShowDownloadMenu(false);
+  };
+
+  const downloadFilteredRestrictionsExcel = () => {
+    const data = filteredData.map((row: any) => ({
+      "Código": row.code,
+      "Nombre": row.name,
+      "Categoría": row.category,
+      "Tipo": row.type === "dimension" ? "Dimensión" : "Validación",
+      "Descripción": row.description,
+      "Regla": row.rule,
+      "Estado": row.status,
+      "Actualizado": row.updatedAt,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Restricciones");
+    applyStyles(ws);
+    XLSX.writeFile(wb, `Restricciones_filtradas_${new Date().getTime()}.xlsx`);
+    setShowDownloadMenu(false);
+  };
+
+  const downloadCombinedExcel = () => {
+    // Catálogos
+    const catalogsData_export = catalogsData.map((row) => ({
+      "Código": row.catCode,
+      "Nombre": row.catalog.name,
+      "Total": row.totalCount,
+      "Activos": row.activosCount,
+      "Inactivos": row.inactivosCount,
+      "Bloqueados": row.bloqueadosCount,
+      "Sistema": row.isEditable ? "ODISEO" : "SI",
+      "Actualizado por": row.lastUpdatedBy,
+      "Fecha": row.lastUpdatedAt,
+    }));
+
+    // Restricciones
+    const restrictionsData_export = restrictionsData.map((row) => ({
+      "Código": row.code,
+      "Nombre": row.name,
+      "Categoría": row.category,
+      "Tipo": row.type === "dimension" ? "Dimensión" : "Validación",
+      "Descripción": row.description,
+      "Regla": row.rule,
+      "Estado": row.status,
+      "Actualizado": row.updatedAt,
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws1 = XLSX.utils.json_to_sheet(catalogsData_export);
+    const ws2 = XLSX.utils.json_to_sheet(restrictionsData_export);
+
+    XLSX.utils.book_append_sheet(wb, ws1, "Catálogos");
+    XLSX.utils.book_append_sheet(wb, ws2, "Restricciones");
+
+    applyStyles(ws1);
+    applyStyles(ws2);
+
+    XLSX.writeFile(wb, `Catalogos_Restricciones_${new Date().getTime()}.xlsx`);
     setShowDownloadMenu(false);
   };
 
@@ -382,9 +460,9 @@ export function CatalogsViewPage() {
           <div className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-blue-600">Restricciones</p>
-                <p className="mt-2 text-3xl font-extrabold text-slate-900">{stats.restrictions}</p>
-                <p className="mt-1 text-xs text-slate-500">Restricciones activas</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-blue-600">Restricciones Registradas</p>
+                <p className="mt-2 text-3xl font-extrabold text-slate-900">{restrictionsData.length}</p>
+                <p className="mt-1 text-xs text-slate-500">En el sistema</p>
               </div>
               <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
                 <CheckCircle size={22} />
@@ -456,8 +534,8 @@ export function CatalogsViewPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={
                     viewType === "catalogs"
-                      ? "Buscar catálogo o descripción..."
-                      : "Buscar campo, código o regla..."
+                      ? "Buscar por código, nombre, descripción..."
+                      : "Buscar por código, nombre, categoría, descripción o regla..."
                   }
                   className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
                 />
@@ -483,53 +561,67 @@ export function CatalogsViewPage() {
                   </button>
 
                   {showDownloadMenu && (
-                    <div className="absolute right-0 mt-2 w-60 rounded-lg border border-slate-200 bg-white shadow-lg z-50">
+                    <div className="absolute right-0 mt-2 w-64 rounded-lg border border-slate-200 bg-white shadow-lg z-50">
                       {viewType === "catalogs" ? (
                         <>
                           <button
-                            onClick={downloadAllCatalogs}
+                            onClick={downloadAllCatalogsExcel}
                             className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100 first:rounded-t-lg"
                           >
                             <div className="font-medium">✓ Todos los Catálogos</div>
-                            <div className="text-xs text-slate-500">Descargar completo (Excel)</div>
+                            <div className="text-xs text-slate-500">Descarga completa (Excel)</div>
                           </button>
                           <button
-                            onClick={downloadFilteredCatalogs}
+                            onClick={downloadFilteredCatalogsExcel}
                             className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100"
                           >
                             <div className="font-medium">Catálogos Filtrados</div>
-                            <div className="text-xs text-slate-500">Descargar según filtros (Excel)</div>
+                            <div className="text-xs text-slate-500">Según búsqueda/filtros (Excel)</div>
                           </button>
                           <button
-                            onClick={downloadAllRestrictions}
-                            className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors rounded-b-lg"
+                            onClick={downloadAllRestrictionsExcel}
+                            className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100"
                           >
                             <div className="font-medium">Todas las Restricciones</div>
-                            <div className="text-xs text-slate-500">Descargar restricciones (Excel)</div>
+                            <div className="text-xs text-slate-500">Vínculo cruzado (Excel)</div>
+                          </button>
+                          <button
+                            onClick={downloadCombinedExcel}
+                            className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors rounded-b-lg"
+                          >
+                            <div className="font-medium">Catálogos + Restricciones</div>
+                            <div className="text-xs text-slate-500">Ambos en un Excel (2 hojas)</div>
                           </button>
                         </>
                       ) : (
                         <>
                           <button
-                            onClick={downloadAllRestrictions}
+                            onClick={downloadAllRestrictionsExcel}
                             className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100 first:rounded-t-lg"
                           >
                             <div className="font-medium">✓ Todas las Restricciones</div>
-                            <div className="text-xs text-slate-500">Descargar completo (Excel)</div>
+                            <div className="text-xs text-slate-500">Descarga completa (Excel)</div>
                           </button>
                           <button
-                            onClick={downloadFilteredRestrictions}
+                            onClick={downloadFilteredRestrictionsExcel}
                             className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100"
                           >
                             <div className="font-medium">Restricciones Filtradas</div>
-                            <div className="text-xs text-slate-500">Descargar según filtros (Excel)</div>
+                            <div className="text-xs text-slate-500">Según búsqueda/filtros (Excel)</div>
                           </button>
                           <button
-                            onClick={downloadAllCatalogs}
-                            className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors rounded-b-lg"
+                            onClick={downloadAllCatalogsExcel}
+                            className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100"
                           >
                             <div className="font-medium">Todos los Catálogos</div>
-                            <div className="text-xs text-slate-500">Descargar catálogos (Excel)</div>
+                            <div className="text-xs text-slate-500">Vínculo cruzado (Excel)</div>
+                          </button>
+                          <button
+                            onClick={downloadCombinedExcel}
+                            className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors rounded-b-lg"
+                          >
+                            <div className="font-medium">Catálogos + Restricciones</div>
+                            <div className="text-xs text-slate-500">Ambos en un Excel (2 hojas)</div>
                           </button>
                         </>
                       )}
@@ -553,7 +645,7 @@ export function CatalogsViewPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1024px] border-collapse text-sm">
+              <table className="w-full min-w-[1200px] border-collapse text-sm">
                 <thead className="sticky top-0 z-10 bg-brand-primary text-white">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">Código</th>
@@ -571,6 +663,7 @@ export function CatalogsViewPage() {
                         <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">Nombre</th>
                         <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">Categoría</th>
                         <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">Tipo</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">Descripción / Regla</th>
                       </>
                     )}
                     <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">Estado</th>
@@ -581,7 +674,7 @@ export function CatalogsViewPage() {
                 <tbody className="divide-y divide-slate-100">
                   {filteredData.map((row, idx) => (
                     <tr
-                      key={idx}
+                      key={viewType === "catalogs" ? (row as CatalogRowData).catCode : (row as RestrictionRowData).id}
                       className={`cursor-pointer transition-colors ${
                         selectedRow === row ? "bg-brand-secondary-soft" : idx % 2 === 0 ? "bg-slate-50" : "bg-white"
                       } hover:bg-slate-100`}
@@ -634,6 +727,9 @@ export function CatalogsViewPage() {
                               {(row as RestrictionRowData).type === "dimension" ? "Dimensión" : "Validación"}
                             </span>
                           </td>
+                          <td className="px-4 py-3 text-sm text-slate-700">
+                            {(row as RestrictionRowData).rule}
+                          </td>
                         </>
                       )}
                       <td className="px-4 py-3 text-sm">
@@ -653,7 +749,8 @@ export function CatalogsViewPage() {
                           <button
                             type="button"
                             title="Histórico"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               if (viewType === "catalogs" && "catCode" in row) {
                                 setChangeLogData(row as CatalogRowData);
                                 setShowChangeLogModal(true);
@@ -668,9 +765,14 @@ export function CatalogsViewPage() {
                           <button
                             type="button"
                             title="Editar"
-                            onClick={() => {
-                              setSelectedRow(row);
-                              setShowEditModal(true);
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditRow(row);
+                              if (viewType === "catalogs" && "catCode" in row) {
+                                setShowCatalogEditModal(true);
+                              } else if (viewType === "restrictions" && "id" in row) {
+                                setShowRestrictionEditModal(true);
+                              }
                             }}
                             className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
                           >
@@ -680,8 +782,9 @@ export function CatalogsViewPage() {
                           <button
                             type="button"
                             title="Ver detalle"
-                            onClick={() => {
-                              setDetailModalData(row);
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDetailRow(row);
                               setShowDetailModal(true);
                             }}
                             className="rounded-lg bg-brand-primary p-2 text-white transition-colors hover:bg-brand-primary/90"
@@ -709,12 +812,13 @@ export function CatalogsViewPage() {
               <p className="text-sm text-slate-600 mt-1">
                 {viewType === "catalogs"
                   ? "Registro de todos los cambios realizados a los catálogos"
-                  : "Registro de todos los cambios realizados a las restricciones"}
+                  : "Bitácora de restricciones (próximamente)"}
               </p>
             </div>
             <button
               onClick={() => setShowChangeLog(!showChangeLog)}
-              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+              disabled={viewType !== "catalogs"}
+              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 showChangeLog
                   ? "border-brand-primary bg-brand-secondary-soft text-brand-primary"
                   : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
@@ -724,7 +828,7 @@ export function CatalogsViewPage() {
             </button>
           </div>
 
-          {showChangeLog && (
+          {showChangeLog && viewType === "catalogs" && (
             <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
               <CatalogChangeLogTable />
             </div>
@@ -733,110 +837,120 @@ export function CatalogsViewPage() {
       </>
 
       {/* MODAL DE DETALLES */}
-      {showDetailModal && detailModalData && (
+      {showDetailModal && detailRow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
             <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
               <h2 className="text-xl font-bold text-slate-900">Detalles</h2>
               <button
-                onClick={() => setShowDetailModal(false)}
+                onClick={() => {
+                  setShowDetailModal(false);
+                  setDetailRow(null);
+                }}
                 className="rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 p-2"
               >
                 ✕
               </button>
             </div>
             <div className="p-6 max-h-[70vh] overflow-y-auto">
-              {viewType === "catalogs" ? (
+              {viewType === "catalogs" && "catCode" in detailRow ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Código</p>
-                      <p className="text-sm font-mono text-slate-900">{(detailModalData as CatalogRowData).catCode}</p>
+                      <p className="text-sm font-mono text-slate-900">{detailRow.catCode}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Nombre</p>
-                      <p className="text-sm text-slate-900">{(detailModalData as CatalogRowData).catalog.name}</p>
+                      <p className="text-sm text-slate-900">{detailRow.catalog.name}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-4">
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Total</p>
-                      <p className="text-sm font-bold text-slate-900">{(detailModalData as CatalogRowData).totalCount}</p>
+                      <p className="text-sm font-bold text-slate-900">{detailRow.totalCount}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Activos</p>
-                      <p className="text-sm font-bold text-green-600">{(detailModalData as CatalogRowData).activosCount}</p>
+                      <p className="text-sm font-bold text-green-600">{detailRow.activosCount}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Inactivos</p>
-                      <p className="text-sm font-bold text-orange-600">{(detailModalData as CatalogRowData).inactivosCount}</p>
+                      <p className="text-sm font-bold text-orange-600">{detailRow.inactivosCount}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Bloqueados</p>
-                      <p className="text-sm font-bold text-red-600">{(detailModalData as CatalogRowData).bloqueadosCount}</p>
+                      <p className="text-sm font-bold text-red-600">{detailRow.bloqueadosCount}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-4">
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Sistema</p>
-                      <p className="text-sm">{(detailModalData as CatalogRowData).isEditable ? "ODISEO" : "Sistema Integral"}</p>
+                      <p className="text-sm">{detailRow.isEditable ? "ODISEO" : "Sistema Integral"}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Última Actualización</p>
-                      <p className="text-sm text-slate-600">{(detailModalData as CatalogRowData).lastUpdatedAt}</p>
+                      <p className="text-sm text-slate-600">{detailRow.lastUpdatedAt}</p>
                     </div>
                   </div>
                 </div>
-              ) : (
+              ) : viewType === "restrictions" && "id" in detailRow ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Código</p>
-                      <p className="text-sm font-mono text-slate-900">{(detailModalData as RestrictionRowData).code}</p>
+                      <p className="text-sm font-mono text-slate-900">{detailRow.code}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Nombre</p>
-                      <p className="text-sm text-slate-900">{(detailModalData as RestrictionRowData).name}</p>
+                      <p className="text-sm text-slate-900">{detailRow.name}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-4">
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Categoría</p>
-                      <p className="text-sm text-slate-900">{(detailModalData as RestrictionRowData).category}</p>
+                      <p className="text-sm text-slate-900">{detailRow.category}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Tipo</p>
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                        (detailModalData as RestrictionRowData).type === "dimension"
+                        detailRow.type === "dimension"
                           ? "bg-blue-100 text-blue-800"
                           : "bg-purple-100 text-purple-800"
                       }`}>
-                        {(detailModalData as RestrictionRowData).type === "dimension" ? "Dimensión" : "Validación"}
+                        {detailRow.type === "dimension" ? "Dimensión" : "Validación"}
                       </span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-4">
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Estado</p>
-                      <p className="text-sm text-slate-900">{(detailModalData as RestrictionRowData).status}</p>
+                      <p className="text-sm text-slate-900">{detailRow.status}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase">Actualizado</p>
-                      <p className="text-sm text-slate-600">{(detailModalData as RestrictionRowData).updatedAt}</p>
+                      <p className="text-sm text-slate-600">{detailRow.updatedAt}</p>
                     </div>
                   </div>
                   <div className="border-t border-slate-200 pt-4">
                     <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Descripción</p>
-                    <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">{(detailModalData as RestrictionRowData).description}</p>
+                    <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">{detailRow.description}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Regla</p>
+                    <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg">{detailRow.rule}</p>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
             <div className="border-t border-slate-200 px-6 py-4 flex justify-end">
               <button
-                onClick={() => setShowDetailModal(false)}
+                onClick={() => {
+                  setShowDetailModal(false);
+                  setDetailRow(null);
+                }}
                 className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Cerrar
@@ -846,20 +960,32 @@ export function CatalogsViewPage() {
         </div>
       )}
 
-      {/* MODALES */}
-      {typeof selectedRow === "object" && selectedRow !== null && "catCode" in selectedRow && (
-        <CatalogDetailModal
-          catalogData={selectedRow as CatalogRowData & any}
-          onClose={() => setSelectedRow(null)}
-        />
-      )}
-
+      {/* MODALES DE EDICIÓN */}
       <CatalogEditModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onUploadSuccess={() => setShowEditModal(false)}
+        isOpen={showCatalogEditModal}
+        onClose={() => {
+          setShowCatalogEditModal(false);
+          setEditRow(null);
+        }}
+        onUploadSuccess={() => {
+          setShowCatalogEditModal(false);
+          setEditRow(null);
+        }}
       />
 
+      <RestrictionsEditModal
+        isOpen={showRestrictionEditModal}
+        onClose={() => {
+          setShowRestrictionEditModal(false);
+          setEditRow(null);
+        }}
+        onUploadSuccess={() => {
+          setShowRestrictionEditModal(false);
+          setEditRow(null);
+        }}
+      />
+
+      {/* MODAL BITÁCORA */}
       {changeLogData && (
         <CatalogChangeLogModal
           isOpen={showChangeLogModal}
