@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import ReactDOM from "react-dom";
 import { X, Download, Upload, AlertCircle, Search } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -26,6 +26,7 @@ export function RestrictionsEditModal({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [uploadedData, setUploadedData] = useState<any | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,13 +39,28 @@ export function RestrictionsEditModal({
         r.code.toLowerCase().includes(search) ||
         r.name.toLowerCase().includes(search) ||
         r.productType.toLowerCase().includes(search)
-    );
+    ).slice(0, 10);
   }, [searchQuery, restrictions]);
+
+  useEffect(() => {
+    if (inputRef.current && searchQuery && filteredRestrictions.length > 0) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [searchQuery, filteredRestrictions]);
 
   const selectedRestriction = useMemo(() => {
     if (!selectedRestrictionId) return null;
     return restrictions.find((r) => r.id === selectedRestrictionId);
   }, [selectedRestrictionId, restrictions]);
+
+  const getRestrictionCode = (restriction: DimensionRestrictionCatalog) => {
+    return `RES-${restriction.code.substring(0, 3).toUpperCase()}`;
+  };
 
   const handleDownloadTemplate = () => {
     if (!selectedRestriction) return;
@@ -75,7 +91,6 @@ export function RestrictionsEditModal({
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Restricción");
 
-    // Aplicar estilos
     const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
     const headerColor = "#1F4E78";
     const headerFont = "FFFFFF";
@@ -91,7 +106,6 @@ export function RestrictionsEditModal({
       }
     }
 
-    // Ancho de columnas
     ws["!cols"] = Array.from({ length: range.e.c + 1 }, () => ({ wch: 20 }));
 
     XLSX.writeFile(
@@ -151,12 +165,24 @@ export function RestrictionsEditModal({
         return;
       }
 
-      // Validar estructura básica
       const row = data[0] as any;
       if (!row.ID || !row.Código) {
-        setValidationError("El archivo no tiene la estructura correcta");
+        setValidationError("El archivo no tiene la estructura correcta (falta ID o Código)");
         setIsValidating(false);
         return;
+      }
+
+      const numericFields = [
+        "Ancho Mín", "Ancho Máx", "Largo Mín", "Largo Máx",
+        "Fuelle Mín", "Fuelle Máx", "Perímetro Mín", "Perímetro Máx"
+      ];
+
+      for (const field of numericFields) {
+        if (row[field] !== undefined && isNaN(parseFloat(row[field]))) {
+          setValidationError(`El campo "${field}" debe ser un número`);
+          setIsValidating(false);
+          return;
+        }
       }
 
       setUploadedData(row);
@@ -174,7 +200,6 @@ export function RestrictionsEditModal({
     if (!uploadedData || !selectedRestriction) return;
 
     try {
-      // Actualizar la restricción con los nuevos valores
       const updated = updateDimensionRestriction(selectedRestriction.id, {
         ancho: {
           min: parseFloat(uploadedData["Ancho Mín"]) || 0,
@@ -210,6 +235,8 @@ export function RestrictionsEditModal({
         setShowConfirmation(false);
         setUploadedData(null);
         setValidationError(null);
+        setSelectedRestrictionId(null);
+        setSearchQuery("");
         onUploadSuccess?.();
         onClose();
       }
@@ -223,211 +250,245 @@ export function RestrictionsEditModal({
   if (!isOpen) return null;
 
   return ReactDOM.createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full h-fit overflow-y-auto flex flex-col" style={{ maxHeight: 'calc(100vh - 80px)' }}>
         {/* HEADER */}
-        <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
-          <h2 className="text-xl font-bold text-slate-900">Editar Restricción</h2>
+        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+          <h2 className="text-2xl font-bold text-slate-900">Editar Restricción</h2>
           <button
             onClick={onClose}
-            className="rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 p-2"
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
           >
-            <X size={20} />
+            <X size={24} />
           </button>
         </div>
 
         {/* CONTENT */}
-        <div className="p-6 max-h-[70vh] overflow-y-auto">
-          {/* BÚSQUEDA Y SELECCIÓN */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <div className="flex-1 flex flex-col overflow-visible">
+          {/* BÚSQUEDA - No Scroll */}
+          <div className="p-6 z-50 relative">
+            <label className="block text-sm font-semibold text-slate-900 mb-2">
               Seleccionar Restricción
             </label>
             <div className="relative">
               <Search
-                size={16}
-                className="absolute left-3 top-3 text-slate-400"
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Buscar por código, nombre o tipo..."
+                placeholder="Busca por código, nombre o tipo..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-700 outline-none transition-colors focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
               />
-            </div>
 
-            {/* DROPDOWN */}
-            {searchQuery && filteredRestrictions.length > 0 && (
-              <div className="absolute top-full left-6 right-6 mt-1 z-10 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
-                {filteredRestrictions.map((restriction) => (
-                  <button
-                    key={restriction.id}
-                    onClick={() => {
-                      setSelectedRestrictionId(restriction.id);
-                      setSearchQuery("");
-                      setValidationError(null);
+              {/* Dropdown Results - Portal */}
+              {searchQuery && filteredRestrictions.length > 0 &&
+                ReactDOM.createPortal(
+                  <div
+                    className="fixed bg-white border border-slate-200 rounded-lg shadow-lg z-[9999] max-h-[300px] overflow-y-auto"
+                    style={{
+                      top: `${dropdownPosition.top + 8}px`,
+                      left: `${dropdownPosition.left}px`,
+                      width: `${dropdownPosition.width}px`,
                     }}
-                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"
                   >
-                    <div className="font-medium">{restriction.name}</div>
-                    <div className="text-xs text-slate-500">
-                      {restriction.code} • {restriction.productType}
-                    </div>
+                    {filteredRestrictions.map((restriction) => {
+                      const resCode = getRestrictionCode(restriction);
+                      const isSelected = selectedRestrictionId === restriction.id;
+                      return (
+                        <button
+                          key={restriction.id}
+                          onClick={() => {
+                            setSelectedRestrictionId(restriction.id);
+                            setSearchQuery("");
+                          }}
+                          className={`w-full px-4 py-3 text-left border-b border-slate-100 transition-colors last:border-0 ${
+                            isSelected
+                              ? "bg-brand-secondary-soft text-brand-primary"
+                              : "hover:bg-slate-50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-mono font-semibold text-sm">
+                                {resCode}
+                              </p>
+                              <p className="text-sm font-medium text-slate-900">
+                                {restriction.name}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                {restriction.productType} • {restriction.formatPlan}
+                              </p>
+                            </div>
+                            <span className="text-xs font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                              {restriction.status}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>,
+                  document.body
+                )
+              }
+            </div>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-6 pt-0 pb-6 space-y-6">
+            {/* Restricción Seleccionada */}
+            {selectedRestriction && (
+              <div className="bg-brand-secondary-soft rounded-lg p-4 border border-brand-primary/20">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-brand-primary">
+                      Restricción Seleccionada
+                    </p>
+                    <p className="text-lg font-bold text-slate-900 mt-1">
+                      {getRestrictionCode(selectedRestriction)} - {selectedRestriction.name}
+                    </p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      {selectedRestriction.productType} • {selectedRestriction.formatPlan}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-2">
+                      Estado:{" "}
+                      <span className="font-semibold text-slate-900">
+                        {selectedRestriction.status}
+                      </span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleDownloadTemplate}
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-primary text-white px-4 py-2 text-sm font-medium hover:bg-brand-primary/90 transition-colors whitespace-nowrap"
+                  >
+                    <Download size={16} />
+                    Descargar
                   </button>
-                ))}
+                </div>
+              </div>
+            )}
+
+            {/* Info Text */}
+            {selectedRestriction && !showConfirmation && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm text-blue-900">
+                  Descarga la plantilla Excel, edita los valores mínimos y máximos de los campos (Ancho, Largo, Fuelle, Perímetro, Repetición, Área de Diseño), y cárgala nuevamente.
+                </p>
+              </div>
+            )}
+
+            {/* UPLOAD AREA */}
+            {selectedRestriction && !showConfirmation && (
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors ${
+                  isDragging
+                    ? "border-brand-primary bg-brand-primary/5"
+                    : "border-slate-300"
+                }`}
+              >
+                <Upload
+                  size={32}
+                  className={`mx-auto mb-3 ${
+                    isDragging ? "text-brand-primary" : "text-slate-400"
+                  }`}
+                />
+                <p className="text-sm font-medium text-slate-700 mb-1">
+                  Arrastra el Excel aquí o{" "}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-brand-primary hover:underline"
+                  >
+                    selecciona un archivo
+                  </button>
+                </p>
+                <p className="text-xs text-slate-500">
+                  Solo archivos .xlsx o .xls con los datos editados
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
+            )}
+
+            {/* VALIDATING STATE */}
+            {isValidating && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center">
+                <p className="text-sm text-slate-600">
+                  Validando archivo... ⏳
+                </p>
+              </div>
+            )}
+
+            {/* ERROR */}
+            {validationError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex gap-3">
+                <AlertCircle size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-900">Error de validación</p>
+                  <p className="text-sm text-red-700 mt-1">{validationError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* CONFIRMACIÓN */}
+            {showConfirmation && uploadedData && (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <h4 className="text-sm font-bold text-slate-900 mb-3">
+                    Valores a Actualizar
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="flex justify-between p-2 bg-white rounded">
+                      <span className="text-slate-600">Ancho:</span>
+                      <span className="font-mono font-semibold text-slate-900">
+                        {uploadedData["Ancho Mín"]} - {uploadedData["Ancho Máx"]}
+                      </span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-white rounded">
+                      <span className="text-slate-600">Largo:</span>
+                      <span className="font-mono font-semibold text-slate-900">
+                        {uploadedData["Largo Mín"]} - {uploadedData["Largo Máx"]}
+                      </span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-white rounded">
+                      <span className="text-slate-600">Fuelle:</span>
+                      <span className="font-mono font-semibold text-slate-900">
+                        {uploadedData["Fuelle Mín"]} - {uploadedData["Fuelle Máx"]}
+                      </span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-white rounded">
+                      <span className="text-slate-600">Perímetro:</span>
+                      <span className="font-mono font-semibold text-slate-900">
+                        {uploadedData["Perímetro Mín"]} - {uploadedData["Perímetro Máx"]}
+                      </span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-white rounded">
+                      <span className="text-slate-600">Repetición:</span>
+                      <span className="font-mono font-semibold text-slate-900">
+                        {uploadedData["Repetición Mín"]} - {uploadedData["Repetición Máx"]}
+                      </span>
+                    </div>
+                    <div className="flex justify-between p-2 bg-white rounded">
+                      <span className="text-slate-600">Área Diseño:</span>
+                      <span className="font-mono font-semibold text-slate-900">
+                        {uploadedData["Área Diseño Ancho Mín"]}-{uploadedData["Área Diseño Ancho Máx"]}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
-
-          {/* RESTRICCIÓN SELECCIONADA */}
-          {selectedRestriction && (
-            <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <h3 className="text-sm font-bold text-slate-900 mb-2">
-                {selectedRestriction.name}
-              </h3>
-              <div className="grid grid-cols-2 gap-3 text-xs text-slate-600">
-                <div>
-                  <span className="font-medium">Código:</span> {selectedRestriction.code}
-                </div>
-                <div>
-                  <span className="font-medium">Tipo:</span>{" "}
-                  {selectedRestriction.productType}
-                </div>
-                <div>
-                  <span className="font-medium">Plan:</span>{" "}
-                  {selectedRestriction.formatPlan}
-                </div>
-                <div>
-                  <span className="font-medium">Estado:</span>{" "}
-                  {selectedRestriction.status}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* DESCARGAR TEMPLATE */}
-          {selectedRestriction && !showConfirmation && (
-            <div className="mb-6">
-              <button
-                onClick={handleDownloadTemplate}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-primary/90 transition-colors"
-              >
-                <Download size={16} />
-                Descargar Plantilla Excel
-              </button>
-              <p className="mt-2 text-xs text-slate-500">
-                Descarga el Excel con los valores actuales, edita los mínimos y máximos,
-                y cárgalo nuevamente.
-              </p>
-            </div>
-          )}
-
-          {/* UPLOAD AREA */}
-          {selectedRestriction && !showConfirmation && (
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors ${
-                isDragging
-                  ? "border-brand-primary bg-brand-primary/5"
-                  : "border-slate-300"
-              }`}
-            >
-              <Upload
-                size={32}
-                className={`mx-auto mb-3 ${
-                  isDragging ? "text-brand-primary" : "text-slate-400"
-                }`}
-              />
-              <p className="text-sm font-medium text-slate-700 mb-1">
-                Arrastra el Excel aquí o{" "}
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-brand-primary hover:underline"
-                >
-                  selecciona un archivo
-                </button>
-              </p>
-              <p className="text-xs text-slate-500">
-                Solo archivos .xlsx o .xls con los datos editados
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-            </div>
-          )}
-
-          {/* VALIDATING STATE */}
-          {isValidating && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-center">
-              <p className="text-sm text-slate-600">
-                Validando archivo... ⏳
-              </p>
-            </div>
-          )}
-
-          {/* ERROR */}
-          {validationError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex gap-3">
-              <AlertCircle size={18} className="text-red-600 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-red-900">Error</p>
-                <p className="text-sm text-red-700 mt-1">{validationError}</p>
-              </div>
-            </div>
-          )}
-
-          {/* CONFIRMACIÓN */}
-          {showConfirmation && uploadedData && (
-            <div className="space-y-4">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <h4 className="text-sm font-bold text-slate-900 mb-3">
-                  Datos a Actualizar
-                </h4>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Ancho:</span>
-                    <span className="font-mono text-slate-900">
-                      {uploadedData["Ancho Mín"]} - {uploadedData["Ancho Máx"]}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Largo:</span>
-                    <span className="font-mono text-slate-900">
-                      {uploadedData["Largo Mín"]} - {uploadedData["Largo Máx"]}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Fuelle:</span>
-                    <span className="font-mono text-slate-900">
-                      {uploadedData["Fuelle Mín"]} - {uploadedData["Fuelle Máx"]}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Perímetro:</span>
-                    <span className="font-mono text-slate-900">
-                      {uploadedData["Perímetro Mín"]} -{" "}
-                      {uploadedData["Perímetro Máx"]}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Repetición:</span>
-                    <span className="font-mono text-slate-900">
-                      {uploadedData["Repetición Mín"]} -{" "}
-                      {uploadedData["Repetición Máx"]}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* FOOTER */}
