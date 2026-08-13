@@ -3006,90 +3006,85 @@ if (!project) {
         if (datosSugeridos) {
           console.log("[ProductEditPage] Autocompletando campos de Momento 2 desde referencia...");
 
-          // Mostrar qué datos tiene la referencia (filtrar vacíos)
-          const nonEmptyData: Record<string, any> = {};
-          Object.entries(datosSugeridos).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== "") {
-              nonEmptyData[key] = value;
-            }
-          });
-          console.log("[ProductEditPage] Datos disponibles en referencia (sin vacíos):", nonEmptyData);
+          // Copiar TODOS los campos del producto de referencia, EXCEPTO los que se llenaron en el modal
+          // Campos que NO deben sobrescribirse (fueron llenados en ProductInitialCreateModal)
+          const doNotOverwrite = new Set([
+            "projectName",
+            "estimatedVolume",
+            "volumeReferencial",
+            "unitOfMeasure",
+            "projectDescription",
+            "proyectoReferenciaCodigo",
+            "proyectoReferenciaId",
+            "proyectoReferenciaNombre",
+            "porcentajeSimilitudPreliminar",
+            "alcanceReferenciaSimilitud",
+            "estadoProductoReferencia",
+            "classification",
+            "projectType",
+            "subClassification",
+            "motivoModificacion",
+            "portfolioCode",
+            "code",
+            "status",
+            "id",
+            "sourceProjectId",
+            "sourceProjectCode",
+            "sourceProjectName",
+          ]);
 
-          // Mapeo de campos referencia → form de ProductEditPage
-          // NOTA: Los nombres en datosSugeridosMomento2 pueden venir como "Micraje" pero en form son "Micron"
-          const fieldMapping: Record<string, string> = {
-            // Dimensiones - mapear alias
-            ancho: "width",
-            largo: "length",
-            repeticion: "repetition",
-            anchoFuelle: "anchoFuelle",
-            gussetWidth: "anchoFuelle",
-
-            // Impresión y Diseño
-            tipoImpresion: "printType",
-            printType: "printType",
-            printClass: "printClass",
-            printForm: "printForm",
-            forma_impresion: "printForm",
-            cantidadColores: "cantidadColores",
-            colorsCount: "cantidadColores",
-
-            // Propiedades
-            espesorTotal: "espesorTotal",
-            thickness: "espesorTotal",
-            gramaje: "gramaje",
-            grammage: "gramaje",
-            barrera: "barrera",
-            barrier: "barrera",
-            acabado: "acabado",
-            finish: "acabado",
-            accesorios: "accesorios",
-            accessories: "accesorios",
-            tipoSellado: "tipoSellado",
-            sealType: "tipoSellado",
-            zipper: "zipper",
-            hasZipper: "zipper",
-            valvula: "valvula",
-            hasValve: "valvula",
-            troquel: "troquel",
-            diecut: "troquel",
-            disenoEspecial: "disenoEspecial",
-            specialDesign: "disenoEspecial",
-            criteriosTecnicos: "criteriosTecnicos",
-            technicalCriteria: "criteriosTecnicos",
-            comentariosTecnicos: "comentariosTecnicos",
-            technicalComments: "comentariosTecnicos",
-
-            // Capas de materiales - MAPEO CORRECTO: Micraje → Micron
-            layer1Material: "layer1Material",
-            layer1MaterialLabel: "layer1MaterialLabel",
-            layer1Micraje: "layer1Micron",  // CORREGIDO: era layer1Micraje
-            layer2Material: "layer2Material",
-            layer2MaterialLabel: "layer2MaterialLabel",
-            layer2Micraje: "layer2Micron",  // CORREGIDO: era layer2Micraje
-            layer3Material: "layer3Material",
-            layer3MaterialLabel: "layer3MaterialLabel",
-            layer3Micraje: "layer3Micron",  // CORREGIDO: era layer3Micraje
-            layer4Material: "layer4Material",
-            layer4MaterialLabel: "layer4MaterialLabel",
-            layer4Micraje: "layer4Micron",  // CORREGIDO: era layer4Micraje
-          };
-
-          // Autocompletar los campos disponibles
           const autocompletedFields: Record<string, any> = {};
 
-          Object.entries(fieldMapping).forEach(([referenceFieldName, formFieldName]) => {
-            const referenceValue = (datosSugeridos as any)[referenceFieldName];
-            if (
-              referenceValue !== undefined &&
-              referenceValue !== null &&
-              referenceValue !== "" &&
-              !(convertedForm as any)[formFieldName] // No sobrescribir valores existentes
-            ) {
-              (convertedForm as any)[formFieldName] = referenceValue;
-              inheritedFieldsSet.add(formFieldName);
-              autocompletedFields[formFieldName] = referenceValue;
+          // Copiar directamente todos los campos de datosSugeridos que NO estén en doNotOverwrite
+          Object.entries(datosSugeridos as any).forEach(([refFieldName, refValue]) => {
+            if (doNotOverwrite.has(refFieldName)) {
+              return; // No sobrescribir estos campos
             }
+
+            // Saltar campos vacíos o undefined
+            if (refValue === undefined || refValue === null || refValue === "") {
+              return;
+            }
+
+            // Mapear nombres de campos especiales (Micraje → Micron)
+            let formFieldName = refFieldName;
+            if (refFieldName.endsWith("Micraje")) {
+              formFieldName = refFieldName.replace("Micraje", "Micron");
+            }
+
+            // También mapear nombres alternos: ancho → width, largo → length, etc
+            const aliasMap: Record<string, string> = {
+              ancho: "width",
+              largo: "length",
+              repeticion: "repetition",
+              tipoImpresion: "printType",
+              cantidadColores: "cantidadColores",
+              espesorTotal: "espesorTotal",
+              gramaje: "gramaje",
+              barrera: "barrera",
+              acabado: "acabado",
+              accesorios: "accesorios",
+              tipoSellado: "tipoSellado",
+              zipper: "zipper",
+              valvula: "valvula",
+              troquel: "troquel",
+              disenoEspecial: "disenoEspecial",
+              criteriosTecnicos: "criteriosTecnicos",
+              comentariosTecnicos: "comentariosTecnicos",
+              anchoFuelle: "anchoFuelle",
+            };
+
+            formFieldName = aliasMap[formFieldName] || formFieldName;
+
+            // No sobrescribir valores que ya existen en convertedForm
+            if ((convertedForm as any)[formFieldName]) {
+              return;
+            }
+
+            // Copiar el valor
+            (convertedForm as any)[formFieldName] = refValue;
+            inheritedFieldsSet.add(formFieldName);
+            autocompletedFields[formFieldName] = refValue;
           });
 
           console.log(
