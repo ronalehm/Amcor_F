@@ -3035,14 +3035,21 @@ if (!project) {
 
           const autocompletedFields: Record<string, any> = {};
 
+          console.log("[ProductEditPage] DEPURACIÓN - datosSugeridos completo:", datosSugeridos);
+          console.log("[ProductEditPage] DEPURACIÓN - convertedForm.width ANTES:", convertedForm.width);
+          console.log("[ProductEditPage] DEPURACIÓN - convertedForm.repetition ANTES:", convertedForm.repetition);
+          console.log("[ProductEditPage] DEPURACIÓN - convertedForm.printType ANTES:", convertedForm.printType);
+
           // Copiar directamente todos los campos de datosSugeridos que NO estén en doNotOverwrite
           Object.entries(datosSugeridos as any).forEach(([refFieldName, refValue]) => {
             if (doNotOverwrite.has(refFieldName)) {
-              return; // No sobrescribir estos campos
+              console.log(`[ProductEditPage] DEPURACIÓN - ${refFieldName}: SALTADO (en doNotOverwrite)`);
+              return;
             }
 
             // Saltar campos vacíos o undefined
             if (refValue === undefined || refValue === null || refValue === "") {
+              console.log(`[ProductEditPage] DEPURACIÓN - ${refFieldName}: SALTADO (vacío)`);
               return;
             }
 
@@ -3078,14 +3085,20 @@ if (!project) {
 
             // No sobrescribir valores que ya existen en convertedForm
             if ((convertedForm as any)[formFieldName]) {
+              console.log(`[ProductEditPage] DEPURACIÓN - ${refFieldName} → ${formFieldName}: SALTADO (ya existe en convertedForm)`);
               return;
             }
 
             // Copiar el valor
+            console.log(`[ProductEditPage] DEPURACIÓN - ${refFieldName} → ${formFieldName}: COPIADO (valor: ${refValue})`);
             (convertedForm as any)[formFieldName] = refValue;
             inheritedFieldsSet.add(formFieldName);
             autocompletedFields[formFieldName] = refValue;
           });
+
+          console.log("[ProductEditPage] DEPURACIÓN - convertedForm.width DESPUÉS:", convertedForm.width);
+          console.log("[ProductEditPage] DEPURACIÓN - convertedForm.repetition DESPUÉS:", convertedForm.repetition);
+          console.log("[ProductEditPage] DEPURACIÓN - convertedForm.printType DESPUÉS:", convertedForm.printType);
 
           console.log(
             "[ProductEditPage] Campos Momento 2 autocompletados:",
@@ -5046,13 +5059,13 @@ if (!project) {
                         placeholder="-- Seleccione --"
                       />
 
-                      {/* COLUMNA DERECHA: TIPO DE PRODUCTO (ENVOLTURA) */}
+                      {/* COLUMNA DERECHA: MODIFICACIÓN(ES) */}
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-3">
-                          Tipo de Producto *
+                          Modificación(es) *
                         </label>
                         <div className="space-y-2 border border-slate-200 rounded-lg p-3 bg-white">
-                          {getCatalogOptions("wrapping_type").map((option) => (
+                          {getCausalOptions(form.classification).map((option) => (
                             <label key={option.value} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded transition">
                               <input
                                 type="checkbox"
