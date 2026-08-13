@@ -17,7 +17,7 @@ import * as userStorage from "../../data/userStorage";
 import { getAllApprovedProducts } from "../../data/approvedProductStorage";
 import { getActiveExecutiveRecords } from "../../data/executiveStorage";
 
-import { getCatalogOptions } from "../../catalogs";
+import { getCatalogOptions, getCatalogValue } from "../../catalogs";
 import { PRODUCT_CATALOGS } from "../../data/productCatalogs";
 import {
   getActiveProductClassificationOptions,
@@ -263,28 +263,52 @@ const getClassificationOptions = () => {
 
 // Funciones helper para validar clasificación
 const isProductoNuevo = (classification: string): boolean => {
-  const normalized = normalizeProductClassificationToCatalog(classification);
+  if (!classification) return false;
+
+  // Si es código de catálogo (CLASS-001), convertir a nombre
+  const catalogValue = getCatalogValue("classification", classification);
+  const classificationName = catalogValue?.name || classification;
+
+  const normalized = normalizeProductClassificationToCatalog(classificationName);
   return normalized === "Producto Nuevo";
 };
 
 const isProductoModificado = (classification: string): boolean => {
-  const normalized = normalizeProductClassificationToCatalog(classification);
+  if (!classification) return false;
+
+  // Si es código de catálogo (CLASS-002), convertir a nombre
+  const catalogValue = getCatalogValue("classification", classification);
+  const classificationName = catalogValue?.name || classification;
+
+  const normalized = normalizeProductClassificationToCatalog(classificationName);
   return normalized === "Producto Modificado";
 };
 
 // Normalize classification to match productCreationRules expectations
 const normalizeClassification = (classification: string): TipoSolicitud => {
-  const lower = classification.toLowerCase().trim();
+  if (!classification) return "" as TipoSolicitud;
+
+  // Si es código de catálogo (CLASS-001), convertir a nombre primero
+  const catalogValue = getCatalogValue("classification", classification);
+  const classificationName = catalogValue?.name || classification;
+
+  const lower = classificationName.toLowerCase().trim();
   if (lower === "producto nuevo") return "Producto nuevo";
   if (lower === "producto modificado") return "Producto modificado";
   if (lower === "extensión de línea") return "Extensión de línea";
   if (lower === "ico / bcp") return "ICO / BCP";
-  return classification as TipoSolicitud;
+  return classificationName as TipoSolicitud;
 };
 
 // Obtener opciones de Modificación desde TABMODPRODODISEO
-const getModificationOptions = (classification: string) => {
-  const normalized = normalizeProductClassificationToCatalog(classification);
+const getModificationOptions = (classificationCode: string) => {
+  if (!classificationCode) return [];
+
+  // Convert catalog code (e.g., "CLASS-001") to name (e.g., "Producto Nuevo")
+  const catalogValue = getCatalogValue("classification", classificationCode);
+  const classificationName = catalogValue?.name || classificationCode;
+
+  const normalized = normalizeProductClassificationToCatalog(classificationName);
   if (!normalized) return [];
   return getActiveModificationOptionsByClassification(normalized);
 };
@@ -3587,6 +3611,16 @@ const setLayerMicronValue = (index: number, value: string) => {
       setCreationSteps((prev) => [...prev, step]);
     };
 
+    console.log("[ODISEO] handleCreate iniciado, isCreating =", true);
+    console.log("[ODISEO] Datos iniciales:", {
+      classification,
+      modifications,
+      requestCase,
+      projectName,
+      volumen,
+      unidad,
+    });
+
     try {
       addStep("✓ Validando datos del formulario...");
       await new Promise((resolve) => setTimeout(resolve, 300));
@@ -3663,6 +3697,11 @@ const setLayerMicronValue = (index: number, value: string) => {
           currentSkuCode,
         );
       } else {
+        console.error("[ODISEO] requestCase INVÁLIDO:", requestCase);
+        console.error("[ODISEO] classification:", classification);
+        console.error("[ODISEO] modifications:", modifications);
+        console.error("[ODISEO] isProductoNuevo:", isProductoNuevo(classification));
+        console.error("[ODISEO] isProductoModificado:", isProductoModificado(classification));
         addStep("✗ Error generando SKU: casuística no reconocida.");
         setIsCreating(false);
         return;
@@ -3688,7 +3727,11 @@ const setLayerMicronValue = (index: number, value: string) => {
         return;
       }
 
-      const createdProject = createProjectFromPortfolioSafe({
+      console.log("[ODISEO] Intentando crear proyecto con createProjectFromPortfolioSafe...");
+
+      let createdProject: any = null;
+      try {
+        createdProject = createProjectFromPortfolioSafe({
         portfolio: selectedPortfolio!,
         initialData: {
           // Códigos de producto generados automáticamente
@@ -3875,41 +3918,139 @@ const setLayerMicronValue = (index: number, value: string) => {
         createdBy: String(currentUser?.id ?? "system"),
       });
 
+      if (!createdProject) {
+        throw new Error("createProjectFromPortfolioSafe retornó null/undefined");
+      }
+
+      console.log("[ODISEO] Proyecto creado exitosamente:", createdProject.code || createdProject.id);
+      } catch (projectError) {
+        const errorMsg = projectError instanceof Error ? projectError.message : String(projectError);
+        console.error("[ODISEO] Error creando proyecto:", errorMsg);
+        addStep(`✗ Error creando proyecto: ${errorMsg}`);
+        throw projectError; // Re-throw para que lo capture el catch externo
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 300));
       addStep("✓ Guardando datos en el almacenamiento...");
 
-      // Asegurar que el proyecto se guarde en el storage
+      // Asegurar que el proyecto se guarde en el storage (con timeout)
+      console.log("[ODISEO] Iniciando guardado en storage...");
       try {
-        const storageApi = getStorageApi(projectStorage);
-        if (typeof storageApi.saveProjectRecord === "function") {
-          (storageApi.saveProjectRecord as (record: ProjectRecord) => void)(createdProject as ProjectRecord);
-        }
+        const saveTimeout = new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error("Guardado tardó demasiado")), 5000)
+        );
+
+        const savePromise = new Promise<void>((resolve) => {
+          try {
+            console.log("[ODISEO] Obteniendo storageApi...");
+            const storageApi = getStorageApi(projectStorage);
+            if (typeof storageApi.saveProjectRecord === "function") {
+              console.log("[ODISEO] Llamando a saveProjectRecord...");
+              (storageApi.saveProjectRecord as (record: ProjectRecord) => void)(createdProject as ProjectRecord);
+              console.log("[ODISEO] saveProjectRecord completado");
+            } else {
+              console.warn("[ODISEO] saveProjectRecord no es una función");
+            }
+            resolve();
+          } catch (err) {
+            console.error("[ODISEO] Error in saveProjectRecord:", err);
+            resolve(); // No fallar si el guardado tiene error
+          }
+        });
+
+        console.log("[ODISEO] Esperando Promise.race...");
+        await Promise.race([savePromise, saveTimeout]);
+        console.log("[ODISEO] Guardado completado");
       } catch (saveError) {
         console.error("[ODISEO] Error saving project to storage:", saveError);
+        // Continuar de todas formas
       }
 
       await new Promise((resolve) => setTimeout(resolve, 300));
 
+      console.log("[ODISEO] Obteniendo código del proyecto creado...");
       const createdProjectCode =
         getRecordValue(createdProject, ["code", "projectCode", "id"]) ||
         getRecordValue(createdProject, ["codigo"]);
 
-      addStep(`✓ ¡Proyecto creado exitosamente! (${createdProjectCode})`);
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      console.log("[ODISEO] createdProjectCode =", createdProjectCode);
 
-      onProjectCreated?.(createdProjectCode);
-      onClose();
-      // Navegar a la lista de productos
-      navigate("/products");
+      if (!createdProjectCode) {
+        throw new Error("No se pudo obtener el código del proyecto creado");
+      }
+
+      addStep(`✓ ¡Proyecto creado exitosamente! (${createdProjectCode})`);
+      console.log("[ODISEO] Paso exitoso agregado al historial");
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      console.log("[ODISEO] Delay completado");
+
+      // Guardar datos de referencia en localStorage para Momento 2
+      if (selectedReference?.datosSugeridosMomento2) {
+        try {
+          console.log("[ODISEO] Guardando datos de referencia Momento 2 en localStorage...");
+          window.localStorage.setItem(
+            "momento2ReferenceData",
+            JSON.stringify({
+              proyectoReferenciaId: selectedReference.projectId,
+              proyectoReferenciaCodigo: selectedReference.projectCode,
+              proyectoReferenciaNombre: selectedReference.projectName,
+              porcentajeSimilitudPreliminar: selectedReference.score,
+              alcanceReferenciaSimilitud: selectedReference.scope,
+              estadoProductoReferencia: selectedReference.status,
+              datosSugeridosMomento2: selectedReference.datosSugeridosMomento2,
+            })
+          );
+          console.log("[ODISEO] Datos de referencia guardados en localStorage");
+        } catch (storageError) {
+          console.error("[ODISEO] Error guardando en localStorage:", storageError);
+        }
+      }
+
+      // Ejecutar callbacks y navegación de forma segura
+      console.log("[ODISEO] Ejecutando callbacks...");
+
+      try {
+        console.log("[ODISEO] Llamando a onProjectCreated...");
+        onProjectCreated?.(createdProjectCode);
+        console.log("[ODISEO] onProjectCreated completado");
+      } catch (cbError) {
+        console.error("[ODISEO] Error in onProjectCreated callback:", cbError);
+      }
+
+      try {
+        console.log("[ODISEO] Llamando a onClose...");
+        onClose();
+        console.log("[ODISEO] onClose completado");
+      } catch (closeError) {
+        console.error("[ODISEO] Error in onClose:", closeError);
+      }
+
+      try {
+        console.log("[ODISEO] Navegando a ProductListPage (/products)");
+        navigate(`/products`);
+        console.log("[ODISEO] navigate completado");
+      } catch (navError) {
+        console.error("[ODISEO] Error navigating:", navError);
+      }
+
+      console.log("[ODISEO] Todos los callbacks completados");
     } catch (error) {
-      addStep(`✗ Error durante la creación: ${error}`);
-      console.error("[ODISEO] Error creating project:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      addStep(`✗ Error durante la creación: ${errorMsg}`);
+      console.error("[ODISEO] Error creating project:", errorMsg, error);
+      // No cerrar el modal en error para que el usuario vea el mensaje
+      // El usuario debe hacer clic en Cancelar si quiere salir
+    } finally {
+      console.log("[ODISEO] Entrando a finally block");
+      console.log("[ODISEO] Reseteando isCreating de true a false");
       setIsCreating(false);
+      console.log("[ODISEO] setState llamado, handleCreate completado");
     }
   };
 
-  const handleCreateClick = () => {
-    handleCreate();
+  const handleCreateClick = async () => {
+    await handleCreate();
   };
 
   if (!isOpen) return null;

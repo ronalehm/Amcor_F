@@ -37,7 +37,7 @@ import {
   isLaminaWrapping,
   calculatePouchFormatPlan,
 } from "../../../shared/data/formatPlanRules";
-import { getCatalogOptions } from "../../../shared/catalogs";
+import { getCatalogOptions, getCatalogValue } from "../../../shared/catalogs";
 import { PRODUCT_CATALOGS } from "../../../shared/data/productCatalogs";
 import {
   getActiveProductClassificationOptions,
@@ -84,8 +84,6 @@ import CalculatedMeasuresAccordion from "../components/CalculatedMeasuresAccordi
 import LaminaStructureTable from "../components/LaminaStructureTable";
 import PouchBolsaStructureTable from "../components/PouchBolsaStructureTable";
 import MaterialsEditModal from "../components/MaterialsEditModal";
-import ProductPreliminaryCreateModal from "../../../shared/components/modals/ProductPreliminaryCreateModal";
-import type { ProductPreliminaryRecord } from "../../../shared/data/productPreliminaryTypes";
 import {
   calculateMargins,
   reconstructReferenceAndDistance,
@@ -941,8 +939,14 @@ function shouldFieldBeDisabled(
 }
 
 // Generar opciones de Modificación desde TABMODPRODODISEO
-const getCausalOptions = (classification: string) => {
-  const normalized = normalizeProductClassificationToCatalog(classification);
+const getCausalOptions = (classificationCode: string) => {
+  if (!classificationCode) return [];
+
+  // Convertir código de catálogo (ej: "CLASS-001") al nombre (ej: "Producto Nuevo")
+  const catalogValue = getCatalogValue("classification", classificationCode);
+  const classificationName = catalogValue?.name || classificationCode;
+
+  const normalized = normalizeProductClassificationToCatalog(classificationName);
   if (!normalized) return [];
   return getActiveModificationOptionsByClassification(normalized);
 };
@@ -2523,7 +2527,6 @@ export default function ProductEditPage() {
   const [showValidationSuccessModal, setShowValidationSuccessModal] = useState(false);
   const [showMissingFieldsModal, setShowMissingFieldsModal] = useState(false);
   const [showInheritedDataModal, setShowInheritedDataModal] = useState(false);
-  const [showStructureEditModal, setShowStructureEditModal] = useState(false);
   const [showMaterialsEditModal, setShowMaterialsEditModal] = useState(false);
   const [openStructureSections, setOpenStructureSections] = useState({
     specs: true,
@@ -2541,27 +2544,6 @@ export default function ProductEditPage() {
       ...prev,
       [section]: !prev[section],
     }));
-  };
-
-  const handleStructureDataReturned = (product: ProductPreliminaryRecord) => {
-    if (product.structureType) {
-      updateField("structureType", product.structureType);
-    }
-    if (product.layers && product.layers.length > 0) {
-      product.layers.forEach((layer, index) => {
-        const layerNum = index + 1;
-        if (layer.material) {
-          updateField(`layer${layerNum}Material` as keyof ProjectEditFormData, layer.material);
-        }
-        if (layer.micron) {
-          updateField(`layer${layerNum}Micron` as keyof ProjectEditFormData, layer.micron);
-        }
-        if (layer.grammage) {
-          updateField(`layer${layerNum}Grammage` as keyof ProjectEditFormData, layer.grammage);
-        }
-      });
-    }
-    setShowStructureEditModal(false);
   };
 
   const portfolios = useMemo(() => getPortfolioDisplayRecords(), []);
@@ -3012,6 +2994,79 @@ if (!project) {
           }
         }
       }
+    }
+
+    // Autocompletar datos de referencia Momento 2 desde localStorage
+    try {
+      const momento2Data = window.localStorage.getItem("momento2ReferenceData");
+      if (momento2Data) {
+        const referenceData = JSON.parse(momento2Data);
+        const datosSugeridos = referenceData.datosSugeridosMomento2;
+
+        if (datosSugeridos) {
+          console.log("[ProductEditPage] Autocompletando campos de Momento 2 desde referencia...");
+
+          // Campos que se pueden autocompletar de la referencia
+          const autocompletableFields = [
+            "ancho",
+            "largo",
+            "anchoFuelle",
+            "espesorTotal",
+            "gramaje",
+            "barrera",
+            "tipoImpresion",
+            "cantidadColores",
+            "acabado",
+            "accesorios",
+            "tipoSellado",
+            "zipper",
+            "valvula",
+            "troquel",
+            "disenoEspecial",
+            "criteriosTecnicos",
+            "comentariosTecnicos",
+            "layer1Material",
+            "layer1MaterialLabel",
+            "layer1Micraje",
+            "layer2Material",
+            "layer2MaterialLabel",
+            "layer2Micraje",
+            "layer3Material",
+            "layer3MaterialLabel",
+            "layer3Micraje",
+            "layer4Material",
+            "layer4MaterialLabel",
+            "layer4Micraje",
+          ];
+
+          // Autocompletar los campos disponibles
+          autocompletableFields.forEach((fieldName) => {
+            const referenceValue = (datosSugeridos as any)[fieldName];
+            if (
+              referenceValue !== undefined &&
+              referenceValue !== null &&
+              referenceValue !== "" &&
+              !(convertedForm as any)[fieldName] // No sobrescribir valores existentes
+            ) {
+              (convertedForm as any)[fieldName] = referenceValue;
+              inheritedFieldsSet.add(fieldName);
+            }
+          });
+
+          console.log(
+            "[ProductEditPage] Campos Momento 2 autocompletados. Valores referencia:",
+            {
+              proyectoReferencia: referenceData.proyectoReferenciaCodigo,
+              similitud: referenceData.porcentajeSimilitudPreliminar + "%",
+            }
+          );
+
+          // Limpiar localStorage después de usar
+          window.localStorage.removeItem("momento2ReferenceData");
+        }
+      }
+    } catch (error) {
+      console.error("[ProductEditPage] Error leyendo datos de Momento 2:", error);
     }
 
     setForm(convertedForm);
@@ -4947,39 +5002,58 @@ if (!project) {
                         placeholder="-- Seleccione --"
                       />
 
-                      {/* COLUMNA DERECHA: MODIFICACIÓN (MOT) - Checkboxes dinámicos */}
-                      {form.classification && (
-                        <div>
-                          <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-3">
-                            Modificación *
-                          </label>
-                          <div className="space-y-2 border border-slate-200 rounded-lg p-3 bg-white">
-                            {getCausalOptions(form.classification).map((motOption) => (
-                              <label key={motOption.value} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded transition">
-                                <input
-                                  type="checkbox"
-                                  checked={form.projectType.includes(motOption.value)}
-                                  onChange={() => {
-                                    const isCurrentlySelected = form.projectType.includes(motOption.value);
-                                    const nextProjectType = isCurrentlySelected
-                                      ? form.projectType.filter((val) => val !== motOption.value)
-                                      : [...form.projectType, motOption.value];
-                                    updateField("projectType", nextProjectType);
-                                    markFieldAsTouched("projectType");
-                                  }}
-                                  className="w-5 h-5"
-                                />
-                                <span className="text-sm text-slate-700">{motOption.label}</span>
-                              </label>
-                            ))}
-                          </div>
-                          {getError("projectType") && (
-                            <p className="text-xs text-red-600 mt-2">{getError("projectType")}</p>
-                          )}
+                      {/* COLUMNA DERECHA: TIPO DE PRODUCTO (ENVOLTURA) */}
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-3">
+                          Tipo de Producto *
+                        </label>
+                        <div className="space-y-2 border border-slate-200 rounded-lg p-3 bg-white">
+                          {getCatalogOptions("wrapping_type").map((option) => (
+                            <label key={option.value} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded transition">
+                              <input
+                                type="checkbox"
+                                checked={form.projectType.includes(option.value)}
+                                onChange={() => {
+                                  const isCurrentlySelected = form.projectType.includes(option.value);
+                                  const nextProjectType = isCurrentlySelected
+                                    ? form.projectType.filter((val) => val !== option.value)
+                                    : [...form.projectType, option.value];
+                                  updateField("projectType", nextProjectType);
+                                  markFieldAsTouched("projectType");
+                                }}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm text-slate-700">{option.label}</span>
+                            </label>
+                          ))}
                         </div>
-                      )}
+                        {getError("projectType") && (
+                          <p className="text-xs text-red-600 mt-2">{getError("projectType")}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
+
+                  {/* ========== MOTIVO DE MODIFICACIÓN (Condicional) ========== */}
+                  {form.classification && (
+                    <div className="rounded-xl border-2 border-slate-200 bg-slate-50 p-5 space-y-4">
+                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                        Modificación(es)
+                      </h3>
+                      <FormSelect
+                        label="Modificación *"
+                        value={form.motivoModificacion}
+                        onChange={(value) => {
+                          updateField("motivoModificacion", value);
+                          markFieldAsTouched("motivoModificacion");
+                        }}
+                        onBlur={() => markFieldAsTouched("motivoModificacion")}
+                        error={getError("motivoModificacion")}
+                        options={getCausalOptions(form.classification)}
+                        placeholder="-- Seleccione opción --"
+                      />
+                    </div>
+                  )}
 
                   {/* ========== PRODUCTO (Nombre, Volumen, Unidad y Descripción) ========== */}
                   <div className="rounded-xl border-2 border-slate-200 bg-slate-50 p-5 space-y-3 mt-4">
@@ -5243,10 +5317,7 @@ if (!project) {
                             onBlur={() => markFieldAsTouched("printForm")}
                             error={getError("printForm")}
                             placeholder="-- Seleccione --"
-                            options={PRODUCT_CATALOGS.formaDeImpresion.values.map((val) => ({
-                              value: val,
-                              label: val,
-                            }))}
+                            options={getCatalogOptions("print_form")}
                             disabled={!canEditDesign || isPrintingDisabled}
                           />
                         </div>
@@ -5443,11 +5514,7 @@ if (!project) {
                                     onChange={handlePouchCentralMaterialChange}
                                     onBlur={() => markFieldAsTouched("materialSelloCentralPouch")}
                                     error={getError("materialSelloCentralPouch")}
-                                    options={[
-                                      { value: "PE-PE/PE", label: "PE-PE/PE" },
-                                      { value: "Aleta", label: "Aleta" },
-                                      { value: "Otro material", label: "Otro material" },
-                                    ]}
+                                    options={getCatalogOptions("central_seal_material")}
                                     placeholder="-- Seleccione --"
                                   />
 
@@ -5732,10 +5799,7 @@ if (!project) {
                                     onChange={handlePouchSealInGussetTypeChange}
                                     onBlur={() => markFieldAsTouched("tipoSelloFuellePouch")}
                                     error={getError("tipoSelloFuellePouch")}
-                                    options={[
-                                      { value: "Tipo 4-1", label: "Tipo 4-1" },
-                                      { value: "Tipo 1-1", label: "Tipo 1-1" },
-                                    ]}
+                                    options={getCatalogOptions("seal_type_gusset")}
                                     placeholder="-- Seleccione --"
                                   />
 
@@ -7908,17 +7972,6 @@ if (!project) {
             </div>
           </div>
         </div>
-      )}
-
-      {/* STRUCTURE EDIT MODAL - Momento 1 */}
-      {showStructureEditModal && (
-        <ProductPreliminaryCreateModal
-          isOpen={showStructureEditModal}
-          onClose={() => setShowStructureEditModal(false)}
-          onProductCreated={handleStructureDataReturned}
-          portfolio={selectedPortfolio}
-          initialPortfolioCode={selectedPortfolio?.codigo || selectedPortfolio?.code || ""}
-        />
       )}
 
       {/* MATERIALS EDIT MODAL */}
