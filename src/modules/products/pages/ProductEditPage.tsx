@@ -3112,8 +3112,14 @@ if (!project) {
       console.error("[ProductEditPage] Error leyendo datos de Momento 2:", error);
     }
 
+    console.log("[ProductEditPage] ANTES de setForm - convertedForm.width:", convertedForm.width);
+    console.log("[ProductEditPage] ANTES de setForm - convertedForm.repetition:", convertedForm.repetition);
+    console.log("[ProductEditPage] ANTES de setForm - convertedForm.printType:", convertedForm.printType);
+
     setForm(convertedForm);
     setInheritedFields(inheritedFieldsSet);
+
+    console.log("[ProductEditPage] DESPUÉS de setForm - estado actualizado");
 
     // Initialize visibleLayerCount based on existing layers
     const layerCount = [
