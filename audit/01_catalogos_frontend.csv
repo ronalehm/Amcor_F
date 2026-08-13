@@ -1,0 +1,83 @@
+CAT_visible_generado,Indice_registry,Codigo_tecnico,Nombre_visible,Owner_system,Gestionable_ODISEO,Total_valores,Catego_valores,Fuente_linea_registry
+CAT-001,0,wrapping_type,Tipo de Envoltura,SISTEMA_INTEGRAL,No,3,Envolturas,37
+CAT-002,1,print_class,Clase de Impresión,ODISEO,Sí,3,Impresión,46
+CAT-003,2,print_type,Tipo de Impresión,ODISEO,Sí,2,Impresión,55
+CAT-004,3,structure_type,Tipo de Estructura,ODISEO,Sí,4,Estructura,64
+CAT-005,4,final_use,Uso Final,ODISEO,Sí,47,Portafolio,73
+CAT-006,5,plant,Planta de Origen,ODISEO,Sí,4,Operacional,82
+CAT-007,6,zipper_type,Tipo de Zipper,ODISEO,Sí,3,Accesorios,91
+CAT-008,7,valve_type,Tipo de Válvula,ODISEO,Sí,3,Accesorios,100
+CAT-009,8,rounded_corners_type,Tipo de Esquinas Redondeadas,ODISEO,Sí,2,Accesorios,109
+CAT-010,9,pouch_perforation_type,Tipo de Perforación Pouch,ODISEO,Sí,4,Accesorios,118
+CAT-011,10,eyelet_perforation_type,Tipo de Perforación Ojal,ODISEO,Sí,7,Accesorios,127
+CAT-012,11,bag_perforation_type,Tipo de Perforación Bolsa,ODISEO,Sí,3,Accesorios,136
+CAT-013,12,wicket_perforation_type,Tipo de Perforación Wicket,ODISEO,Sí,10,Accesorios,145
+CAT-014,13,precut_type,Tipo de Pre-Corte,ODISEO,Sí,3,Accesorios,154
+CAT-015,14,core_material,Material del Core,ODISEO,Sí,3,Embalaje,163
+CAT-016,15,handle_type,Tipo de Asa,ODISEO,Sí,2,Accesorios,172
+CAT-017,16,handle_color,Color de Asa,ODISEO,Sí,9,Accesorios,181
+CAT-018,17,handle_shape,Forma de Asa,ODISEO,Sí,4,Accesorios,190
+CAT-019,18,doy_pack_base,Base Doy Pack,ODISEO,Sí,3,Accesorios,199
+CAT-020,19,color_objective,Objetivo de Color,ODISEO,Sí,5,Diseño,208
+CAT-021,20,press_approver,Aprobador de Prensa,ODISEO,Sí,3,Impresión,217
+CAT-022,21,special_design_specs,Especificaciones Diseño Especial,ODISEO,Sí,5,Diseño,226
+CAT-023,22,perforation_location,Ubicación de Perforación,ODISEO,Sí,2,Accesorios,235
+CAT-024,23,other_accessories,Otros Accesorios,ODISEO,Sí,2,Accesorios,244
+CAT-025,24,doypack_bellows_type,Tipo de Fuelle Doypack,ODISEO,Sí,2,Accesorios,253
+CAT-026,25,microperforado_side,Lado de Microperforado,ODISEO,Sí,2,Accesorios,262
+CAT-027,26,seal_width,Ancho de Sello Aleta,ODISEO,Sí,3,Accesorios,271
+CAT-028,27,microperforado_type,Tipo Microperforado,ODISEO,Sí,2,Accesorios,280
+CAT-029,28,client_type,Tipo de Cliente,ODISEO,Sí,4,Portafolio,289
+CAT-030,29,client_sector,Sector Cliente,ODISEO,Sí,6,Portafolio,298
+CAT-031,30,client_country,País Cliente,ODISEO,Sí,5,Portafolio,307
+CAT-032,31,user_role,Rol de Usuario,ODISEO,Sí,4,Portafolio,316
+CAT-033,32,user_area,Área de Usuario,ODISEO,Sí,5,Portafolio,325
+CAT-034,33,user_status,Estado de Usuario,SISTEMA_INTEGRAL,No,4,Portafolio,334
+CAT-035,34,portfolio_status,Estado de Portafolio,ODISEO,Sí,2,Portafolio,343
+CAT-036,35,packaging_machine,Tipo de Envasado,SISTEMA_INTEGRAL,No,18,Máquina,352
+CAT-037,36,product_line,Línea de Producto,ODISEO,Sí,5,Producto,361
+CAT-038,37,market_segment,Segmento de Mercado,ODISEO,Sí,4,Producto,370
+CAT-039,38,product_status,Estado de Producto,ODISEO,Sí,2,Producto,379
+CAT-040,39,aplicacionTecnica,Aplicación Técnica,ODISEO,Sí,47,Técnica,388
+CAT-041,40,classification,Clasificación,ODISEO,Sí,2,Producto,397
+CAT-042,41,print_form,Forma de Impresión,ODISEO,Sí,7,Impresión,406
+CAT-043,42,approver,Aprobador,ODISEO,Sí,3,Impresión,415
+CAT-044,43,lamina_format,Tipo de Formato Lámina,ODISEO,Sí,3,Formato,424
+CAT-045,44,sentidoDeEmbobinado,Sentido de Embobinado,ODISEO,Sí,8,Embalaje,433
+CAT-046,45,presentation_type,Tipo de Presentación,ODISEO,Sí,3,Formato,442
+CAT-047,46,bag_seal_type,Tipo de Sello Bolsa,SISTEMA_INTEGRAL,No,2,Formato,451
+CAT-048,47,finish,Acabado,ODISEO,Sí,2,Estructura,460
+CAT-049,48,bag_bellows_type,Tipo de Fuelle Bolsa,ODISEO,Sí,3,Estructura,469
+CAT-050,49,wicket_diameter,Diámetro de Wicket,ODISEO,Sí,3,Dimensión,478
+CAT-051,50,control_wicket_diameter,Diámetro de Wicket Control,ODISEO,Sí,4,Dimensión,487
+CAT-052,51,precut_wicket_location,Ubicación Precorte Wicket,ODISEO,Sí,3,Dimensión,496
+CAT-053,52,stitching_separation,Separación de Púas,ODISEO,Sí,3,Dimensión,505
+CAT-054,53,pouch_family,Familia de Pouch,ODISEO,Sí,4,Formato,514
+CAT-055,54,standup_type,Tipo de Stand Up,ODISEO,Sí,3,Formato,523
+CAT-056,55,perforation_mouth_distance,Distancia Boca a Perforación,ODISEO,Sí,10,Dimensión,532
+CAT-057,56,perforation_type_general,Tipo de Perforación General,ODISEO,Sí,10,Accesorios,541
+CAT-058,57,bellows_width,Ancho de Fuelle Cerrado,ODISEO,Sí,3,Dimensión,550
+CAT-059,58,lamina_type,Tipo de Lámina,ODISEO,Sí,3,Formato,559
+CAT-060,59,control_wicket_location,Ubicación Wicket Control,ODISEO,Sí,2,Dimensión,568
+CAT-061,60,precut_wicket_length,Precorte Wicket Largo,ODISEO,Sí,5,Dimensión,577
+CAT-062,61,margin_distance,Distancia Margen Precorte,ODISEO,Sí,4,Dimensión,586
+CAT-063,62,client,Cliente,SISTEMA_INTEGRAL,No,0,Maestro_SI,595
+CAT-064,63,executive,Ejecutivo Comercial,SISTEMA_INTEGRAL,No,0,Maestro_SI,604
+CAT-065,64,unit_measure,Unidad de Medida,ODISEO,Sí,13,Medida,613
+CAT-066,65,modification_new,Modificación Producto Nuevo,ODISEO,Sí,6,Modificación,622
+CAT-067,66,modification_modified,Modificación Producto Modificado,ODISEO,Sí,6,Modificación,631
+CAT-068,67,seals_count,Cantidad de Sellos,SISTEMA_INTEGRAL,No,2,Accesorio_SI,640
+CAT-069,68,central_seal_material,Material Sello Central,SISTEMA_INTEGRAL,No,3,Accesorio_SI,649
+CAT-070,69,seal_type_gusset,Tipo de Sello Fuelle,SISTEMA_INTEGRAL,No,2,Accesorio_SI,658
+CAT-071,70,micron_pe,Micraje Polietileno,ODISEO,Sí,0,Vacío,667
+CAT-072,71,material_packaging,Embalaje de Material,ODISEO,Sí,4,Embalaje,676
+CAT-073,72,export_packaging,Embalaje Exportación,ODISEO,Sí,2,Embalaje,685
+CAT-074,73,splices,Empalmes,SISTEMA_INTEGRAL,No,4,Accesorio_SI,694
+CAT-075,74,accesoriosConsumibles,Accesorios Consumibles,ODISEO,Sí,3,Accesorio,703
+CAT-076,75,accesoriosInternos,Accesorios Internos,ODISEO,Sí,8,Accesorio,712
+CAT-077,76,aplicabilidadAccesoriosInternos,Aplicabilidad Accesorios Internos,ODISEO,Sí,2,Accesorio,721
+CAT-078,77,precorteAbreFacilEnFuelle,Precorte Abre Fácil Fuelle,ODISEO,Sí,2,Accesorio,730
+CAT-079,78,repeticionExactaDeDoypack,Repetición Exacta Doypack,ODISEO,Sí,2,Validación,739
+CAT-080,79,toleranciaRepeticionExactaDoypack,Tolerancia Repetición Exacta,ODISEO,Sí,1,Validación,748
+CAT-081,80,ladoCorteAngular,Lado Corte Angular,ODISEO,Sí,2,Accesorio,757
+CAT-082,81,grupoMaterialPrima,Grupo Material Prima,ODISEO,Sí,9,Material,766

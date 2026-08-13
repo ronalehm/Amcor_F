@@ -73,9 +73,9 @@ export function ProductActionButton({
       <ProductInitialCreateModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onProjectCreated={() => {
+        onProjectCreated={(createdProjectCode) => {
           setShowCreateModal(false);
-          onProductCreated?.();
+          onProductCreated?.(createdProjectCode);
         }}
       />
 

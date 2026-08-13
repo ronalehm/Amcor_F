@@ -3006,55 +3006,69 @@ if (!project) {
         if (datosSugeridos) {
           console.log("[ProductEditPage] Autocompletando campos de Momento 2 desde referencia...");
 
-          // Campos que se pueden autocompletar de la referencia
-          const autocompletableFields = [
-            "ancho",
-            "largo",
-            "anchoFuelle",
-            "espesorTotal",
-            "gramaje",
-            "barrera",
-            "tipoImpresion",
-            "cantidadColores",
-            "acabado",
-            "accesorios",
-            "tipoSellado",
-            "zipper",
-            "valvula",
-            "troquel",
-            "disenoEspecial",
-            "criteriosTecnicos",
-            "comentariosTecnicos",
-            "layer1Material",
-            "layer1MaterialLabel",
-            "layer1Micraje",
-            "layer2Material",
-            "layer2MaterialLabel",
-            "layer2Micraje",
-            "layer3Material",
-            "layer3MaterialLabel",
-            "layer3Micraje",
-            "layer4Material",
-            "layer4MaterialLabel",
-            "layer4Micraje",
-          ];
+          // Mapeo de campos referencia → form de ProductEditPage
+          const fieldMapping: Record<string, string> = {
+            // Dimensiones - mapear alias
+            ancho: "width",
+            largo: "length",
+            repeticion: "repetition",
+            anchoFuelle: "anchoFuelle",
+            gussetWidth: "anchoFuelle",
+
+            // Propiedades
+            espesorTotal: "espesorTotal",
+            gramaje: "gramaje",
+            barrera: "barrera",
+            tipoImpresion: "tipoImpresion",
+            cantidadColores: "cantidadColores",
+            acabado: "acabado",
+            accesorios: "accesorios",
+            tipoSellado: "tipoSellado",
+            zipper: "zipper",
+            valvula: "valvula",
+            troquel: "troquel",
+            disenoEspecial: "disenoEspecial",
+            criteriosTecnicos: "criteriosTecnicos",
+            comentariosTecnicos: "comentariosTecnicos",
+
+            // Capas de materiales
+            layer1Material: "layer1Material",
+            layer1MaterialLabel: "layer1MaterialLabel",
+            layer1Micraje: "layer1Micraje",
+            layer2Material: "layer2Material",
+            layer2MaterialLabel: "layer2MaterialLabel",
+            layer2Micraje: "layer2Micraje",
+            layer3Material: "layer3Material",
+            layer3MaterialLabel: "layer3MaterialLabel",
+            layer3Micraje: "layer3Micraje",
+            layer4Material: "layer4Material",
+            layer4MaterialLabel: "layer4MaterialLabel",
+            layer4Micraje: "layer4Micraje",
+          };
 
           // Autocompletar los campos disponibles
-          autocompletableFields.forEach((fieldName) => {
-            const referenceValue = (datosSugeridos as any)[fieldName];
+          const autocompletedFields: Record<string, any> = {};
+
+          Object.entries(fieldMapping).forEach(([referenceFieldName, formFieldName]) => {
+            const referenceValue = (datosSugeridos as any)[referenceFieldName];
             if (
               referenceValue !== undefined &&
               referenceValue !== null &&
               referenceValue !== "" &&
-              !(convertedForm as any)[fieldName] // No sobrescribir valores existentes
+              !(convertedForm as any)[formFieldName] // No sobrescribir valores existentes
             ) {
-              (convertedForm as any)[fieldName] = referenceValue;
-              inheritedFieldsSet.add(fieldName);
+              (convertedForm as any)[formFieldName] = referenceValue;
+              inheritedFieldsSet.add(formFieldName);
+              autocompletedFields[formFieldName] = referenceValue;
             }
           });
 
           console.log(
-            "[ProductEditPage] Campos Momento 2 autocompletados. Valores referencia:",
+            "[ProductEditPage] Campos Momento 2 autocompletados:",
+            autocompletedFields
+          );
+          console.log(
+            "[ProductEditPage] Referencia data: ",
             {
               proyectoReferencia: referenceData.proyectoReferenciaCodigo,
               similitud: referenceData.porcentajeSimilitudPreliminar + "%",

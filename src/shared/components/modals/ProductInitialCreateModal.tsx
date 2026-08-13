@@ -3498,44 +3498,45 @@ const setLayerMicronValue = (index: number, value: string) => {
       sourceProjectCode: getProjectCode(project),
       sourceProjectName: getProjectName(project),
 
-      estructuraCalculada: project.estructuraCalculada,
-      cantidadCapasReferencial: project.cantidadCapasReferencial,
-      estructuraMateriales: project.estructuraMateriales,
-      estructuraMaterialesReferencial: project.estructuraMaterialesReferencial,
+      estructuraCalculada: getRecordValue(project, ["estructuraCalculada", "structureType"]),
+      cantidadCapasReferencial: getRecordValue(project, ["cantidadCapasReferencial", "layerCount"]),
+      estructuraMateriales: getRecordValue(project, ["estructuraMateriales"]),
+      estructuraMaterialesReferencial: getRecordValue(project, ["estructuraMaterialesReferencial"]),
 
-      layer1Material: project.layer1Material,
-      layer1MaterialLabel: project.layer1MaterialLabel,
-      layer1Micraje: project.layer1Micraje ?? project.layer1Micron,
+      layer1Material: getRecordValue(project, ["layer1Material", "layer1MaterialCode"]),
+      layer1MaterialLabel: getRecordValue(project, ["layer1MaterialLabel"]),
+      layer1Micraje: getRecordValue(project, ["layer1Micraje", "layer1Micron"]),
 
-      layer2Material: project.layer2Material,
-      layer2MaterialLabel: project.layer2MaterialLabel,
-      layer2Micraje: project.layer2Micraje ?? project.layer2Micron,
+      layer2Material: getRecordValue(project, ["layer2Material", "layer2MaterialCode"]),
+      layer2MaterialLabel: getRecordValue(project, ["layer2MaterialLabel"]),
+      layer2Micraje: getRecordValue(project, ["layer2Micraje", "layer2Micron"]),
 
-      layer3Material: project.layer3Material,
-      layer3MaterialLabel: project.layer3MaterialLabel,
-      layer3Micraje: project.layer3Micraje ?? project.layer3Micron,
+      layer3Material: getRecordValue(project, ["layer3Material", "layer3MaterialCode"]),
+      layer3MaterialLabel: getRecordValue(project, ["layer3MaterialLabel"]),
+      layer3Micraje: getRecordValue(project, ["layer3Micraje", "layer3Micron"]),
 
-      layer4Material: project.layer4Material,
-      layer4MaterialLabel: project.layer4MaterialLabel,
-      layer4Micraje: project.layer4Micraje ?? project.layer4Micron,
+      layer4Material: getRecordValue(project, ["layer4Material", "layer4MaterialCode"]),
+      layer4MaterialLabel: getRecordValue(project, ["layer4MaterialLabel"]),
+      layer4Micraje: getRecordValue(project, ["layer4Micraje", "layer4Micron"]),
 
-      ancho: project.ancho,
-      largo: project.largo,
-      anchoFuelle: project.anchoFuelle,
-      espesorTotal: project.espesorTotal,
-      gramaje: project.gramaje,
-      barrera: project.barrera,
-      tipoImpresion: project.tipoImpresion,
-      cantidadColores: project.cantidadColores,
-      acabado: project.acabado,
-      accesorios: project.accesorios,
-      tipoSellado: project.tipoSellado,
-      zipper: project.zipper,
-      valvula: project.valvula,
-      troquel: project.troquel,
-      disenoEspecial: project.disenoEspecial,
-      criteriosTecnicos: project.criteriosTecnicos,
-      comentariosTecnicos: project.comentariosTecnicos,
+      ancho: getRecordValue(project, ["ancho", "width", "anchoLamina"]),
+      largo: getRecordValue(project, ["largo", "length", "largoLamina"]),
+      anchoFuelle: getRecordValue(project, ["anchoFuelle", "gussetWidth"]),
+      repeticion: getRecordValue(project, ["repeticion", "repetitions", "repeticion"]),
+      espesorTotal: getRecordValue(project, ["espesorTotal", "thickness"]),
+      gramaje: getRecordValue(project, ["gramaje", "grammage"]),
+      barrera: getRecordValue(project, ["barrera", "barrier", "barrierType"]),
+      tipoImpresion: getRecordValue(project, ["tipoImpresion", "printType", "printTypeCode"]),
+      cantidadColores: getRecordValue(project, ["cantidadColores", "numberColors", "colorsCount"]),
+      acabado: getRecordValue(project, ["acabado", "finish", "finishType"]),
+      accesorios: getRecordValue(project, ["accesorios", "accessories"]),
+      tipoSellado: getRecordValue(project, ["tipoSellado", "sealType", "sealingType"]),
+      zipper: getRecordValue(project, ["zipper", "hasZipper"]),
+      valvula: getRecordValue(project, ["valvula", "hasValve"]),
+      troquel: getRecordValue(project, ["troquel", "diecut", "troquelado"]),
+      disenoEspecial: getRecordValue(project, ["disenoEspecial", "specialDesign"]),
+      criteriosTecnicos: getRecordValue(project, ["criteriosTecnicos", "technicalCriteria"]),
+      comentariosTecnicos: getRecordValue(project, ["comentariosTecnicos", "technicalComments"]),
     };
   };
 
@@ -3986,25 +3987,40 @@ const setLayerMicronValue = (index: number, value: string) => {
       console.log("[ODISEO] Delay completado");
 
       // Guardar datos de referencia en localStorage para Momento 2
-      if (selectedReference?.datosSugeridosMomento2) {
+      console.log("[ODISEO] Verificando si hay referencia seleccionada:", selectedReference ? "SÍ" : "NO");
+      if (selectedReference) {
+        console.log("[ODISEO] selectedReference.datosSugeridosMomento2:", selectedReference.datosSugeridosMomento2);
+
         try {
           console.log("[ODISEO] Guardando datos de referencia Momento 2 en localStorage...");
+          const momento2Payload = {
+            proyectoReferenciaId: selectedReference.projectId,
+            proyectoReferenciaCodigo: selectedReference.projectCode,
+            proyectoReferenciaNombre: selectedReference.projectName,
+            porcentajeSimilitudPreliminar: selectedReference.score,
+            alcanceReferenciaSimilitud: selectedReference.scope,
+            estadoProductoReferencia: selectedReference.status,
+            datosSugeridosMomento2: selectedReference.datosSugeridosMomento2 || {},
+          };
+
+          console.log("[ODISEO] Payload a guardar:", momento2Payload);
           window.localStorage.setItem(
             "momento2ReferenceData",
-            JSON.stringify({
-              proyectoReferenciaId: selectedReference.projectId,
-              proyectoReferenciaCodigo: selectedReference.projectCode,
-              proyectoReferenciaNombre: selectedReference.projectName,
-              porcentajeSimilitudPreliminar: selectedReference.score,
-              alcanceReferenciaSimilitud: selectedReference.scope,
-              estadoProductoReferencia: selectedReference.status,
-              datosSugeridosMomento2: selectedReference.datosSugeridosMomento2,
-            })
+            JSON.stringify(momento2Payload)
           );
-          console.log("[ODISEO] Datos de referencia guardados en localStorage");
+
+          // Verificar que se guardó
+          const saved = window.localStorage.getItem("momento2ReferenceData");
+          console.log("[ODISEO] Verificación: datos guardados en localStorage:", saved ? "SÍ" : "NO");
+          if (saved) {
+            console.log("[ODISEO] Contenido guardado:", JSON.parse(saved));
+          }
         } catch (storageError) {
           console.error("[ODISEO] Error guardando en localStorage:", storageError);
+          addStep(`⚠ Advertencia: no se pudieron guardar datos de referencia`);
         }
+      } else {
+        console.log("[ODISEO] No hay referencia seleccionada - saltando guardado en localStorage");
       }
 
       // Ejecutar callbacks y navegación de forma segura
@@ -4027,8 +4043,14 @@ const setLayerMicronValue = (index: number, value: string) => {
       }
 
       try {
-        console.log("[ODISEO] Navegando a ProductListPage (/products)");
-        navigate(`/products`);
+        // Si hay referencia, navegar directamente a ProductEditPage
+        // Si no, ir a ProductListPage
+        const navigationTarget = selectedReference
+          ? `/products/${createdProjectCode}/edit`
+          : `/products`;
+
+        console.log("[ODISEO] Navegando a:", navigationTarget);
+        navigate(navigationTarget);
         console.log("[ODISEO] navigate completado");
       } catch (navError) {
         console.error("[ODISEO] Error navigating:", navError);
