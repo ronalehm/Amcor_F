@@ -3493,6 +3493,7 @@ const setLayerMicronValue = (index: number, value: string) => {
   };
 
   const buildMoment2ReferenceData = (project: ProjectRecord): AnyRecord => {
+    // Extraer todos los campos posibles del proyecto, incluyendo los del formato ProductEditPage
     return {
       sourceProjectId: getRecordValue(project, ["id", "projectId"]),
       sourceProjectCode: getProjectCode(project),
@@ -3519,14 +3520,17 @@ const setLayerMicronValue = (index: number, value: string) => {
       layer4MaterialLabel: getRecordValue(project, ["layer4MaterialLabel"]),
       layer4Micraje: getRecordValue(project, ["layer4Micraje", "layer4Micron"]),
 
-      ancho: getRecordValue(project, ["ancho", "width", "anchoLamina"]),
-      largo: getRecordValue(project, ["largo", "length", "largoLamina"]),
+      // Dimensiones - buscar en múltiples formatos (ProductEditPage vs ProductInitialCreateModal)
+      ancho: getRecordValue(project, ["width", "ancho", "anchoLamina"]),
+      largo: getRecordValue(project, ["length", "largo", "largoLamina"]),
       anchoFuelle: getRecordValue(project, ["anchoFuelle", "gussetWidth"]),
-      repeticion: getRecordValue(project, ["repeticion", "repetitions", "repeticion"]),
+      repeticion: getRecordValue(project, ["repetition", "repeticion", "repetitions"]),
+
+      // Propiedades
       espesorTotal: getRecordValue(project, ["espesorTotal", "thickness"]),
       gramaje: getRecordValue(project, ["gramaje", "grammage"]),
       barrera: getRecordValue(project, ["barrera", "barrier", "barrierType"]),
-      tipoImpresion: getRecordValue(project, ["tipoImpresion", "printType", "printTypeCode"]),
+      tipoImpresion: getRecordValue(project, ["printType", "tipoImpresion", "printTypeCode"]),
       cantidadColores: getRecordValue(project, ["cantidadColores", "numberColors", "colorsCount"]),
       acabado: getRecordValue(project, ["acabado", "finish", "finishType"]),
       accesorios: getRecordValue(project, ["accesorios", "accessories"]),
@@ -3537,6 +3541,10 @@ const setLayerMicronValue = (index: number, value: string) => {
       disenoEspecial: getRecordValue(project, ["disenoEspecial", "specialDesign"]),
       criteriosTecnicos: getRecordValue(project, ["criteriosTecnicos", "technicalCriteria"]),
       comentariosTecnicos: getRecordValue(project, ["comentariosTecnicos", "technicalComments"]),
+
+      // Campos adicionales de ProductEditPage que podrían ser útiles
+      printClass: getRecordValue(project, ["printClass"]),
+      printForm: getRecordValue(project, ["printForm"]),
     };
   };
 
