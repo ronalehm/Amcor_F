@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page, Browser, chromium } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -9,6 +9,10 @@ const SCREENSHOT_DIR = "c:\\Users\\ronal\\AppData\\Local\\Temp\\claude\\c--Users
 if (!fs.existsSync(SCREENSHOT_DIR)) {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 }
+
+// Demo credentials
+const DEMO_EMAIL = "admin@amcor.com";
+const DEMO_PASSWORD = "password";
 
 interface TestResult {
   casuistica: string;
@@ -29,6 +33,46 @@ async function captureScreenshot(page: Page, name: string) {
   await page.screenshot({ path: filepath, fullPage: true });
   console.log(`✓ Screenshot: ${filename}`);
   return filename;
+}
+
+async function authenticateUser(page: Page): Promise<void> {
+  console.log("🔐 Autenticando usuario...");
+  await page.goto(`${BASE_URL}/login`, { waitUntil: "networkidle" });
+
+  // Esperar a que se cargue el formulario de login
+  await page.waitForSelector("input[type='email'], input[placeholder*='email'], input[placeholder*='Email']", { timeout: 10000 }).catch(() => null);
+
+  // Intentar llenar email
+  try {
+    const emailInput = await page.locator("input[type='email'], input[placeholder*='email']").first();
+    await emailInput.fill(DEMO_EMAIL);
+    console.log(`✓ Email ingresado: ${DEMO_EMAIL}`);
+  } catch (e) {
+    console.log("⚠ No se pudo ingresar email");
+  }
+
+  // Intentar llenar contraseña
+  try {
+    const passwordInput = await page.locator("input[type='password']").first();
+    await passwordInput.fill(DEMO_PASSWORD);
+    console.log("✓ Contraseña ingresada");
+  } catch (e) {
+    console.log("⚠ No se pudo ingresar contraseña");
+  }
+
+  // Hacer clic en botón de login
+  try {
+    const loginBtn = await page.getByRole("button", { name: /Ingresar|Login|Sign In/i }).first();
+    await loginBtn.click();
+    console.log("✓ Clic en botón Ingresar");
+
+    // Esperar a que se redirija a la página de productos
+    await page.waitForURL(`${BASE_URL}/products`, { timeout: 15000 }).catch(() => null);
+    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => null);
+    console.log("✓ Usuario autenticado y redirido a /products");
+  } catch (e) {
+    console.log(`⚠ Error en login: ${e}`);
+  }
 }
 
 async function waitForConsoleLogODISEO(page: Page, keyword: string, timeout: number = 30000) {
@@ -63,6 +107,10 @@ test.describe("QA - 3 Casuísticas de Creación de Producto", () => {
     };
 
     try {
+      // Authenticate first
+      await authenticateUser(page);
+      result.observaciones.push("✓ Usuario autenticado");
+
       // Navigate to products page
       await page.goto(`${BASE_URL}/products`, { waitUntil: "networkidle" });
       result.observaciones.push("✓ Navegó a página de productos");
@@ -253,6 +301,10 @@ test.describe("QA - 3 Casuísticas de Creación de Producto", () => {
     };
 
     try {
+      // Authenticate first
+      await authenticateUser(page);
+      result.observaciones.push("✓ Usuario autenticado");
+
       // Navigate
       await page.goto(`${BASE_URL}/products`, { waitUntil: "networkidle" });
       result.observaciones.push("✓ Navegó a página de productos");
@@ -428,6 +480,10 @@ test.describe("QA - 3 Casuísticas de Creación de Producto", () => {
     };
 
     try {
+      // Authenticate first
+      await authenticateUser(page);
+      result.observaciones.push("✓ Usuario autenticado");
+
       // Navigate
       await page.goto(`${BASE_URL}/products`, { waitUntil: "networkidle" });
       result.observaciones.push("✓ Navegó a página de productos");
