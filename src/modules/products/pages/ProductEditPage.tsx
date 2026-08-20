@@ -5091,27 +5091,6 @@ if (!project) {
                     </div>
                   </div>
 
-                  {/* ========== MOTIVO DE MODIFICACIÓN (Condicional) ========== */}
-                  {form.classification && (
-                    <div className="rounded-xl border-2 border-slate-200 bg-slate-50 p-5 space-y-4">
-                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
-                        Modificación(es)
-                      </h3>
-                      <FormSelect
-                        label="Modificación *"
-                        value={form.motivoModificacion}
-                        onChange={(value) => {
-                          updateField("motivoModificacion", value);
-                          markFieldAsTouched("motivoModificacion");
-                        }}
-                        onBlur={() => markFieldAsTouched("motivoModificacion")}
-                        error={getError("motivoModificacion")}
-                        options={getCausalOptions(form.classification)}
-                        placeholder="-- Seleccione opción --"
-                      />
-                    </div>
-                  )}
-
                   {/* ========== PRODUCTO (Nombre, Volumen, Unidad y Descripción) ========== */}
                   <div className="rounded-xl border-2 border-slate-200 bg-slate-50 p-5 space-y-3 mt-4">
                     <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
