@@ -35,7 +35,8 @@ export type ApprovedProduct = {
   // Descripción de la necesidad
   descripcionNecesidad?: string;
   projectDescription?: string;
-  // Materiales por capa
+  // Estructura y materiales por capa
+  structureType?: "Monocapa" | "Bilaminado" | "Trilaminado" | "Tetralaminado" | "";
   layer1Material?: string;
   layer1Micron?: string;
   layer2Material?: string;
@@ -498,6 +499,11 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityUnit: "ml",
     hasSpecialDesign: "No",
     description: "Carnes frías base para alimentos frescos.",
+    structureType: "Bilaminado",
+    layer1Material: "MATCAP-008",
+    layer1Micron: "12",
+    layer2Material: "MATCAP-010",
+    layer2Micron: "22",
   },
   {
     id: "APR-009",
@@ -515,6 +521,11 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityUnit: "g",
     hasSpecialDesign: "No",
     description: "Carne molida base en bandeja.",
+    structureType: "Bilaminado",
+    layer1Material: "MATCAP-009",
+    layer1Micron: "12",
+    layer2Material: "MATCAP-010",
+    layer2Micron: "22",
   },
   {
     id: "APR-010",
@@ -532,6 +543,11 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityUnit: "g",
     hasSpecialDesign: "No",
     description: "Pechuga de pollo base en bandeja.",
+    structureType: "Bilaminado",
+    layer1Material: "MATCAP-008",
+    layer1Micron: "12",
+    layer2Material: "MATCAP-038",
+    layer2Micron: "22",
   },
   {
     id: "APR-011",
@@ -549,6 +565,11 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityUnit: "g",
     hasSpecialDesign: "No",
     description: "Carne vacuno base para carnes importadas.",
+    structureType: "Bilaminado",
+    layer1Material: "MATCAP-009",
+    layer1Micron: "12",
+    layer2Material: "MATCAP-038",
+    layer2Micron: "22",
   },
 
   // SKUs Aprobados adicionales para MODIFIED_FROM_APPROVED - Carnes Importadas (PO-000011)
@@ -576,6 +597,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "300",
     capacityUnit: "g",
     description: "Carnes frías premium aprobada para modificaciones.",
+    structureType: "Trilaminado",
+    layer1Material: "MATCAP-008",
+    layer1Micron: "12",
+    layer2Material: "MATCAP-010",
+    layer2Micron: "22",
+    layer3Material: "MATCAP-008",
+    layer3Micron: "12",
   },
   {
     id: "SKU-00021-A-01",
@@ -601,6 +629,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "500",
     capacityUnit: "g",
     description: "Carne molida premium aprobada.",
+    structureType: "Trilaminado",
+    layer1Material: "MATCAP-008",
+    layer1Micron: "12",
+    layer2Material: "MATCAP-038",
+    layer2Micron: "22",
+    layer3Material: "MATCAP-041",
+    layer3Micron: "12",
   },
   {
     id: "SKU-00022-A-01",
@@ -624,6 +659,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "400",
     capacityUnit: "g",
     description: "Pechuga de pollo premium aprobada.",
+    structureType: "Trilaminado",
+    layer1Material: "MATCAP-009",
+    layer1Micron: "12",
+    layer2Material: "MATCAP-010",
+    layer2Micron: "22",
+    layer3Material: "MATCAP-008",
+    layer3Micron: "12",
   },
   {
     id: "SKU-00023-A-01",
@@ -647,6 +689,13 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "600",
     capacityUnit: "g",
     description: "Carne vacuno premium aprobada para reformulaciones.",
+    structureType: "Trilaminado",
+    layer1Material: "MATCAP-009",
+    layer1Micron: "12",
+    layer2Material: "MATCAP-038",
+    layer2Micron: "22",
+    layer3Material: "MATCAP-041",
+    layer3Micron: "12",
   },
 ];
 
