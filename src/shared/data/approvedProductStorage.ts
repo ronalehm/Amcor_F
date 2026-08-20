@@ -498,8 +498,6 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityUnit: "ml",
     hasSpecialDesign: "No",
     description: "Carnes frías base para alimentos frescos.",
-    layer1Material: "MATCAP-008",
-    layer1Micron: "15",
   },
   {
     id: "APR-009",
@@ -517,8 +515,6 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityUnit: "g",
     hasSpecialDesign: "No",
     description: "Carne molida base en bandeja.",
-    layer1Material: "MATCAP-009",
-    layer1Micron: "15",
   },
   {
     id: "APR-010",
@@ -536,8 +532,6 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityUnit: "g",
     hasSpecialDesign: "No",
     description: "Pechuga de pollo base en bandeja.",
-    layer1Material: "MATCAP-010",
-    layer1Micron: "15",
   },
   {
     id: "APR-011",
@@ -555,8 +549,6 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityUnit: "g",
     hasSpecialDesign: "No",
     description: "Carne vacuno base para carnes importadas.",
-    layer1Material: "MATCAP-024",
-    layer1Micron: "15",
   },
 
   // SKUs Aprobados adicionales para MODIFIED_FROM_APPROVED - Carnes Importadas (PO-000011)
@@ -584,10 +576,6 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "300",
     capacityUnit: "g",
     description: "Carnes frías premium aprobada para modificaciones.",
-    layer1Material: "MATCAP-008",
-    layer1Micron: "12",
-    layer2Material: "MATCAP-010",
-    layer2Micron: "22",
   },
   {
     id: "SKU-00021-A-01",
@@ -613,10 +601,6 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "500",
     capacityUnit: "g",
     description: "Carne molida premium aprobada.",
-    layer1Material: "MATCAP-008",
-    layer1Micron: "12",
-    layer2Material: "MATCAP-038",
-    layer2Micron: "22",
   },
   {
     id: "SKU-00022-A-01",
@@ -640,10 +624,6 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "400",
     capacityUnit: "g",
     description: "Pechuga de pollo premium aprobada.",
-    layer1Material: "MATCAP-009",
-    layer1Micron: "12",
-    layer2Material: "MATCAP-010",
-    layer2Micron: "22",
   },
   {
     id: "SKU-00023-A-01",
@@ -667,10 +647,6 @@ const APPROVED_PRODUCTS: ApprovedProduct[] = [
     capacityValue: "600",
     capacityUnit: "g",
     description: "Carne vacuno premium aprobada para reformulaciones.",
-    layer1Material: "MATCAP-009",
-    layer1Micron: "12",
-    layer2Material: "MATCAP-038",
-    layer2Micron: "22",
   },
 ];
 
