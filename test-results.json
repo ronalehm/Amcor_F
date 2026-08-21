@@ -4,7 +4,7 @@
       "C:\\Program Files\\nodejs\\node.exe",
       "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\node_modules\\@playwright\\test\\cli.js",
       "test",
-      "qa-full-automated",
+      "qa-sku-base-approved",
       "--timeout=300000"
     ],
     "configFile": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\playwright.config.ts",
@@ -76,233 +76,200 @@
   },
   "suites": [
     {
-      "title": "qa-full-automated.spec.ts",
-      "file": "qa-full-automated.spec.ts",
+      "title": "qa-sku-base-approved.spec.ts",
+      "file": "qa-sku-base-approved.spec.ts",
       "column": 0,
       "line": 0,
-      "specs": [
+      "specs": [],
+      "suites": [
         {
-          "title": "QA COMPLETA - 3 Casuísticas Automatizadas",
-          "ok": true,
-          "tags": [],
-          "tests": [
+          "title": "QA: SKU Base y Aprobados en ProductInitialCreateModal",
+          "file": "qa-sku-base-approved.spec.ts",
+          "line": 25,
+          "column": 6,
+          "specs": [
             {
-              "timeout": 300000,
-              "annotations": [],
-              "expectedStatus": "passed",
-              "projectId": "chromium",
-              "projectName": "chromium",
-              "results": [
+              "title": "QA-SKU-01: Producto Modificado - Verificar SKU Aprobados disponibles",
+              "ok": false,
+              "tags": [],
+              "tests": [
                 {
-                  "workerIndex": 0,
-                  "parallelIndex": 0,
-                  "status": "passed",
-                  "duration": 18147,
-                  "errors": [],
-                  "stdout": [
+                  "timeout": 300000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
                     {
-                      "text": "\n╔════════════════════════════════════════════════════════╗\n"
-                    },
-                    {
-                      "text": "║     QA AUTOMÁTICA - 3 CASUÍSTICAS COMPLETADAS        ║\n"
-                    },
-                    {
-                      "text": "╚════════════════════════════════════════════════════════╝\n\n"
-                    },
-                    {
-                      "text": "🔐 Navegando a login...\n"
-                    },
-                    {
-                      "text": "✓ Screenshot: 01-login-page-2026-08-18T00-51-24-771Z.png\n"
-                    },
-                    {
-                      "text": "  Buscando botones de acceso rápido...\n"
-                    },
-                    {
-                      "text": "✓ Clic en acceso rápido admin@amcor.com\n"
-                    },
-                    {
-                      "text": "✓ Clic en 'Ingresar al Portal'\n"
-                    },
-                    {
-                      "text": "✓ Login exitoso\n"
-                    },
-                    {
-                      "text": "✓ Screenshot: 02-products-page-2026-08-18T00-51-28-664Z.png\n"
-                    },
-                    {
-                      "text": "\n═══════════════════════════════════════════\n"
-                    },
-                    {
-                      "text": "QA-01: NEW_WITH_NEW_STRUCTURE\n"
-                    },
-                    {
-                      "text": "═══════════════════════════════════════════\n\n"
-                    },
-                    {
-                      "text": "🔍 Buscando botón 'Nuevo'...\n"
-                    },
-                    {
-                      "text": "✓ Clic en 'Nuevo'\n"
-                    },
-                    {
-                      "text": "✓ Screenshot: QA01-modal-abierto-2026-08-18T00-51-31-438Z.png\n"
-                    },
-                    {
-                      "text": "⚠️ No se pudo seleccionar Producto Nuevo\n"
-                    },
-                    {
-                      "text": "⚠️ No se pudo seleccionar Nueva estructura\n"
-                    },
-                    {
-                      "text": "⚠️ No se pudo seleccionar KG\n"
-                    },
-                    {
-                      "text": "✓ Screenshot: QA01-previa-guardado-2026-08-18T00-51-31-689Z.png\n"
-                    },
-                    {
-                      "text": "✓ Screenshot: QA01-post-guardado-2026-08-18T00-51-31-900Z.png\n"
-                    },
-                    {
-                      "text": "\n📊 QA-01: PASS\n"
-                    },
-                    {
-                      "text": "  ✓ Modal abierto\n"
-                    },
-                    {
-                      "text": "  ✓ Clasificación: Producto Nuevo\n"
-                    },
-                    {
-                      "text": "  ✓ Modificación: Nueva estructura\n"
-                    },
-                    {
-                      "text": "  ✓ Datos completados\n"
-                    },
-                    {
-                      "text": "  ✓ SKU generado: \n"
-                    },
-                    {
-                      "text": "\n═══════════════════════════════════════════\n"
-                    },
-                    {
-                      "text": "QA-02: NEW_FROM_BASE\n"
-                    },
-                    {
-                      "text": "═══════════════════════════════════════════\n\n"
-                    },
-                    {
-                      "text": "🔍 Buscando botón 'Nuevo'...\n"
-                    },
-                    {
-                      "text": "✓ Clic en 'Nuevo'\n"
-                    },
-                    {
-                      "text": "⚠️ No se pudo seleccionar Producto Nuevo\n"
-                    },
-                    {
-                      "text": "⚠️ No se pudo seleccionar Nuevos insumos\n"
-                    },
-                    {
-                      "text": "✓ Screenshot: QA02-previa-guardado-2026-08-18T00-51-34-712Z.png\n"
-                    },
-                    {
-                      "text": "✓ Screenshot: QA02-post-guardado-2026-08-18T00-51-34-893Z.png\n"
-                    },
-                    {
-                      "text": "\n📊 QA-02: PASS\n"
-                    },
-                    {
-                      "text": "  ✓ Casuística configurada\n"
-                    },
-                    {
-                      "text": "  ✓ Datos completados\n"
-                    },
-                    {
-                      "text": "\n═══════════════════════════════════════════\n"
-                    },
-                    {
-                      "text": "QA-03: MODIFIED_FROM_APPROVED\n"
-                    },
-                    {
-                      "text": "═══════════════════════════════════════════\n\n"
-                    },
-                    {
-                      "text": "🔍 Buscando botón 'Nuevo'...\n"
-                    },
-                    {
-                      "text": "✓ Clic en 'Nuevo'\n"
-                    },
-                    {
-                      "text": "⚠️ No se pudo seleccionar Producto Modificado\n"
-                    },
-                    {
-                      "text": "✓ Screenshot: QA03-previa-guardado-2026-08-18T00-51-37-654Z.png\n"
-                    },
-                    {
-                      "text": "✓ Screenshot: QA03-post-guardado-2026-08-18T00-51-37-849Z.png\n"
-                    },
-                    {
-                      "text": "\n📊 QA-03: PASS\n"
-                    },
-                    {
-                      "text": "  ✓ Clasificación: Producto Modificado\n"
-                    },
-                    {
-                      "text": "  ✓ Datos completados\n"
-                    },
-                    {
-                      "text": "\n╔════════════════════════════════════════════════════════╗\n"
-                    },
-                    {
-                      "text": "║              REPORTE FINAL DE QA                      ║\n"
-                    },
-                    {
-                      "text": "╚════════════════════════════════════════════════════════╝\n\n"
-                    },
-                    {
-                      "text": "# REPORTE QA AUTOMATIZADO - 3 CASUÍSTICAS\n\n**Fecha**: 2026-08-18T00:51:38.018Z\n**Ambiente**: http://localhost:5173\n**Casos Ejecutados**: 3\n\n## NEW_WITH_NEW_STRUCTURE\n**Resultado**: PASS\n**SKU Origen**: N/A\n**SKU Mostrado**: N/A\n**SKU Guardado**: N/A\n\n**Observaciones**:\n- ✓ Modal abierto\n- ✓ Clasificación: Producto Nuevo\n- ✓ Modificación: Nueva estructura\n- ✓ Datos completados\n- ✓ SKU generado: \n\n---\n\n## NEW_FROM_BASE\n**Resultado**: PASS\n**SKU Origen**: N/A\n**SKU Mostrado**: N/A\n**SKU Guardado**: N/A\n\n**Observaciones**:\n- ✓ Casuística configurada\n- ✓ Datos completados\n\n---\n\n## MODIFIED_FROM_APPROVED\n**Resultado**: PASS\n**SKU Origen**: N/A\n**SKU Mostrado**: N/A\n**SKU Guardado**: N/A\n\n**Observaciones**:\n- ✓ Clasificación: Producto Modificado\n- ✓ Datos completados\n\n---\n\n## RESUMEN FINAL\n- **PASS**: 3/3\n- **FAIL**: 0/3\n- **Tasa de Éxito**: 100.0%\n\n"
-                    },
-                    {
-                      "text": "\n✅ Reporte guardado: c:\\Users\\ronal\\AppData\\Local\\Temp\\claude\\c--Users-ronal-OneDrive-Documents-Amcor-F2\\a21a1952-76a2-475c-bc67-12810e348e8a\\scratchpad\\qa-screenshots\\QA_AUTOMATED_REPORT.md\n"
-                    },
-                    {
-                      "text": "✅ Screenshots guardados: c:\\Users\\ronal\\AppData\\Local\\Temp\\claude\\c--Users-ronal-OneDrive-Documents-Amcor-F2\\a21a1952-76a2-475c-bc67-12810e348e8a\\scratchpad\\qa-screenshots\n\n"
-                    },
-                    {
-                      "text": "╔════════════════════════════════════════════════════════╗\n"
-                    },
-                    {
-                      "text": "║  RESULTADO FINAL: 3/3 PASSED  (100.0%)               ║\n"
-                    },
-                    {
-                      "text": "╚════════════════════════════════════════════════════════╝\n\n"
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 307138,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 300000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 300000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 300000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\tests\\e2e\\qa-sku-base-approved.spec.ts",
+                            "column": 20,
+                            "line": 42
+                          },
+                          "message": "Error: locator.click: Test timeout of 300000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[type=\\'checkbox\\']').first()\u001b[22m\n\n\n  40 |     // Marcar declaración\n  41 |     const checkbox = await page.locator(\"input[type='checkbox']\").first();\n> 42 |     await checkbox.click();\n     |                    ^\n  43 |     console.log(\"✓ Declaración marcada\");\n  44 |\n  45 |     // Esperar a que cargue completamente\n    at C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\tests\\e2e\\qa-sku-base-approved.spec.ts:42:20"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "\n═══════════════════════════════════════════\n"
+                        },
+                        {
+                          "text": "QA-SKU-01: Producto Modificado - SKU Aprobados\n"
+                        },
+                        {
+                          "text": "═══════════════════════════════════════════\n\n"
+                        },
+                        {
+                          "text": "🔐 Login y navegación...\n"
+                        },
+                        {
+                          "text": "✓ Login completado y navegación a /products\n"
+                        },
+                        {
+                          "text": "✓ Modal de Nueva solicitud abierto\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-20T16:40:00.908Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\test-results\\qa-sku-base-approved-QA-SK-719e6-r-SKU-Aprobados-disponibles-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\test-results\\qa-sku-base-approved-QA-SK-719e6-r-SKU-Aprobados-disponibles-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\test-results\\qa-sku-base-approved-QA-SK-719e6-r-SKU-Aprobados-disponibles-chromium\\error-context.md"
+                        }
+                      ]
                     }
                   ],
-                  "stderr": [],
-                  "retry": 0,
-                  "startTime": "2026-08-18T00:51:17.081Z",
-                  "annotations": [],
-                  "attachments": []
+                  "status": "unexpected"
                 }
               ],
-              "status": "expected"
+              "id": "561de74e8e5483f7cb54-7539313c14f0d64c7487",
+              "file": "qa-sku-base-approved.spec.ts",
+              "line": 27,
+              "column": 3
+            },
+            {
+              "title": "QA-SKU-02: Producto Nuevo (sin Nueva estructura) - Verificar SKU Base disponibles",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 300000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 307451,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 300000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 300000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 300000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\tests\\e2e\\qa-sku-base-approved.spec.ts",
+                            "column": 20,
+                            "line": 142
+                          },
+                          "message": "Error: locator.click: Test timeout of 300000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[type=\\'checkbox\\']').first()\u001b[22m\n\n\n  140 |     // Marcar declaración\n  141 |     const checkbox = await page.locator(\"input[type='checkbox']\").first();\n> 142 |     await checkbox.click();\n      |                    ^\n  143 |     console.log(\"✓ Declaración marcada\");\n  144 |\n  145 |     await page.waitForTimeout(1000);\n    at C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\tests\\e2e\\qa-sku-base-approved.spec.ts:142:20"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "\n═══════════════════════════════════════════\n"
+                        },
+                        {
+                          "text": "QA-SKU-02: Producto Nuevo - SKU Base\n"
+                        },
+                        {
+                          "text": "═══════════════════════════════════════════\n\n"
+                        },
+                        {
+                          "text": "🔐 Login y navegación...\n"
+                        },
+                        {
+                          "text": "✓ Login completado y navegación a /products\n"
+                        },
+                        {
+                          "text": "✓ Modal de Nueva solicitud abierto\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-20T16:45:11.740Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\test-results\\qa-sku-base-approved-QA-SK-ea893-ificar-SKU-Base-disponibles-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\test-results\\qa-sku-base-approved-QA-SK-ea893-ificar-SKU-Base-disponibles-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\ronal\\OneDrive\\Documents\\Amcor_F2\\test-results\\qa-sku-base-approved-QA-SK-ea893-ificar-SKU-Base-disponibles-chromium\\error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "561de74e8e5483f7cb54-4dc927279cef3f4240da",
+              "file": "qa-sku-base-approved.spec.ts",
+              "line": 127,
+              "column": 3
             }
-          ],
-          "id": "ac98e60772302a32b89f-884e706c07d44328a594",
-          "file": "qa-full-automated.spec.ts",
-          "line": 234,
-          "column": 1
+          ]
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-08-18T00:51:15.206Z",
-    "duration": 24142.186,
-    "expected": 1,
+    "startTime": "2026-08-20T16:39:59.917Z",
+    "duration": 620637.6050000001,
+    "expected": 0,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 2,
     "flaky": 0
   }
 }
